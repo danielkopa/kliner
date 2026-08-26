@@ -1,0 +1,26 @@
+#!/bin/bash
+
+clear
+
+cat <<'ART'
+
+                 .───────────.
+               .'             '.
+              /    ·       ·    \
+             |        ─          |
+              \                 /
+               '._           _.'
+                  '─────────'
+
+                       NIMO
+
+              make your computer
+                   feel better.
+
+ART
+
+echo ""
+echo "  ─────────────────────────────────────"
+echo ""
+echo "  Welcome back."
+echo ""
