@@ -83,12 +83,13 @@ nimo_desktop_items() {
     done
 }
 
+# shellcheck disable=SC2120  # the file to undo is optional
 nimo_desktop_undo() {
-    nimo_header
+    [ "${NIMO_UNDO_QUIET:-0}" = "1" ] || nimo_header
     nimo_panel_open "put it back"
 
-    local latest
-    latest=$(ls -1 "$NIMO_UNDO_DIR"/desktop-*.tsv 2>/dev/null | tail -1)
+    local latest="${1:-}"
+    [ -n "$latest" ] || latest=$(ls -1 "$NIMO_UNDO_DIR"/desktop-*.tsv 2>/dev/null | tail -1)
 
     if [ -z "$latest" ]; then
         nimo_dim "nimo has not tidied your desktop yet — nothing to undo"
