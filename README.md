@@ -11,6 +11,8 @@
 
 [![ci](https://github.com/danielkopa/nimo/actions/workflows/ci.yml/badge.svg)](https://github.com/danielkopa/nimo/actions/workflows/ci.yml)
 
+**[nimo.sh →](https://danielkopa.github.io/nimo/)** — the page, if you would rather look than read.
+
 **nimo** makes a Mac feel minimal again. A desktop with nothing on it. A dock
 with only the apps you actually open. A calm wallpaper. Sane preferences. And,
 once all that is true, a disk without fifteen gigabytes of cache on it.
@@ -331,6 +333,7 @@ nimo
 ├── install.sh             puts min on your PATH
 ├── uninstall.sh           takes it off again
 ├── .github/workflows      shellcheck, bash 3.2, linux, macos, install
+├── docs/index.html        the website, in one file
 ├── completions/min.bash   tab completion
 ├── man/min.1              the manual page
 ├── test/run.sh            the test suite
@@ -362,6 +365,13 @@ nimo_register slack "Slack cache" contents safe \
 macOS with the bash that ships with it (3.2) or anything newer. `min desktop`,
 `min clean`, `min top` and `min doctor` also work on Linux; `min dock`,
 `min wallpaper` and `min setup` are macOS only. Checked with ShellCheck.
+
+## The website
+
+`docs/index.html` is the whole site: one file, no build step, no dependencies,
+no tracking. To put it online, open **Settings → Pages** on GitHub, set the
+source to the `main` branch and the folder to `/docs`. It lands at
+`danielkopa.github.io/nimo`.
 
 ## License
 

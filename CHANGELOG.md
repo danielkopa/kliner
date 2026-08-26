@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0
+
+- **A website.** `docs/index.html` — one file, no build step, no dependencies,
+  no tracking, and it reads correctly in both light and dark. Point GitHub
+  Pages at `/docs` and it is live
+
 ## 0.7.0
 
 - **`min` on its own is now a menu.** Arrow through the commands and press
