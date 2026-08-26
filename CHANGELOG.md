@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.10.0
+
+nimo said everything was undoable. `min setup` was the exception. It is not
+any more.
+
+- **`min setup --restore`.** Before changing a key, nimo reads its value and
+  its type and writes both down; keys that had never been set are recorded as
+  never set. Restoring replays that exactly — old values with the type they
+  had, never-set keys unset again rather than left at nimo's opinion. Values
+  that are whole structures are marked and skipped rather than flattened
+- `min undo` lists preference changes alongside desktop tidies, dock rebuilds
+  and wallpapers
+- **Fixed: two runs inside the same second overwrote each other's undo record.**
+  Both logs are kept now, and the extra one is named so it still sorts last —
+  `_2`, not `-2`, because `-` sorts before `.` and the newest would have come
+  out first
+- **Fixed: the guard for structured preference values matched everything.**
+  `"$(printf '\n')"` looks like a newline but command substitution strips it,
+  leaving an empty string that matches any value at all
+- 143 checks across the two suites, all of it in CI
+
 ## 0.9.0
 
 - **`test/macos.sh`** — 45 checks for the parts that only ever run on a Mac.

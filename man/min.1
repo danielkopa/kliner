@@ -47,7 +47,9 @@ The biggest folders in your home, with bars.
 Disk, memory, battery, uptime, clutter and total junk on one screen.
 .TP
 .B min setup
-Apply a small, sane set of macOS preferences.
+Apply a small, sane set of macOS preferences. Every key's previous value and
+type are written down first, so \fB\-\-restore\fR can put them back exactly,
+including unsetting keys that had never been set.
 .TP
 .B min update
 Run \fBgit pull\fR in whichever folder nimo lives in.
@@ -63,7 +65,7 @@ Skip the confirmation question.
 Put the desktop back the way it was.
 .TP
 .B \-\-restore
-Put the dock or the wallpaper back.
+Put the dock, the wallpaper or the preferences back.
 .TP
 .B \-\-random
 Let nimo pick the wallpaper.
@@ -111,9 +113,9 @@ Something could not be done.
 The command line did not make sense.
 .SH TESTS
 .B bash test/run.sh
-runs 80 checks against a throwaway computer in \fI/tmp\fR.
+runs 81 checks against a throwaway computer in \fI/tmp\fR.
 .B bash test/macos.sh
-runs 45 more against a simulated macOS, so the dock, wallpaper and preference
+runs 62 more against a simulated macOS, so the dock, wallpaper and preference
 code can be tested without a Mac and without touching yours.
 .SH SEE ALSO
 The full documentation lives in the repository README.

@@ -295,8 +295,8 @@ man min
 ## Tests
 
 ```bash
-bash test/run.sh      # 80 checks — everything that runs anywhere
-bash test/macos.sh    # 45 checks — the parts that only run on a Mac
+bash test/run.sh      # 81 checks — everything that runs anywhere
+bash test/macos.sh    # 62 checks — the parts that only run on a Mac
 ```
 
 The dock, the wallpaper and the preferences only ever run on a Mac, which used
@@ -308,9 +308,13 @@ right apps leave the dock and the rest keep their order, that the backup is
 written *before* anything changes, that `--restore` brings all of it back, that
 `setup --dry-run` writes nothing at all, that no line anywhere reaches for
 sudo, and that the wallpaper falls through to its last resort when macOS
-refuses. It found a real bug the first time it ran: `pmset` says
-`discharging`, which contains `charging`, so a battery on its way down was
-being reported as plugged in.
+refuses. It has found three real bugs so far. `pmset` says `discharging`, which
+contains `charging`, so a battery on its way down was reported as plugged in.
+The guard meant to spot a structured preference value used
+`"$(printf '\n')"`, which collapses to an empty string — so it matched every
+value and nothing was ever recorded. And two runs inside one second produced
+the same log name, where the second truncated the first and took the only
+record of how to undo it with it.
 
 Every push runs everything on GitHub Actions: ShellCheck, a parse on both bash
 3.2 and bash 5, both suites on Linux, **both suites on macOS under
@@ -318,7 +322,7 @@ Every push runs everything on GitHub Actions: ShellCheck, a parse on both bash
 install-then-uninstall round trip. The bash 3.2 claim in this README is not a
 claim; it is a job that fails if it stops being true.
 
-Eighty checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
+Eighty-one checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
 command and flag, the safety guard, the arrow-key picker driven by simulated
 keystrokes, the menu, the undo history, the config file, the desktop sorted and then
 fully undone, and a complete clean where the promised number is compared
