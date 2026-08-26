@@ -39,6 +39,18 @@ $labels"
 $actions"
     done
 
+    # preference changes
+    for f in "$NIMO_BACKUP_DIR"/setup-*.tsv; do
+        [ -f "$f" ] || continue
+        stamp=$(basename "$f" | sed -e 's/^setup-//' -e 's/\.tsv$//')
+        when=$(nimo_undo_when "$stamp")
+        lines=$(grep -c . "$f" 2>/dev/null || true)
+        labels="$(printf '%-22s %-18s %s' "changed preferences" "$when" "$(nimo_plural "${lines:-0}" setting)")
+$labels"
+        actions="setup	$f
+$actions"
+    done
+
     # the wallpaper nimo replaced
     f="$NIMO_BACKUP_DIR/wallpaper.txt"
     if [ -f "$f" ]; then
@@ -105,6 +117,7 @@ EOF
     case "$kind" in
         desktop)   nimo_desktop_undo "$file" ;;
         dock)      nimo_dock_restore "$file" ;;
+        setup)     nimo_setup_restore "$file" ;;
         wallpaper) nimo_wall_restore ;;
     esac
     NIMO_UNDO_QUIET=0

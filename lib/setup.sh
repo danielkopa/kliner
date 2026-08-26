@@ -25,13 +25,99 @@ nimo_register_groups() {
     nimo_register_group dialogs     "Dialogs"     "always expand save and print panels"
 }
 
+NIMO_SETUP_LOG=""
+
+# Write down what a preference was, before changing it.
+#
+# `defaults read` gives the value but not the type, and writing an integer
+# back as a string is not the same setting — so the type is read too, and
+# replayed with the matching flag.
+nimo_setup_record() {
+    local domain="$1" key="$2" prior type
+    [ -n "${NIMO_SETUP_LOG:-}" ] || return 0
+
+    prior=$(defaults read "$domain" "$key" 2>/dev/null) || {
+        printf '%s\t%s\tabsent\t\t\n' "$domain" "$key" >> "$NIMO_SETUP_LOG"
+        return 0
+    }
+
+    # Anything with a newline or a tab in it is a structure, not a setting.
+    # Note the $'...' quoting: "$(printf '\n')" looks like it says the same
+    # thing, but command substitution strips trailing newlines, so it collapses
+    # to an empty string and the pattern then matches every value there is.
+    case "$prior" in
+        *$'\n'*|*$'\t'*)
+            printf '%s\t%s\tcomplex\t\t\n' "$domain" "$key" >> "$NIMO_SETUP_LOG"
+            return 0 ;;
+    esac
+
+    type=$(defaults read-type "$domain" "$key" 2>/dev/null)
+    case "$type" in
+        *boolean*) type="-bool" ;;
+        *integer*) type="-int" ;;
+        *float*)   type="-float" ;;
+        *)         type="-string" ;;
+    esac
+
+    printf '%s\t%s\thad\t%s\t%s\n' "$domain" "$key" "$type" "$prior" >> "$NIMO_SETUP_LOG"
+}
+
 # run a command, or just show it in dry-run mode
 nimo_run() {
     if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
         printf '  %s$ %s%s\n' "$NIMO_C_DIM" "$*" "$NIMO_C_RESET"
-    else
-        "$@" >/dev/null 2>&1 || nimo_warn "could not apply: $*"
+        return 0
     fi
+
+    if [ "${1:-}" = "defaults" ] && [ "${2:-}" = "write" ]; then
+        nimo_setup_record "${3:-}" "${4:-}"
+    fi
+
+    "$@" >/dev/null 2>&1 || nimo_warn "could not apply: $*"
+}
+
+# shellcheck disable=SC2120  # the log to replay is optional
+nimo_setup_restore() {
+    [ "${NIMO_UNDO_QUIET:-0}" = "1" ] || nimo_header
+    nimo_panel_open "put the preferences back"
+
+    local latest="${1:-}"
+    [ -n "$latest" ] || latest=$(ls -1 "$NIMO_BACKUP_DIR"/setup-*.tsv 2>/dev/null | tail -1)
+
+    if [ -z "$latest" ] || [ ! -f "$latest" ]; then
+        nimo_dim "nimo has not changed any preferences yet"
+        nimo_panel_close
+        nimo_blank
+        return 0
+    fi
+
+    local back=0 removed=0 skipped=0 domain key state type value
+    while IFS=$'\t' read -r domain key state type value; do
+        [ -n "${domain:-}" ] || continue
+        [ -n "${key:-}" ] || continue
+        case "$state" in
+            had)
+                defaults write "$domain" "$key" "$type" "$value" >/dev/null 2>&1 \
+                    && back=$((back + 1)) ;;
+            absent)
+                defaults delete "$domain" "$key" >/dev/null 2>&1
+                removed=$((removed + 1)) ;;
+            *)
+                skipped=$((skipped + 1)) ;;
+        esac
+    done < "$latest"
+
+    killall Finder >/dev/null 2>&1
+    killall Dock >/dev/null 2>&1
+    killall SystemUIServer >/dev/null 2>&1
+
+    nimo_ok "$(nimo_plural "$back" preference) back to what it was"
+    [ "$removed" -gt 0 ] && nimo_dim "$removed had never been set, and are unset again"
+    [ "$skipped" -gt 0 ] && nimo_dim "$skipped were too complicated to replay and were left alone"
+    nimo_dim "$(basename "$latest")"
+    nimo_panel_close
+    nimo_blank
+    return 0
 }
 
 nimo_group_selected() {
@@ -111,6 +197,11 @@ nimo_setup_list() {
 }
 
 nimo_cmd_setup() {
+    if [ "${NIMO_RESTORE:-0}" = "1" ]; then
+        nimo_setup_restore
+        return 0
+    fi
+
     nimo_header
     nimo_register_groups
 
@@ -158,6 +249,9 @@ nimo_cmd_setup() {
     fi
 
     NIMO_RESTART_FINDER=0; NIMO_RESTART_DOCK=0; NIMO_RESTART_UI=0
+    mkdir -p "$NIMO_BACKUP_DIR" 2>/dev/null
+    NIMO_SETUP_LOG=$(nimo_free_file "$NIMO_BACKUP_DIR/setup-$(date +%Y%m%d-%H%M%S)" .tsv)
+    : > "$NIMO_SETUP_LOG"
     i=0
     while [ "$i" -lt "$NIMO_G_N" ]; do
         if nimo_group_selected "${NIMO_G_ID[$i]}"; then
@@ -180,6 +274,7 @@ nimo_cmd_setup() {
 
     nimo_ok "Setup applied."
     nimo_dim "some changes need a logout to show up everywhere"
+    nimo_dim "changed your mind?  min setup --restore"
     nimo_blank
     return 0
 }
