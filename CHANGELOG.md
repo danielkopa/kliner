@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.0
+
+- **`min` on its own is now a menu.** Arrow through the commands and press
+  enter. Piped or on a dumb terminal it prints the help exactly as before
+- **Continuous integration.** Every push runs ShellCheck, parses on bash 3.2
+  and bash 5, runs the suite on Linux and on macOS under the `/bin/bash` that
+  macOS actually ships, and installs then uninstalls. The bash 3.2 promise is
+  now a job that fails if it stops being true
+- `install.sh` refuses to finish if the thing it just linked does not run
+- `uninstall.sh` also removes the man page, and says where `~/.nimo` is
+
 ## 0.6.0
 
 - **Arrow keys.** `min dock`, `min wallpaper` and `min undo` are now proper

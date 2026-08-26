@@ -9,6 +9,8 @@
    make your computer feel better
 ```
 
+[![ci](https://github.com/danielkopa/nimo/actions/workflows/ci.yml/badge.svg)](https://github.com/danielkopa/nimo/actions/workflows/ci.yml)
+
 **nimo** makes a Mac feel minimal again. A desktop with nothing on it. A dock
 with only the apps you actually open. A calm wallpaper. Sane preferences. And,
 once all that is true, a disk without fifteen gigabytes of cache on it.
@@ -36,6 +38,32 @@ cd ~/nimo
 
 That puts a `min` symlink on your PATH, so you can run `min` from anywhere.
 Later, `min update` pulls the newest version. To remove it: `./uninstall.sh`.
+
+## The way in
+
+`min` on its own, in a real terminal, is a menu rather than a wall of help:
+
+```
+   ███╗   ██╗██╗███╗   ███╗ ██████╗
+   ████╗  ██║██║████╗ ████║██╔═══██╗
+   ██╔██╗ ██║██║██╔████╔██║██║   ██║
+   ██║╚██╗██║██║██║╚██╔╝██║██║   ██║
+   ██║ ╚████║██║██║ ╚═╝ ██║╚██████╔╝
+   ╚═╝  ╚═══╝╚═╝╚═╝     ╚═╝ ╚═════╝
+
+   make your computer feel better
+
+  ↑↓ move   enter choose   q cancel
+
+   ▸ tidy       the whole thing, step by step
+     desktop    clear your desktop, nothing lost
+     dock       keep only the apps you open
+     wallpaper  a calmer wallpaper
+     preview    what could be freed, changing nothing
+```
+
+Piped into anything, or in a terminal that cannot do it, the same `min` prints
+the help it always did.
 
 ## A minimal mac
 
@@ -268,9 +296,15 @@ man min
 bash test/run.sh
 ```
 
-Seventy-six checks against a fake computer in `/tmp` with its own fake `HOME`: every
+Every push runs them on GitHub Actions: ShellCheck, a parse on both bash 3.2
+and bash 5, the suite on Linux, **the suite on macOS under `/bin/bash` — the
+actual 3.2 that ships with macOS** — and an install-then-uninstall round trip.
+The bash 3.2 claim in this README is not a claim; it is a job that fails if it
+stops being true.
+
+Eighty checks against a fake computer in `/tmp` with its own fake `HOME`: every
 command and flag, the safety guard, the arrow-key picker driven by simulated
-keystrokes, the undo history, the config file, the desktop sorted and then
+keystrokes, the menu, the undo history, the config file, the desktop sorted and then
 fully undone, and a complete clean where the promised number is compared
 against the freed number. Your real files are never read, never measured, never touched.
 
@@ -296,6 +330,7 @@ nimo
 ├── min                    the command itself: flags, dispatch, help
 ├── install.sh             puts min on your PATH
 ├── uninstall.sh           takes it off again
+├── .github/workflows      shellcheck, bash 3.2, linux, macos, install
 ├── completions/min.bash   tab completion
 ├── man/min.1              the manual page
 ├── test/run.sh            the test suite
