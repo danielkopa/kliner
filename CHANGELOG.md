@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.0
+
+- **`test/macos.sh`** — 45 checks for the parts that only ever run on a Mac.
+  Fake `defaults`, `osascript`, `killall`, `sw_vers`, `pmset`, `sqlite3` and
+  `uname` stand in front of the real ones, and the real nimo code runs against
+  them on any machine. The dock is read, rewritten, backed up and restored; the
+  wallpaper is listed, set, backed up, restored and pushed through its last
+  resort; every setup group is checked for the keys it writes and for the ones
+  it must not
+- **Fixed: a discharging battery was reported as plugged in.** `pmset` prints
+  `discharging`, which contains `charging`, and the glob matched it. Found by
+  the new suite on its first run, and now pinned down by one test per state
+- CI runs both suites, on Linux and on macOS under bash 3.2
+
 ## 0.8.0
 
 - **A website.** `docs/index.html` — one file, no build step, no dependencies,

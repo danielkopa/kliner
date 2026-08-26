@@ -419,7 +419,7 @@
 
   <header class="hero">
     <div class="hero-in">
-      <span class="pill"><b>v0.8.0</b> min tidy does the whole thing in one pass</span>
+      <span class="pill"><b>v0.9.0</b> the macOS parts are tested now, without a Mac</span>
 
       <h1>Make your Mac<br>feel minimal again.</h1>
 
@@ -438,9 +438,9 @@
 
       <div class="facts">
         <span><b>0</b> dependencies</span>
-        <span><b>80</b> tests</span>
+        <span><b>125</b> tests</span>
         <span>bash <b>3.2</b></span>
-        <span><b>~3400</b> lines you can read</span>
+        <span><b>~4000</b> lines you can read</span>
         <span><b>MIT</b></span>
       </div>
     </div>
@@ -460,7 +460,7 @@
 </span><span><b>   ╚═╝  ╚═══╝╚═╝╚═╝     ╚═╝ ╚═════╝ </b>
 </span><span>
 </span><span><i>   make your computer feel better</i>
-</span><span><i>   v0.8.0</i>
+</span><span><i>   v0.9.0</i>
 </span><span>
 </span><span><i>  ↑↓ move   enter choose   q cancel</i>
 </span><span>
@@ -768,6 +768,20 @@
           full clean where the promised number is compared against the freed one. Your
           real files are never read.
         </p>
+        <p>
+          The dock, the wallpaper and the preferences only ever run on a Mac, which used
+          to make them the parts nobody could test. Forty-five more checks put fake
+          <code>defaults</code>, <code>osascript</code>, <code>pmset</code> and
+          <code>uname</code> in front of the real ones and run the real code against
+          them — the right apps leave the dock and the rest keep their order, the backup
+          is written <em>before</em> anything changes, <code>--restore</code> brings it
+          all back, and no line anywhere reaches for sudo.
+        </p>
+        <p>
+          That suite found a real bug the first time it ran: <code>pmset</code> reports
+          <code>discharging</code>, which contains <code>charging</code>, so a battery on
+          its way down was being called plugged in. One test per state now holds it down.
+        </p>
       </div>
 
       <div class="two-up">
@@ -776,24 +790,29 @@
           <div class="job"><span class="tick">✓</span> <span>parses on <span class="what">bash 3.2</span></span> <span class="where">container</span></div>
           <div class="job"><span class="tick">✓</span> <span>parses on <span class="what">bash 5</span></span> <span class="where">container</span></div>
           <div class="job"><span class="tick">✓</span> <span>80 tests</span> <span class="where">ubuntu</span></div>
+          <div class="job"><span class="tick">✓</span> <span>45 macOS tests, <span class="what">simulated</span></span> <span class="where">ubuntu</span></div>
           <div class="job"><span class="tick">✓</span> <span>80 tests, <span class="what">/bin/bash</span></span> <span class="where">macos</span></div>
+          <div class="job"><span class="tick">✓</span> <span>45 macOS tests, <span class="what">/bin/bash</span></span> <span class="where">macos</span></div>
           <div class="job"><span class="tick">✓</span> <span>install, then uninstall</span> <span class="where">macos</span></div>
         </div>
 
         <div class="term">
-          <pre class="screen">  <s>nimo test suite</s>
-  <i>bash 3.2.57(1)-release on Darwin</i>
+          <pre class="screen">  <s>nimo macOS suite</s>
+  <i>real nimo code, fake macOS underneath</i>
 
-  <b>✓</b> preview leaves the cache alone
-  <b>✓</b> old downloads are only reported
-  <b>✓</b> picker ticks what you tick
-  <b>✓</b> refuses paths outside your home
-  <b>✓</b> hidden files are left alone
-  <b>✓</b> undo brings everything back
-  <b>✓</b> clean frees what it promised
+  <b>✓</b> decodes %20 in app names
+  <b>✓</b> marks what Apple put there
+  <b>✓</b> removes exactly what you ticked
+  <b>✓</b> the order is preserved
+  <b>✓</b> a backup was written first
+  <b>✓</b> --restore brings all five back
+  <b>✓</b> discharging is not 'plugged in'
+  <b>✓</b> setup --dry-run writes nothing
+  <b>✓</b> nothing in setup calls sudo
+  <b>✓</b> falls back when macOS says no
   <i>  …</i>
 
-  <b>✓ 80 passed</b></pre>
+  <b>✓ 45 passed</b></pre>
         </div>
       </div>
     </div>

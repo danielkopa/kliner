@@ -295,16 +295,30 @@ man min
 ## Tests
 
 ```bash
-bash test/run.sh
+bash test/run.sh      # 80 checks — everything that runs anywhere
+bash test/macos.sh    # 45 checks — the parts that only run on a Mac
 ```
 
-Every push runs them on GitHub Actions: ShellCheck, a parse on both bash 3.2
-and bash 5, the suite on Linux, **the suite on macOS under `/bin/bash` — the
-actual 3.2 that ships with macOS** — and an install-then-uninstall round trip.
-The bash 3.2 claim in this README is not a claim; it is a job that fails if it
-stops being true.
+The dock, the wallpaper and the preferences only ever run on a Mac, which used
+to make them the parts nobody could test. `test/macos.sh` stands fake
+`defaults`, `osascript`, `killall`, `sw_vers`, `pmset`, `sqlite3` and `uname`
+in front of the real ones and runs the real nimo code against them — on any
+machine, without touching a real dock or a real wallpaper. It checks that the
+right apps leave the dock and the rest keep their order, that the backup is
+written *before* anything changes, that `--restore` brings all of it back, that
+`setup --dry-run` writes nothing at all, that no line anywhere reaches for
+sudo, and that the wallpaper falls through to its last resort when macOS
+refuses. It found a real bug the first time it ran: `pmset` says
+`discharging`, which contains `charging`, so a battery on its way down was
+being reported as plugged in.
 
-Eighty checks against a fake computer in `/tmp` with its own fake `HOME`: every
+Every push runs everything on GitHub Actions: ShellCheck, a parse on both bash
+3.2 and bash 5, both suites on Linux, **both suites on macOS under
+`/bin/bash` — the actual 3.2 that ships with macOS** — and an
+install-then-uninstall round trip. The bash 3.2 claim in this README is not a
+claim; it is a job that fails if it stops being true.
+
+Eighty checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
 command and flag, the safety guard, the arrow-key picker driven by simulated
 keystrokes, the menu, the undo history, the config file, the desktop sorted and then
 fully undone, and a complete clean where the promised number is compared
@@ -336,7 +350,8 @@ nimo
 ├── docs/index.html        the website, in one file
 ├── completions/min.bash   tab completion
 ├── man/min.1              the manual page
-├── test/run.sh            the test suite
+├── test/run.sh            the suite that runs anywhere
+├── test/macos.sh          the macOS parts, against a fake macOS
 └── lib
     ├── ui.sh              banner, panels, bars, the way output looks
     ├── core.sh            sizes, disk, config, the safety guard
