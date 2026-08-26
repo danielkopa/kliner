@@ -419,7 +419,7 @@
 
   <header class="hero">
     <div class="hero-in">
-      <span class="pill"><b>v0.9.0</b> the macOS parts are tested now, without a Mac</span>
+      <span class="pill"><b>v0.10.0</b> min setup can be undone now, key by key</span>
 
       <h1>Make your Mac<br>feel minimal again.</h1>
 
@@ -438,7 +438,7 @@
 
       <div class="facts">
         <span><b>0</b> dependencies</span>
-        <span><b>125</b> tests</span>
+        <span><b>143</b> tests</span>
         <span>bash <b>3.2</b></span>
         <span><b>~4000</b> lines you can read</span>
         <span><b>MIT</b></span>
@@ -460,7 +460,7 @@
 </span><span><b>   ╚═╝  ╚═══╝╚═╝╚═╝     ╚═╝ ╚═════╝ </b>
 </span><span>
 </span><span><i>   make your computer feel better</i>
-</span><span><i>   v0.9.0</i>
+</span><span><i>   v0.10.0</i>
 </span><span>
 </span><span><i>  ↑↓ move   enter choose   q cancel</i>
 </span><span>
@@ -572,7 +572,7 @@
             <span class="n">4</span>
             <div>
               <h3>Your preferences</h3>
-              <p>Five small groups of <code>defaults write</code> — the same lines you would type yourself.</p>
+              <p>Five small groups of <code>defaults write</code> — each key's old value read and kept, so it can go back.</p>
             </div>
           </div>
         </div>
@@ -665,7 +665,7 @@
         <div class="card">
           <span class="mono">min setup</span>
           <p>Five groups of sane macOS preferences.</p>
-          <span class="tag">--dry-run · --list</span>
+          <span class="tag">--dry-run · --restore</span>
         </div>
         <div class="card">
           <span class="mono">min update</span>
@@ -735,7 +735,7 @@
         </div>
         <div class="promise">
           <h3>Everything is undoable</h3>
-          <p>Desktop moves logged one by one. The dock exported before it is touched. The old wallpaper written down.</p>
+          <p>Desktop moves logged one by one. The dock exported first. Every preference read — value and type — before it is overwritten.</p>
         </div>
         <div class="promise">
           <h3>Only inside your home folder</h3>
@@ -763,14 +763,14 @@
         <span class="eyebrow">how it is kept honest</span>
         <h2>The bash 3.2 promise is a job that fails.</h2>
         <p>
-          Eighty checks run against a fake computer in <code>/tmp</code> with its own fake
+          Eighty-one checks run against a fake computer in <code>/tmp</code> with its own fake
           home — including the arrow-key picker, driven by simulated keystrokes, and a
           full clean where the promised number is compared against the freed one. Your
           real files are never read.
         </p>
         <p>
           The dock, the wallpaper and the preferences only ever run on a Mac, which used
-          to make them the parts nobody could test. Forty-five more checks put fake
+          to make them the parts nobody could test. Sixty-two more checks put fake
           <code>defaults</code>, <code>osascript</code>, <code>pmset</code> and
           <code>uname</code> in front of the real ones and run the real code against
           them — the right apps leave the dock and the rest keep their order, the backup
@@ -778,9 +778,13 @@
           all back, and no line anywhere reaches for sudo.
         </p>
         <p>
-          That suite found a real bug the first time it ran: <code>pmset</code> reports
+          That suite has found three real bugs so far. <code>pmset</code> reports
           <code>discharging</code>, which contains <code>charging</code>, so a battery on
-          its way down was being called plugged in. One test per state now holds it down.
+          its way down was being called plugged in. A guard written as
+          <code>"$(printf '\n')"</code> collapsed to an empty string, so it matched every
+          value instead of the structured ones. And two runs inside one second landed on
+          the same log name, where the second truncated the first and took the only
+          record of how to undo it. Each one now has a test standing on it.
         </p>
       </div>
 
@@ -789,10 +793,10 @@
           <div class="job"><span class="tick">✓</span> <span>shellcheck</span> <span class="where">ubuntu</span></div>
           <div class="job"><span class="tick">✓</span> <span>parses on <span class="what">bash 3.2</span></span> <span class="where">container</span></div>
           <div class="job"><span class="tick">✓</span> <span>parses on <span class="what">bash 5</span></span> <span class="where">container</span></div>
-          <div class="job"><span class="tick">✓</span> <span>80 tests</span> <span class="where">ubuntu</span></div>
-          <div class="job"><span class="tick">✓</span> <span>45 macOS tests, <span class="what">simulated</span></span> <span class="where">ubuntu</span></div>
-          <div class="job"><span class="tick">✓</span> <span>80 tests, <span class="what">/bin/bash</span></span> <span class="where">macos</span></div>
-          <div class="job"><span class="tick">✓</span> <span>45 macOS tests, <span class="what">/bin/bash</span></span> <span class="where">macos</span></div>
+          <div class="job"><span class="tick">✓</span> <span>81 tests</span> <span class="where">ubuntu</span></div>
+          <div class="job"><span class="tick">✓</span> <span>62 macOS tests, <span class="what">simulated</span></span> <span class="where">ubuntu</span></div>
+          <div class="job"><span class="tick">✓</span> <span>81 tests, <span class="what">/bin/bash</span></span> <span class="where">macos</span></div>
+          <div class="job"><span class="tick">✓</span> <span>62 macOS tests, <span class="what">/bin/bash</span></span> <span class="where">macos</span></div>
           <div class="job"><span class="tick">✓</span> <span>install, then uninstall</span> <span class="where">macos</span></div>
         </div>
 
@@ -812,7 +816,7 @@
   <b>✓</b> falls back when macOS says no
   <i>  …</i>
 
-  <b>✓ 45 passed</b></pre>
+  <b>✓ 62 passed</b></pre>
         </div>
       </div>
     </div>
