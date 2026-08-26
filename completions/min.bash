@@ -12,8 +12,8 @@ _min_complete() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    cmds="clean preview top doctor setup update help version"
-    opts="--dry-run --yes --only --days --limit --json --list --no-color --quiet --help --version"
+    cmds="tidy desktop dock wallpaper clean preview top doctor setup update help version"
+    opts="--dry-run --yes --only --days --limit --json --undo --restore --random --list --no-color --quiet --help --version"
     ids="user-caches logs crash-reports trash quicklook mail-downloads xcode homebrew node python downloads ios-backups xcode-archives device-support node-modules big-files"
     groups="finder dock screenshots keyboard dialogs"
 

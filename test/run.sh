@@ -113,6 +113,44 @@ check "will not purge outside your home"  "HOME=$BOX bash -c '. $ROOT/lib/ui.sh;
 check "setup --list names the groups"     "min setup --list -q --no-color | grep -q screenshots"
 check "setup --dry-run changes nothing"   "min setup --dry-run -q --no-color >/dev/null; true"
 
+# ---- the desktop --------------------------------------------------------
+
+DESK="$BOX/Desktop"
+mkdir -p "$DESK/a project"
+touch "$DESK/Screenshot 2026-01-01 at 10.11.32.png" \
+      "$DESK/photo of the sea.JPG" \
+      "$DESK/invoice.pdf" \
+      "$DESK/archive.zip" \
+      "$DESK/script.sh" \
+      "$DESK/no-extension-thing" \
+      "$DESK/.hidden-thing"
+
+check "desktop --dry-run moves nothing"   "min desktop --dry-run -q --no-color >/dev/null; [ -f '$DESK/invoice.pdf' ]"
+check "desktop counts what is there"      "min desktop --dry-run -q --no-color | grep -q 'Screenshots'"
+
+min desktop -y -q --no-color >/dev/null 2>&1
+
+check "the desktop is clear"              "[ \$(ls '$DESK' | grep -cv '^Tidy\$') -eq 0 ]"
+check "screenshots are recognised"        "[ -f '$DESK/Tidy/Screenshots/Screenshot 2026-01-01 at 10.11.32.png' ]"
+check "images land in Images"             "[ -f '$DESK/Tidy/Images/photo of the sea.JPG' ]"
+check "documents land in Documents"       "[ -f '$DESK/Tidy/Documents/invoice.pdf' ]"
+check "archives land in Archives"         "[ -f '$DESK/Tidy/Archives/archive.zip' ]"
+check "code lands in Code"                "[ -f '$DESK/Tidy/Code/script.sh' ]"
+check "the odd one out lands in Other"    "[ -f '$DESK/Tidy/Other/no-extension-thing' ]"
+check "folders are moved whole"           "[ -d '$DESK/Tidy/Folders/a project' ]"
+check "hidden files are left alone"       "[ -f '$DESK/.hidden-thing' ]"
+check "a second run has nothing to do"    "min desktop -y -q --no-color | grep -q 'already clear'"
+
+min desktop --undo -q --no-color >/dev/null 2>&1
+
+check "undo brings everything back"       "[ -f '$DESK/invoice.pdf' ] && [ -f '$DESK/photo of the sea.JPG' ]"
+check "undo keeps folders intact"         "[ -d '$DESK/a project' ]"
+check "undo clears the Tidy folder away"  "[ ! -d '$DESK/Tidy' ]"
+check "undo with nothing to undo is calm" "min desktop --undo -q --no-color >/dev/null; min desktop --undo -q --no-color | grep -q 'back on your desktop\|nothing to undo'"
+
+check "dock says no on this machine"      "[ \"\$(uname -s)\" = Darwin ] || min dock -q --no-color | grep -q 'macOS'"
+check "wallpaper says no on this machine" "[ \"\$(uname -s)\" = Darwin ] || min wallpaper -q --no-color | grep -q 'macOS'"
+
 # ---- and finally, actually cleaning -------------------------------------
 
 REPORTED=$(min preview -q --no-color | awk '/Total/ {print $(NF - 1), $NF}')
