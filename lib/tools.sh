@@ -63,6 +63,34 @@ nimo_uptime_line() {
     printf '%s' "$raw" | sed -e 's/.*up[ ]*//' -e 's/,[ ]*[0-9]* user.*//' -e 's/[ ]*$//'
 }
 
+nimo_memory_line() {
+    local kb=0
+    if nimo_is_macos && nimo_have sysctl; then
+        kb=$(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1024 ))
+    elif [ -r /proc/meminfo ]; then
+        kb=$(awk '/^MemTotal:/ {print $2 + 0; exit}' /proc/meminfo 2>/dev/null)
+    fi
+    [ "${kb:-0}" -gt 0 ] || return 1
+    nimo_human_kb "$kb"
+}
+
+nimo_battery_line() {
+    nimo_have pmset || return 1
+    local raw pct state
+    raw=$(pmset -g batt 2>/dev/null) || return 1
+    case "$raw" in
+        *InternalBattery*) ;;
+        *) return 1 ;;
+    esac
+    pct=$(printf '%s' "$raw" | sed -n 's/.*[^0-9]\([0-9]\{1,3\}\)%.*/\1/p' | head -1)
+    [ -n "$pct" ] || return 1
+    case "$raw" in
+        *"AC attached"*|*charging*) state="plugged in" ;;
+        *) state="on battery" ;;
+    esac
+    printf '%s%%  ·  %s' "$pct" "$state"
+}
+
 nimo_cmd_doctor() {
     nimo_header
     nimo_panel_open "your computer"
@@ -79,6 +107,10 @@ nimo_cmd_doctor() {
             "$(printf '%s free of %s' "$(nimo_human_kb "$free")" "$(nimo_human_kb "$total")")" \
             "$(nimo_bar "$used" "$total" 16)"
     fi
+
+    local mem battery
+    mem=$(nimo_memory_line) && nimo_fact "Memory" "$mem"
+    battery=$(nimo_battery_line) && nimo_fact "Battery" "$battery"
 
     nimo_blank
     nimo_fact "Desktop" "$(nimo_plural "$(nimo_count_dir_items "$HOME/Desktop")" item)"
