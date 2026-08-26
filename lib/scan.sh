@@ -1,0 +1,276 @@
+#!/usr/bin/env bash
+# nimo :: lib/scan.sh — what nimo knows how to look at.
+#
+# Every target has:
+#   id      short name, usable with --only
+#   label   what the user sees
+#   kind    contents | tree | older | findname | bigfiles
+#   safety  safe   -> nimo may delete it after you confirm
+#           review -> nimo only reports it, never deletes it
+#   note    one-line explanation
+#   spec    one or more paths (newline separated)
+
+NIMO_T_ID=(); NIMO_T_LABEL=(); NIMO_T_KIND=()
+NIMO_T_SAFETY=(); NIMO_T_NOTE=(); NIMO_T_SPEC=()
+NIMO_T_N=0
+
+nimo_register() {
+    local id="$1" label="$2" kind="$3" safety="$4" note="$5"
+    shift 5
+    local spec="" p
+    for p in "$@"; do spec="${spec}${p}
+"; done
+    NIMO_T_ID[$NIMO_T_N]="$id"
+    NIMO_T_LABEL[$NIMO_T_N]="$label"
+    NIMO_T_KIND[$NIMO_T_N]="$kind"
+    NIMO_T_SAFETY[$NIMO_T_N]="$safety"
+    NIMO_T_NOTE[$NIMO_T_N]="$note"
+    NIMO_T_SPEC[$NIMO_T_N]="$spec"
+    NIMO_T_N=$((NIMO_T_N + 1))
+}
+
+nimo_register_targets_macos() {
+    nimo_register user-caches "App caches" contents safe \
+        "rebuilt automatically by your apps" \
+        "$HOME/Library/Caches"
+
+    nimo_register logs "Application logs" contents safe \
+        "old log files from your apps" \
+        "$HOME/Library/Logs"
+
+    nimo_register crash-reports "Crash reports" contents safe \
+        "diagnostic reports you will never read" \
+        "$HOME/Library/Logs/DiagnosticReports"
+
+    nimo_register trash "Trash" contents safe \
+        "already thrown away" \
+        "$HOME/.Trash"
+
+    nimo_register quicklook "QuickLook thumbnails" contents safe \
+        "regenerated on demand" \
+        "$HOME/Library/Caches/com.apple.QuickLook.thumbnailcache"
+
+    nimo_register mail-downloads "Mail attachments cache" contents safe \
+        "temporary copies of opened attachments" \
+        "$HOME/Library/Containers/com.apple.mail/Data/Library/Mail Downloads"
+
+    nimo_register xcode "Xcode derived data" contents safe \
+        "rebuilt next time you build" \
+        "$HOME/Library/Developer/Xcode/DerivedData" \
+        "$HOME/Library/Developer/CoreSimulator/Caches"
+
+    nimo_register homebrew "Homebrew cache" contents safe \
+        "downloaded bottles and formulae" \
+        "$HOME/Library/Caches/Homebrew"
+
+    nimo_register node "npm / yarn / pnpm cache" contents safe \
+        "package manager download caches" \
+        "$HOME/.npm/_cacache" \
+        "$HOME/Library/Caches/Yarn" \
+        "$HOME/.cache/yarn" \
+        "$HOME/Library/pnpm/store"
+
+    nimo_register python "pip cache" contents safe \
+        "downloaded python wheels" \
+        "$HOME/Library/Caches/pip" \
+        "$HOME/.cache/pip"
+
+    # ---- review only: nimo shows these, you decide ----
+
+    nimo_register downloads "Old downloads" older review \
+        "files in ~/Downloads you have not touched" \
+        "$HOME/Downloads"
+
+    nimo_register ios-backups "iPhone / iPad backups" tree review \
+        "deleting these loses your device backups" \
+        "$HOME/Library/Application Support/MobileSync/Backup"
+
+    nimo_register xcode-archives "Xcode archives" tree review \
+        "your shipped app builds" \
+        "$HOME/Library/Developer/Xcode/Archives"
+
+    nimo_register device-support "Xcode device support" tree review \
+        "re-downloaded when you connect a device" \
+        "$HOME/Library/Developer/Xcode/iOS DeviceSupport"
+
+    nimo_register node-modules "node_modules folders" findname review \
+        "reinstallable with npm install" \
+        "$HOME"
+
+    nimo_register big-files "Files over 500 MB" bigfiles review \
+        "the heavyweights sitting in your home folder" \
+        "$HOME"
+}
+
+nimo_register_targets_linux() {
+    nimo_register user-caches "User cache" contents safe \
+        "rebuilt automatically, exactly like macOS caches" \
+        "$HOME/.cache"
+
+    nimo_register trash "Trash" contents safe \
+        "already thrown away" \
+        "$HOME/.local/share/Trash/files" \
+        "$HOME/.local/share/Trash/info"
+
+    nimo_register node "npm / yarn cache" contents safe \
+        "package manager download caches" \
+        "$HOME/.npm/_cacache" \
+        "$HOME/.cache/yarn"
+
+    nimo_register python "pip cache" contents safe \
+        "downloaded python wheels" \
+        "$HOME/.cache/pip"
+
+    nimo_register downloads "Old downloads" older review \
+        "files in ~/Downloads you have not touched" \
+        "$HOME/Downloads"
+
+    nimo_register node-modules "node_modules folders" findname review \
+        "reinstallable with npm install" \
+        "$HOME"
+
+    nimo_register big-files "Files over 500 MB" bigfiles review \
+        "the heavyweights sitting in your home folder" \
+        "$HOME"
+}
+
+nimo_register_targets() {
+    NIMO_T_ID=(); NIMO_T_LABEL=(); NIMO_T_KIND=()
+    NIMO_T_SAFETY=(); NIMO_T_NOTE=(); NIMO_T_SPEC=()
+    NIMO_T_N=0
+    if nimo_is_macos; then
+        nimo_register_targets_macos
+    else
+        nimo_register_targets_linux
+    fi
+}
+
+nimo_target_paths() {
+    printf '%s' "${NIMO_T_SPEC[$1]}"
+}
+
+# Size of everything inside a directory, not counting the directory itself.
+nimo_children_kb() {
+    [ -d "$1" ] || { printf '0'; return 0; }
+    find "$1" -mindepth 1 -maxdepth 1 -exec du -sk {} + 2>/dev/null \
+        | awk '{t += $1} END {printf "%d", t + 0}'
+}
+
+# Sum of registered, selected target paths that live strictly inside $1.
+# Without this, ~/Library/Caches would be counted once on its own and once
+# again through Homebrew, pip and friends that live inside it.
+nimo_nested_kb() {
+    local parent="$1" total=0 i=0 q
+    while [ "$i" -lt "$NIMO_T_N" ]; do
+        if nimo_selected "$i"; then
+            while IFS= read -r q; do
+                [ -n "$q" ] || continue
+                case "$q" in
+                    "$parent"/*)
+                        [ -e "$q" ] && total=$((total + $(nimo_path_kb "$q")))
+                        ;;
+                esac
+            done <<EOF
+$(nimo_target_paths "$i")
+EOF
+        fi
+        i=$((i + 1))
+    done
+    printf '%s' "$total"
+}
+
+# measure target $1 -> prints "<kb> <count>"
+nimo_measure() {
+    local i="$1" kind="${NIMO_T_KIND[$1]}"
+    local kb=0 count=0 p sub
+
+    case "$kind" in
+        contents)
+            local nested
+            while IFS= read -r p; do
+                [ -n "$p" ] || continue
+                [ -d "$p" ] || continue
+                sub=$(nimo_children_kb "$p")
+                nested=$(nimo_nested_kb "$p")
+                sub=$((sub - nested))
+                [ "$sub" -lt 0 ] && sub=0
+                kb=$((kb + sub))
+                count=$((count + $(nimo_count_children "$p")))
+            done <<EOF
+$(nimo_target_paths "$i")
+EOF
+            ;;
+        tree)
+            while IFS= read -r p; do
+                [ -n "$p" ] || continue
+                [ -e "$p" ] || continue
+                sub=$(nimo_path_kb "$p")
+                kb=$((kb + sub))
+                count=$((count + $(nimo_count_children "$p")))
+            done <<EOF
+$(nimo_target_paths "$i")
+EOF
+            ;;
+        older)
+            local days="${NIMO_DAYS:-30}"
+            while IFS= read -r p; do
+                [ -n "$p" ] || continue
+                [ -d "$p" ] || continue
+                count=$((count + $(find "$p" -mindepth 1 -maxdepth 1 -mtime "+$days" 2>/dev/null | wc -l | tr -d ' ')))
+                sub=$(find "$p" -mindepth 1 -maxdepth 1 -mtime "+$days" -exec du -sk {} + 2>/dev/null | awk '{t += $1} END {printf "%d", t + 0}')
+                kb=$((kb + sub))
+            done <<EOF
+$(nimo_target_paths "$i")
+EOF
+            ;;
+        findname)
+            while IFS= read -r p; do
+                [ -n "$p" ] || continue
+                [ -d "$p" ] || continue
+                count=$((count + $(find "$p" -maxdepth 5 -type d -name node_modules -prune 2>/dev/null | wc -l | tr -d ' ')))
+                sub=$(find "$p" -maxdepth 5 -type d -name node_modules -prune -exec du -sk {} + 2>/dev/null | awk '{t += $1} END {printf "%d", t + 0}')
+                kb=$((kb + sub))
+            done <<EOF
+$(nimo_target_paths "$i")
+EOF
+            ;;
+        bigfiles)
+            while IFS= read -r p; do
+                [ -n "$p" ] || continue
+                [ -d "$p" ] || continue
+                count=$((count + $(find "$p" -maxdepth 6 -type f -size +500000k 2>/dev/null | wc -l | tr -d ' ')))
+                sub=$(find "$p" -maxdepth 6 -type f -size +500000k -exec du -sk {} + 2>/dev/null | awk '{t += $1} END {printf "%d", t + 0}')
+                kb=$((kb + sub))
+            done <<EOF
+$(nimo_target_paths "$i")
+EOF
+            ;;
+    esac
+
+    printf '%s %s' "$kb" "$count"
+}
+
+# Fills NIMO_R_KB / NIMO_R_COUNT for every registered target.
+nimo_scan() {
+    NIMO_R_KB=(); NIMO_R_COUNT=()
+    local i n result
+    n=$NIMO_T_N
+    i=0
+    while [ "$i" -lt "$n" ]; do
+        nimo_progress "scanning  ${NIMO_T_LABEL[$i]} …"
+        result=$(nimo_measure "$i")
+        NIMO_R_KB[$i]="${result%% *}"
+        NIMO_R_COUNT[$i]="${result##* }"
+        i=$((i + 1))
+    done
+    nimo_progress_done
+}
+
+# is target $1 selected by --only?
+nimo_selected() {
+    [ -z "${NIMO_ONLY:-}" ] && return 0
+    case ",${NIMO_ONLY}," in
+        *",${NIMO_T_ID[$1]},"*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
