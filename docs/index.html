@@ -3,64 +3,72 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="nimo is a command line tool that makes a Mac feel minimal again: a clear desktop, a trimmed dock, a calmer wallpaper, and the disk back. Every step asks first. Every step can be undone.">
-<meta name="color-scheme" content="light dark">
+<meta name="description" content="nimo makes a Mac feel minimal again: a clear desktop, a dock with only what you open, a calmer wallpaper, and the disk back. Every step asks first. Every step can be undone.">
+<meta name="color-scheme" content="dark light">
 <meta property="og:title" content="nimo">
-<meta property="og:description" content="make your computer feel better.">
+<meta property="og:description" content="Make your Mac feel minimal again.">
 <meta property="og:type" content="website">
-<title>nimo — make your computer feel better</title>
+<title>nimo — make your Mac feel minimal again</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600;700&display=swap">
 
 <style>
+  /* dark first: this is a terminal tool, and the terminal is the ground */
   :root {
-    --bg:        #EDF0EF;
-    --surface:   #FFFFFF;
-    --ink:       #131C1B;
-    --muted:     #5B6A68;
-    --faint:     #97A5A3;
-    --line:      #D5DCDA;
-    --accent:    #0F6660;
-    --accent-dim:#8FBAB6;
+    --bg:        #08090A;
+    --surface:   #0D0F11;
+    --raised:    #131719;
+    --line:      #1D2225;
+    --line-soft: #16191C;
+    --ink:       #ECEFF1;
+    --muted:     #9AA4AB;
+    --faint:     #6A757C;
+    --accent:    #5FD3C6;
+    --accent-2:  #2C8079;
+    --on-accent: #04211E;
 
-    --term-bg:   #0D1413;
-    --term-ink:  #D6E1DF;
-    --term-mute: #6C807D;
-    --term-cyan: #66C9C0;
-    --term-warm: #D6B36A;
-    --term-line: #1E2A28;
+    --term-bg:   #0B0D0E;
+    --term-line: #1A1E20;
+    --term-ink:  #D4DBDE;
+    --term-mute: #6A7679;
+    --term-cyan: #5FD3C6;
+    --term-warm: #D9BA74;
 
-    --measure: 62ch;
-    --col: 61rem;
+    --shadow: 0 30px 80px -40px rgba(0, 0, 0, 0.9);
+    --col: 68rem;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg:        #0A100F;
-      --surface:   #111A18;
-      --ink:       #E2EAE8;
-      --muted:     #8B9A97;
-      --faint:     #667573;
-      --line:      #1D2827;
-      --accent:    #5FC4BB;
-      --accent-dim:#2C534F;
-      --term-bg:   #0E1817;
-      --term-line: #1F2C2A;
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg:        #FBFBFC;
+      --surface:   #FFFFFF;
+      --raised:    #F3F5F6;
+      --line:      #E3E7EA;
+      --line-soft: #EDF0F2;
+      --ink:       #0B1013;
+      --muted:     #58636A;
+      --faint:     #8A949A;
+      --accent:    #0E7A72;
+      --accent-2:  #7FC3BC;
+      --on-accent: #FFFFFF;
+      --shadow: 0 24px 60px -36px rgba(11, 26, 24, 0.35);
     }
   }
 
-  :root[data-theme="dark"] {
-    --bg:        #0A100F;
-    --surface:   #111A18;
-    --ink:       #E2EAE8;
-    --muted:     #8B9A97;
-    --faint:     #667573;
-    --line:      #1D2827;
-    --accent:    #5FC4BB;
-    --accent-dim:#2C534F;
-    --term-bg:   #0E1817;
-    --term-line: #1F2C2A;
+  :root[data-theme="light"] {
+    --bg:        #FBFBFC;
+    --surface:   #FFFFFF;
+    --raised:    #F3F5F6;
+    --line:      #E3E7EA;
+    --line-soft: #EDF0F2;
+    --ink:       #0B1013;
+    --muted:     #58636A;
+    --faint:     #8A949A;
+    --accent:    #0E7A72;
+    --accent-2:  #7FC3BC;
+    --on-accent: #FFFFFF;
+    --shadow: 0 24px 60px -36px rgba(11, 26, 24, 0.35);
   }
 
   * { box-sizing: border-box; }
@@ -69,284 +77,390 @@
     margin: 0;
     background: var(--bg);
     color: var(--ink);
-    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-    font-size: 17px;
-    line-height: 1.65;
+    font-family: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
   }
 
-  .wrap {
-    max-width: var(--col);
-    margin: 0 auto;
-    padding: 0 1.5rem;
+  .wrap { max-width: var(--col); margin: 0 auto; padding: 0 1.5rem; }
+
+  h1, h2, h3 { margin: 0; text-wrap: balance; letter-spacing: -0.03em; font-weight: 600; }
+  h1 { font-size: clamp(2.5rem, 6.4vw, 4.1rem); line-height: 1.02; font-weight: 700; }
+  h2 { font-size: clamp(1.75rem, 3.4vw, 2.4rem); line-height: 1.12; }
+  h3 { font-size: 1rem; letter-spacing: -0.01em; }
+  p  { margin: 0; }
+
+  a { color: inherit; text-decoration: none; }
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 6px;
   }
 
-  /* ---------- type ---------- */
-
-  h1, h2, h3 { text-wrap: balance; margin: 0; }
-
-  h1 {
-    font-family: "Instrument Serif", Georgia, serif;
-    font-weight: 400;
-    font-size: clamp(2.9rem, 8vw, 5.2rem);
-    line-height: 0.98;
-    letter-spacing: -0.015em;
-  }
-
-  h1 em { font-style: italic; color: var(--accent); }
-
-  h2 {
-    font-family: "Instrument Serif", Georgia, serif;
-    font-weight: 400;
-    font-size: clamp(2rem, 4.4vw, 2.9rem);
-    line-height: 1.08;
-    letter-spacing: -0.01em;
-  }
-
-  h3 {
-    font-size: 1.02rem;
-    font-weight: 600;
-    letter-spacing: -0.005em;
-  }
-
-  p { margin: 0; max-width: var(--measure); }
-
-  .lede {
-    font-size: 1.2rem;
-    line-height: 1.55;
-    color: var(--muted);
-    max-width: 46ch;
+  code, .mono {
+    font-family: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.9em;
   }
 
   .eyebrow {
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 0.74rem;
-    letter-spacing: 0.16em;
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--faint);
   }
 
-  a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; }
-  a:focus-visible, button:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 3px;
-    border-radius: 2px;
+  .lede { color: var(--muted); font-size: 1.14rem; line-height: 1.55; max-width: 44ch; }
+
+  /* ---------- nav ---------- */
+
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line-soft);
   }
 
-  code { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.92em; }
-
-  /* ---------- layout ---------- */
-
-  section { padding: 5.5rem 0; border-top: 1px solid var(--line); }
-  section:first-of-type { border-top: 0; }
-
-  .stack   { display: flex; flex-direction: column; gap: 1.5rem; }
-  .stack-s { display: flex; flex-direction: column; gap: 0.7rem; }
-  .stack-l { display: flex; flex-direction: column; gap: 3.25rem; }
-
-  header.hero { padding: clamp(4rem, 12vh, 8rem) 0 5rem; }
-
-  /* ---------- the terminal ---------- */
-
-  .term {
-    background: var(--term-bg);
-    color: var(--term-ink);
-    border: 1px solid var(--term-line);
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 24px 60px -32px rgba(6, 20, 18, 0.55);
-  }
-
-  .term-bar {
+  .nav-in {
+    max-width: var(--col);
+    margin: 0 auto;
+    padding: 0.85rem 1.5rem;
     display: flex;
     align-items: center;
+    gap: 1.4rem;
+  }
+
+  .brand { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; letter-spacing: -0.02em; }
+  .brand .mark { color: var(--accent); font-size: 1.05rem; line-height: 1; }
+
+  .nav-links { display: flex; gap: 1.25rem; margin-left: auto; align-items: center; }
+  .nav-links a { color: var(--muted); font-size: 0.9rem; }
+  .nav-links a:hover { color: var(--ink); }
+
+  @media (max-width: 40rem) { .nav-links .hide-s { display: none; } }
+
+  .ghost {
+    display: inline-flex;
+    align-items: center;
     gap: 0.45rem;
-    padding: 0.7rem 0.9rem;
-    border-bottom: 1px solid var(--term-line);
-  }
-
-  .dot { width: 10px; height: 10px; border-radius: 50%; background: #2A3937; }
-
-  .term-title {
-    margin-left: 0.5rem;
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 0.72rem;
-    color: var(--term-mute);
-    letter-spacing: 0.04em;
-  }
-
-  pre.screen {
-    margin: 0;
-    padding: 1.4rem 1.5rem 1.6rem;
-    overflow-x: auto;
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 0.815rem;
-    line-height: 1.62;
-    tab-size: 4;
-  }
-
-  pre.screen b  { color: var(--term-cyan); font-weight: 400; }
-  pre.screen i  { color: var(--term-mute); font-style: normal; }
-  pre.screen u  { color: var(--term-warm); text-decoration: none; }
-  pre.screen s  { color: #E2EAE8; text-decoration: none; font-weight: 500; }
-
-  .reveal > * { opacity: 0; transform: translateY(4px); animation: rise 0.5s ease forwards; }
-  @keyframes rise { to { opacity: 1; transform: none; } }
-
-  @media (prefers-reduced-motion: reduce) {
-    .reveal > * { opacity: 1; transform: none; animation: none; }
-  }
-
-  /* ---------- install ---------- */
-
-  .install {
-    display: flex;
-    align-items: stretch;
-    gap: 0;
     border: 1px solid var(--line);
-    border-radius: 8px;
     background: var(--surface);
-    max-width: 34rem;
-    overflow: hidden;
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.83rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .ghost:hover { border-color: var(--accent-2); }
+
+  /* ---------- hero ---------- */
+
+  header.hero { padding: clamp(4rem, 11vh, 7.5rem) 0 3.5rem; }
+  .hero-in { display: flex; flex-direction: column; gap: 1.6rem; }
+
+  .pill {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 999px;
+    padding: 0.3rem 0.8rem 0.3rem 0.45rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .pill b {
+    background: var(--accent);
+    color: var(--on-accent);
+    border-radius: 999px;
+    padding: 0.05rem 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-family: "Geist Mono", ui-monospace, monospace;
   }
 
-  .install code {
-    flex: 1;
-    padding: 0.85rem 1rem;
-    font-size: 0.83rem;
+  .cta { display: flex; flex-wrap: wrap; gap: 0.7rem; align-items: center; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 9px;
+    padding: 0.62rem 1rem;
+    font-size: 0.92rem;
+    font-weight: 550;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-primary { background: var(--accent); color: var(--on-accent); }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-quiet { background: var(--surface); border-color: var(--line); color: var(--ink); }
+  .btn-quiet:hover { border-color: var(--accent-2); }
+
+  .copybar {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 9px;
+    overflow: hidden;
+    max-width: 100%;
+  }
+  .copybar code {
+    padding: 0.62rem 0.9rem;
     color: var(--ink);
     white-space: nowrap;
     overflow-x: auto;
+    font-size: 0.84rem;
   }
-
-  .install button {
+  .copybar code::before { content: "$ "; color: var(--faint); }
+  .copybar button {
     border: 0;
     border-left: 1px solid var(--line);
     background: transparent;
     color: var(--muted);
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 0.74rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 0 1.1rem;
+    padding: 0 0.85rem;
     cursor: pointer;
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 0.74rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
   }
-
-  .install button:hover { color: var(--accent); background: var(--bg); }
-
-  /* ---------- feature rows ---------- */
-
-  .rows { display: flex; flex-direction: column; gap: 4.5rem; }
-
-  .row { display: grid; gap: 1.75rem; grid-template-columns: 1fr; align-items: start; }
-
-  @media (min-width: 62rem) {
-    .row { grid-template-columns: 15rem 1fr; gap: 2.5rem; }
-    .row .body { max-width: 40ch; }
-  }
-
-  .cmd {
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 1rem;
-    color: var(--accent);
-    letter-spacing: -0.01em;
-  }
-
-  /* ---------- promises ---------- */
-
-  .promises { display: grid; gap: 0; grid-template-columns: 1fr; }
-
-  @media (min-width: 48rem) {
-    .promises { grid-template-columns: 1fr 1fr; column-gap: 3rem; }
-  }
-
-  .promise {
-    padding: 1.35rem 0;
-    border-top: 1px solid var(--line);
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-  }
-
-  .promise p { color: var(--muted); font-size: 0.95rem; max-width: 38ch; }
-
-  /* ---------- facts ---------- */
+  .copybar button:hover { color: var(--accent); background: var(--raised); }
 
   .facts {
     display: flex;
     flex-wrap: wrap;
-    gap: 0 2.5rem;
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 0.78rem;
+    gap: 0.4rem 1.75rem;
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 0.76rem;
     color: var(--faint);
-    letter-spacing: 0.02em;
   }
-
   .facts b { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
 
-  footer { padding: 4rem 0 6rem; border-top: 1px solid var(--line); }
+  /* ---------- terminal ---------- */
 
-  .foot {
+  .term {
+    background: var(--term-bg);
+    border: 1px solid var(--term-line);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    min-width: 0;
+  }
+  .term-bar {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 1rem;
-    font-size: 0.85rem;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.65rem 0.85rem;
+    border-bottom: 1px solid var(--term-line);
+  }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #262E30; }
+  .term-title {
+    margin-left: 0.5rem;
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 0.71rem;
+    color: var(--term-mute);
+  }
+
+  pre.screen {
+    margin: 0;
+    padding: 1.2rem 1.3rem 1.4rem;
+    overflow-x: auto;
+    color: var(--term-ink);
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 0.78rem;
+    line-height: 1.6;
+  }
+  pre.screen b { color: var(--term-cyan); font-weight: 400; }
+  pre.screen i { color: var(--term-mute); font-style: normal; }
+  pre.screen u { color: var(--term-warm); text-decoration: none; }
+  pre.screen s { color: #EEF2F3; text-decoration: none; font-weight: 500; }
+
+  .reveal > * { opacity: 0; animation: fade 0.45s ease forwards; }
+  @keyframes fade { to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal > * { opacity: 1; animation: none; }
+  }
+
+  /* ---------- sections ---------- */
+
+  section { padding: 4.5rem 0; border-top: 1px solid var(--line-soft); }
+  .stack   { display: flex; flex-direction: column; gap: 1.1rem; }
+  .stack-l { display: flex; flex-direction: column; gap: 2.75rem; }
+  .head    { display: flex; flex-direction: column; gap: 0.7rem; max-width: 52ch; }
+  .head p  { color: var(--muted); }
+
+  .two-up { display: grid; grid-template-columns: 1fr; gap: 1.1rem; }
+  @media (min-width: 56rem) { .two-up { grid-template-columns: 1fr 1fr; } }
+
+  .cap { display: flex; flex-direction: column; gap: 0.3rem; }
+  .cap .mono { color: var(--accent); font-size: 0.86rem; }
+  .cap p { color: var(--muted); font-size: 0.9rem; max-width: 42ch; }
+
+  /* ---------- steps ---------- */
+
+  .steps { display: grid; grid-template-columns: 1fr; gap: 0; }
+  .step {
+    display: grid;
+    grid-template-columns: 2.1rem 1fr;
+    gap: 0.9rem;
+    padding: 1.1rem 0;
+    border-top: 1px solid var(--line-soft);
+    align-items: start;
+  }
+  .step:first-child { border-top: 0; }
+  .step .n {
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 0.78rem;
+    color: var(--accent);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    text-align: center;
+    padding: 0.1rem 0;
+  }
+  .step p { color: var(--muted); font-size: 0.93rem; max-width: 52ch; }
+
+  /* ---------- command grid ---------- */
+
+  .grid { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+  @media (min-width: 40rem) { .grid { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 62rem) { .grid { grid-template-columns: 1fr 1fr 1fr; } }
+
+  .card {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 11px;
+    padding: 1rem 1.05rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .card .mono { color: var(--accent); font-size: 0.88rem; }
+  .card p { color: var(--muted); font-size: 0.88rem; }
+  .card .tag {
+    margin-top: 0.15rem;
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     color: var(--faint);
   }
+
+  /* ---------- promises ---------- */
+
+  .promises { display: grid; grid-template-columns: 1fr; column-gap: 3rem; }
+  @media (min-width: 48rem) { .promises { grid-template-columns: 1fr 1fr; } }
+  .promise { padding: 1.15rem 0; border-top: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 0.3rem; }
+  .promise p { color: var(--muted); font-size: 0.92rem; max-width: 40ch; }
+
+  /* ---------- ci matrix ---------- */
+
+  .matrix { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 11px; overflow: hidden; background: var(--surface); }
+  .job {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.7rem 1rem;
+    border-top: 1px solid var(--line-soft);
+    font-size: 0.9rem;
+  }
+  .job:first-child { border-top: 0; }
+  .job .tick { color: var(--accent); font-family: "Geist Mono", monospace; }
+  .job .what { color: var(--muted); }
+  .job .where { margin-left: auto; font-family: "Geist Mono", monospace; font-size: 0.76rem; color: var(--faint); }
+
+  /* ---------- closing band ---------- */
+
+  .band {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 2.5rem 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    align-items: center;
+    text-align: center;
+  }
+  .band p { color: var(--muted); max-width: 46ch; }
+
+  footer { border-top: 1px solid var(--line-soft); padding: 2.5rem 0 4rem; }
+  .foot { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; font-size: 0.86rem; color: var(--faint); }
+  .foot a { color: var(--muted); }
+  .foot a:hover { color: var(--ink); }
+  .foot-links { display: flex; gap: 1.25rem; flex-wrap: wrap; }
 </style>
 
 </head>
 <body>
-<div class="wrap">
-
-  <header class="hero stack">
-    <span class="eyebrow">a command line tool for macOS</span>
-    <h1>Make your computer<br>feel <em>better</em>.</h1>
-    <p class="lede">
-      nimo clears your desktop, trims your dock, calms your wallpaper and gives you
-      the disk back. Every step asks first. Every step can be undone.
-    </p>
-
-    <div class="install" style="margin-top: 0.75rem;">
-      <code id="cmd">git clone git@github.com:danielkopa/nimo.git ~/nimo &amp;&amp; cd ~/nimo &amp;&amp; ./install.sh</code>
-      <button type="button" id="copy" aria-label="Copy the install command">copy</button>
+<nav class="nav">
+  <div class="nav-in">
+    <a class="brand" href="#top"><span class="mark">◍</span> nimo</a>
+    <div class="nav-links">
+      <a class="hide-s" href="#commands">commands</a>
+      <a class="hide-s" href="#promises">promises</a>
+      <a href="https://github.com/danielkopa/nimo">github</a>
+      <button class="ghost" type="button" id="theme" aria-label="Switch between light and dark">
+        <span id="theme-label">theme</span>
+      </button>
     </div>
+  </div>
+</nav>
 
-    <div class="facts" style="margin-top: 0.5rem;">
-      <span><b>0</b> dependencies</span>
-      <span><b>80</b> tests</span>
-      <span>bash <b>3.2</b></span>
-      <span><b>MIT</b></span>
+<div class="wrap" id="top">
+
+  <header class="hero">
+    <div class="hero-in">
+      <span class="pill"><b>v0.8.0</b> min tidy does the whole thing in one pass</span>
+
+      <h1>Make your Mac<br>feel minimal again.</h1>
+
+      <p class="lede">
+        A clear desktop. A dock with only what you open. A calmer wallpaper. And the
+        disk back. Every step asks first, and every step can be undone.
+      </p>
+
+      <div class="cta">
+        <div class="copybar">
+          <code id="cmd">git clone git@github.com:danielkopa/nimo.git ~/nimo &amp;&amp; ~/nimo/install.sh</code>
+          <button type="button" id="copy">copy</button>
+        </div>
+        <a class="btn btn-quiet" href="https://github.com/danielkopa/nimo#readme">Read the docs →</a>
+      </div>
+
+      <div class="facts">
+        <span><b>0</b> dependencies</span>
+        <span><b>80</b> tests</span>
+        <span>bash <b>3.2</b></span>
+        <span><b>~3400</b> lines you can read</span>
+        <span><b>MIT</b></span>
+      </div>
     </div>
   </header>
 
-  <section>
-    <div class="stack-l">
-      <div class="stack-s">
-        <span class="eyebrow">the way in</span>
-        <h2>Type <code style="font-size: 0.8em;">min</code>. Press enter.</h2>
-        <p style="color: var(--muted);">
-          On its own, nimo is a menu rather than a wall of help. Arrow to what you
-          want and press enter. Piped into anything, the same command prints plain
-          help instead — nothing here needs a clever terminal to work.
-        </p>
+  <section style="border-top: 0; padding-top: 1rem;">
+    <div class="term">
+      <div class="term-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="term-title">daniel — min</span>
       </div>
-
-      <div class="term">
-        <div class="term-bar">
-          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-          <span class="term-title">daniel — min</span>
-        </div>
-        <pre class="screen reveal" aria-label="The nimo menu in a terminal"><span><b>   ███╗   ██╗██╗███╗   ███╗ ██████╗ </b></span>
-<span><b>   ████╗  ██║██║████╗ ████║██╔═══██╗</b></span>
-<span><b>   ██╔██╗ ██║██║██╔████╔██║██║   ██║</b></span>
-<span><b>   ██║╚██╗██║██║██║╚██╔╝██║██║   ██║</b></span>
-<span><b>   ██║ ╚████║██║██║ ╚═╝ ██║╚██████╔╝</b></span>
-<span><b>   ╚═╝  ╚═══╝╚═╝╚═╝     ╚═╝ ╚═════╝ </b></span>
-<span>
+      <pre class="screen reveal" aria-label="The nimo menu running in a terminal"><span><b>   ███╗   ██╗██╗███╗   ███╗ ██████╗ </b>
+</span><span><b>   ████╗  ██║██║████╗ ████║██╔═══██╗</b>
+</span><span><b>   ██╔██╗ ██║██║██╔████╔██║██║   ██║</b>
+</span><span><b>   ██║╚██╗██║██║██║╚██╔╝██║██║   ██║</b>
+</span><span><b>   ██║ ╚████║██║██║ ╚═╝ ██║╚██████╔╝</b>
+</span><span><b>   ╚═╝  ╚═══╝╚═╝╚═╝     ╚═╝ ╚═════╝ </b>
+</span><span>
 </span><span><i>   make your computer feel better</i>
-</span><span><i>   v0.7.0</i>
+</span><span><i>   v0.8.0</i>
 </span><span>
 </span><span><i>  ↑↓ move   enter choose   q cancel</i>
 </span><span>
@@ -356,150 +470,260 @@
 </span><span>     wallpaper  a calmer wallpaper
 </span><span>     preview    what could be freed, changing nothing
 </span><span>     undo       put something back</span></pre>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="rows">
-
-      <div class="row">
-        <div class="stack-s">
-          <span class="cmd">min desktop</span>
-          <span class="eyebrow">undoable, file by file</span>
-        </div>
-        <div class="body stack">
-          <p style="color: var(--muted);">
-            Everything on your desktop moves into <code>Desktop/Tidy/</code>, sorted by
-            what it is. Nothing is deleted. Nothing is renamed — if a name is taken,
-            the new one becomes <code>invoice 2.pdf</code>. Hidden files stay put.
-          </p>
-          <p style="color: var(--muted);">
-            Every single move is written down, so <code>min desktop --undo</code> puts
-            all forty-seven back exactly where they were, folders and all.
-          </p>
-          <div class="term">
-            <pre class="screen">  <i>╭─ your desktop ───────────────────────────</i>
-
-     Screenshots                     <s>23 items</s>
-     Images                          <s>11 items</s>
-     Documents                        <s>8 items</s>
-     Archives                         <s>3 items</s>
-     Folders                          <s>2 items</s>
-
-     <i>───────────────────────────────</i>
-     <s>On your desktop                 47 items</s>
-
-  <i>╰──────────────────────────────────────────</i>
-
-  <i>everything moves into  Desktop/Tidy/&lt;kind&gt;/</i>
-  <i>nothing is deleted, nothing is renamed</i></pre>
-          </div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="stack-s">
-          <span class="cmd">min dock</span>
-          <span class="eyebrow">you decide, never nimo</span>
-        </div>
-        <div class="body stack">
-          <p style="color: var(--muted);">
-            nimo lists what is down there and marks what Apple put in for you. Tick the
-            ones that should go. The apps stay installed — only the icons leave. Your
-            whole dock is exported first, so <code>--restore</code> brings back exactly
-            what you had.
-          </p>
-          <div class="term">
-            <pre class="screen">  <i>╭─ your dock ──────────────────────────────</i>
-
-  <i>↑↓ move   space tick   a all   n none   enter</i>
-
-   <b>▸</b> <b>[x]</b> TV                    <i>came with macOS</i>
-     <b>[x]</b> Podcasts              <i>came with macOS</i>
-     [ ] Safari
-     [ ] Terminal
-     [ ] Figma
-     <b>[x]</b> Freeform              <i>came with macOS</i>
-
-  <i>╰──────────────────────────────────────────</i></pre>
-          </div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="stack-s">
-          <span class="cmd">min undo</span>
-          <span class="eyebrow">the reason nimo is allowed to touch anything</span>
-        </div>
-        <div class="body stack">
-          <p style="color: var(--muted);">
-            Everything nimo has ever done, newest first. Pick a line and that one change
-            is reversed — that desktop tidy, that dock, that wallpaper. Nothing else is
-            touched.
-          </p>
-          <div class="term">
-            <pre class="screen">  <i>╭─ what nimo has done ─────────────────────</i>
-
-   <b>▸</b> cleared your desktop   <i>26.08.2026 16:44</i>   <s>47 files</s>
-     rebuilt your dock      <i>26.08.2026 16:41</i>
-     changed your wallpaper                    <i>back to Sonoma</i>
-
-  <i>╰──────────────────────────────────────────</i>
-
-  <i>↑↓ move   enter reverse   q cancel</i></pre>
-          </div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="stack-s">
-          <span class="cmd">min clean</span>
-          <span class="eyebrow">and only then, the disk</span>
-        </div>
-        <div class="body stack">
-          <p style="color: var(--muted);">
-            Sixteen places where junk piles up, split in two. <strong>Safe to clean</strong>
-            is caches your apps rebuild by themselves. <strong>Worth a look</strong> is
-            measured, shown, and never touched — not even with <code>--yes</code>.
-          </p>
-          <p style="color: var(--muted);">
-            After cleaning, nimo measures again and tells you what was actually freed,
-            not what it hoped to free.
-          </p>
-          <div class="term">
-            <pre class="screen">  <i>╭─ safe to clean ──────────────────────────</i>
-
-     App caches                <u>4.2 GB</u>  <i>your apps rebuild them</i>
-     Xcode derived data        <u>8.7 GB</u>  <i>rebuilt on your next build</i>
-     Trash                     <u>1.1 GB</u>  <i>already thrown away</i>
-     npm / yarn / pnpm cache   <s>812 MB</s>  <i>download caches</i>
-
-     <i>───────────────────────────────</i>
-     <s>Total                    15.0 GB</s>
-     <i>Disk         231 GB free of 494 GB</i>
-
-  <i>╰──────────────────────────────────────────</i>
-
-  <i>╭─ worth a look ───────────────────────────</i>
-
-     <i>nimo never deletes anything in this section</i>
-
-     node_modules folders      <u>6.4 GB</u>  <i>23 items</i>
-     Old downloads             <s>2.9 GB</s>  <i>41 items</i>
-     iPhone backups             <u>11 GB</u>  <i>2 items</i>
-
-  <i>╰──────────────────────────────────────────</i></pre>
-          </div>
-        </div>
-      </div>
-
     </div>
   </section>
 
   <section>
     <div class="stack-l">
-      <div class="stack-s">
+      <div class="head">
+        <span class="eyebrow">two commands, one afternoon back</span>
+        <h2>It moves your files. It never loses them.</h2>
+        <p>
+          nimo only ever rearranges — it does not decide what you no longer need. What
+          it moves, it writes down, and what it writes down, it can put back.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="stack">
+          <div class="cap">
+            <span class="mono">min desktop</span>
+            <p>Sorted into <code>Desktop/Tidy/</code> by kind. Hidden files stay. Names are never changed.</p>
+          </div>
+          <div class="term">
+            <pre class="screen">  <i>╭─ your desktop ──────────────────</i>
+
+     Screenshots            <s>23 items</s>
+     Images                 <s>11 items</s>
+     Documents               <s>8 items</s>
+     Archives                <s>3 items</s>
+     Folders                 <s>2 items</s>
+
+     <i>──────────────────────</i>
+     <s>On your desktop        47 items</s>
+
+  <i>╰─────────────────────────────────</i>
+
+  <i>min desktop --undo puts it back</i></pre>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="cap">
+            <span class="mono">min dock</span>
+            <p>Tick what goes. The apps stay installed — only the icons leave. Exported first.</p>
+          </div>
+          <div class="term">
+            <pre class="screen">  <i>╭─ your dock ─────────────────────</i>
+
+  <i>↑↓ move  space tick  a all  enter</i>
+
+   <b>▸</b> <b>[x]</b> TV            <i>came with macOS</i>
+     <b>[x]</b> Podcasts      <i>came with macOS</i>
+     [ ] Safari
+     [ ] Terminal
+     [ ] Figma
+     <b>[x]</b> Freeform      <i>came with macOS</i>
+
+  <i>╰─────────────────────────────────</i>
+
+  <i>min dock --restore puts it back</i></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="stack-l">
+      <div class="head">
+        <span class="eyebrow">how min tidy works</span>
+        <h2>Four steps. Four chances to say no.</h2>
+        <p>
+          One command walks the whole thing. Nothing runs until you say so, and nothing
+          is remembered except how to undo it.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="steps">
+          <div class="step">
+            <span class="n">1</span>
+            <div>
+              <h3>Your desktop</h3>
+              <p>Counted by kind, then moved into one folder — and logged file by file.</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="n">2</span>
+            <div>
+              <h3>Your dock</h3>
+              <p>Listed with Apple's own additions marked, so you can see what you never chose.</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="n">3</span>
+            <div>
+              <h3>Your wallpaper</h3>
+              <p>From the ones macOS already ships with. nimo never touches the network.</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="n">4</span>
+            <div>
+              <h3>Your preferences</h3>
+              <p>Five small groups of <code>defaults write</code> — the same lines you would type yourself.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="term">
+          <div class="term-bar">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="term-title">min tidy</span>
+          </div>
+          <pre class="screen">  <i>four steps toward a minimal mac.</i>
+  <i>each one asks before it does anything,</i>
+  <i>and each one can be undone.</i>
+
+  <i>╭─ your desktop ──────────────────</i>
+     <s>On your desktop        47 items</s>
+  <i>╰─────────────────────────────────</i>
+
+  <b>Clear your desktop?</b> [y/N] <s>y</s>
+
+  <b>✓</b> Your desktop is clear — <s>47 items</s> filed away
+  <i>Desktop/Tidy/</i>
+
+  <i>╭─ done ──────────────────────────</i>
+
+  <b>✓</b> <s>That is a minimal mac.</s>
+
+  <i>undo the desktop     min desktop --undo</i>
+  <i>undo the dock        min dock --restore</i>
+  <i>undo the wallpaper   min wallpaper --restore</i>
+
+  <i>╰─────────────────────────────────</i></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="commands">
+    <div class="stack-l">
+      <div class="head">
+        <span class="eyebrow">the whole surface</span>
+        <h2>Eleven commands. No flags you need to memorise.</h2>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <span class="mono">min tidy</span>
+          <p>Desktop, dock, wallpaper and preferences, in order.</p>
+          <span class="tag">asks four times</span>
+        </div>
+        <div class="card">
+          <span class="mono">min desktop</span>
+          <p>Everything filed into <code>Desktop/Tidy/</code> by kind.</p>
+          <span class="tag">--undo</span>
+        </div>
+        <div class="card">
+          <span class="mono">min dock</span>
+          <p>Keep only the apps you actually open.</p>
+          <span class="tag">--restore</span>
+        </div>
+        <div class="card">
+          <span class="mono">min wallpaper</span>
+          <p>The calm ones macOS already ships with.</p>
+          <span class="tag">--random · --restore</span>
+        </div>
+        <div class="card">
+          <span class="mono">min undo</span>
+          <p>Everything nimo has done, and a way back from each of it.</p>
+          <span class="tag">the safety net</span>
+        </div>
+        <div class="card">
+          <span class="mono">min clean</span>
+          <p>Sixteen places junk hides. Freed only after you confirm.</p>
+          <span class="tag">--only · --days</span>
+        </div>
+        <div class="card">
+          <span class="mono">min preview</span>
+          <p>The same scan, structurally unable to delete anything.</p>
+          <span class="tag">--json</span>
+        </div>
+        <div class="card">
+          <span class="mono">min top</span>
+          <p>The biggest folders in your home, with bars.</p>
+          <span class="tag">--limit</span>
+        </div>
+        <div class="card">
+          <span class="mono">min doctor</span>
+          <p>Disk, memory, battery, uptime and clutter on one screen.</p>
+          <span class="tag">changes nothing</span>
+        </div>
+        <div class="card">
+          <span class="mono">min setup</span>
+          <p>Five groups of sane macOS preferences.</p>
+          <span class="tag">--dry-run · --list</span>
+        </div>
+        <div class="card">
+          <span class="mono">min update</span>
+          <p><code>git pull</code> wherever nimo lives.</p>
+          <span class="tag">keeps the symlink</span>
+        </div>
+        <div class="card">
+          <span class="mono">man min</span>
+          <p>A real manual page, installed alongside.</p>
+          <span class="tag">for the rest</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="stack-l">
+      <div class="head">
+        <span class="eyebrow">worth a look, never touched</span>
+        <h2>The line between junk and yours.</h2>
+        <p>
+          Caches your apps rebuild by themselves are fair game. Your downloads, your
+          backups, your <code>node_modules</code> are measured, shown, and left exactly
+          where they are — not even <code>--yes</code> moves them.
+        </p>
+      </div>
+
+      <div class="term">
+        <pre class="screen">  <i>╭─ safe to clean ─────────────────────────────────</i>
+
+     App caches                  <u>4.2 GB</u>  <i>your apps rebuild them</i>
+     Xcode derived data          <u>8.7 GB</u>  <i>rebuilt on your next build</i>
+     Trash                       <u>1.1 GB</u>  <i>already thrown away</i>
+     npm / yarn / pnpm cache     <s>812 MB</s>  <i>download caches</i>
+     Application logs            <s>143 MB</s>  <i>old log files</i>
+
+     <i>─────────────────────────────────</i>
+     <s>Total                      15.0 GB</s>
+     <i>Disk         231 GB free of 494 GB</i>
+
+  <i>╰─────────────────────────────────────────────────</i>
+
+  <i>╭─ worth a look ──────────────────────────────────</i>
+
+     <i>nimo never deletes anything in this section</i>
+
+     node_modules folders        <u>6.4 GB</u>  <i>23 items · npm install brings them back</i>
+     Old downloads               <s>2.9 GB</s>  <i>41 items · untouched for a while</i>
+     iPhone / iPad backups        <u>11 GB</u>  <i>2 items · losing these loses backups</i>
+
+  <i>╰─────────────────────────────────────────────────</i></pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="promises">
+    <div class="stack-l">
+      <div class="head">
         <span class="eyebrow">what nimo will and will not do</span>
         <h2>Six promises, and the code to check them against.</h2>
       </div>
@@ -523,11 +747,11 @@
         </div>
         <div class="promise">
           <h3>Nothing is downloaded</h3>
-          <p>Wallpapers come from the ones macOS already ships with. nimo never reaches the network.</p>
+          <p>Wallpapers come from what macOS already ships. nimo never reaches the network.</p>
         </div>
         <div class="promise">
           <h3>Small enough to read</h3>
-          <p>One script and eleven short libraries. Fifteen minutes and you know everything it can do to your Mac.</p>
+          <p>One script and eleven short libraries. Fifteen minutes and you know everything it can do.</p>
         </div>
       </div>
     </div>
@@ -535,30 +759,30 @@
 
   <section>
     <div class="stack-l">
-      <div class="stack-s">
+      <div class="head">
         <span class="eyebrow">how it is kept honest</span>
         <h2>The bash 3.2 promise is a job that fails.</h2>
-        <p style="color: var(--muted);">
+        <p>
           Eighty checks run against a fake computer in <code>/tmp</code> with its own fake
-          home: every command and flag, the safety guard, the arrow-key picker driven by
-          simulated keystrokes, the desktop sorted and then fully undone, and a complete
-          clean where the promised number is compared against the freed one. Your real
-          files are never read.
-        </p>
-        <p style="color: var(--muted);">
-          Every push runs them on GitHub Actions — including on macOS under
-          <code>/bin/bash</code>, the actual 3.2 that ships with the system. The
-          compatibility claim on this page is not a claim.
+          home — including the arrow-key picker, driven by simulated keystrokes, and a
+          full clean where the promised number is compared against the freed one. Your
+          real files are never read.
         </p>
       </div>
 
-      <div class="term">
-        <div class="term-bar">
-          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-          <span class="term-title">bash test/run.sh</span>
+      <div class="two-up">
+        <div class="matrix">
+          <div class="job"><span class="tick">✓</span> <span>shellcheck</span> <span class="where">ubuntu</span></div>
+          <div class="job"><span class="tick">✓</span> <span>parses on <span class="what">bash 3.2</span></span> <span class="where">container</span></div>
+          <div class="job"><span class="tick">✓</span> <span>parses on <span class="what">bash 5</span></span> <span class="where">container</span></div>
+          <div class="job"><span class="tick">✓</span> <span>80 tests</span> <span class="where">ubuntu</span></div>
+          <div class="job"><span class="tick">✓</span> <span>80 tests, <span class="what">/bin/bash</span></span> <span class="where">macos</span></div>
+          <div class="job"><span class="tick">✓</span> <span>install, then uninstall</span> <span class="where">macos</span></div>
         </div>
-        <pre class="screen">  <s>nimo test suite</s>
-  <i>bash 3.2.57(1)-release on Darwin · fake home in /tmp/nimo-test.KpQ1a4</i>
+
+        <div class="term">
+          <pre class="screen">  <s>nimo test suite</s>
+  <i>bash 3.2.57(1)-release on Darwin</i>
 
   <b>✓</b> preview leaves the cache alone
   <b>✓</b> old downloads are only reported
@@ -570,30 +794,30 @@
   <i>  …</i>
 
   <b>✓ 80 passed</b></pre>
+        </div>
       </div>
     </div>
   </section>
 
   <section>
-    <div class="stack">
-      <span class="eyebrow">get it</span>
+    <div class="band">
       <h2>One clone, one install.</h2>
-      <div class="install">
-        <code id="cmd2">git clone git@github.com:danielkopa/nimo.git ~/nimo &amp;&amp; cd ~/nimo &amp;&amp; ./install.sh</code>
-        <button type="button" id="copy2" aria-label="Copy the install command">copy</button>
+      <p>Then <code>min tidy</code>. Or <code>min preview</code> first — it cannot change anything at all.</p>
+      <div class="copybar">
+        <code id="cmd2">git clone git@github.com:danielkopa/nimo.git ~/nimo &amp;&amp; ~/nimo/install.sh</code>
+        <button type="button" id="copy2">copy</button>
       </div>
-      <p style="color: var(--muted);">
-        Then <code>min tidy</code>. Or <code>min preview</code> first, which cannot change
-        anything at all. Later, <code>min update</code> pulls the newest version and
-        <code>man min</code> explains the rest.
-      </p>
     </div>
   </section>
 
   <footer>
     <div class="foot">
       <span>nimo — made by Daniel Kopa · MIT</span>
-      <span><a href="https://github.com/danielkopa/nimo">github.com/danielkopa/nimo</a></span>
+      <span class="foot-links">
+        <a href="https://github.com/danielkopa/nimo">github</a>
+        <a href="https://github.com/danielkopa/nimo#readme">docs</a>
+        <a href="https://github.com/danielkopa/nimo/blob/main/CHANGELOG.md">changelog</a>
+      </span>
     </div>
   </footer>
 
@@ -601,32 +825,60 @@
 
 <script>
   (function () {
+    var root = document.documentElement;
+    var button = document.getElementById("theme");
+    var label = document.getElementById("theme-label");
+
+    function stored() {
+      try { return localStorage.getItem("nimo-theme"); } catch (e) { return null; }
+    }
+
+    function current() {
+      var set = root.getAttribute("data-theme");
+      if (set) { return set; }
+      return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    }
+
+    function paint() {
+      label.textContent = current() === "dark" ? "light" : "dark";
+    }
+
+    var saved = stored();
+    if (saved === "light" || saved === "dark") { root.setAttribute("data-theme", saved); }
+    paint();
+
+    button.addEventListener("click", function () {
+      var next = current() === "dark" ? "light" : "dark";
+      root.setAttribute("data-theme", next);
+      try { localStorage.setItem("nimo-theme", next); } catch (e) {}
+      paint();
+    });
+
     var lines = document.querySelectorAll(".reveal > *");
     for (var i = 0; i < lines.length; i++) {
-      lines[i].style.animationDelay = (i * 45) + "ms";
+      lines[i].style.animationDelay = (i * 40) + "ms";
     }
 
     function wire(buttonId, codeId) {
-      var button = document.getElementById(buttonId);
-      var code = document.getElementById(codeId);
-      if (!button || !code) { return; }
-      button.addEventListener("click", function () {
-        var text = code.textContent;
+      var b = document.getElementById(buttonId);
+      var c = document.getElementById(codeId);
+      if (!b || !c) { return; }
+      b.addEventListener("click", function () {
         var done = function () {
-          button.textContent = "copied";
-          setTimeout(function () { button.textContent = "copy"; }, 1600);
+          b.textContent = "copied";
+          setTimeout(function () { b.textContent = "copy"; }, 1600);
         };
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).then(done, function () {
-            button.textContent = "select it";
+          navigator.clipboard.writeText(c.textContent).then(done, function () {
+            b.textContent = "select it";
           });
         } else {
-          var range = document.createRange();
-          range.selectNodeContents(code);
-          var sel = window.getSelection();
-          sel.removeAllRanges();
-          sel.addRange(range);
-          button.textContent = "select it";
+          var r = document.createRange();
+          r.selectNodeContents(c);
+          var s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(r);
+          b.textContent = "select it";
         }
       });
     }

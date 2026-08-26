@@ -3,8 +3,10 @@
 ## 0.8.0
 
 - **A website.** `docs/index.html` — one file, no build step, no dependencies,
-  no tracking, and it reads correctly in both light and dark. Point GitHub
-  Pages at `/docs` and it is live
+  no tracking, and a theme toggle that remembers. Point GitHub Pages at
+  `/docs` and it is live
+- The page leads with the terminal, because that is what nimo is: the menu,
+  the desktop and dock pickers, `min tidy` mid-run, and the clean report
 
 ## 0.7.0
 
