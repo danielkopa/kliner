@@ -84,9 +84,18 @@ nimo_battery_line() {
     esac
     pct=$(printf '%s' "$raw" | sed -n 's/.*[^0-9]\([0-9]\{1,3\}\)%.*/\1/p' | head -1)
     [ -n "$pct" ] || return 1
+    # "discharging" contains "charging", so the loose glob that used to live
+    # here called an emptying battery "plugged in". Decide from the line pmset
+    # prints about where the power is coming from, then refine on the exact
+    # "; charging" / "; charged" tokens.
+    state="on battery"
     case "$raw" in
-        *"AC attached"*|*charging*) state="plugged in" ;;
-        *) state="on battery" ;;
+        *"'AC Power'"*|*"AC attached"*) state="plugged in" ;;
+    esac
+    case "$raw" in
+        *"; charged"*)     state="charged" ;;
+        *"; charging"*)    state="charging" ;;
+        *"; discharging"*) state="on battery" ;;
     esac
     printf '%s%%  ·  %s' "$pct" "$state"
 }
