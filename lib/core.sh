@@ -3,6 +3,10 @@
 
 nimo_is_macos() { [ "$(uname -s)" = "Darwin" ]; }
 
+# Where nimo keeps everything it needs to undo itself.
+NIMO_UNDO_DIR="$HOME/.nimo/undo"
+NIMO_BACKUP_DIR="$HOME/.nimo/backups"
+
 # human_kb <kilobytes> -> "1.2 GB"
 nimo_human_kb() {
     awk -v k="${1:-0}" 'BEGIN{
@@ -155,4 +159,23 @@ nimo_read_config() {
         esac
     done < "$file"
     return 0
+}
+
+# A path that is not already taken.
+#
+# Undo records are named by the second they were made in, and two runs inside
+# one second would otherwise land on the same name — where the second would
+# truncate the first, quietly throwing away the only record of how to undo it.
+nimo_free_file() {
+    local base="$1" ext="$2" n=2 try
+    try="${base}${ext}"
+    # The suffix is _2, not -2, on purpose: these names are read back with a
+    # glob and the newest is taken from the end, so the extra copy has to sort
+    # *after* the plain name. "-" sorts before "." and would come out first;
+    # "_" sorts after it and comes out last, which is what newest means here.
+    while [ -e "$try" ] && [ "$n" -lt 100 ]; do
+        try="${base}_${n}${ext}"
+        n=$((n + 1))
+    done
+    printf '%s' "$try"
 }

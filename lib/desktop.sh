@@ -6,7 +6,6 @@
 # exactly where it was.
 
 NIMO_TIDY_DIR_NAME="Tidy"
-NIMO_UNDO_DIR="$HOME/.nimo/undo"
 
 # What kind of thing is this? -> Images | Screenshots | Documents | ...
 nimo_kind_of() {
@@ -193,7 +192,7 @@ EOF
 
     mkdir -p "$NIMO_UNDO_DIR" 2>/dev/null
     local log
-    log="$NIMO_UNDO_DIR/desktop-$(date +%Y%m%d-%H%M%S).tsv"
+    log=$(nimo_free_file "$NIMO_UNDO_DIR/desktop-$(date +%Y%m%d-%H%M%S)" .tsv)
     : > "$log"
 
     local root="$desk/$NIMO_TIDY_DIR_NAME" moved=0 failed=0 dest target

@@ -5,8 +5,6 @@
 # anything on its own, and it exports the whole Dock first, so
 # `min dock --restore` brings back exactly what you had.
 
-NIMO_BACKUP_DIR="$HOME/.nimo/backups"
-
 # Apple puts these in every new Dock. Marked as a hint, never removed for you.
 nimo_dock_is_stock() {
     case "$1" in
@@ -34,7 +32,7 @@ nimo_dock_urls() {
 nimo_dock_backup() {
     mkdir -p "$NIMO_BACKUP_DIR" 2>/dev/null
     local file
-    file="$NIMO_BACKUP_DIR/dock-$(date +%Y%m%d-%H%M%S).plist"
+    file=$(nimo_free_file "$NIMO_BACKUP_DIR/dock-$(date +%Y%m%d-%H%M%S)" .plist)
     if defaults export com.apple.dock "$file" 2>/dev/null; then
         printf '%s' "$file"
         return 0
