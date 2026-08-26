@@ -55,6 +55,12 @@ fi
 
 ln -sf "$SRC" "$TARGET"
 
+# make sure the thing we just installed actually runs
+if ! "$TARGET" version >/dev/null 2>&1; then
+    echo "install: $TARGET does not run — is the repository complete?" >&2
+    exit 1
+fi
+
 echo ""
 echo "  nimo installed"
 echo ""
