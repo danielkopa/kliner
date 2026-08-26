@@ -8,6 +8,7 @@
 #   min desktop     clear your desktop without losing anything
 #   min dock        keep only the apps you actually open
 #   min wallpaper   a calmer wallpaper, from the ones macOS ships with
+#   min undo        everything nimo has done, and a way back
 #   min clean       scan, then free up space (asks first)
 #   min preview     same scan, guaranteed to change nothing
 #   min top         the biggest folders in your home
@@ -18,7 +19,7 @@
 #
 set -u
 
-NIMO_VERSION="0.5.0"
+NIMO_VERSION="0.6.0"
 
 # --- find our own directory, even when called through a symlink ---------
 nimo_root() {
@@ -37,7 +38,7 @@ nimo_root() {
 NIMO_ROOT=$(nimo_root)
 NIMO_LIB="$NIMO_ROOT/lib"
 
-for _nimo_mod in ui core scan clean setup desktop dock wall tools; do
+for _nimo_mod in ui core pick scan clean setup desktop dock wall undo tools; do
     if [ ! -r "$NIMO_LIB/$_nimo_mod.sh" ]; then
         echo "nimo: cannot find $NIMO_LIB/$_nimo_mod.sh" >&2
         echo "nimo: is the whole repository still in one piece?" >&2
@@ -73,6 +74,7 @@ nimo_usage() {
     min desktop         clear your desktop, nothing lost
     min dock            keep only the apps you actually open
     min wallpaper       a calmer wallpaper, from the ones macOS ships
+    min undo            everything nimo has done, and a way back
 
     min clean           scan your computer, then free up space
     min preview         the same scan, without touching anything
@@ -105,6 +107,7 @@ nimo_usage() {
     min desktop --undo
     min dock
     min wallpaper --random
+    min undo
     min preview
     min doctor
     min top --limit 20
@@ -121,10 +124,13 @@ nimo_version() {
     printf 'nimo %s\n' "$NIMO_VERSION"
 }
 
+# ~/.nimo/config first, so anything typed on the command line still wins
+nimo_read_config
+
 # --- argument parsing ----------------------------------------------------
 while [ $# -gt 0 ]; do
     case "$1" in
-        clean|preview|setup|top|doctor|update|tidy|desktop|dock|wallpaper|help|version)
+        clean|preview|setup|top|doctor|update|tidy|desktop|dock|wallpaper|undo|help|version)
             [ -z "$NIMO_COMMAND" ] && NIMO_COMMAND="$1"
             ;;
         -n|--dry-run)   NIMO_DRY_RUN=1 ;;
@@ -202,6 +208,7 @@ case "$NIMO_COMMAND" in
     desktop)   nimo_cmd_desktop ;;
     dock)      nimo_cmd_dock ;;
     wallpaper) nimo_cmd_wallpaper ;;
+    undo)      nimo_cmd_undo ;;
     clean)   nimo_cmd_clean ;;
     preview) nimo_cmd_preview ;;
     top)     nimo_cmd_top ;;

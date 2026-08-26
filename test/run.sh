@@ -113,6 +113,66 @@ check "will not purge outside your home"  "HOME=$BOX bash -c '. $ROOT/lib/ui.sh;
 check "setup --list names the groups"     "min setup --list -q --no-color | grep -q screenshots"
 check "setup --dry-run changes nothing"   "min setup --dry-run -q --no-color >/dev/null; true"
 
+# ---- choosing things ----------------------------------------------------
+
+pick() {
+    printf "$1" | NIMO_PICK_FORCE=1 HOME="$BOX" bash -c '
+        . '"$ROOT"'/lib/ui.sh
+        . '"$ROOT"'/lib/core.sh
+        . '"$ROOT"'/lib/pick.sh
+        nimo_init_colors
+        nimo_pick "$1" hint "one
+two
+three
+four" 2>/dev/null' _ "$2"
+}
+
+check "picker ticks what you tick"        "[ \"\$(pick '\\033[B \\033[B \\n' multi)\" = '2 3' ]"
+check "picker ticks the first line too"   "[ \"\$(pick ' \\n' multi)\" = '1' ]"
+check "picker can tick everything"        "[ \"\$(pick 'a\\n' multi)\" = '1 2 3 4' ]"
+check "picker can untick everything"      "[ -z \"\$(pick 'an\\n' multi)\" ]"
+check "picker wraps around at the top"    "[ \"\$(pick '\\033[A \\n' multi)\" = '4' ]"
+check "single pick returns one line"      "[ \"\$(pick '\\033[B\\n' single)\" = '2' ]"
+check "q cancels without choosing"        "[ -z \"\$(pick 'q' multi)\" ]"
+pick_plain() {
+    HOME="$BOX" bash -c '
+        . '"$ROOT"'/lib/ui.sh
+        . '"$ROOT"'/lib/core.sh
+        . '"$ROOT"'/lib/pick.sh
+        nimo_init_colors
+        nimo_pick_by_number "$1" hint 4 2>/dev/null' _ "$1"
+}
+
+check "falls back to typing numbers"      "[ \"\$(printf '2 4\\n' | pick_plain multi)\" = '2 4' ]"
+check "the fallback ignores nonsense"     "[ \"\$(printf '2 nope 99\\n' | pick_plain multi)\" = '2' ]"
+
+# ---- the undo history ---------------------------------------------------
+
+mkdir -p "$BOX/Desktop"
+rm -f "$BOX/Desktop/a" "$BOX/Desktop/b"
+touch "$BOX/Desktop/first.pdf" "$BOX/Desktop/second.png"
+min desktop -y -q --no-color >/dev/null 2>&1
+
+check "undo --list shows what happened"   "min undo --list -q --no-color | grep -q 'cleared your desktop'"
+check "undo --list counts the files"      "min undo --list -q --no-color | grep -q '2 files'"
+
+printf '\n' | NIMO_PICK_FORCE=1 HOME="$BOX" bash "$MIN" undo -q --no-color >/dev/null 2>&1
+
+check "undo reverses what you picked"     "[ -f '$BOX/Desktop/first.pdf' ] && [ -f '$BOX/Desktop/second.png' ]"
+check "undo is empty once it is spent"    "min undo --list -q --no-color | grep -qv 'cleared your desktop' || true"
+rm -f "$BOX/Desktop/first.pdf" "$BOX/Desktop/second.png"
+rm -rf "$BOX/.nimo"
+
+# ---- ~/.nimo/config -----------------------------------------------------
+
+mkdir -p "$BOX/.nimo"
+printf 'days = 9999\nlimit = 2\n# a comment\ncolor = never\n' > "$BOX/.nimo/config"
+
+check "config sets the download age"      "! min preview -q --no-color | grep -q 'Old downloads'"
+check "config sets the row limit"         "[ \$(min top -q --no-color | grep -c '█') -le 2 ]"
+check "a flag still beats the config"     "min preview -q --no-color --days 1 | grep -q 'Old downloads'"
+rm -rf "$BOX/.nimo"
+
 # ---- the desktop --------------------------------------------------------
 
 DESK="$BOX/Desktop"
