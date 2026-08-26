@@ -113,6 +113,13 @@ check "will not purge outside your home"  "HOME=$BOX bash -c '. $ROOT/lib/ui.sh;
 check "setup --list names the groups"     "min setup --list -q --no-color | grep -q screenshots"
 check "setup --dry-run changes nothing"   "min setup --dry-run -q --no-color >/dev/null; true"
 
+# ---- the way in ---------------------------------------------------------
+
+check "bare min prints help off a tty"    "min --no-color | grep -q 'Commands'"
+check "the menu lists every command"      "printf 'q' | NIMO_PICK_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" --no-color 2>&1 | grep -q 'wallpaper'"
+check "the menu runs what you choose"     "printf '\\033[B\\033[B\\033[B\\033[B\\n' | NIMO_PICK_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" --no-color 2>/dev/null | grep -q 'safe to clean'"
+check "q leaves the menu without doing"   "printf 'q' | NIMO_PICK_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" --no-color >/dev/null 2>&1; [ \$? -eq 0 ]"
+
 # ---- choosing things ----------------------------------------------------
 
 pick() {
