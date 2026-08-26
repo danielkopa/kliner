@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.0
+
+- A real wordmark instead of the placeholder sketch, and it steps aside: the
+  full logo shows for `min` and `min help`, everything else gets one quiet
+  line so the output you asked for stays on screen
+- Narrow terminals fall back to the short header automatically
+- Panelled output: every screen sits in a titled frame, sizes over a gigabyte
+  colour themselves, and nothing wraps at eighty columns any more
+- A file that is already counted as junk no longer shows up a second time
+  under "files over 500 MB"
+- `test/run.sh` — 42 checks against a fake computer in `/tmp`, including a
+  full clean that compares the promised number against the freed number
+
 ## 0.3.0
 
 - `min top` — the biggest folders in your home, with proportional bars

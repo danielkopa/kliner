@@ -1,51 +1,71 @@
 ```
-                 .───────────.
-               .'             '.
-              /    ·       ·    \
-             |        ─          |
-              \                 /
-               '._           _.'
-                  '─────────'
+   ███╗   ██╗██╗███╗   ███╗ ██████╗
+   ████╗  ██║██║████╗ ████║██╔═══██╗
+   ██╔██╗ ██║██║██╔████╔██║██║   ██║
+   ██║╚██╗██║██║██║╚██╔╝██║██║   ██║
+   ██║ ╚████║██║██║ ╚═╝ ██║╚██████╔╝
+   ╚═╝  ╚═══╝╚═╝╚═╝     ╚═╝ ╚═════╝
 
-                       NIMO
-
-              make your computer
-                   feel better.
+   make your computer feel better
 ```
 
 **nimo** is a small command line tool for macOS. It looks at the places where
 junk quietly piles up, tells you how much space each one is wasting, and — only
 after you say yes — cleans them out.
 
-It is one bash script and six small libraries. No dependencies, no daemon, no
-account, nothing running in the background. You can read the whole thing in
-ten minutes, which is the point: a cleaner you cannot read is a cleaner you
-should not trust with your disk.
+It is one bash script, six small libraries and a test suite. No dependencies,
+no daemon, no account, nothing running in the background. You can read the
+whole thing in ten minutes, which is the point: a cleaner you cannot read is a
+cleaner you should not trust with your disk.
 
 ```
 $ min preview
 
-  Safe to clean
+  ╭─ safe to clean ───────────────────────────────────
 
-  App caches                             4.2 GB   rebuilt automatically by your apps
-  Xcode derived data                     8.7 GB   rebuilt next time you build
-  Trash                                  1.1 GB   already thrown away
-  npm / yarn / pnpm cache                812 MB   package manager download caches
-  Application logs                       143 MB   old log files from your apps
+     App caches                        4.2 GB  your apps rebuild them
+     Xcode derived data                8.7 GB  rebuilt on your next build
+     Trash                             1.1 GB  already thrown away
+     npm / yarn / pnpm cache           812 MB  download caches
+     Application logs                  143 MB  old log files
 
-  ────────────────────────────────────────────────────
-  Total                                 15.0 GB
-  Disk   231 GB free of 494 GB
+     ─────────────────────────────────────────
+     Total                            15.0 GB
+     Disk         231 GB free of 494 GB
 
-  Worth a look
+  ╰────────────────────────────────────────────────────
 
-  nimo never deletes anything in this section
+  ╭─ worth a look ────────────────────────────────────
 
-  node_modules folders                   6.4 GB   23 items · reinstallable with npm install
-  Old downloads                          2.9 GB   41 items · files you have not touched
-  iPhone / iPad backups                   11 GB   2 items · deleting these loses your backups
+     nimo never deletes anything in this section
+
+     node_modules folders              6.4 GB  23 items · npm install brings them back
+     Old downloads                     2.9 GB  41 items · untouched for a while
+     iPhone / iPad backups              11 GB  2 items · losing these loses backups
+
+  ╰────────────────────────────────────────────────────
 
   preview only — nothing was deleted
+```
+
+```
+$ min doctor
+
+  ╭─ your computer ───────────────────────────────────
+
+     System       macOS 15.5 (arm64)
+     Uptime       4 days, 2 hrs
+     Disk         231 GB free of 494 GB  ████████░░░░░░░░
+
+     Desktop      41 items
+     Downloads    212 items
+     Trash        18 items
+
+     Junk         15.0 GB  → min clean
+
+     nimo         v0.4.0  /usr/local/bin/min
+
+  ╰────────────────────────────────────────────────────
 ```
 
 ## Install
@@ -172,6 +192,18 @@ min preview --json | jq '.safe_bytes'
 min clean --json --yes | jq '.freed_bytes'
 ```
 
+## Tests
+
+```bash
+bash test/run.sh
+```
+
+Forty-two checks: every command and flag, the safety guard, and a full clean
+of a fake computer — measured, cleaned, measured again, with the promised
+number compared against the freed number. It all happens in a throwaway folder
+in `/tmp` with its own fake `HOME`. Your real files are never read, never
+measured, never touched.
+
 ## Tab completion
 
 ```bash
@@ -188,6 +220,7 @@ nimo
 ├── install.sh             puts min on your PATH
 ├── uninstall.sh           takes it off again
 ├── completions/min.bash   tab completion
+├── test/run.sh            the test suite
 └── lib
     ├── ui.sh              banner, colors, bars, the way output looks
     ├── core.sh            sizes, disk, confirmation, the safety guard
@@ -210,7 +243,8 @@ nimo_register slack "Slack cache" contents safe \
 
 macOS with the bash that ships with it (3.2) or anything newer. `min clean`,
 `min top` and `min doctor` also work on Linux with a smaller set of targets;
-`min setup` is macOS only. Checked with ShellCheck.
+`min setup` is macOS only. Checked with ShellCheck, tested with
+`test/run.sh`.
 
 ## License
 
