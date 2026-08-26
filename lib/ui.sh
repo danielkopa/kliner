@@ -121,7 +121,11 @@ nimo_rule()  { printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "$(nimo_dashes 41)"
 
 # nimo_row <label> <size> [note]
 nimo_row() {
-    printf '%s%-27s %12s  %s%s%s\n' "$NIMO_PAD" "$1" "$2" "$NIMO_C_DIM" "${3:-}" "$NIMO_C_RESET"
+    if [ -n "${3:-}" ]; then
+        printf '%s%-27s %12s  %s%s%s\n' "$NIMO_PAD" "$1" "$2" "$NIMO_C_DIM" "$3" "$NIMO_C_RESET"
+    else
+        printf '%s%-27s %12s\n' "$NIMO_PAD" "$1" "$2"
+    fi
 }
 
 # The same row, but the size colours itself by how big it is.

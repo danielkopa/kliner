@@ -113,3 +113,13 @@ nimo_count_dir_items() {
     [ -d "$1" ] || { printf '0'; return 0; }
     find "$1" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' '
 }
+
+# How many non-empty lines are in this string?
+#
+# `grep -c .` prints 0 and exits 1 on empty input, so the obvious
+# `$(... || printf 0)` quietly produces "0\n0" and every later test on it
+# blows up. This is that bug, fixed once.
+nimo_line_count() {
+    [ -n "${1:-}" ] || { printf '0'; return 0; }
+    printf '%s\n' "$1" | grep -c . 2>/dev/null || true
+}
