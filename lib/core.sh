@@ -123,3 +123,36 @@ nimo_line_count() {
     [ -n "${1:-}" ] || { printf '0'; return 0; }
     printf '%s\n' "$1" | grep -c . 2>/dev/null || true
 }
+
+# --- ~/.nimo/config ------------------------------------------------------
+#
+# A handful of `key = value` lines. It is read, not sourced: nothing in this
+# file can run as code, whatever ends up in it.
+#
+#   days  = 60
+#   limit = 25
+#   jobs  = 8
+#   color = never
+#   tidy  = Desktop Tidy
+
+nimo_read_config() {
+    local file="$HOME/.nimo/config" line key value
+    [ -r "$file" ] || return 0
+
+    while IFS= read -r line; do
+        case "$line" in
+            ''|'#'*) continue ;;
+        esac
+        key=$(printf '%s' "$line" | sed -e 's/=.*//' -e 's/[[:space:]]*$//' -e 's/^[[:space:]]*//')
+        value=$(printf '%s' "$line" | sed -e 's/^[^=]*=//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+        [ -n "$value" ] || continue
+        case "$key" in
+            days)  case "$value" in ''|*[!0-9]*) ;; *) NIMO_DAYS="$value" ;; esac ;;
+            limit) case "$value" in ''|*[!0-9]*) ;; *) NIMO_LIMIT="$value" ;; esac ;;
+            jobs)  case "$value" in ''|*[!0-9]*) ;; *) NIMO_JOBS="$value" ;; esac ;;
+            color) case "$value" in auto|always|never) NIMO_COLOR="$value" ;; esac ;;
+            tidy)  NIMO_TIDY_DIR_NAME="$value" ;;
+        esac
+    done < "$file"
+    return 0
+}
