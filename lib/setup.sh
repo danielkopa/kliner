@@ -111,7 +111,7 @@ nimo_setup_list() {
 }
 
 nimo_cmd_setup() {
-    nimo_banner
+    nimo_header
     nimo_register_groups
 
     if [ "${NIMO_LIST:-0}" = "1" ]; then
