@@ -1,0 +1,70 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install shellcheck
+        run: sudo apt-get update -qq && sudo apt-get install -y shellcheck
+      - name: lint every script
+        run: |
+          shellcheck -s bash -S warning -e SC2034 \
+            min install.sh uninstall.sh lib/*.sh test/run.sh completions/min.bash
+
+  syntax:
+    name: parses on bash ${{ matrix.bash }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        bash: ["3.2", "5"]
+    container: bash:${{ matrix.bash }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: parse every script
+        run: |
+          for f in min install.sh uninstall.sh lib/*.sh test/run.sh; do
+            bash -n "$f" || exit 1
+          done
+
+  test-linux:
+    name: tests on linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash test/run.sh
+
+  test-macos:
+    name: tests on macos, with the bash macos ships
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: which bash is this
+        run: /bin/bash --version | head -1
+      - name: the real thing — bash 3.2
+        run: /bin/bash test/run.sh
+
+  install:
+    name: install and uninstall cleanly
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install
+        run: ./install.sh --prefix "$HOME/.local/bin"
+      - name: it runs from the path
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          min version
+          min help --no-color | grep -q "min tidy"
+          min preview --json | head -3
+      - name: uninstall
+        run: |
+          ./uninstall.sh
+          test ! -e "$HOME/.local/bin/min"
