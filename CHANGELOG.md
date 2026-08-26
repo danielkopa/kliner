@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.5.0
+
+nimo stops being a disk cleaner and becomes what it was always meant to be:
+a way to make a Mac feel minimal.
+
+- `min tidy` — desktop, dock, wallpaper and preferences in one pass, each step
+  asking first
+- `min desktop` — everything on your desktop moves into `Desktop/Tidy/`, sorted
+  by what it is. Nothing deleted, nothing renamed, hidden files left alone, and
+  every move logged so `min desktop --undo` puts all of it back exactly where
+  it was
+- `min dock` — lists your dock, marks what Apple put there, removes only the
+  numbers you name. Exports the whole dock first, so `min dock --restore` works
+- `min wallpaper` — the wallpapers macOS already ships with, nimo's pick
+  marked, `--random` and `--restore`
+- Fixed a counting bug where an empty list read as "not empty", which made
+  `min desktop` write an empty undo log instead of saying there was nothing
+  to do
+
 ## 0.4.0
 
 - A real wordmark instead of the placeholder sketch, and it steps aside: the
