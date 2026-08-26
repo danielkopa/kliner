@@ -17,7 +17,7 @@ jobs:
       - name: lint every script
         run: |
           shellcheck -s bash -S warning -e SC2034 \
-            min install.sh uninstall.sh lib/*.sh test/run.sh completions/min.bash
+            min install.sh uninstall.sh lib/*.sh test/*.sh completions/min.bash
 
   syntax:
     name: parses on bash ${{ matrix.bash }}
@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: parse every script
         run: |
-          for f in min install.sh uninstall.sh lib/*.sh test/run.sh; do
+          for f in min install.sh uninstall.sh lib/*.sh test/*.sh; do
             bash -n "$f" || exit 1
           done
 
@@ -40,6 +40,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: bash test/run.sh
+      - name: the macOS parts, against a fake macOS
+        run: bash test/macos.sh
 
   test-macos:
     name: tests on macos, with the bash macos ships
@@ -50,6 +52,8 @@ jobs:
         run: /bin/bash --version | head -1
       - name: the real thing — bash 3.2
         run: /bin/bash test/run.sh
+      - name: the macOS parts, on bash 3.2
+        run: /bin/bash test/macos.sh
 
   install:
     name: install and uninstall cleanly
