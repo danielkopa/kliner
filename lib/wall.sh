@@ -121,25 +121,31 @@ nimo_cmd_wallpaper() {
     local suggested
     suggested=$(nimo_wall_suggest "$list")
 
-    local i=1 pic hint limit="${NIMO_LIMIT:-15}"
+    local labels="" pic hint limit="${NIMO_LIMIT:-15}" i=1
     while IFS= read -r pic; do
         [ -n "$pic" ] || continue
         [ "$i" -gt "$limit" ] && break
         hint=""
         [ "$pic" = "$suggested" ] && hint="nimo would pick this one"
-        printf '%s%s%2d%s  %-30s %s%s%s\n' \
-            "$NIMO_PAD" "$NIMO_C_DIM" "$i" "$NIMO_C_RESET" "$(nimo_wall_pretty "$pic")" \
-            "$NIMO_C_DIM" "$hint" "$NIMO_C_RESET"
+        labels="$labels$(printf '%-30s %s' "$(nimo_wall_pretty "$pic")" "$hint")
+"
         i=$((i + 1))
     done <<EOF
 $list
 EOF
 
-    nimo_panel_close
-    [ "$count" -gt "$limit" ] && nimo_dim "$((count - limit)) more — see them all with  min wallpaper --limit $count"
-    nimo_blank
-
     if [ "${NIMO_LIST:-0}" = "1" ] || [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
+        i=1
+        while IFS= read -r hint; do
+            [ -n "$hint" ] || continue
+            printf '%s%s%2d%s  %s\n' "$NIMO_PAD" "$NIMO_C_DIM" "$i" "$NIMO_C_RESET" "$hint"
+            i=$((i + 1))
+        done <<EOF
+$labels
+EOF
+        nimo_panel_close
+        [ "$count" -gt "$limit" ] && nimo_dim "$((count - limit)) more — see them all with  min wallpaper --limit $count"
+        nimo_blank
         nimo_dim "run  min wallpaper  to choose one"
         nimo_blank
         return 0

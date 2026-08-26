@@ -42,12 +42,13 @@ nimo_dock_backup() {
     return 1
 }
 
+# shellcheck disable=SC2120  # the backup to restore is optional
 nimo_dock_restore() {
-    nimo_header
+    [ "${NIMO_UNDO_QUIET:-0}" = "1" ] || nimo_header
     nimo_panel_open "put the dock back"
 
-    local latest
-    latest=$(ls -1 "$NIMO_BACKUP_DIR"/dock-*.plist 2>/dev/null | tail -1)
+    local latest="${1:-}"
+    [ -n "$latest" ] || latest=$(ls -1 "$NIMO_BACKUP_DIR"/dock-*.plist 2>/dev/null | tail -1)
 
     if [ -z "$latest" ]; then
         nimo_dim "no dock backup yet — nimo has not changed your dock"
@@ -111,47 +112,54 @@ nimo_cmd_dock() {
         return 1
     fi
 
-    local i=1 url name hint
+    local labels="" i=1 url name hint
     while IFS= read -r url; do
         [ -n "$url" ] || continue
         name=$(nimo_dock_name "$url")
         hint=""
         nimo_dock_is_stock "$name" && hint="came with macOS"
-        printf '%s%s%2d%s  %-24s %s%s%s\n' \
-            "$NIMO_PAD" "$NIMO_C_DIM" "$i" "$NIMO_C_RESET" "$name" \
-            "$NIMO_C_DIM" "$hint" "$NIMO_C_RESET"
+        labels="$labels$(printf '%-24s %s' "$name" "$hint")
+"
         i=$((i + 1))
     done <<EOF
 $urls
 EOF
 
-    nimo_blank
-    nimo_rule
-    nimo_total "In your dock" "$(nimo_plural "$count" app)"
-    nimo_panel_close
-    nimo_blank
-
     if [ "${NIMO_LIST:-0}" = "1" ] || [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
+        i=1
+        while IFS= read -r name; do
+            [ -n "$name" ] || continue
+            printf '%s%s%2d%s  %s\n' "$NIMO_PAD" "$NIMO_C_DIM" "$i" "$NIMO_C_RESET" "$name"
+            i=$((i + 1))
+        done <<EOF
+$labels
+EOF
+        nimo_blank
+        nimo_rule
+        nimo_total "In your dock" "$(nimo_plural "$count" app)"
+        nimo_panel_close
+        nimo_blank
         nimo_dim "run  min dock  to pick what goes"
         nimo_blank
         return 0
     fi
 
-    if [ ! -t 0 ]; then
-        nimo_dim "run this in a terminal to choose what goes"
+    nimo_dim "$(nimo_plural "$count" app) in your dock. tick the ones that should go."
+    nimo_blank
+
+    local wanted=""
+    if ! wanted=$(nimo_pick multi "↑↓ move   space tick   a all   n none   enter confirm   q cancel" "$labels"); then
+        nimo_panel_close
+        nimo_blank
+        nimo_dim "your dock is exactly as it was"
         nimo_blank
         return 0
     fi
+    nimo_panel_close
 
-    printf '  Numbers to remove, separated by spaces (enter keeps everything): '
-    local answer=""
-    read -r answer || answer=""
-
-    local wanted
-    wanted=$(printf '%s' "$answer" | tr ',' ' ' | tr -s ' ')
     if [ -z "$(printf '%s' "$wanted" | tr -d ' ')" ]; then
         nimo_blank
-        nimo_dim "your dock is exactly as it was"
+        nimo_dim "nothing ticked — your dock is exactly as it was"
         nimo_blank
         return 0
     fi
