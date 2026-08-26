@@ -21,7 +21,7 @@ min tidy
 
 Four steps, each one asks before it does anything, and each one can be undone.
 
-It is one bash script and nine small libraries. No dependencies, no daemon, no
+It is one bash script and eleven small libraries. No dependencies, no daemon, no
 account, nothing running in the background. You can read the whole thing in
 fifteen minutes, which is the point: a tool that rearranges your files and your
 dock is a tool you should be able to read.
@@ -92,6 +92,12 @@ numbers should go. It never decides for you.
   Numbers to remove, separated by spaces (enter keeps everything):
 ```
 
+In a real terminal that list is a picker: **↑↓** to move, **space** to tick,
+**a** for all, **n** for none, **enter** to confirm, **q** to cancel. Piped
+into a script, or in a terminal that cannot do it, the exact same question is
+asked by typing numbers instead. Nothing ever becomes impossible, only less
+pleasant.
+
 The apps stay installed — only the icons go. Your whole dock is exported first,
 so `min dock --restore` brings back exactly what you had.
 
@@ -99,6 +105,26 @@ so `min dock --restore` brings back exactly what you had.
 
 The wallpapers macOS already ships with, listed, with nimo's own pick marked.
 Nothing is downloaded. `--random` if you cannot decide, `--restore` to go back.
+
+### `min undo`
+
+Everything nimo has ever done, in one list, newest first. Pick a line and that
+change is reversed — that desktop tidy, that dock, that wallpaper. Nothing else
+is touched.
+
+```
+  ╭─ what nimo has done ──────────────────────────────
+
+   ▸ cleared your desktop   26.08.2026 16:44   47 files
+     rebuilt your dock      26.08.2026 16:41
+     changed your wallpaper                    back to Sonoma
+
+  ╰────────────────────────────────────────────────────
+
+  ↑↓ move   enter reverse   q cancel
+```
+
+This is the reason nimo is allowed to touch anything at all.
 
 ### `min setup`
 
@@ -165,6 +191,7 @@ anything.
 | `min desktop` | clear your desktop — `--undo` puts it back |
 | `min dock` | pick what stays — `--restore` puts it back |
 | `min wallpaper` | pick one macOS already has — `--restore` puts it back |
+| `min undo` | everything nimo has done, and a way back |
 | `min clean` | free up the caches, after asking |
 | `min preview` | the same scan, unable to delete |
 | `min top` | the biggest folders in your home |
@@ -182,6 +209,7 @@ anything.
 | `--undo` | put your desktop back the way it was |
 | `--restore` | put the dock or the wallpaper back |
 | `--random` | let nimo pick the wallpaper |
+| `--list` | list what a command offers, without asking anything |
 | `--only a,b` | limit to certain items or setup groups |
 | `--days N` | what counts as an old download (default 30) |
 | `--limit N` | how many rows `min top` shows (default 15) |
@@ -204,16 +232,47 @@ anything.
 - **The number you see is the number you get.** After cleaning, nimo measures
   again and reports what was actually freed.
 
+## Configuration
+
+Optional. `~/.nimo/config`, one `key = value` per line:
+
+```
+days  = 60
+limit = 25
+jobs  = 8
+color = never
+tidy  = Desktop Tidy
+```
+
+It is **read, not sourced** — nothing in that file can run as code, whatever
+ends up in it. Anything typed on the command line still wins.
+
+## Speed
+
+Measuring is almost entirely waiting on the disk, so nimo measures six places
+at a time instead of one after another. On a Mac with a large
+`~/Library/Caches` and an Xcode folder that is the difference between a scan
+you wait for and a scan you do not. `jobs` in the config changes how many.
+
+## Manual page
+
+`./install.sh` puts one where your system keeps them:
+
+```bash
+man min
+```
+
 ## Tests
 
 ```bash
 bash test/run.sh
 ```
 
-Sixty checks against a fake computer in `/tmp` with its own fake `HOME`: every
-command and flag, the safety guard, the desktop sorted and then fully undone,
-and a complete clean where the promised number is compared against the freed
-number. Your real files are never read, never measured, never touched.
+Seventy-six checks against a fake computer in `/tmp` with its own fake `HOME`: every
+command and flag, the safety guard, the arrow-key picker driven by simulated
+keystrokes, the undo history, the config file, the desktop sorted and then
+fully undone, and a complete clean where the promised number is compared
+against the freed number. Your real files are never read, never measured, never touched.
 
 ## Scripting
 
@@ -238,13 +297,16 @@ nimo
 ├── install.sh             puts min on your PATH
 ├── uninstall.sh           takes it off again
 ├── completions/min.bash   tab completion
+├── man/min.1              the manual page
 ├── test/run.sh            the test suite
 └── lib
     ├── ui.sh              banner, panels, bars, the way output looks
-    ├── core.sh            sizes, disk, confirmation, the safety guard
+    ├── core.sh            sizes, disk, config, the safety guard
+    ├── pick.sh            choosing things with the arrow keys
     ├── desktop.sh         clearing the desktop, and putting it back
     ├── dock.sh            reading and rebuilding the dock
     ├── wall.sh            the wallpaper
+    ├── undo.sh            the history, and the way back
     ├── scan.sh            every place nimo knows how to look
     ├── clean.sh           scan, report, clean, json
     ├── setup.sh           the macOS preferences

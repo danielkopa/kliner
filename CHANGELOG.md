@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.6.0
+
+- **Arrow keys.** `min dock`, `min wallpaper` and `min undo` are now proper
+  pickers: ↑↓ to move, space to tick, a for all, n for none, enter, q. Pure
+  bash, no curses, no dependencies. A pipe or a dumb terminal falls back to
+  typing numbers, so nothing ever becomes impossible
+- **`min undo`** — everything nimo has ever done in one list, newest first.
+  Pick a line and that change is reversed
+- **Six times faster scanning.** Measuring is waiting on the disk, so targets
+  are measured six at a time. `jobs` in the config changes how many
+- **`~/.nimo/config`** — `days`, `limit`, `jobs`, `color`, `tidy`. Read, never
+  sourced: nothing in it can run as code
+- **`man min`**, installed by `install.sh`
+- `min doctor` also reports memory and battery
+- The test suite drives the picker with simulated keystrokes — 76 checks
+
 ## 0.5.0
 
 nimo stops being a disk cleaner and becomes what it was always meant to be:
