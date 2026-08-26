@@ -1,0 +1,115 @@
+.TH MIN 1 "2026" "nimo" "User Commands"
+.SH NAME
+min \- make your computer feel better
+.SH SYNOPSIS
+.B min
+[\fICOMMAND\fR] [\fIOPTIONS\fR]
+.SH DESCRIPTION
+.B nimo
+makes a Mac feel minimal again: a desktop with nothing on it, a dock with only
+the apps you actually open, a calm wallpaper, sane preferences, and a disk
+without gigabytes of cache on it.
+.PP
+Every command that changes something shows what it is about to do and waits for
+a yes. Every change nimo makes can be reversed with
+.BR "min undo" .
+nimo never touches a path outside your home folder and never asks for sudo.
+.SH COMMANDS
+.TP
+.B min tidy
+Desktop, dock, wallpaper and preferences, in that order. Each step asks first.
+.TP
+.B min desktop
+Move everything on the desktop into \fIDesktop/Tidy/\fR, sorted by kind.
+Nothing is deleted or renamed. \fB\-\-undo\fR puts it all back.
+.TP
+.B min dock
+List the dock and remove only the entries you tick. The dock is exported first;
+\fB\-\-restore\fR brings it back.
+.TP
+.B min wallpaper
+Choose from the wallpapers macOS already ships with. Nothing is downloaded.
+\fB\-\-random\fR picks for you, \fB\-\-restore\fR goes back.
+.TP
+.B min undo
+Everything nimo has done, listed. Pick one and it is reversed.
+.TP
+.B min clean
+Scan for junk, show the total, and free it after you confirm.
+.TP
+.B min preview
+The same scan, unable to delete anything.
+.TP
+.B min top
+The biggest folders in your home, with bars.
+.TP
+.B min doctor
+Disk, memory, battery, uptime, clutter and total junk on one screen.
+.TP
+.B min setup
+Apply a small, sane set of macOS preferences.
+.TP
+.B min update
+Run \fBgit pull\fR in whichever folder nimo lives in.
+.SH OPTIONS
+.TP
+.BR \-n ", " \-\-dry\-run
+Show what would happen and change nothing.
+.TP
+.BR \-y ", " \-\-yes
+Skip the confirmation question.
+.TP
+.B \-\-undo
+Put the desktop back the way it was.
+.TP
+.B \-\-restore
+Put the dock or the wallpaper back.
+.TP
+.B \-\-random
+Let nimo pick the wallpaper.
+.TP
+.BI \-\-only " a,b"
+Limit to certain items or setup groups.
+.TP
+.BI \-\-days " N"
+What counts as an old download. Default 30.
+.TP
+.BI \-\-limit " N"
+How many rows to show. Default 15.
+.TP
+.B \-\-json
+Machine readable output for \fBclean\fR and \fBpreview\fR. Sizes in bytes.
+.TP
+.B \-\-list
+List what a command would offer, without asking anything.
+.TP
+.B \-\-no\-color
+Plain output. \fBNO_COLOR\fR in the environment does the same.
+.TP
+.BR \-q ", " \-\-quiet
+No banner.
+.SH FILES
+.TP
+.I ~/.nimo/config
+Optional defaults, one \fIkey = value\fR per line: \fBdays\fR, \fBlimit\fR,
+\fBjobs\fR, \fBcolor\fR, \fBtidy\fR. It is read, never executed.
+.TP
+.I ~/.nimo/undo/
+One file per desktop tidy, listing every move nimo made.
+.TP
+.I ~/.nimo/backups/
+The dock as it was, and the wallpaper as it was.
+.SH EXIT STATUS
+.TP
+.B 0
+Everything went fine, including "there was nothing to do".
+.TP
+.B 1
+Something could not be done.
+.TP
+.B 2
+The command line did not make sense.
+.SH SEE ALSO
+The full documentation lives in the repository README.
+.SH AUTHOR
+Daniel Kopa.
