@@ -19,7 +19,7 @@
 #
 set -u
 
-NIMO_VERSION="0.9.0"
+NIMO_VERSION="0.10.0"
 
 # --- find our own directory, even when called through a symlink ---------
 nimo_root() {
@@ -92,7 +92,7 @@ nimo_usage() {
         --only a,b      limit to certain items or setup groups
         --days N        what counts as an old download (default 30)
         --undo          put your desktop back the way it was
-        --restore       put the dock or the wallpaper back
+        --restore       put the dock, wallpaper or preferences back
         --random        let nimo pick the wallpaper
         --list          list the setup groups
         --limit N       how many rows min top shows (default 15)
@@ -116,6 +116,7 @@ nimo_usage() {
     min preview --json
     min setup --list
     min setup --only dock,finder
+    min setup --restore
 
 HELP
 }
