@@ -153,3 +153,39 @@ nimo_cmd_update() {
     nimo_panel_close
     nimo_blank
 }
+
+# ---- min tidy ------------------------------------------------------------
+#
+# The whole point of nimo, in one command: a desktop with nothing on it,
+# a dock with only what you open, a calm wallpaper, sane preferences.
+# Every step asks first. Every step can be undone.
+
+nimo_cmd_tidy() {
+    nimo_logo
+    nimo_blank
+    nimo_dim "four steps toward a minimal mac. each one asks before it does anything,"
+    nimo_dim "and each one can be undone."
+    nimo_blank
+
+    local was_quiet="${NIMO_QUIET:-0}"
+    NIMO_QUIET=1
+
+    nimo_cmd_desktop
+    nimo_cmd_dock
+    nimo_cmd_wallpaper
+    nimo_cmd_setup
+
+    NIMO_QUIET="$was_quiet"
+
+    nimo_panel_open "done"
+    nimo_ok "That is a minimal mac."
+    nimo_blank
+    nimo_dim "undo the desktop     min desktop --undo"
+    nimo_dim "undo the dock        min dock --restore"
+    nimo_dim "undo the wallpaper   min wallpaper --restore"
+    nimo_blank
+    nimo_dim "and when the disk fills up again   min clean"
+    nimo_panel_close
+    nimo_blank
+    return 0
+}

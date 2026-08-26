@@ -4,6 +4,10 @@
 #   https://github.com/danielkopa/nimo
 #
 #   min             show nimo
+#   min tidy        desktop, dock, wallpaper, preferences — the whole thing
+#   min desktop     clear your desktop without losing anything
+#   min dock        keep only the apps you actually open
+#   min wallpaper   a calmer wallpaper, from the ones macOS ships with
 #   min clean       scan, then free up space (asks first)
 #   min preview     same scan, guaranteed to change nothing
 #   min top         the biggest folders in your home
@@ -14,7 +18,7 @@
 #
 set -u
 
-NIMO_VERSION="0.4.0"
+NIMO_VERSION="0.5.0"
 
 # --- find our own directory, even when called through a symlink ---------
 nimo_root() {
@@ -33,7 +37,7 @@ nimo_root() {
 NIMO_ROOT=$(nimo_root)
 NIMO_LIB="$NIMO_ROOT/lib"
 
-for _nimo_mod in ui core scan clean setup tools; do
+for _nimo_mod in ui core scan clean setup desktop dock wall tools; do
     if [ ! -r "$NIMO_LIB/$_nimo_mod.sh" ]; then
         echo "nimo: cannot find $NIMO_LIB/$_nimo_mod.sh" >&2
         echo "nimo: is the whole repository still in one piece?" >&2
@@ -51,6 +55,9 @@ NIMO_DAYS=30
 NIMO_QUIET=0
 NIMO_LIST=0
 NIMO_JSON=0
+NIMO_UNDO=0
+NIMO_RESTORE=0
+NIMO_RANDOM=0
 NIMO_LIMIT=15
 NIMO_COLOR=auto
 NIMO_COMMAND=""
@@ -61,6 +68,12 @@ nimo_usage() {
   Commands
 
     min                 say hello
+    min tidy            the whole thing: desktop, dock, wallpaper, preferences
+
+    min desktop         clear your desktop, nothing lost
+    min dock            keep only the apps you actually open
+    min wallpaper       a calmer wallpaper, from the ones macOS ships
+
     min clean           scan your computer, then free up space
     min preview         the same scan, without touching anything
     min top             the biggest folders in your home
@@ -76,6 +89,9 @@ nimo_usage() {
     -y, --yes           do not ask for confirmation
         --only a,b      limit to certain items or setup groups
         --days N        what counts as an old download (default 30)
+        --undo          put your desktop back the way it was
+        --restore       put the dock or the wallpaper back
+        --random        let nimo pick the wallpaper
         --list          list the setup groups
         --limit N       how many rows min top shows (default 15)
         --json          machine readable output for clean and preview
@@ -84,6 +100,11 @@ nimo_usage() {
 
   Examples
 
+    min tidy
+    min desktop
+    min desktop --undo
+    min dock
+    min wallpaper --random
     min preview
     min doctor
     min top --limit 20
@@ -103,7 +124,7 @@ nimo_version() {
 # --- argument parsing ----------------------------------------------------
 while [ $# -gt 0 ]; do
     case "$1" in
-        clean|preview|setup|top|doctor|update|help|version)
+        clean|preview|setup|top|doctor|update|tidy|desktop|dock|wallpaper|help|version)
             [ -z "$NIMO_COMMAND" ] && NIMO_COMMAND="$1"
             ;;
         -n|--dry-run)   NIMO_DRY_RUN=1 ;;
@@ -111,6 +132,9 @@ while [ $# -gt 0 ]; do
         -q|--quiet)     NIMO_QUIET=1 ;;
         --list)         NIMO_LIST=1 ;;
         --json)         NIMO_JSON=1 ;;
+        --undo)         NIMO_UNDO=1 ;;
+        --restore)      NIMO_RESTORE=1 ;;
+        --random)       NIMO_RANDOM=1 ;;
         --limit)
             shift
             if [ $# -eq 0 ]; then
@@ -174,6 +198,10 @@ nimo_init_colors
 
 # --- dispatch ------------------------------------------------------------
 case "$NIMO_COMMAND" in
+    tidy)      nimo_cmd_tidy ;;
+    desktop)   nimo_cmd_desktop ;;
+    dock)      nimo_cmd_dock ;;
+    wallpaper) nimo_cmd_wallpaper ;;
     clean)   nimo_cmd_clean ;;
     preview) nimo_cmd_preview ;;
     top)     nimo_cmd_top ;;
