@@ -48,9 +48,10 @@ mkdir -p "$FAKE" "$STATE"
 
 DOCK="$STATE/dock"                 # one app url per line
 WROTE="$STATE/defaults-writes"     # every plain `defaults write`
+PREFS="$STATE/prefs"               # domain<TAB>key<TAB>type<TAB>value
 SCRIPTED="$STATE/osascript"        # every osascript that ran
 SQL="$STATE/sqlite"                # the last resort wallpaper path
-: > "$WROTE"; : > "$SCRIPTED"; : > "$SQL"
+: > "$WROTE"; : > "$SCRIPTED"; : > "$SQL"; : > "$PREFS"
 
 cat > "$FAKE/uname" <<'SHIM'
 #!/bin/sh
@@ -87,6 +88,7 @@ cat > "$FAKE/defaults" <<SHIM
 #!/bin/sh
 DOCK="$DOCK"
 WROTE="$WROTE"
+PREFS="$PREFS"
 SHIM
 cat >> "$FAKE/defaults" <<'SHIM'
 verb="${1:-}"; shift 2>/dev/null || true
@@ -94,6 +96,12 @@ verb="${1:-}"; shift 2>/dev/null || true
 case "$verb" in
     read)
         domain="${1:-}"; key="${2:-}"
+        if [ -n "$key" ] && [ "$key" != "persistent-apps" ]; then
+            line=$(grep "^$domain	$key	" "$PREFS" | tail -1)
+            [ -n "$line" ] || exit 1
+            printf '%s\n' "$line" | cut -f4
+            exit 0
+        fi
         if [ "$domain" = "com.apple.dock" ] && [ "$key" = "persistent-apps" ]; then
             [ -s "$DOCK" ] || exit 1
             echo "("
@@ -127,6 +135,34 @@ case "$verb" in
             exit 0
         fi
         echo "$domain $key $*" >> "$WROTE"
+        type="string"
+        case "${1:-}" in
+            -bool)   type="boolean" ;;
+            -int)    type="integer" ;;
+            -float)  type="float" ;;
+            -string) type="string" ;;
+        esac
+        case "${1:-}" in
+            -*) value="${2:-}" ;;
+            *)  value="${1:-}" ;;
+        esac
+        grep -v "^$domain	$key	" "$PREFS" > "$PREFS.new" 2>/dev/null || true
+        mv "$PREFS.new" "$PREFS" 2>/dev/null || true
+        printf '%s\t%s\t%s\t%s\n' "$domain" "$key" "$type" "$value" >> "$PREFS"
+        exit 0
+        ;;
+    read-type)
+        domain="${1:-}"; key="${2:-}"
+        line=$(grep "^$domain	$key	" "$PREFS" | tail -1)
+        [ -n "$line" ] || exit 1
+        echo "Type is $(printf '%s\n' "$line" | cut -f3)"
+        exit 0
+        ;;
+    delete)
+        domain="${1:-}"; key="${2:-}"
+        grep -v "^$domain	$key	" "$PREFS" > "$PREFS.new" 2>/dev/null || true
+        mv "$PREFS.new" "$PREFS" 2>/dev/null || true
+        echo "DELETED $domain $key" >> "$WROTE"
         exit 0
         ;;
     export)
@@ -272,6 +308,73 @@ mac setup -y -q --no-color >/dev/null 2>&1
 check "setup with no group does them all" "[ \$(wc -l < '$WROTE') -ge 20 ]"
 check "screenshots go to their own folder" "grep -q 'screencapture location' '$WROTE'"
 check "nothing in setup calls sudo"       "! grep -q sudo '$WROTE'"
+
+# ---- putting the preferences back ----------------------------------------
+#
+# setup used to be the one command with no way back, which made the promise
+# on the tin false. It now writes down what every key was — including the
+# ones that had never been set — before it touches anything.
+
+fakedefaults() { PATH="$FAKE:$PATH" defaults "$@"; }
+
+rm -rf "$BOX/.nimo/backups"
+: > "$PREFS"; : > "$WROTE"
+
+# one key already set by hand, the rest never touched
+fakedefaults write com.apple.finder FXPreferredViewStyle -string clmv
+
+mac setup --only finder -y -q --no-color >/dev/null 2>&1
+LOG=$(ls -1 "$BOX"/.nimo/backups/setup-*.tsv 2>/dev/null | tail -1)
+
+check "setup writes down what it changed"  "[ -s '$LOG' ]"
+check "it records a key that existed"      "grep -q 'FXPreferredViewStyle	had	-string	clmv' '$LOG'"
+check "it records keys that did not"       "grep -q 'AppleShowAllExtensions	absent' '$LOG'"
+check "setup really did change the view"   "[ \"\$(fakedefaults read com.apple.finder FXPreferredViewStyle)\" = Nlsv ]"
+
+: > "$WROTE"
+mac setup --restore -q --no-color >/dev/null 2>&1
+
+check "--restore puts the old value back"  "[ \"\$(fakedefaults read com.apple.finder FXPreferredViewStyle)\" = clmv ]"
+check "--restore keeps the original type"  "fakedefaults read-type com.apple.finder FXPreferredViewStyle | grep -q string"
+check "--restore unsets what was never set" "! fakedefaults read com.apple.finder ShowPathbar"
+check "--restore says so in the log"        "grep -q 'DELETED com.apple.finder ShowPathbar' '$WROTE'"
+
+check "booleans come back as booleans"     "fakedefaults write com.apple.dock autohide -bool false; mac setup --only dock -y -q --no-color >/dev/null 2>&1; mac setup --restore -q --no-color >/dev/null 2>&1; fakedefaults read-type com.apple.dock autohide | grep -q boolean"
+check "and with the value they had"        "[ \"\$(fakedefaults read com.apple.dock autohide)\" = false ]"
+
+# A value that is a whole structure cannot be replayed as one setting, so it
+# must be marked and skipped rather than flattened into nonsense. This is the
+# other half of the bug the guard above had.
+record_of() {
+    HOME="$BOX" bash -c '
+        NIMO_VERSION=test
+        for m in ui core; do . "'"$ROOT"'/lib/$m.sh"; done
+        . "'"$ROOT"'/lib/setup.sh"
+        # after sourcing, because setup.sh clears this on the way in
+        NIMO_SETUP_LOG="$1"
+        defaults() {
+            case "$1" in
+                read)      printf "line one\nline two\n" ;;
+                read-type) echo "Type is string" ;;
+            esac
+        }
+        nimo_setup_record com.example.app SomeKey' _ "$1"
+}
+
+MULTI="$BOX/multi.tsv"
+: > "$MULTI"
+record_of "$MULTI"
+check "a structured value is not replayed"  "grep -q 'SomeKey	complex' '$MULTI'"
+check "and a plain one still is"            "grep -q 'FXPreferredViewStyle	had' '$LOG'"
+
+check "two runs in a second keep both logs" "mac setup --only keyboard -y -q --no-color >/dev/null 2>&1; mac setup --only dialogs -y -q --no-color >/dev/null 2>&1; [ \$(ls -1 '$BOX'/.nimo/backups/setup-*.tsv | wc -l) -ge 3 ]"
+
+check "min undo lists the preferences too" "mac undo --list -q --no-color | grep -q 'changed preferences'"
+check "min undo counts the settings"       "mac undo --list -q --no-color | grep -q 'settings'"
+
+check "restoring twice is not an error"    "mac setup --restore -q --no-color >/dev/null 2>&1; mac setup --restore -q --no-color >/dev/null 2>&1"
+rm -rf "$BOX/.nimo/backups"
+check "nothing to restore says so calmly"  "mac setup --restore -q --no-color | grep -q 'has not changed any preferences'"
 
 # ---- the wallpaper -------------------------------------------------------
 #

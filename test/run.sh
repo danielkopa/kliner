@@ -161,6 +161,24 @@ touch "$BOX/Desktop/first.pdf" "$BOX/Desktop/second.png"
 min desktop -y -q --no-color >/dev/null 2>&1
 
 check "undo --list shows what happened"   "min undo --list -q --no-color | grep -q 'cleared your desktop'"
+# Two tidies inside one second used to land on the same log name, where the
+# second truncated the first and the only record of how to undo it was gone.
+two_in_a_second() {
+    local box
+    box=$(mktemp -d "${TMPDIR:-/tmp}/nimo-collide.XXXXXX") || return 1
+    mkdir -p "$box/Desktop"
+    touch "$box/Desktop/first.pdf"
+    HOME="$box" bash "$MIN" desktop -y -q --no-color >/dev/null 2>&1
+    touch "$box/Desktop/second.pdf"
+    HOME="$box" bash "$MIN" desktop -y -q --no-color >/dev/null 2>&1
+    local logs newest
+    logs=$(ls -1 "$box"/.nimo/undo/desktop-*.tsv 2>/dev/null | wc -l | tr -d ' ')
+    newest=$(ls -1 "$box"/.nimo/undo/desktop-*.tsv 2>/dev/null | tail -1)
+    printf '%s %s' "$logs" "$(grep -c . "$newest" 2>/dev/null || echo 0)"
+    rm -rf "$box"
+}
+
+check "two tidies in a second keep both"  "[ \"\$(two_in_a_second)\" = '2 1' ]"
 check "undo --list counts the files"      "min undo --list -q --no-color | grep -q '2 files'"
 
 printf '\n' | NIMO_PICK_FORCE=1 HOME="$BOX" bash "$MIN" undo -q --no-color >/dev/null 2>&1
