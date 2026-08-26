@@ -4,8 +4,8 @@
 # ---- min top -------------------------------------------------------------
 
 nimo_cmd_top() {
-    nimo_banner
-    nimo_title "Biggest folders in your home"
+    nimo_header
+    nimo_panel_open "biggest folders in your home"
 
     local limit="${NIMO_LIMIT:-15}" list max total
     nimo_progress "measuring $HOME …"
@@ -18,6 +18,7 @@ nimo_cmd_top() {
 
     if [ -z "$list" ]; then
         nimo_dim "nothing to measure"
+        nimo_panel_close
         nimo_blank
         return 0
     fi
@@ -26,15 +27,17 @@ nimo_cmd_top() {
 
     printf '%s\n' "$list" | while IFS=$'\t' read -r kb path; do
         [ -n "${path:-}" ] || continue
-        printf '  %-24s %10s  %s\n' \
-            "$(basename "$path")" \
-            "$(nimo_human_kb "$kb")" \
+        printf '%s%-22s %s%10s%s  %s\n' \
+            "$NIMO_PAD" "$(basename "$path")" \
+            "$(nimo_size_color "$kb")" "$(nimo_human_kb "$kb")" "$NIMO_C_RESET" \
             "$(nimo_meter "$kb" "$max" 16)"
     done
 
     nimo_blank
-    nimo_rule
-    nimo_total "Everything in your home" "$(nimo_human_kb "$total")"
+    printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "$(nimo_dashes 33)" "$NIMO_C_RESET"
+    printf '%s%s%-22s %10s%s\n' "$NIMO_PAD" "$NIMO_C_BOLD" "Everything in your home" \
+        "$(nimo_human_kb "$total")" "$NIMO_C_RESET"
+    nimo_panel_close
     nimo_blank
     nimo_dim "this is only a measurement — nothing here is deleted or changed"
     nimo_dim "to see what is actually safe to remove:  min preview"
@@ -61,8 +64,8 @@ nimo_uptime_line() {
 }
 
 nimo_cmd_doctor() {
-    nimo_banner
-    nimo_title "How your computer is doing"
+    nimo_header
+    nimo_panel_open "your computer"
 
     nimo_fact "System" "$(nimo_os_line)"
     nimo_fact "Uptime" "$(nimo_uptime_line)"
@@ -104,6 +107,7 @@ nimo_cmd_doctor() {
         nimo_fact "Junk" "none worth mentioning"
     fi
 
+    nimo_blank
     local where
     where=$(command -v min 2>/dev/null || true)
     if [ -n "$where" ]; then
@@ -111,25 +115,27 @@ nimo_cmd_doctor() {
     else
         nimo_fact "nimo" "v$NIMO_VERSION" "not on your PATH — run ./install.sh"
     fi
-
+    nimo_panel_close
     nimo_blank
 }
 
 # ---- min update ----------------------------------------------------------
 
 nimo_cmd_update() {
-    nimo_banner
-    nimo_title "Update"
+    nimo_header
+    nimo_panel_open "update"
 
     if [ ! -d "$NIMO_ROOT/.git" ]; then
         nimo_warn "this copy of nimo is not a git repository"
         nimo_dim "$NIMO_ROOT"
+        nimo_panel_close
         nimo_blank
         return 1
     fi
 
     if ! nimo_have git; then
         nimo_warn "git is not installed"
+        nimo_panel_close
         nimo_blank
         return 1
     fi
@@ -144,5 +150,6 @@ nimo_cmd_update() {
         nimo_warn "could not update automatically"
         nimo_dim "try it by hand:  cd $NIMO_ROOT && git pull"
     fi
+    nimo_panel_close
     nimo_blank
 }

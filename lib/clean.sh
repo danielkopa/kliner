@@ -5,13 +5,13 @@ nimo_report() {
     local i n kb count safe_kb=0 review_kb=0 shown=0
     n=$NIMO_T_N
 
-    nimo_title "Safe to clean"
+    nimo_panel_open "safe to clean"
     i=0
     while [ "$i" -lt "$n" ]; do
         if [ "${NIMO_T_SAFETY[$i]}" = "safe" ] && nimo_selected "$i"; then
             kb="${NIMO_R_KB[$i]}"; count="${NIMO_R_COUNT[$i]}"
             if [ "$kb" -gt 0 ]; then
-                nimo_row "${NIMO_T_LABEL[$i]}" "$(nimo_human_kb "$kb")" "${NIMO_T_NOTE[$i]}"
+                nimo_row_kb "${NIMO_T_LABEL[$i]}" "$kb" "${NIMO_T_NOTE[$i]}"
                 safe_kb=$((safe_kb + kb))
                 shown=1
             fi
@@ -23,9 +23,10 @@ nimo_report() {
     nimo_rule
     nimo_total "Total" "$(nimo_human_kb "$safe_kb")"
     nimo_disk_line
+    nimo_panel_close
 
     shown=0
-    nimo_title "Worth a look"
+    nimo_panel_open "worth a look"
     nimo_dim "nimo never deletes anything in this section"
     nimo_blank
     i=0
@@ -33,7 +34,7 @@ nimo_report() {
         if [ "${NIMO_T_SAFETY[$i]}" = "review" ] && nimo_selected "$i"; then
             kb="${NIMO_R_KB[$i]}"; count="${NIMO_R_COUNT[$i]}"
             if [ "$kb" -gt 0 ]; then
-                nimo_row "${NIMO_T_LABEL[$i]}" "$(nimo_human_kb "$kb")" "$(nimo_plural "$count" item) · ${NIMO_T_NOTE[$i]}"
+                nimo_row_kb "${NIMO_T_LABEL[$i]}" "$kb" "$(nimo_plural "$count" item) · ${NIMO_T_NOTE[$i]}"
                 review_kb=$((review_kb + kb))
                 shown=1
             fi
@@ -41,6 +42,7 @@ nimo_report() {
         i=$((i + 1))
     done
     [ "$shown" = "0" ] && nimo_dim "nothing here either"
+    nimo_panel_close
 
     NIMO_SAFE_KB="$safe_kb"
     NIMO_REVIEW_KB="$review_kb"
@@ -134,7 +136,7 @@ nimo_cmd_clean() {
         return 0
     fi
 
-    nimo_banner
+    nimo_header
     nimo_register_targets
 
     if [ -n "${NIMO_ONLY:-}" ]; then
@@ -172,6 +174,8 @@ nimo_cmd_clean() {
     nimo_do_clean
     nimo_ok "Freed $(nimo_human_kb "${NIMO_FREED_KB:-0}")"
     nimo_disk_line
+    nimo_blank
+    nimo_dim "your computer feels a little better"
     if [ $(( ${NIMO_FREED_KB:-0} * 10 )) -lt $(( ${NIMO_SAFE_KB:-0} * 9 )) ]; then
         nimo_dim "some files were in use or protected by macOS and were left alone"
     fi

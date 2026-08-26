@@ -31,15 +31,15 @@ nimo_register() {
 
 nimo_register_targets_macos() {
     nimo_register user-caches "App caches" contents safe \
-        "rebuilt automatically by your apps" \
+        "your apps rebuild them" \
         "$HOME/Library/Caches"
 
     nimo_register logs "Application logs" contents safe \
-        "old log files from your apps" \
+        "old log files" \
         "$HOME/Library/Logs"
 
     nimo_register crash-reports "Crash reports" contents safe \
-        "diagnostic reports you will never read" \
+        "reports nobody reads" \
         "$HOME/Library/Logs/DiagnosticReports"
 
     nimo_register trash "Trash" contents safe \
@@ -51,60 +51,60 @@ nimo_register_targets_macos() {
         "$HOME/Library/Caches/com.apple.QuickLook.thumbnailcache"
 
     nimo_register mail-downloads "Mail attachments cache" contents safe \
-        "temporary copies of opened attachments" \
+        "copies of opened attachments" \
         "$HOME/Library/Containers/com.apple.mail/Data/Library/Mail Downloads"
 
     nimo_register xcode "Xcode derived data" contents safe \
-        "rebuilt next time you build" \
+        "rebuilt on your next build" \
         "$HOME/Library/Developer/Xcode/DerivedData" \
         "$HOME/Library/Developer/CoreSimulator/Caches"
 
     nimo_register homebrew "Homebrew cache" contents safe \
-        "downloaded bottles and formulae" \
+        "downloaded bottles" \
         "$HOME/Library/Caches/Homebrew"
 
     nimo_register node "npm / yarn / pnpm cache" contents safe \
-        "package manager download caches" \
+        "download caches" \
         "$HOME/.npm/_cacache" \
         "$HOME/Library/Caches/Yarn" \
         "$HOME/.cache/yarn" \
         "$HOME/Library/pnpm/store"
 
     nimo_register python "pip cache" contents safe \
-        "downloaded python wheels" \
+        "downloaded wheels" \
         "$HOME/Library/Caches/pip" \
         "$HOME/.cache/pip"
 
     # ---- review only: nimo shows these, you decide ----
 
     nimo_register downloads "Old downloads" older review \
-        "files in ~/Downloads you have not touched" \
+        "untouched for a while" \
         "$HOME/Downloads"
 
     nimo_register ios-backups "iPhone / iPad backups" tree review \
-        "deleting these loses your device backups" \
+        "losing these loses backups" \
         "$HOME/Library/Application Support/MobileSync/Backup"
 
     nimo_register xcode-archives "Xcode archives" tree review \
-        "your shipped app builds" \
+        "your shipped builds" \
         "$HOME/Library/Developer/Xcode/Archives"
 
     nimo_register device-support "Xcode device support" tree review \
-        "re-downloaded when you connect a device" \
+        "re-downloaded on connect" \
         "$HOME/Library/Developer/Xcode/iOS DeviceSupport"
 
     nimo_register node-modules "node_modules folders" findname review \
-        "reinstallable with npm install" \
+        "npm install brings them back" \
         "$HOME"
 
     nimo_register big-files "Files over 500 MB" bigfiles review \
-        "the heavyweights sitting in your home folder" \
+        "the heavyweights" \
         "$HOME"
 }
 
 nimo_register_targets_linux() {
     nimo_register user-caches "User cache" contents safe \
-        "rebuilt automatically, exactly like macOS caches" \
+        "rebuilt automatically" \
         "$HOME/.cache"
 
     nimo_register trash "Trash" contents safe \
@@ -113,24 +113,24 @@ nimo_register_targets_linux() {
         "$HOME/.local/share/Trash/info"
 
     nimo_register node "npm / yarn cache" contents safe \
-        "package manager download caches" \
+        "download caches" \
         "$HOME/.npm/_cacache" \
         "$HOME/.cache/yarn"
 
     nimo_register python "pip cache" contents safe \
-        "downloaded python wheels" \
+        "downloaded wheels" \
         "$HOME/.cache/pip"
 
     nimo_register downloads "Old downloads" older review \
-        "files in ~/Downloads you have not touched" \
+        "untouched for a while" \
         "$HOME/Downloads"
 
     nimo_register node-modules "node_modules folders" findname review \
-        "reinstallable with npm install" \
+        "npm install brings them back" \
         "$HOME"
 
     nimo_register big-files "Files over 500 MB" bigfiles review \
-        "the heavyweights sitting in your home folder" \
+        "the heavyweights" \
         "$HOME"
 }
 
@@ -179,6 +179,26 @@ EOF
     printf '%s' "$total"
 }
 
+# True when a path sits inside something nimo already counts as safe junk,
+# so a 2 GB cache file is not also reported as a heavyweight.
+nimo_under_safe() {
+    local f="$1" i=0 q
+    while [ "$i" -lt "$NIMO_T_N" ]; do
+        if [ "${NIMO_T_SAFETY[$i]}" = "safe" ]; then
+            while IFS= read -r q; do
+                [ -n "$q" ] || continue
+                case "$f" in
+                    "$q"/*) return 0 ;;
+                esac
+            done <<EOF
+$(nimo_target_paths "$i")
+EOF
+        fi
+        i=$((i + 1))
+    done
+    return 1
+}
+
 # measure target $1 -> prints "<kb> <count>"
 nimo_measure() {
     local i="$1" kind="${NIMO_T_KIND[$1]}"
@@ -224,23 +244,35 @@ $(nimo_target_paths "$i")
 EOF
             ;;
         findname)
+            local hit
             while IFS= read -r p; do
                 [ -n "$p" ] || continue
                 [ -d "$p" ] || continue
-                count=$((count + $(find "$p" -maxdepth 5 -type d -name node_modules -prune 2>/dev/null | wc -l | tr -d ' ')))
-                sub=$(find "$p" -maxdepth 5 -type d -name node_modules -prune -exec du -sk {} + 2>/dev/null | awk '{t += $1} END {printf "%d", t + 0}')
-                kb=$((kb + sub))
+                while IFS= read -r hit; do
+                    [ -n "$hit" ] || continue
+                    nimo_under_safe "$hit" && continue
+                    count=$((count + 1))
+                    kb=$((kb + $(nimo_path_kb "$hit")))
+                done <<EOF
+$(find "$p" -maxdepth 5 -type d -name node_modules -prune 2>/dev/null)
+EOF
             done <<EOF
 $(nimo_target_paths "$i")
 EOF
             ;;
         bigfiles)
+            local hit
             while IFS= read -r p; do
                 [ -n "$p" ] || continue
                 [ -d "$p" ] || continue
-                count=$((count + $(find "$p" -maxdepth 6 -type f -size +500000k 2>/dev/null | wc -l | tr -d ' ')))
-                sub=$(find "$p" -maxdepth 6 -type f -size +500000k -exec du -sk {} + 2>/dev/null | awk '{t += $1} END {printf "%d", t + 0}')
-                kb=$((kb + sub))
+                while IFS= read -r hit; do
+                    [ -n "$hit" ] || continue
+                    nimo_under_safe "$hit" && continue
+                    count=$((count + 1))
+                    kb=$((kb + $(nimo_path_kb "$hit")))
+                done <<EOF
+$(find "$p" -maxdepth 6 -type f -size +500000k 2>/dev/null)
+EOF
             done <<EOF
 $(nimo_target_paths "$i")
 EOF

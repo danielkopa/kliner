@@ -102,7 +102,7 @@ nimo_disk_line() {
     free=$(nimo_disk_free_kb)
     total=$(nimo_disk_total_kb)
     [ "${total:-0}" -gt 0 ] || return 0
-    printf '  %sDisk   %s free of %s%s\n' \
+    printf '%s%sDisk         %s free of %s%s\n' "$NIMO_PAD" \
         "$NIMO_C_DIM" "$(nimo_human_kb "$free")" "$(nimo_human_kb "$total")" "$NIMO_C_RESET"
 }
 
