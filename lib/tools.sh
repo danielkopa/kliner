@@ -221,3 +221,33 @@ nimo_cmd_tidy() {
     nimo_blank
     return 0
 }
+
+# ---- the menu ------------------------------------------------------------
+#
+# `min` on its own, in a real terminal, is a way in rather than a wall of
+# help text. Anywhere else it prints the help, exactly as before.
+
+nimo_menu_items() {
+    printf '%s\n' \
+        "$(printf '%-10s %s' tidy      'the whole thing, step by step')" \
+        "$(printf '%-10s %s' desktop   'clear your desktop, nothing lost')" \
+        "$(printf '%-10s %s' dock      'keep only the apps you open')" \
+        "$(printf '%-10s %s' wallpaper 'a calmer wallpaper')" \
+        "$(printf '%-10s %s' preview   'what could be freed, changing nothing')" \
+        "$(printf '%-10s %s' clean     'free it up, after asking')" \
+        "$(printf '%-10s %s' top       'the biggest folders in your home')" \
+        "$(printf '%-10s %s' doctor    'how your computer is doing')" \
+        "$(printf '%-10s %s' setup     'a small, sane macOS setup')" \
+        "$(printf '%-10s %s' undo      'put something back')" \
+        "$(printf '%-10s %s' help      'everything there is')"
+}
+
+# prints the chosen command name, or nothing at all
+nimo_menu() {
+    local labels choice
+    labels=$(nimo_menu_items)
+    choice=$(nimo_pick single "↑↓ move   enter choose   q cancel" "$labels") || return 1
+    [ -n "$choice" ] || return 1
+    printf '%s\n' "$labels" | sed -n "${choice}p" | awk '{print $1}'
+    return 0
+}
