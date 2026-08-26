@@ -283,13 +283,62 @@ EOF
 }
 
 # Fills NIMO_R_KB / NIMO_R_COUNT for every registered target.
+#
+# Measuring is almost entirely waiting on the disk, so the targets are
+# measured a handful at a time instead of one after another. On a Mac with a
+# large ~/Library/Caches and an Xcode folder this is the difference between
+# a scan you wait for and a scan you do not.
 nimo_scan() {
     NIMO_R_KB=(); NIMO_R_COUNT=()
-    local i n result
-    n=$NIMO_T_N
+    local n="$NIMO_T_N"
+    [ "$n" -gt 0 ] || return 0
+
+    local dir=""
+    dir=$(mktemp -d "${TMPDIR:-/tmp}/nimo-scan.XXXXXX" 2>/dev/null) || dir=""
+
+    if [ -z "$dir" ]; then
+        nimo_scan_serial
+        return 0
+    fi
+
+    nimo_progress "looking in $n places …"
+
+    local i=0 running=0 batch="${NIMO_JOBS:-6}"
+    while [ "$i" -lt "$n" ]; do
+        nimo_measure "$i" > "$dir/$i" 2>/dev/null &
+        running=$((running + 1))
+        if [ "$running" -ge "$batch" ]; then
+            wait
+            running=0
+        fi
+        i=$((i + 1))
+    done
+    wait
+    nimo_progress_done
+
+    local result
     i=0
     while [ "$i" -lt "$n" ]; do
-        nimo_progress "scanning  ${NIMO_T_LABEL[$i]} …"
+        result=$(cat "$dir/$i" 2>/dev/null)
+        case "$result" in
+            *' '*) ;;
+            *) result="0 0" ;;
+        esac
+        NIMO_R_KB[$i]="${result%% *}"
+        NIMO_R_COUNT[$i]="${result##* }"
+        i=$((i + 1))
+    done
+
+    rm -rf "$dir" 2>/dev/null
+    return 0
+}
+
+# The same thing, one at a time, for when mktemp is not available.
+nimo_scan_serial() {
+    NIMO_R_KB=(); NIMO_R_COUNT=()
+    local i=0 result
+    while [ "$i" -lt "$NIMO_T_N" ]; do
+        nimo_progress "looking in  ${NIMO_T_LABEL[$i]} …"
         result=$(nimo_measure "$i")
         NIMO_R_KB[$i]="${result%% *}"
         NIMO_R_COUNT[$i]="${result##* }"
