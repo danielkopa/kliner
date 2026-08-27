@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.29.0
+
+Found by running every command against a faked Windows and reading the output,
+the same way 0.25.0 and 0.26.0 were.
+
+- **Fixed: a count with a newline in the middle of it.** `grep -c .` prints 0
+  and exits 1 on an empty file, so `$(grep -c . "$f" || echo 0)` produced "0"
+  and then a second "0". It went into the label in `min undo`, the label took
+  two rows, and the numbers you were being asked to pick from stopped lining
+  up with the things they named
+- **Fixed: `min tidy` narrated what it would not be doing.** It ran every step
+  and let the ones this machine cannot carry out print an apology — so on
+  Windows it was partly a list of refusals, and it called the result "a
+  minimal mac" either way
+- **Fixed: the arrow menu offered a wallpaper on Linux** and a dock to thin
+  out, neither of which is there
+- A log a command opened and never wrote to is no longer offered in `min undo`
+  — reversing it would put nothing back
+- `min clear` says "all of it can be undone, except taking the rubbish out"
+  rather than claiming the whole list is reversible with the bin sitting in it
+
 ## 0.28.0
 
 The list you get for `/`, and the last of what Windows could not do.
