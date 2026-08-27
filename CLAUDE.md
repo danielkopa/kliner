@@ -77,6 +77,12 @@ form). Both are matched: `/cleardesktop` and `/clear desktop` are one command.
 
 ## Rules of thumb
 
+- Marks and glyphs come from the box-drawing block, drawn here. No fetched icon
+  sets, no emoji: this is a terminal tool and both age badly in one.
+
+- If a command destroys something, keep a copy first and fail rather than
+  proceed when the copy cannot be made (`min blank` is the pattern).
+
 - A menu that asks you to choose should count what it is offering.
 - Never move a file something else is still writing.
 - `min doctor` should end with the one thing worth doing next, or nothing.

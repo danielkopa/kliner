@@ -7,7 +7,7 @@
   </picture>
 </a>
 
-**Make your Mac feel minimal again.**
+**Make your workspace clean.**
 
 A clear desktop, a dock with only what you open, a calmer wallpaper, and the
 disk back. Every step asks first. Every step can be undone.
@@ -179,6 +179,12 @@ Screenshots, Images, Documents, Video, Audio, Archives, Code, Folders, Other.
   nothing is deleted, nothing is renamed
 ```
 
+By default they are grouped by what they are. `--by letter` files them under
+A, B, C — and `#` for anything that does not start with one — and `--by date`
+files them by the month they were last touched. Sorting four hundred invoices
+by kind puts four hundred things in one folder; by letter or by month, they
+land somewhere you can actually look.
+
 Nothing is deleted. Nothing is renamed — if a name is already taken, the new
 file becomes `invoice 2.pdf`. Hidden files are left alone, and so is anything
 still arriving: a `.download`, `.crdownload`, `.part` or `.partial` is a file a
@@ -224,6 +230,19 @@ not touched in six months, biggest first. It reports and stops — it does not
 uninstall anything, because that is not a decision a script should make. Drag
 the ones you agree with to the Trash, then `min empty` takes it out and tells
 you what that was worth.
+
+### `min blank` · `min dock --fast`
+
+`> notes.txt` in a shell empties a file in a keystroke and there is no way back
+from it. `min blank notes.txt` does the same thing, except it puts a copy of the
+contents in `~/.nimo/undo` first — so emptying a document becomes a decision you
+can change your mind about, like everything else here. If the copy cannot be
+made, the file is not emptied.
+
+`min dock --fast` removes the wait before the dock slides and shortens the slide
+itself, which is the difference between a dock that hides and a dock that keeps
+up. Both settings are written down first, so `min setup --restore` puts the
+sluggish ones back.
 
 ### `min zen`
 
@@ -357,6 +376,8 @@ anything.
 | `min duplicates` | the same file, kept more than once — reported, never deleted |
 | `min apps` | what you installed once and never opened again |
 | `min empty` | take the trash out |
+| `min blank FILE` | empty a file, keeping what was in it — `min undo` puts it back |
+| `min dock --fast` | no wait before the dock slides, and a quick slide |
 | `min dock` | pick what stays — `--restore` puts it back |
 | `min wallpaper` | pick one macOS already has — `--restore` puts it back |
 | `min undo` | everything nimo has done, and a way back |
@@ -382,6 +403,7 @@ anything.
 | `--only a,b` | limit to certain items or setup groups |
 | `--days N` | what counts as an old download (default 30) |
 | `--limit N` | how many rows `min top` shows (default 15) |
+| `--by WHAT` | sort by `kind` (default), `letter`, or `date` |
 | `--json` | machine readable output for `clean` and `preview` |
 | `--list` | list the setup groups |
 | `--no-color` | plain output |

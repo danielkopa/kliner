@@ -5,7 +5,7 @@
 # It installs the whole tree and links `min`, because nimo is a script that
 # sources its libraries from beside itself.
 class Nimo < Formula
-  desc "Make your Mac feel minimal again"
+  desc "Make your workspace clean"
   homepage "https://danielkopa.github.io/nimo/"
   url "https://github.com/danielkopa/nimo/archive/refs/tags/v0.18.0.tar.gz"
   license "MIT"

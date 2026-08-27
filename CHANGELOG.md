@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.24.0
+
+- **Three ways to sort.** `--by kind` is still the default; `--by letter` files
+  things under A, B, C and `#` for the rest; `--by date` files them by the
+  month they were last touched. Sorting four hundred invoices by kind puts four
+  hundred things in one folder — by letter or by month they land somewhere you
+  can look
+- **A mark for every row** in the menu and the command list, drawn from the box
+  characters every terminal already has rather than an icon set with a licence
+  attached
+- **Fixed: `min undo` listed by kind, not by when.** Every desktop tidy came
+  before every emptied file regardless of order, so the newest thing you did
+  was rarely the first thing offered — which is the one job that list has
+- **"make your workspace clean"** — the line the tool actually stands for, in
+  the greeting, the logo, the manual and the demo
+
+## 0.23.0
+
+- **`min blank FILE`** — empties a file the way `> file` does, except a copy of
+  the contents goes to `~/.nimo/undo` first, so `min undo` can put them back.
+  If the copy cannot be made, the file is not emptied. It refuses folders, and
+  it refuses anything outside your home folder
+- **`min dock --fast`** — no wait before the dock slides and a quick slide,
+  which is the difference between a dock that hides and one that keeps up. Both
+  settings are written down first, so `min setup --restore` undoes it
+- **Half a word is enough at the prompt.** `/desk` is desktop, `/dup` is
+  duplicates. When half a word could be two commands, nimo lists them —
+  `"doc" could be /dock or /doctor` — rather than picking one
+- **A history that outlives the session**, in `~/.nimo/history`, and **ctrl-c
+  cancels the line instead of ending nimo**, the way a shell does
+
 ## 0.22.0
 
 - **A test that documentation cannot drift.** Every command nimo can dispatch
