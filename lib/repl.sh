@@ -58,7 +58,8 @@ nimo_repl_list() {
     nimo_blank
 
     nimo_repl_head "make it yours"
-    nimo_repl_row ◐ /wallpaper   "a calmer one, from what you already have"
+    nimo_repl_row ◐ /wallpaper   "flip through them, live, on your own screen"
+    nimo_repl_row → /next        "the next one — /prev goes back"
     nimo_repl_row ◑ /dark        "switch appearance — /light switches back"
     nimo_repl_row ◇ /zen         "stop drawing icons on the desktop at all"
     if [ "$plat" = "windows" ]; then
@@ -138,6 +139,10 @@ nimo_repl_command() {
             printf 'blank'; return 0 ;;
         startup|startupitems|loginitems|whatstarts|autostart|startsitself)
             printf 'startup'; return 0 ;;
+        next|nextwallpaper|nextwall|anotherone)
+            printf 'next'; return 0 ;;
+        prev|previous|prevwallpaper|lastone|oneback)
+            printf 'prev'; return 0 ;;
         fastdock|dockfast|quickdock|speeddock)
             printf 'dock --fast'; return 0 ;;
         empty|emptytrash|takeouttrash|bin)
@@ -175,6 +180,10 @@ nimo_repl_command() {
             printf 'blank' ;;
         startup|"login items"|"startup items"|"what starts"|autostart)
             printf 'startup' ;;
+        next|"next wallpaper"|"another one")
+            printf 'next' ;;
+        prev|previous|"previous wallpaper"|"the last one"|"one back")
+            printf 'prev' ;;
         "fast dock"|"dock fast"|"speed up the dock")
             printf 'dock --fast' ;;
         empty|"empty trash"|trash|bin)
@@ -302,7 +311,7 @@ nimo_auto_set() {
     return 0
 }
 
-NIMO_COMMAND_WORDS="blank clear tidy desktop downloads screenshots dock wallpaper zen dark light hide empty apps startup duplicates preview clean top doctor setup undo update menu version"
+NIMO_COMMAND_WORDS="blank clear tidy desktop downloads screenshots dock wallpaper next prev zen dark light hide empty apps startup duplicates preview clean top doctor setup undo update menu version"
 
 # Everything that starts with what was typed.
 nimo_repl_prefix_all() {

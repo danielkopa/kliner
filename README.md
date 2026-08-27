@@ -380,7 +380,8 @@ anything.
 | `min dock --fast` | no wait before the dock slides, and a quick slide |
 | `min dock` | pick what stays — `--restore` puts it back |
 | `min startup` | what launches when you sign in, and stop the ones you tick |
-| `min wallpaper` | pick one macOS already has — `--restore` puts it back |
+| `min wallpaper` | flip through the ones your system has, live — `--restore` puts it back |
+| `min next` / `min prev` | one step through them, applied straight away |
 | `min undo` | everything nimo has done, and a way back |
 | `min clean` | free up the caches, after asking |
 | `min preview` | the same scan, unable to delete |

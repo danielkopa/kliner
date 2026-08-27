@@ -37,6 +37,10 @@ nimo_read_key() {
         q) printf 'quit' ;;
         a) printf 'all' ;;
         n) printf 'none' ;;
+        # the wallpaper browser's own two; a picker that does not know them
+        # simply ignores them, the way it ignores every other letter
+        p) printf 'prev' ;;
+        r) printf 'random' ;;
         *) printf 'other' ;;
     esac
     return 0

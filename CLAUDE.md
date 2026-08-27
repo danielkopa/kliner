@@ -170,6 +170,27 @@ own face. `tools/screen.py` renders a raw stream the way a terminal would, so
 the suite can check what is on screen and not only which bytes were sent — a
 grep sees a perfectly good face either way.
 
+## Two memories, not one
+
+`min wallpaper` applies each one as you flip, which means two different things
+have to be remembered and they are not the same thing:
+
+- `backups/wallpaper.txt` — what you had **before nimo ever touched it**.
+  Written once, by `nimo_wall_keep_original`, and deliberately not overwritten
+  while stepping, or `q` would put back the one you saw a second ago.
+- `backups/wallpaper-at.txt` — where the flipping is **up to right now**. The
+  path, not an index: a list that grows or shrinks between runs would make a
+  number point at something else.
+
+`min wallpaper --restore` applies the first and removes both, so the next
+change is a fresh "before" and the flipping starts from where you actually
+are.
+
+The browser redraws by moving up and back down — relative moves only, for the
+same reason the blink does. It also decides *before drawing anything* whether
+it is going to browse, because opening a panel it never fills leaves an empty
+box on the screen.
+
 ## Names people actually have
 
 A file name is not a word. `test/run.sh` makes seventeen of the awkward ones —

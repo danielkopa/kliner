@@ -551,6 +551,73 @@ OUT=$(NIMO_OSA_FAIL=1 wall set)
 check "falls back when macOS says no"      "[ -s '$SQL' ]"
 check "the fallback nudges the Dock"       "grep -q 'desktoppicture' '$SQL' || grep -q 'update data set value' '$SQL'"
 
+# ---- flipping through them ----------------------------------------------
+#
+# A list of names tells you nothing about a wallpaper. Stepping applies each
+# one as you move, so the thing you are choosing is on your own screen — and
+# `q` puts back the one you started with, which means two different things
+# have to be remembered: what you had before nimo ever touched it, and what it
+# is showing you right now.
+
+rm -rf "$BOX/.nimo/backups"
+: > "$SCRIPTED"
+
+step() {
+    PATH="$FAKE:$PATH" HOME="$BOX" bash -c '
+        NIMO_VERSION=test; NIMO_QUIET=1; NIMO_COLOR=never
+        NIMO_DRY_RUN=0; NIMO_RESTORE=0
+        for m in ui core pick scan clean setup desktop dock wall undo tools; do
+            . "'"$ROOT"'/lib/$m.sh"
+        done
+        nimo_init_colors
+        nimo_wall_dirs() { printf "%s\n" "'"$PICS"'" "'"$PICS"'/Solid Colors"; }
+        case "$1" in
+            next) nimo_cmd_next ;;
+            prev) nimo_cmd_prev ;;
+        esac' _ "$1" 2>&1
+}
+
+check "next says where in the list it is"  "step next | grep -q ' of 3'"
+check "and it asks the system to set it"   "grep -q 'set picture to' '$SCRIPTED'"
+check "it remembers where it got to"       "[ -s '$BOX/.nimo/backups/wallpaper-at.txt' ]"
+check "and it kept what you had before"    "grep -q 'Sonoma Horizon' '$BOX/.nimo/backups/wallpaper.txt'"
+
+FIRST=$(step next); SECOND=$(step next)
+check "two steps land somewhere else"      "[ \"\$FIRST\" != \"\$SECOND\" ]"
+check "prev comes back to the first"       "[ \"\$(step prev | grep ' of 3')\" = \"\$(printf '%s' \"\$FIRST\" | grep ' of 3')\" ]"
+check "stepping past the end wraps round"  "step next >/dev/null; step next >/dev/null; step next >/dev/null; step next | grep -q ' of 3'"
+
+check "the before is not overwritten"      "grep -q 'Sonoma Horizon' '$BOX/.nimo/backups/wallpaper.txt'"
+
+# and the browser itself: n moves, q puts back, enter keeps
+# a literal newline in a variable: $(printf '\n') is stripped by the command
+# substitution, and "enter" is exactly the key these two checks are about
+ENTER=$'\n'
+
+browse() {
+    printf '%s' "$1" | NIMO_PICK_FORCE=1 PATH="$FAKE:$PATH" HOME="$BOX" bash -c '
+        NIMO_VERSION=test; NIMO_QUIET=1; NIMO_COLOR=never
+        NIMO_DRY_RUN=0; NIMO_RESTORE=0; NIMO_LIST=0
+        NIMO_RANDOM=0; NIMO_ASSUME_YES=0; NIMO_LIMIT=15
+        for m in ui core pick scan clean setup desktop dock wall undo tools; do
+            . "'"$ROOT"'/lib/$m.sh"
+        done
+        nimo_init_colors
+        nimo_wall_dirs() { printf "%s\n" "'"$PICS"'" "'"$PICS"'/Solid Colors"; }
+        nimo_cmd_wallpaper' _ 2>&1
+}
+
+check "the browser draws a position"       "browse 'q' | grep -q 'of 3'"
+check "and says the keys out loud"         "browse 'q' | grep -q 'enter  keep it'"
+check "and that it changes as you move"    "browse 'q' | grep -q 'on your screen as you move'"
+check "q says it put the old one back"     "browse 'q' | grep -q 'put back the one you had'"
+check "enter keeps what is showing"        "browse \"n\$ENTER\" | grep -q 'Kept'"
+check "and points at the way back"         "browse \"n\$ENTER\" | grep -q 'wallpaper --restore'"
+check "moving applies each one on the way" ": > '$SCRIPTED'; browse \"nn\$ENTER\" >/dev/null; [ \"\$(grep -c 'set picture to' '$SCRIPTED')\" -ge 3 ]"
+
+check "--restore arms it again"            "wall restore >/dev/null 2>&1; [ ! -f '$BOX/.nimo/backups/wallpaper.txt' ]"
+check "and forgets where it had got to"    "[ ! -f '$BOX/.nimo/backups/wallpaper-at.txt' ]"
+
 # ---- the menu, on the platform that has everything -----------------------
 #
 # The other half of the Windows check: the rows nimo drops there have to still

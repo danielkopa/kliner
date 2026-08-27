@@ -25,7 +25,7 @@ _min_complete() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    cmds="clear tidy dark light hide empty blank apps startup duplicates desktop downloads screenshots zen dock wallpaper undo menu clean preview top doctor setup update help version"
+    cmds="clear tidy dark light hide empty blank apps startup next prev duplicates desktop downloads screenshots zen dock wallpaper undo menu clean preview top doctor setup update help version"
     opts="--dry-run --yes --auto --only --days --by --limit --json --undo --restore --random --menu --fast --list --color --no-color --no-animation --quiet --help --version"
     ids="user-caches logs crash-reports trash quicklook mail-downloads xcode homebrew node python downloads ios-backups xcode-archives device-support node-modules big-files"
     groups="finder dock screenshots keyboard dialogs"

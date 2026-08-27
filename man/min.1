@@ -66,6 +66,11 @@ restarts Explorer, because the taskbar reads the setting when Explorer starts
 and at no other time; it asks separately before doing so, and nothing is lost
 by it.
 .TP
+.B min next \fR/\fB min prev
+One step through that same list, applied straight away, for when you would
+rather flip from the prompt than sit in the browser. \fBmin wallpaper
+\-\-restore\fR puts back the one you had before nimo touched it.
+.TP
 .B min duplicates
 Report files kept in more than one place. Never deletes anything.
 .TP
@@ -106,8 +111,11 @@ the blob together, and \fB\-\-restore\fR puts both back. Nothing is
 uninstalled either way.
 .TP
 .B min wallpaper
-Choose from the wallpapers your system already ships with \- macOS's Desktop
-Pictures, or the folders under \fIC:\(rs\(rsWindows\(rs\(rsWeb\fR. Nothing is downloaded.
+Flip through the wallpapers your system already ships with \- macOS's Desktop
+Pictures, or the folders under \fIC:\(rs\(rsWindows\(rs\(rsWeb\fR. In a terminal it puts
+each one on your screen as you move: \fBn\fR and \fBp\fR or the arrow keys to
+flip, \fBr\fR for a random one, \fBenter\fR to keep it, \fBq\fR to put back the
+one you had. Nothing is downloaded.
 \fB\-\-random\fR picks for you, \fB\-\-restore\fR goes back.
 .TP
 .B min undo

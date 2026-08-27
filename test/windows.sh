@@ -300,6 +300,12 @@ check "as a path windows can read"        "awk -F'\t' '\$2 == \"WallPaper\"' '$R
 check "backslashed, not slashed"          "awk -F'\t' '\$2 == \"WallPaper\"' '$REG' | grep -q '\\\\'"
 check "and pokes windows to redraw"       "grep -q 'UpdatePerUserSystemParameters' '$BOX/rundll'"
 
+# flipping works here too — the same list, the same two commands
+check "next steps through them"           "win next -q --no-color | grep -q ' of '"
+check "and writes the new one down"       "awk -F'\t' '\$2 == \"WallPaper\"' '$REG' | grep -q 'img'"
+check "it remembers where it got to"      "[ -s '$BOX/.nimo/backups/wallpaper-at.txt' ]"
+check "prev goes the other way"           "win next -q --no-color >/dev/null; A=\$(win next -q --no-color | grep ' of '); B=\$(win prev -q --no-color | grep ' of '); [ \"\$A\" != \"\$B\" ]"
+
 check "dark mode is a registry value"     "win dark -y -q --no-color >/dev/null 2>&1; reg_has 'AppsUseLightTheme'"
 check "0 means dark, backwards on purpose" "regval AppsUseLightTheme 0"
 check "the shell chrome follows the apps" "reg_has 'SystemUsesLightTheme'"
@@ -590,6 +596,7 @@ check "but it has the wallpaper"          "wmenu_arrows | grep -q 'wallpaper'"
 check "the taskbar is offered instead"    "wslash | grep -q '/hide'"
 check "and what is installed"             "wslash | grep -q '/apps'"
 check "the wallpaper is offered though"   "wslash | grep -q '/wallpaper'"
+check "and the flip-to-the-next one"      "wslash | grep -q '/next'"
 check "and it counts what is lying about" "wslash | grep -q 'on your desktop right now'"
 check "the guard still refuses outside"   "PATH=\"$FAKE:\$PATH\" HOME=\"$BOX\" bash -c '. $ROOT/lib/ui.sh; . $ROOT/lib/core.sh; nimo_is_protected /c/Windows'"
 

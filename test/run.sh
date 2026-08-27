@@ -647,6 +647,7 @@ check "it counts your desktop for you"    "touch \"$EMPTY/Desktop/a.txt\" \"$EMP
 check "and says so when it is clear"      "rm -f \"$EMPTY/Desktop/a.txt\" \"$EMPTY/Desktop/b.txt\"; slash_in \"$EMPTY\" | grep -q 'already clear'"
 check "no zero-loose-screenshots line"    "! slash | grep -q '0 loose'"
 check "the list offers /startup"           "slash | grep -q '/startup'"
+check "and /next, for the wallpapers"     "slash | grep -q '/next'"
 check "every group has rows under it"     "[ \$(slash | grep -c '^ *[▤▼▽▣◐◑◇■▸◍◆⧉▢↺○●] /') -ge 12 ]"
 
 check "the prompt shows it is on"         "printf '/quit\\n' | NIMO_AUTO=1 NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -q --no-color 2>&1 | grep -q 'nimo auto'"
