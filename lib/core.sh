@@ -1,7 +1,48 @@
 #!/usr/bin/env bash
 # nimo :: lib/core.sh — platform helpers, sizes, safety guards.
 
-nimo_is_macos() { [ "$(uname -s)" = "Darwin" ]; }
+# ---- which computer is this ---------------------------------------------
+#
+# Git Bash, MSYS2 and Cygwin all report their own flavour of NT, and on all
+# three $HOME is already C:/Users/<name> — so the guard that keeps nimo inside
+# your home folder holds there exactly as it does on a Mac, with nothing
+# widened for the occasion.
+#
+# WSL is deliberately *not* treated as Windows. Its home is a Linux home; the
+# Windows one lives outside it, and reaching over there would mean loosening
+# the one rule this tool will not loosen.
+nimo_platform() {
+    case "$(uname -s 2>/dev/null)" in
+        Darwin)                       printf 'macos' ;;
+        MINGW*|MSYS*|CYGWIN*|Windows*) printf 'windows' ;;
+        *)                            printf 'linux' ;;
+    esac
+}
+
+nimo_is_macos()   { [ "$(nimo_platform)" = "macos" ]; }
+nimo_is_windows() { [ "$(nimo_platform)" = "windows" ]; }
+
+# Windows moves the Desktop into OneDrive the moment somebody signs in, and
+# then ~/Desktop is either missing or a stale empty shell. Ask where it
+# actually is rather than assuming.
+nimo_special_dir() {
+    local name="$1" candidate
+    for candidate in "$HOME/$name" "$HOME/OneDrive/$name" "$HOME/OneDrive - Personal/$name"; do
+        [ -d "$candidate" ] || continue
+        # a redirected folder leaves an empty one behind; prefer the one in use
+        if [ "$(nimo_count_children "$candidate")" -gt 0 ]; then
+            printf '%s' "$candidate"
+            return 0
+        fi
+    done
+    for candidate in "$HOME/$name" "$HOME/OneDrive/$name"; do
+        [ -d "$candidate" ] && { printf '%s' "$candidate"; return 0; }
+    done
+    printf '%s' "$HOME/$name"
+}
+
+nimo_desktop_dir()   { nimo_special_dir Desktop; }
+nimo_downloads_dir() { nimo_special_dir Downloads; }
 
 # Where nimo keeps everything it needs to undo itself.
 NIMO_UNDO_DIR="$HOME/.nimo/undo"

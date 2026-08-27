@@ -109,11 +109,11 @@ EOF
 # ---- min empty -----------------------------------------------------------
 
 nimo_trash_dir() {
-    if nimo_is_macos; then
-        printf '%s' "$HOME/.Trash"
-    else
-        printf '%s' "$HOME/.local/share/Trash/files"
-    fi
+    case "$(nimo_platform)" in
+        macos)   printf '%s' "$HOME/.Trash" ;;
+        windows) printf '' ;;
+        *)       printf '%s' "$HOME/.local/share/Trash/files" ;;
+    esac
 }
 
 nimo_cmd_empty() {
@@ -121,6 +121,17 @@ nimo_cmd_empty() {
 
     local trash kb count
     trash=$(nimo_trash_dir)
+
+    # The Recycle Bin is not a folder of files — it is files plus an index,
+    # and deleting one without the other leaves Windows confused about what it
+    # still holds. Emptying it is one right-click away and nimo does not
+    # improve on that.
+    if [ -z "$trash" ]; then
+        nimo_warn "emptying the Recycle Bin is Windows' own job"
+        nimo_dim "right-click it, or run:  Clear-RecycleBin"
+        nimo_blank
+        return 0
+    fi
     kb=$(nimo_children_kb "$trash")
     count=$(nimo_count_children "$trash")
 

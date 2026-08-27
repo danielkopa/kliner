@@ -142,8 +142,8 @@ nimo_sort_undo() {
 
     # take away the folders we emptied, never one with anything left in it
     local room
-    for room in "$HOME/Desktop/$NIMO_TIDY_DIR_NAME" \
-                "$HOME/Downloads/$NIMO_TIDY_DIR_NAME" \
+    for room in "$(nimo_desktop_dir)/$NIMO_TIDY_DIR_NAME" \
+                "$(nimo_downloads_dir)/$NIMO_TIDY_DIR_NAME" \
                 "$HOME/Pictures/Screenshots"; do
         [ -d "$room" ] || continue
         find "$room" -type d -depth 2>/dev/null \
@@ -269,8 +269,10 @@ nimo_cmd_desktop() {
         return 0
     fi
     nimo_header
-    nimo_sort_folder "$HOME/Desktop" "your desktop" \
-        "$HOME/Desktop/$NIMO_TIDY_DIR_NAME" desktop
+    local desk
+    desk=$(nimo_desktop_dir)
+    nimo_sort_folder "$desk" "your desktop" \
+        "$desk/$NIMO_TIDY_DIR_NAME" desktop
 }
 
 nimo_cmd_downloads() {
@@ -279,8 +281,10 @@ nimo_cmd_downloads() {
         return 0
     fi
     nimo_header
-    nimo_sort_folder "$HOME/Downloads" "your downloads" \
-        "$HOME/Downloads/$NIMO_TIDY_DIR_NAME" downloads
+    local down
+    down=$(nimo_downloads_dir)
+    nimo_sort_folder "$down" "your downloads" \
+        "$down/$NIMO_TIDY_DIR_NAME" downloads
 }
 
 # Screenshots end up wherever they were taken. This gathers them from the
@@ -294,7 +298,7 @@ nimo_cmd_screenshots() {
     nimo_header
 
     local room="$HOME/Pictures/Screenshots" found="" item where
-    for where in "$HOME/Desktop" "$HOME/Downloads" "$HOME/Documents"; do
+    for where in "$(nimo_desktop_dir)" "$(nimo_downloads_dir)" "$HOME/Documents"; do
         [ -d "$where" ] || continue
         while IFS= read -r item; do
             [ -n "$item" ] || continue

@@ -134,15 +134,51 @@ nimo_register_targets_linux() {
         "$HOME"
 }
 
+nimo_register_targets_windows() {
+    nimo_register temp "Temp files" contents safe \
+        "windows rebuilds these" \
+        "$HOME/AppData/Local/Temp"
+
+    nimo_register crash-reports "Crash dumps" contents safe \
+        "reports nobody reads" \
+        "$HOME/AppData/Local/CrashDumps"
+
+    nimo_register node "npm / yarn cache" contents safe \
+        "download caches" \
+        "$HOME/AppData/Roaming/npm-cache/_cacache" \
+        "$HOME/AppData/Local/Yarn/Cache"
+
+    nimo_register python "pip cache" contents safe \
+        "downloaded wheels" \
+        "$HOME/AppData/Local/pip/Cache"
+
+    nimo_register browser-cache "Browser caches" contents safe \
+        "rebuilt as you browse" \
+        "$HOME/AppData/Local/Google/Chrome/User Data/Default/Cache" \
+        "$HOME/AppData/Local/Microsoft/Edge/User Data/Default/Cache"
+
+    nimo_register downloads "Old downloads" older review \
+        "untouched for a while" \
+        "$(nimo_downloads_dir)"
+
+    nimo_register node-modules "node_modules folders" findname review \
+        "npm install brings them back" \
+        "$HOME"
+
+    nimo_register big-files "Files over 500 MB" bigfiles review \
+        "the heavyweights" \
+        "$HOME"
+}
+
 nimo_register_targets() {
     NIMO_T_ID=(); NIMO_T_LABEL=(); NIMO_T_KIND=()
     NIMO_T_SAFETY=(); NIMO_T_NOTE=(); NIMO_T_SPEC=()
     NIMO_T_N=0
-    if nimo_is_macos; then
-        nimo_register_targets_macos
-    else
-        nimo_register_targets_linux
-    fi
+    case "$(nimo_platform)" in
+        macos)   nimo_register_targets_macos ;;
+        windows) nimo_register_targets_windows ;;
+        *)       nimo_register_targets_linux ;;
+    esac
 }
 
 nimo_target_paths() {
