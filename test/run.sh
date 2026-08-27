@@ -300,6 +300,40 @@ check "apps says no away from macOS"      "[ \"\$(uname -s)\" = Darwin ] || min 
 check "dark says no away from macOS"      "[ \"\$(uname -s)\" = Darwin ] || min dark -q --no-color | grep -q 'macOS'"
 check "hide says no away from macOS"      "[ \"\$(uname -s)\" = Darwin ] || min hide -q --no-color | grep -q 'macOS'"
 
+# ---- nothing may drift ---------------------------------------------------
+#
+# Every command nimo can dispatch has to be findable: in `min help`, in the
+# tab completions, in the manual, and by a word at the prompt. Documentation
+# that drifts from the code is how a tool ends up with features nobody knows
+# about — so this is a test rather than a good intention.
+
+dispatchable() {
+    sed -n '/^nimo_dispatch()/,/^}/p' "$ROOT/min" \
+        | sed -n 's/^        \([a-z|]*\)).*/\1/p' \
+        | tr '|' '\n' | grep -v '^$' | sort -u
+}
+
+missing_from() {
+    local where="$1" name
+    while IFS= read -r name; do
+        [ -n "$name" ] || continue
+        grep -q -- "$name" "$where" || printf '%s ' "$name"
+    done <<EOF
+$(dispatchable)
+EOF
+}
+
+check "there are commands to check"       "[ \$(dispatchable | wc -l) -ge 18 ]"
+check "every command is in min help"      "[ -z \"\$(min help --no-color | { cat > '$BOX/help.txt'; }; missing_from '$BOX/help.txt')\" ]"
+check "every command tab-completes"       "[ -z \"\$(missing_from '$ROOT/completions/min.bash')\" ]"
+check "every command is in the manual"    "[ -z \"\$(missing_from '$ROOT/man/min.1')\" ]"
+check "every command has a prompt word"   "[ -z \"\$(missing_from '$ROOT/lib/repl.sh')\" ]"
+check "every command is in the readme"    "[ -z \"\$(missing_from '$ROOT/README.md')\" ]"
+
+# and the version has to agree with itself everywhere it is written down
+check "the version agrees with itself"    "[ \"\$(tr -d ' \n' < '$ROOT/VERSION')\" = \"\$(min version | awk '{print \$2}')\" ]"
+check "the changelog knows this version"  "grep -q \"^## \$(tr -d ' \n' < '$ROOT/VERSION')\" '$ROOT/CHANGELOG.md'"
+
 # ---- the way in ---------------------------------------------------------
 
 check "bare min prints help off a tty"    "min --no-color | grep -q 'Commands'"
