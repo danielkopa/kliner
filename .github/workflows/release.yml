@@ -1,0 +1,58 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: cut a release
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: the tag must match what the code says its version is
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          file=$(tr -d ' \n' < VERSION)
+          if [ "$tag" != "$file" ]; then
+            echo "tag $GITHUB_REF_NAME does not match VERSION ($file)" >&2
+            exit 1
+          fi
+
+      - name: and both suites must pass on the bash macOS ships
+        run: |
+          /bin/bash test/run.sh -q
+          /bin/bash test/macos.sh -q
+
+      - name: take the notes out of the changelog
+        id: notes
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          {
+            echo "notes<<NIMO_EOF"
+            awk -v want="## $version" '
+              $0 == want { on = 1; next }
+              on && /^## / { exit }
+              on { print }' CHANGELOG.md
+            echo ""
+            echo "---"
+            echo ""
+            echo '```bash'
+            echo "git clone --branch $GITHUB_REF_NAME git@github.com:danielkopa/nimo.git ~/nimo && ~/nimo/install.sh"
+            echo '```'
+            echo "NIMO_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: publish it
+        uses: softprops/action-gh-release@v2
+        with:
+          name: nimo ${{ github.ref_name }}
+          body: ${{ steps.notes.outputs.notes }}
+          draft: false
+          prerelease: false
