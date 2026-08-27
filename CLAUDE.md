@@ -124,6 +124,20 @@ from the README with `<picture>`. `CONTRIBUTING.md`, `SECURITY.md` and the
 changes, they change with it. The badge that claims a test count is a promise
 like any other: update it when the suites grow.
 
+## Releases
+
+Every version is tagged `vX.Y.Z` with its changelog entry as the message.
+`release.yml` fires on a tag, refuses to publish if the tag and `VERSION`
+disagree or either suite fails on macOS, and writes the release notes out of
+`CHANGELOG.md`. So: bump `VERSION` and `NIMO_VERSION` in `min` together, write
+the changelog entry, commit, tag, push the tag.
+
+`Formula/nimo.rb` pins the tarball of the newest tag — bump its `url` when
+cutting a release.
+
+`assets/demo.svg` is generated: `python3 tools/make-demo.py > assets/demo.svg`.
+Edit the frames in the generator, never the SVG.
+
 ## The website
 
 `docs/index.html` is the whole site — one file, no build step. GitHub Pages

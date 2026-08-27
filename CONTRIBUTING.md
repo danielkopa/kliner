@@ -34,6 +34,13 @@ bash-4-ism fails there and nowhere else.
 A fix and a test that fails without it go in the same commit. If you cannot
 write the test, say so in the pull request and we will work it out.
 
+## Cutting a release
+
+`VERSION` and `NIMO_VERSION` in `min` move together, the changelog entry goes
+in the same commit, then tag `vX.Y.Z` and push the tag. CI refuses to publish a
+release whose tag disagrees with `VERSION`, or whose suites do not pass on the
+bash macOS ships.
+
 ## Commits
 
 Small, and in plain words: what changed and why, not which function moved.

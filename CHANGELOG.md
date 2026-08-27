@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.19.0
+
+- **The README plays.** An animated SVG of a real session — the prompt, the
+  menu counting 296 downloads, the one question, the result. A GIF would be a
+  megabyte and blurry on a retina screen; this is twelve kilobytes and sharp at
+  any size, and the frames are text in `tools/make-demo.py`, so the demo can be
+  corrected in a diff like anything else
+- **Every version is a release.** All eighteen are tagged, with the changelog
+  entry as the tag message, and `release.yml` cuts a GitHub release from any
+  new tag — after checking the tag matches `VERSION` and both suites pass on
+  the bash macOS ships. A release that does not run cannot be published
+- **`brew install danielkopa/tap/nimo`** — a Homebrew formula that installs the
+  tree, links `min`, and ships the man page and completions
+- No `curl … | bash` line, on purpose: the argument for nimo is that you can
+  read it before you run it
+
 ## 0.18.0
 
 - **The repository looks like a project now.** A real logo — an SVG banner

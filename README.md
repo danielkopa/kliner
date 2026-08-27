@@ -18,10 +18,15 @@ disk back. Every step asks first. Every step can be undone.
 [Issues](https://github.com/danielkopa/nimo/issues)
 
 [![ci](https://github.com/danielkopa/nimo/actions/workflows/ci.yml/badge.svg)](https://github.com/danielkopa/nimo/actions/workflows/ci.yml)
+[![release](https://img.shields.io/github/v/tag/danielkopa/nimo?label=release&color=0e7a72)](https://github.com/danielkopa/nimo/releases)
 ![bash 3.2](https://img.shields.io/badge/bash-3.2-1d2225)
 ![tests](https://img.shields.io/badge/tests-246-0e7a72)
 ![dependencies](https://img.shields.io/badge/dependencies-0-0e7a72)
 [![license](https://img.shields.io/badge/license-MIT-1d2225)](LICENSE)
+
+<br>
+
+<img alt="nimo sorting 296 downloads" src="assets/demo.svg" width="640">
 
 </div>
 
@@ -36,33 +41,26 @@ no account, no network. You can read the whole thing in fifteen minutes, which
 is the point — a tool that rearranges your files is a tool you should be able
 to read.
 
-```
-$ min
-
-  nimo › /clear
-
-  what should be clear?
-
-   ▸ Desktop        85 items
-     Downloads      296 items
-     Screenshots    12 screenshots loose
-     Dock           the apps you never open
-     Trash          18 items
-     Disk           caches your apps rebuild by themselves
-     Everything     all of it, one step at a time
-```
-
-Nothing there is deleted. Files move into one folder, sorted by what they are,
+Nothing in that demo is deleted. Files move into one folder, sorted by what they are,
 and every single move is written down — so `min undo` puts any of it back
 exactly where it was.
 
 ## Getting started
 
 ```bash
+brew install danielkopa/tap/nimo
+```
+
+or, to have the source where you can read it:
+
+```bash
 git clone git@github.com:danielkopa/nimo.git ~/nimo && ~/nimo/install.sh
 ```
 
 Then type `min`. Or `min preview` first, which cannot change anything at all.
+
+There is deliberately no `curl … | bash` line. nimo's whole argument is that
+you can read it before you run it, and that line is the opposite of that.
 
 ## Why nimo
 
