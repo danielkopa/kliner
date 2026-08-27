@@ -420,6 +420,22 @@ wslash() { printf '/\n/quit\n' | NIMO_REPL_FORCE=1 NIMO_NO_CLEAR=1 PATH="$FAKE:$
 
 check "the list offers the windows setup" "wslash | grep -q 'explorer and the taskbar'"
 check "and not a dock that is not there"  "! wslash | grep -q '/fastdock\|/dock'"
+# ---- tidy, and the arrow menu -------------------------------------------
+#
+# tidy used to run every step and let the ones this machine cannot do print an
+# apology, which turned it into a list of things nimo would not be doing.
+
+check "tidy calls it a pc, not a mac"     "win tidy --dry-run -q --no-color | grep -q 'minimal pc'"
+check "and does not mention a mac at all" "! win tidy --dry-run -q --no-color | grep -q 'minimal mac'"
+check "it skips the dock step entirely"   "! win tidy --dry-run -q --no-color | grep -q 'Dock is a macOS thing'"
+check "and offers no dock to undo"        "! win tidy --dry-run -q --no-color | grep -q 'min dock --restore'"
+check "it still does the wallpaper"       "win tidy --dry-run -q --no-color | grep -q 'wallpapers on this pc'"
+check "and the settings, with a way back" "win tidy --dry-run -q --no-color | grep -q 'min setup --restore'"
+
+wmenu_arrows() { printf 'q' | NIMO_PICK_FORCE=1 PATH="$FAKE:$PATH" HOME="$BOX" bash "$MIN" --menu --no-color 2>&1; }
+check "the arrow menu has no dock"        "! wmenu_arrows | grep -q 'dock'"
+check "but it has the wallpaper"          "wmenu_arrows | grep -q 'wallpaper'"
+
 check "the taskbar is offered instead"    "wslash | grep -q '/hide'"
 check "and what is installed"             "wslash | grep -q '/apps'"
 check "the wallpaper is offered though"   "wslash | grep -q '/wallpaper'"

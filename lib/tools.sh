@@ -254,9 +254,17 @@ nimo_cmd_update() {
 # Every step asks first. Every step can be undone.
 
 nimo_cmd_tidy() {
+    local plat what
+    plat=$(nimo_platform)
+    case "$plat" in
+        macos)   what="mac" ;;
+        windows) what="pc" ;;
+        *)       what="computer" ;;
+    esac
+
     nimo_logo
     nimo_blank
-    nimo_dim "a few steps toward a minimal mac. each one asks before it does"
+    nimo_dim "a few steps toward a minimal $what. each one asks before it does"
     nimo_dim "anything, and each one can be undone."
     nimo_blank
 
@@ -266,19 +274,26 @@ nimo_cmd_tidy() {
     nimo_cmd_desktop
     nimo_cmd_downloads
     nimo_cmd_screenshots
-    nimo_cmd_dock
-    nimo_cmd_wallpaper
-    nimo_cmd_setup
+    # Running every step and letting the ones this machine cannot do print an
+    # apology turned tidy into a list of things nimo would not be doing.
+    [ "$plat" = "macos" ] && nimo_cmd_dock
+    case "$plat" in
+        macos|windows) nimo_cmd_wallpaper; nimo_cmd_setup ;;
+    esac
 
     NIMO_QUIET="$was_quiet"
 
     nimo_panel_open "done"
-    nimo_ok "That is a minimal mac."
+    nimo_ok "That is a minimal $what."
     nimo_blank
     nimo_dim "undo the desktop     min desktop --undo"
     nimo_dim "undo the downloads   min downloads --undo"
-    nimo_dim "undo the dock        min dock --restore"
-    nimo_dim "undo the wallpaper   min wallpaper --restore"
+    [ "$plat" = "macos" ] && nimo_dim "undo the dock        min dock --restore"
+    case "$plat" in
+        macos|windows)
+            nimo_dim "undo the wallpaper   min wallpaper --restore"
+            nimo_dim "undo the settings    min setup --restore" ;;
+    esac
     nimo_blank
     nimo_dim "and when the disk fills up again   min clean"
     nimo_panel_close
@@ -292,16 +307,25 @@ nimo_cmd_tidy() {
 # help text. Anywhere else it prints the help, exactly as before.
 
 nimo_menu_items() {
+    local plat
+    plat=$(nimo_platform)
     printf '%s\n' \
         "$(printf '%-10s %s' tidy      'the whole thing, step by step')" \
         "$(printf '%-10s %s' desktop   'clear your desktop, nothing lost')" \
-        "$(printf '%-10s %s' dock      'keep only the apps you open')" \
-        "$(printf '%-10s %s' wallpaper 'a calmer wallpaper')" \
+        "$(printf '%-10s %s' downloads 'the same, for your downloads')"
+    [ "$plat" = "macos" ] && \
+        printf '%s\n' "$(printf '%-10s %s' dock 'keep only the apps you open')"
+    case "$plat" in
+        macos|windows)
+            printf '%s\n' \
+                "$(printf '%-10s %s' wallpaper 'a calmer wallpaper')" \
+                "$(printf '%-10s %s' setup     'a small, sane setup for this computer')" ;;
+    esac
+    printf '%s\n' \
         "$(printf '%-10s %s' preview   'what could be freed, changing nothing')" \
         "$(printf '%-10s %s' clean     'free it up, after asking')" \
         "$(printf '%-10s %s' top       'the biggest folders in your home')" \
         "$(printf '%-10s %s' doctor    'how your computer is doing')" \
-        "$(printf '%-10s %s' setup     'a small, sane macOS setup')" \
         "$(printf '%-10s %s' undo      'put something back')" \
         "$(printf '%-10s %s' help      'everything there is')"
 }

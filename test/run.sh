@@ -480,7 +480,14 @@ check "the formula points at this tag"    "grep -q \"v\$(tr -d ' \n' < '$ROOT/VE
 # ---- the way in ---------------------------------------------------------
 
 check "bare min prints help off a tty"    "min --no-color | grep -q 'Commands'"
-check "the menu lists every command"      "printf 'q' | NIMO_PICK_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" --menu --no-color 2>&1 | grep -q 'wallpaper'"
+# The arrow menu is built per platform too: on Linux there is no wallpaper to
+# set and no dock to thin out, and offering them was offering an apology.
+menu_here() { printf 'q' | NIMO_PICK_FORCE=1 HOME="$BOX" bash "$MIN" --menu --no-color 2>&1; }
+
+check "the menu lists what runs here"     "menu_here | grep -q 'desktop' && menu_here | grep -q 'clean'"
+check "and the downloads with them"       "menu_here | grep -q 'downloads'"
+check "no wallpaper to set on linux"      "! menu_here | grep -q 'wallpaper'"
+check "and no dock to thin out"           "! menu_here | grep -q 'dock'"
 check "the menu runs what you choose"     "printf '\\033[B\\033[B\\033[B\\033[B\\n' | NIMO_PICK_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" --menu --no-color 2>/dev/null | grep -q 'safe to clean'"
 check "q leaves the menu without doing"   "printf 'q' | NIMO_PICK_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" --menu --no-color >/dev/null 2>&1; [ \$? -eq 0 ]"
 
@@ -605,6 +612,23 @@ check "typing all ticks everything"       "[ \"\$(printf 'all\\n' | pick_plain m
 # ---- the undo history ---------------------------------------------------
 
 mkdir -p "$BOX/Desktop"
+
+# `grep -c .` prints 0 and exits 1 on an empty file, so the obvious
+# $(grep -c . "$f" || echo 0) produced "0" and then a second "0" — a count
+# with a newline in the middle of it. It went straight into the label, the
+# label took two rows, and the numbers you were being asked to pick from no
+# longer lined up with the things they named.
+mkdir -p "$BOX/.nimo/undo" "$BOX/.nimo/backups"
+: > "$BOX/.nimo/undo/desktop-20260101-000000.tsv"
+: > "$BOX/.nimo/backups/setup-20260101-000001.tsv"
+
+check "an empty log is not offered"       "! min undo --list --no-color | grep -q '0 files\|0 settings'"
+check "and no label ever wraps a line"    "! min undo --list --no-color | grep -q '^ *[0-9]* *[0-9]* [a-z]*s$'"
+
+printf 'a\tb\n' > "$BOX/.nimo/undo/desktop-20260101-000000.tsv"
+check "a log with something in it is"     "min undo --list --no-color | grep -q 'cleared your desktop'"
+check "and it says how many files"        "min undo --list --no-color | grep -q '1 file'"
+rm -f "$BOX/.nimo/undo/desktop-20260101-000000.tsv" "$BOX/.nimo/backups/setup-20260101-000001.tsv"
 rm -f "$BOX/Desktop/a" "$BOX/Desktop/b"
 touch "$BOX/Desktop/first.pdf" "$BOX/Desktop/second.png"
 min desktop -y -q --no-color >/dev/null 2>&1
