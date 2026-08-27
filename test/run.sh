@@ -278,6 +278,35 @@ check "the platform is one of three"      "[ -n \"\$(bash -c '. $ROOT/lib/core.s
 check "wsl is not treated as windows"     "[ \"\$(bash -c '. $ROOT/lib/core.sh; nimo_platform')\" != windows ] || [ \"\$(uname -s)\" != Linux ]"
 check "zen says no away from macOS"        "[ \"\$(uname -s)\" = Darwin ] || min zen -q --no-color | grep -q 'macOS'"
 
+# ---- it has to finish -----------------------------------------------------
+#
+# The sorter used to be a loop over buckets around a loop over items, with a
+# fork inside both — so the work grew with buckets times files, and a folder
+# of two thousand downloads took half a minute to *preview*. Nobody waits that
+# long; they decide the tool is broken.
+#
+# The number below is a cliff, not a target: this finishes in about a second,
+# and it is here to catch the shape of that bug coming back, not to police a
+# few hundred milliseconds on a busy machine.
+
+MANY="$BOX/many"
+mkdir -p "$MANY/Downloads"
+i=0
+while [ "$i" -lt 400 ]; do : > "$MANY/Downloads/file$i.pdf"; i=$((i + 1)); done
+
+many_secs() {
+    local a b
+    a=$(date +%s)
+    HOME="$MANY" bash "$MIN" downloads --dry-run -q --no-color </dev/null >/dev/null 2>&1
+    b=$(date +%s)
+    printf '%s' "$((b - a))"
+}
+
+check "400 downloads preview in seconds" "[ \"$(many_secs)\" -lt 15 ]"
+check "and it counted all of them"       "HOME=\"$MANY\" bash \"$MIN\" downloads --dry-run -q --no-color </dev/null | grep -q '400 items'"
+check "the classifier forks per file 0x" "! grep -q 'basename \"\$path\"\|\$(nimo_bucket_of' \"$ROOT/lib/desktop.sh\""
+rm -rf "$MANY"
+
 # ---- what is still arriving stays put ------------------------------------
 #
 # A browser writes film.mp4.download while it is still fetching. Moving that

@@ -15,86 +15,113 @@ NIMO_TIDY_DIR_NAME="Tidy"
 #
 # One sorter, three ways of deciding — because "by what it is" is the right
 # answer for a desktop and the wrong one for four hundred invoices.
-nimo_bucket_of() {
+# No subshells in here, and none in nimo_kind_of either.
+#
+# `basename` and `tr` are each a fork, and this runs once per file. Two
+# thousand downloads meant four thousand forks before nimo had printed a
+# single row, and `min downloads --dry-run` sat there for half a minute.
+# `${path##*/}` is the same answer, and `shopt -s nocasematch` does what the
+# `tr` was for without leaving the shell.
+# Two shapes of every classifier: one that sets a variable, and one that
+# prints. `$( )` is a fork, and these run once per file — so everything hot
+# calls the setter and nothing forks at all.
+nimo_bucket_of() { nimo_bucket_set "$1"; printf '%s' "$NIMO_BUCKET"; }
+nimo_kind_of()   { nimo_kind_set "$1";   printf '%s' "$NIMO_KIND"; }
+
+nimo_bucket_set() {
     local path="$1" first stamp
 
     case "${NIMO_BY:-kind}" in
         letter)
-            first=$(basename "$path" | cut -c1 | tr '[:lower:]' '[:upper:]')
+            first="${path##*/}"
+            first="${first:0:1}"
             case "$first" in
-                [A-Z]) printf '%s' "$first" ;;
-                *)     printf '#' ;;
+                a|A) first=A ;; b|B) first=B ;; c|C) first=C ;; d|D) first=D ;;
+                e|E) first=E ;; f|F) first=F ;; g|G) first=G ;; h|H) first=H ;;
+                i|I) first=I ;; j|J) first=J ;; k|K) first=K ;; l|L) first=L ;;
+                m|M) first=M ;; n|N) first=N ;; o|O) first=O ;; p|P) first=P ;;
+                q|Q) first=Q ;; r|R) first=R ;; s|S) first=S ;; t|T) first=T ;;
+                u|U) first=U ;; v|V) first=V ;; w|W) first=W ;; x|X) first=X ;;
+                y|Y) first=Y ;; z|Z) first=Z ;;
+                *)   first='#' ;;
             esac
+            NIMO_BUCKET="$first"
             return 0 ;;
         date)
+            # the one classifier that still costs a process per file: nothing
+            # in the shell knows a file's date
             stamp=$(date -r "$path" +%Y-%m 2>/dev/null) || stamp=""
             [ -n "$stamp" ] || stamp="undated"
-            printf '%s' "$stamp"
+            NIMO_BUCKET="$stamp"
             return 0 ;;
         *)
-            nimo_kind_of "$path"
+            nimo_kind_set "$path"
+            NIMO_BUCKET="$NIMO_KIND"
             return 0 ;;
     esac
 }
 
-# Which buckets exist, in the order they should be listed?
-nimo_buckets_for() {
-    local items="$1" seen bucket
+# The buckets present in an already-decided list, in the order to list them.
+#
+# It reads the answers rather than working them out again: kinds have a fixed
+# order worth keeping, and letters and dates are whatever turned up.
+nimo_buckets_in() {
+    local sorted="$1" bucket
     case "${NIMO_BY:-kind}" in
         kind)
             printf '%s\n' Screenshots Images Documents Video Audio Archives Code Apps Folders Other
             return 0 ;;
     esac
-    # letters and dates are whatever turned up, in order
-    seen=""
-    while IFS= read -r bucket; do
-        [ -n "$bucket" ] || continue
-        seen="$seen$(nimo_bucket_of "$bucket")
-"
-    done <<EOF
-$items
-EOF
-    printf '%s' "$seen" | sort -u
+    printf '%s\n' "$sorted" | cut -f1 | grep -v '^$' | sort -u
 }
 
 # What kind of thing is this? -> Images | Screenshots | Documents | ...
-nimo_kind_of() {
-    local path="$1" name ext lower
-    name=$(basename "$path")
+nimo_kind_set() {
+    local path="$1" name ext
 
     if [ -d "$path" ]; then
-        printf 'Folders'
+        NIMO_KIND=Folders
         return 0
     fi
 
-    lower=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')
+    name="${path##*/}"
 
-    case "$lower" in
+    # `shopt` is a builtin, so this costs nothing; `tr` in a $( ) is a fork,
+    # and used to cost one per file. nimo never wants nocasematch on anywhere
+    # else, so it is simply turned off again rather than saved and replayed —
+    # which would need a $( ) of its own and put the fork straight back.
+    shopt -s nocasematch 2>/dev/null
+
+    case "$name" in
         screenshot*|"screen shot"*|snímka*|snimka*|cleanshot*)
-            printf 'Screenshots'; return 0 ;;
+            shopt -u nocasematch 2>/dev/null
+            NIMO_KIND=Screenshots
+            return 0 ;;
     esac
 
-    ext="${lower##*.}"
-    [ "$ext" = "$lower" ] && ext=""
+    ext="${name##*.}"
+    [ "$ext" = "$name" ] && ext=""
 
     case "$ext" in
         jpg|jpeg|png|gif|heic|heif|webp|tiff|tif|bmp|svg|ico|raw|cr2|nef)
-            printf 'Images' ;;
+            NIMO_KIND=Images ;;
         mp4|mov|m4v|avi|mkv|webm|wmv|flv)
-            printf 'Video' ;;
+            NIMO_KIND=Video ;;
         mp3|m4a|wav|aiff|aif|flac|aac|ogg)
-            printf 'Audio' ;;
+            NIMO_KIND=Audio ;;
         pdf|doc|docx|pages|txt|rtf|rtfd|md|key|numbers|xls|xlsx|csv|tsv|ppt|pptx|epub|odt)
-            printf 'Documents' ;;
+            NIMO_KIND=Documents ;;
         zip|tar|gz|tgz|bz2|xz|rar|7z|dmg|pkg|iso)
-            printf 'Archives' ;;
+            NIMO_KIND=Archives ;;
         sh|bash|zsh|py|js|mjs|ts|tsx|jsx|json|yml|yaml|html|css|scss|swift|c|h|cpp|hpp|java|rb|go|rs|php|sql|toml|xml)
-            printf 'Code' ;;
+            NIMO_KIND=Code ;;
         app)
-            printf 'Apps' ;;
+            NIMO_KIND=Apps ;;
         *)
-            printf 'Other' ;;
+            NIMO_KIND=Other ;;
     esac
+    shopt -u nocasematch 2>/dev/null
+    return 0
 }
 
 # A destination that does not step on anything already there.
@@ -146,16 +173,20 @@ EOF
     printf '%s' "$n"
 }
 
+# Two subshells per file used to live in this loop — a `basename` and a
+# `$(printf '\t')` — which is four thousand forks on a folder of two thousand
+# things, before nimo has decided anything about any of them.
 nimo_folder_items() {
-    local dir="$1"
+    local dir="$1" item name
     [ -d "$dir" ] || return 0
     find "$dir" -mindepth 1 -maxdepth 1 2>/dev/null | while IFS= read -r item; do
-        case "$(basename "$item")" in
+        name="${item##*/}"
+        case "$name" in
             .*|"$NIMO_TIDY_DIR_NAME") continue ;;
         esac
         nimo_still_arriving "$item" && continue
         case "$item" in
-            *"$(printf '\t')"*) continue ;;
+            *$'\t'*) continue ;;
         esac
         printf '%s\n' "$item"
     done
@@ -255,22 +286,35 @@ nimo_sort_folder() {
         return 0
     fi
 
-    local kind n item total=0
-    while IFS= read -r kind; do
-        [ -n "$kind" ] || continue
-        n=0
+    # Work out each item's bucket once.
+    #
+    # This used to be a loop over buckets around a loop over items, with a
+    # `nimo_bucket_of` — a subshell, a basename and a tr — inside both. Ten
+    # buckets and two thousand downloads meant twenty thousand subshells, and
+    # `min downloads --dry-run` sat there for half a minute before printing
+    # anything. Deciding once per item and counting the answers is the same
+    # output in under a second.
+    local sorted kind n item total=0
+    sorted=$(
         while IFS= read -r item; do
             [ -n "$item" ] || continue
-            [ "$(nimo_bucket_of "$item")" = "$kind" ] && n=$((n + 1))
+            nimo_bucket_set "$item"
+            printf '%s\t%s\n' "$NIMO_BUCKET" "$item"
         done <<EOF
 $items
 EOF
+    )
+
+    while IFS= read -r kind; do
+        [ -n "$kind" ] || continue
+        n=$(printf '%s\n' "$sorted" | awk -F'\t' -v k="$kind" '$1 == k' | grep -c . 2>/dev/null)
+        case "${n:-}" in ''|*[!0-9]*) n=0 ;; esac
         if [ "$n" -gt 0 ]; then
             nimo_row "$kind" "$(nimo_plural "$n" item)" ""
             total=$((total + n))
         fi
     done <<EOF
-$(nimo_buckets_for "$items")
+$(nimo_buckets_in "$sorted")
 EOF
 
     nimo_blank
@@ -308,12 +352,12 @@ EOF
     log=$(nimo_free_file "$NIMO_UNDO_DIR/$tag-$(date +%Y%m%d-%H%M%S)" .tsv)
     : > "$log"
 
+    # `sorted` already holds each item's bucket, worked out once above.
     local moved=0 failed=0 dest target done_so_far=0
-    while IFS= read -r item; do
-        [ -n "$item" ] || continue
+    while IFS=$'\t' read -r kind item; do
+        [ -n "${item:-}" ] || continue
         done_so_far=$((done_so_far + 1))
         [ "$total" -gt 40 ] && nimo_progress "moving $done_so_far of $total …"
-        kind=$(nimo_bucket_of "$item")
         dest="$root/$kind"
         mkdir -p "$dest" 2>/dev/null
         target=$(nimo_free_name "$dest" "$(basename "$item")")
@@ -324,7 +368,7 @@ EOF
             failed=$((failed + 1))
         fi
     done <<EOF
-$items
+$sorted
 EOF
     nimo_progress_done
 

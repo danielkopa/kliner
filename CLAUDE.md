@@ -170,6 +170,28 @@ own face. `tools/screen.py` renders a raw stream the way a terminal would, so
 the suite can check what is on screen and not only which bytes were sent — a
 grep sees a perfectly good face either way.
 
+## Forks are the whole cost
+
+nimo is bash, so the only thing that ever makes it slow is starting processes.
+`min downloads --dry-run` on two thousand files once took 33 seconds, from
+three instances of the same mistake: a `basename`, a `tr` and a `$(printf
+'\t')` running once per file, inside a loop that itself ran once per bucket.
+
+The rules that came out of it:
+
+- **Never `basename` in a loop.** `${path##*/}` is the same answer, for free.
+- **Never `tr` to fold case.** `shopt -s nocasematch` is a builtin. bash 3.2
+  has no `${var,,}`, which is why the `tr` was there in the first place.
+- **Never `$(...)` per item.** Every classifier has two shapes: `nimo_*_set`
+  sets a variable, `nimo_*_of` prints it. Hot paths call the setter.
+- **Decide once, then count.** Not: for each bucket, for each item, decide.
+
+`--by date` is the one classifier that still costs a process per file, because
+nothing in the shell knows a file's mtime.
+
+`test/run.sh` sorts four hundred files and insists it finishes. The limit is
+loose on purpose: it catches the shape of the bug, not a slow CI runner.
+
 ## Nothing may drift
 
 `test/run.sh` walks `nimo_dispatch` in `min` and insists every command it finds
