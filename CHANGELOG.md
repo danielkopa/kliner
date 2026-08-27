@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.41.0
+
+**nimo fits the window it is in.**
+
+52 columns was a constant. That is fine on a full-width terminal and wrong on
+every other one — and half-width is exactly where this tool gets used, next to
+the desktop it is tidying. A panel wider than the window wraps every rule and
+every row, and a wrapped box reads as a broken one.
+
+- The panel, the label column, the rule and the bars all move together, so a
+  narrow window loses label room rather than alignment
+- The note on the end of a row is what a narrow window drops: the label and
+  the number are the data, and a wrapped note turns a column of numbers into a
+  paragraph. That decision is made on the width of the *window*, not the
+  panel — a 52-column panel still writes a 68-column line once a note is on
+  the end of it
+- `min doctor` says "9.0 GB free" instead of "9.0 GB free of 9.7 GB" when
+  there is no room: how much is left is the question, and how big the disk is
+  was never the answer
+- Prose is still allowed to wrap. Prose reads fine wrapped; a table does not
+
+Two things found while doing it, both now checks:
+
+- **Two functions were called `nimo_measure`** — one in `lib/ui.sh` and one in
+  `lib/scan.sh`, which is sourced later and quietly won. The suite now refuses
+  any name defined twice
+- `--json` is the one output nobody reads with their eyes, which is exactly
+  why it needed checking. A parser reads it now, not a grep
+
 ## 0.40.0
 
 Catching the documentation up with the tool, and making one bit of it a check
