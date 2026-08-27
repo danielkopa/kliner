@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.12.1
+
+- **Fixed: sourcing the completion file in zsh printed an error on every new
+  terminal.** `complete` is a bash builtin that zsh does not have until
+  `bashcompinit` is loaded — so the file loads it itself now, and if the shell
+  still cannot do completions it quietly does nothing instead of greeting you
+  with `command not found: complete`
+
 ## 0.12.0
 
 - **nimo has a face again.** The sketch from the very first version is what

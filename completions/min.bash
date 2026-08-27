@@ -2,11 +2,21 @@
 #
 #   source /path/to/nimo/completions/min.bash
 #
-# zsh users need `autoload -U bashcompinit && bashcompinit` first.
+# zsh can run bash completions, but only once bashcompinit is loaded — and if
+# it is not, sourcing this used to greet you with "command not found: complete"
+# every time you opened a terminal. So it loads what it needs, and if the shell
+# still cannot do completions it quietly does nothing instead.
 
-# COMPREPLY is filled the classic way on purpose: mapfile does not exist
-# in the bash 3.2 that ships with macOS.
-# shellcheck disable=SC2207
+if [ -n "${ZSH_VERSION:-}" ]; then
+    autoload -U +X compinit 2>/dev/null && compinit -u -C 2>/dev/null
+    autoload -U +X bashcompinit 2>/dev/null && bashcompinit 2>/dev/null
+fi
+
+if ! type complete >/dev/null 2>&1; then
+    # sourced: stop here. run directly: stop there too.
+    return 0 2>/dev/null || exit 0
+fi
+
 _min_complete() {
     local cur prev cmds opts ids groups
     cur="${COMP_WORDS[COMP_CWORD]}"

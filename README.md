@@ -372,7 +372,10 @@ min clean --json --yes | jq '.freed_bytes'
 echo 'source ~/nimo/completions/min.bash' >> ~/.zshrc
 ```
 
-zsh needs `autoload -U bashcompinit && bashcompinit` before that line.
+That is the whole thing — zsh needs `bashcompinit` to run bash completions,
+and the file loads it itself. If the shell cannot do completions at all it
+does nothing rather than printing an error at you every time you open a
+terminal.
 
 ## Layout
 

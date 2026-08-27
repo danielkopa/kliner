@@ -113,6 +113,17 @@ check "will not purge outside your home"  "HOME=$BOX bash -c '. $ROOT/lib/ui.sh;
 check "setup --list names the groups"     "min setup --list -q --no-color | grep -q screenshots"
 check "setup --dry-run changes nothing"   "min setup --dry-run -q --no-color >/dev/null; true"
 
+# ---- tab completion -----------------------------------------------------
+#
+# Sourcing this from a zsh .zshrc used to print "command not found: complete"
+# on every new terminal, because zsh has no such builtin until bashcompinit
+# is loaded. Whatever the shell, sourcing it must be silent.
+
+check "the completion file loads"         "bash -c 'source \"$ROOT/completions/min.bash\" && complete -p min' | grep -q _min_complete"
+check "and says nothing while loading"    "[ -z \"\$(bash -c 'source \"$ROOT/completions/min.bash\"' 2>&1)\" ]"
+check "it survives having no complete"    "grep -q 'type complete' \"$ROOT/completions/min.bash\""
+check "it loads bashcompinit for zsh"     "grep -q bashcompinit \"$ROOT/completions/min.bash\""
+
 # ---- the prompt ---------------------------------------------------------
 
 # a line typed at the prompt, and everything nimo said back
