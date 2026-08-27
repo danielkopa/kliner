@@ -12,27 +12,15 @@
 # Every command, with the words that reach it.
 nimo_repl_list() {
     nimo_panel_open "what you can type"
-    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/tidy"         "$NIMO_C_DIM" "the whole thing, step by step" "$NIMO_C_RESET"
-    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/cleardesktop" "$NIMO_C_DIM" "file everything on your desktop away" "$NIMO_C_RESET"
-    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/cleardownloads" "$NIMO_C_DIM" "the same, for your downloads" "$NIMO_C_RESET"
-    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/screenshots"  "$NIMO_C_DIM" "gather every loose screenshot into one place" "$NIMO_C_RESET"
-    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/cleardock"    "$NIMO_C_DIM" "keep only the apps you open" "$NIMO_C_RESET"
-    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/wallpaper"    "$NIMO_C_DIM" "a calmer one, from what macOS ships" "$NIMO_C_RESET"
-    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/zen"          "$NIMO_C_DIM" "stop drawing icons on the desktop at all" "$NIMO_C_RESET"
-    printf '\n'
-    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/preview"      "$NIMO_C_DIM" "what could be freed — changes nothing" "$NIMO_C_RESET"
-    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/clean"        "$NIMO_C_DIM" "free it up, after asking" "$NIMO_C_RESET"
-    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/top"          "$NIMO_C_DIM" "the biggest folders in your home" "$NIMO_C_RESET"
-    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/doctor"       "$NIMO_C_DIM" "how your computer is doing" "$NIMO_C_RESET"
-    printf '\n'
-    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/setup"        "$NIMO_C_DIM" "a small, sane macOS setup" "$NIMO_C_RESET"
-    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/undo"         "$NIMO_C_DIM" "put anything back" "$NIMO_C_RESET"
-    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/menu"         "$NIMO_C_DIM" "pick with the arrow keys instead" "$NIMO_C_RESET"
-    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/quit"         "$NIMO_C_DIM" "leave" "$NIMO_C_RESET"
+    printf '%s%-13s %s%s%s\n' "$NIMO_PAD" "/clear"     "$NIMO_C_DIM" "desktop, downloads, screenshots, dock — you pick" "$NIMO_C_RESET"
+    printf '%s%-13s %s%s%s\n' "$NIMO_PAD" "/wallpaper" "$NIMO_C_DIM" "a calmer one, from what macOS ships" "$NIMO_C_RESET"
+    printf '%s%-13s %s%s%s\n' "$NIMO_PAD" "/setup"     "$NIMO_C_DIM" "a small, sane macOS setup" "$NIMO_C_RESET"
+    printf '%s%-13s %s%s%s\n' "$NIMO_PAD" "/undo"      "$NIMO_C_DIM" "put anything back" "$NIMO_C_RESET"
+    nimo_blank
+    printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "also  /tidy  /zen  /doctor  /top  /preview  /menu  /quit" "$NIMO_C_RESET"
     nimo_panel_close
     nimo_blank
-    nimo_dim "spaces are optional — /clear desktop and /cleardesktop are the same thing"
-    nimo_dim "so are flags:  /clean --only trash    /desktop --undo"
+    nimo_dim "say it outright if you like:  /clear desktop   /cleardesktop"
     nimo_blank
 }
 
@@ -46,6 +34,8 @@ nimo_repl_command() {
     squashed=$(printf '%s' "$1" | tr -d ' ')
 
     case "$squashed" in
+        clear|whattoclear|clearsomething)
+            printf 'clear'; return 0 ;;
         cleardesktop|cleandesktop|tidydesktop|fixdesktop|sortdesktop|clearfiles|cleanfiles|sortfiles|tidyfiles)
             printf 'desktop'; return 0 ;;
         cleardownloads|cleandownloads|tidydownloads|sortdownloads|downloads)
@@ -63,6 +53,8 @@ nimo_repl_command() {
     esac
 
     case "$1" in
+        clear|"clear what"|"what should be clear")
+            printf 'clear' ;;
         tidy|all|everything|"do it"|"do everything"|minimal|"make it minimal")
             printf 'tidy' ;;
         desktop|"clean desktop"|"clear desktop"|"tidy desktop"|"fix desktop"|"sort desktop"|files|"clear files"|"sort files")
@@ -121,7 +113,7 @@ nimo_repl_guess() {
     local phrase="$1" word name shared best="" best_score=0
 
     for word in $phrase; do
-        for name in tidy desktop downloads screenshots dock wallpaper zen preview clean top doctor setup undo update menu; do
+        for name in clear tidy desktop downloads screenshots dock wallpaper zen preview clean top doctor setup undo update menu; do
             shared=$(nimo_shared_prefix "$word" "$name")
             if [ "$shared" -gt "$best_score" ]; then
                 best_score="$shared"
@@ -147,7 +139,7 @@ nimo_repl_correct() {
     for word in $phrase; do
         best="$word"
         best_score=0
-        for name in tidy desktop downloads screenshots dock wallpaper zen preview clean top doctor setup undo update menu; do
+        for name in clear tidy desktop downloads screenshots dock wallpaper zen preview clean top doctor setup undo update menu; do
             shared=$(nimo_shared_prefix "$word" "$name")
             if [ "$shared" -gt "$best_score" ]; then
                 best_score="$shared"
