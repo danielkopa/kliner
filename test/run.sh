@@ -113,12 +113,36 @@ check "will not purge outside your home"  "HOME=$BOX bash -c '. $ROOT/lib/ui.sh;
 check "setup --list names the groups"     "min setup --list -q --no-color | grep -q screenshots"
 check "setup --dry-run changes nothing"   "min setup --dry-run -q --no-color >/dev/null; true"
 
+# ---- the prompt ---------------------------------------------------------
+
+# a line typed at the prompt, and everything nimo said back
+typed() {
+    printf '%s\n/quit\n' "$1" | NIMO_REPL_FORCE=1 HOME="$BOX" \
+        bash "$MIN" -q --no-color 2>&1
+}
+
+check "the prompt greets you"             "typed '' | grep -q 'nimo ›'"
+check "/ lists what you can type"         "typed '/' | grep -q '/clean desktop'"
+check "/doctor runs doctor"               "typed '/doctor' | grep -q 'your computer'"
+check "the slash is optional"             "typed 'doctor' | grep -q 'your computer'"
+check "/preview runs preview"             "typed '/preview' | grep -q 'safe to clean'"
+check "/clean desktop means the desktop"  "typed '/clean desktop' | grep -q 'your desktop'"
+check "so does clear desktop"             "typed 'clear desktop' | grep -q 'your desktop'"
+check "flags are passed through"          "typed '/preview --json' | grep -q '\"safe_bytes\"'"
+check "a typo is caught"                  "typed '/wallpapr' | grep -q 'did you mean /wallpaper'"
+check "a typo mid-phrase is caught"       "typed '/clean deskopt' | grep -q 'did you mean /clean desktop'"
+check "nonsense is not guessed at"        "typed '/xyzzy' | grep -q 'does not know' && ! typed '/xyzzy' | grep -q 'did you mean'"
+check "/quit leaves quietly"              "typed '/doctor' | grep -q 'bye'"
+check "the prompt exits 0"                "printf '/quit\n' | NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -q --no-color >/dev/null 2>&1"
+check "end of input is not an error"      "printf '' | NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -q --no-color >/dev/null 2>&1"
+check "one command cannot leak into next" "typed '/preview --json' | grep -q 'safe_bytes' && typed '/preview' | grep -q 'safe to clean'"
+
 # ---- the way in ---------------------------------------------------------
 
 check "bare min prints help off a tty"    "min --no-color | grep -q 'Commands'"
-check "the menu lists every command"      "printf 'q' | NIMO_PICK_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" --no-color 2>&1 | grep -q 'wallpaper'"
-check "the menu runs what you choose"     "printf '\\033[B\\033[B\\033[B\\033[B\\n' | NIMO_PICK_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" --no-color 2>/dev/null | grep -q 'safe to clean'"
-check "q leaves the menu without doing"   "printf 'q' | NIMO_PICK_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" --no-color >/dev/null 2>&1; [ \$? -eq 0 ]"
+check "the menu lists every command"      "printf 'q' | NIMO_PICK_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" --menu --no-color 2>&1 | grep -q 'wallpaper'"
+check "the menu runs what you choose"     "printf '\\033[B\\033[B\\033[B\\033[B\\n' | NIMO_PICK_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" --menu --no-color 2>/dev/null | grep -q 'safe to clean'"
+check "q leaves the menu without doing"   "printf 'q' | NIMO_PICK_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" --menu --no-color >/dev/null 2>&1; [ \$? -eq 0 ]"
 
 # ---- choosing things ----------------------------------------------------
 
