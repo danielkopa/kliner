@@ -64,6 +64,17 @@ EOF
     [ "$n" -gt 0 ] || return 1
 
     if ! nimo_pick_capable; then
+        # The fallback used to ask "Which one? (1-7):" without ever printing
+        # what 1 to 7 were. Every place the arrow keys cannot run — a pipe, a
+        # script, ssh without a tty, TERM=dumb — the question was unanswerable,
+        # and `min clear` was the command it happened to most.
+        local j=0
+        printf '\n' >&2
+        while [ "$j" -lt "$n" ]; do
+            printf '  %s%2d%s  %s\n' "$NIMO_C_DIM" "$((j + 1))" "$NIMO_C_RESET" "${labels[$j]}" >&2
+            j=$((j + 1))
+        done
+        printf '\n' >&2
         nimo_pick_by_number "$mode" "$hint" "$n"
         return $?
     fi
@@ -73,6 +84,9 @@ EOF
 
     local cursor=0 drawn=0 key
 
+    # ctrl-c in the middle of a pick used to leave the terminal with no cursor
+    # until the next `reset`. Whatever happens, it comes back.
+    trap 'printf "\033[?25h" >&2' EXIT INT TERM
     printf '\033[?25l' >&2
     nimo_pick_draw() {
         [ "$drawn" -eq 1 ] && printf '\033[%dA' "$((n + 2))" >&2
@@ -148,12 +162,23 @@ nimo_pick_by_number() {
     local mode="$1" hint="$2" n="$3" answer="" clean="" x
 
     if [ "$mode" = "multi" ]; then
-        printf '  Numbers, separated by spaces (enter for none): ' >&2
+        printf '  Numbers, separated by spaces — or  all  (enter for none): ' >&2
     else
-        printf '  Which one? (1-%s): ' "$n" >&2
+        printf '  Which one? 1-%s (enter to cancel): ' "$n" >&2
     fi
     # a closed stdin ends this by itself — no need to check for a terminal
     read -r answer || return 1
+
+    # "all" is the typed spelling of the a key the arrow picker takes
+    if [ "$mode" = "multi" ]; then
+        case "$answer" in
+            all|ALL|a)
+                x=1
+                while [ "$x" -le "$n" ]; do clean="$clean $x"; x=$((x + 1)); done
+                printf '%s' "${clean# }"
+                return 0 ;;
+        esac
+    fi
 
     for x in $(printf '%s' "$answer" | tr ',' ' '); do
         case "$x" in
