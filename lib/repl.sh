@@ -17,7 +17,7 @@ nimo_repl_list() {
     printf '%s%-13s %s%s%s\n' "$NIMO_PAD" "/setup"     "$NIMO_C_DIM" "a small, sane macOS setup" "$NIMO_C_RESET"
     printf '%s%-13s %s%s%s\n' "$NIMO_PAD" "/undo"      "$NIMO_C_DIM" "put anything back" "$NIMO_C_RESET"
     nimo_blank
-    printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "also  /tidy  /zen  /dark  /hide  /duplicates" "$NIMO_C_RESET"
+    printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "also  /tidy  /zen  /dark  /hide  /empty  /apps  /duplicates" "$NIMO_C_RESET"
     printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "      /doctor  /top  /preview  /menu  /quit" "$NIMO_C_RESET"
     nimo_panel_close
     nimo_blank
@@ -55,10 +55,14 @@ nimo_repl_command() {
             printf 'hide'; return 0 ;;
         duplicates|dupes|copies|samefile|findduplicates)
             printf 'duplicates'; return 0 ;;
+        apps|unusedapps|oldapps|whatdoiuse)
+            printf 'apps'; return 0 ;;
+        empty|emptytrash|takeouttrash|bin)
+            printf 'empty'; return 0 ;;
         cleardisk|cleandisk|freespace|clearspace|cleancache|clearcache|clearjunk|cleanjunk)
             printf 'clean'; return 0 ;;
-        cleartrash|cleantrash|emptytrash)
-            printf 'clean'; return 0 ;;
+        cleartrash|cleantrash)
+            printf 'empty'; return 0 ;;
     esac
 
     case "$1" in
@@ -82,7 +86,11 @@ nimo_repl_command() {
             printf 'hide' ;;
         duplicates|dupes|copies|"same file"|"find duplicates")
             printf 'duplicates' ;;
-        dock|"clean dock"|"clear dock"|"tidy dock"|"fix dock"|apps)
+        apps|"unused apps"|"old apps")
+            printf 'apps' ;;
+        empty|"empty trash"|trash|bin)
+            printf 'empty' ;;
+        dock|"clean dock"|"clear dock"|"tidy dock"|"fix dock")
             printf 'dock' ;;
         wallpaper|wall|background|"change wallpaper"|"set wallpaper"|desktop-picture)
             printf 'wallpaper' ;;
@@ -130,7 +138,7 @@ nimo_repl_guess() {
     local phrase="$1" word name shared best="" best_score=0
 
     for word in $phrase; do
-        for name in clear tidy desktop downloads screenshots dock wallpaper zen dark light hide duplicates preview clean top doctor setup undo update menu; do
+        for name in clear tidy desktop downloads screenshots dock wallpaper zen dark light hide empty apps duplicates preview clean top doctor setup undo update menu; do
             shared=$(nimo_shared_prefix "$word" "$name")
             if [ "$shared" -gt "$best_score" ]; then
                 best_score="$shared"
@@ -156,7 +164,7 @@ nimo_repl_correct() {
     for word in $phrase; do
         best="$word"
         best_score=0
-        for name in clear tidy desktop downloads screenshots dock wallpaper zen dark light hide duplicates preview clean top doctor setup undo update menu; do
+        for name in clear tidy desktop downloads screenshots dock wallpaper zen dark light hide empty apps duplicates preview clean top doctor setup undo update menu; do
             shared=$(nimo_shared_prefix "$word" "$name")
             if [ "$shared" -gt "$best_score" ]; then
                 best_score="$shared"
