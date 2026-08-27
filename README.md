@@ -1,45 +1,76 @@
-```
-   ███╗   ██╗██╗███╗   ███╗ ██████╗
-   ████╗  ██║██║████╗ ████║██╔═══██╗
-   ██╔██╗ ██║██║██╔████╔██║██║   ██║
-   ██║╚██╗██║██║██║╚██╔╝██║██║   ██║
-   ██║ ╚████║██║██║ ╚═╝ ██║╚██████╔╝
-   ╚═╝  ╚═══╝╚═╝╚═╝     ╚═╝ ╚═════╝
+<div align="center">
 
-   make your computer feel better
-```
+<a href="https://danielkopa.github.io/nimo/">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/nimo-dark.svg">
+    <img alt="nimo — make your computer feel better" src="assets/nimo-light.svg" width="560">
+  </picture>
+</a>
+
+**Make your Mac feel minimal again.**
+
+A clear desktop, a dock with only what you open, a calmer wallpaper, and the
+disk back. Every step asks first. Every step can be undone.
+
+[Website](https://danielkopa.github.io/nimo/) ·
+[Docs](#commands) ·
+[Changelog](CHANGELOG.md) ·
+[Issues](https://github.com/danielkopa/nimo/issues)
 
 [![ci](https://github.com/danielkopa/nimo/actions/workflows/ci.yml/badge.svg)](https://github.com/danielkopa/nimo/actions/workflows/ci.yml)
+![bash 3.2](https://img.shields.io/badge/bash-3.2-1d2225)
+![tests](https://img.shields.io/badge/tests-246-0e7a72)
+![dependencies](https://img.shields.io/badge/dependencies-0-0e7a72)
+[![license](https://img.shields.io/badge/license-MIT-1d2225)](LICENSE)
 
-**[nimo.sh →](https://danielkopa.github.io/nimo/)** — the page, if you would rather look than read.
+</div>
 
-**nimo** makes a Mac feel minimal again. A desktop with nothing on it. A dock
-with only the apps you actually open. A calm wallpaper. Sane preferences. And,
-once all that is true, a disk without fifteen gigabytes of cache on it.
+## What is nimo?
 
-One command does the whole thing:
+nimo is a command line tool for the parts of a Mac that quietly get away from
+you: eighty-five things on the desktop, three hundred in Downloads, a dock full
+of apps Apple put there, a wallpaper you never chose.
 
-```bash
-min tidy
+It is one bash script and fourteen small libraries. No dependencies, no daemon,
+no account, no network. You can read the whole thing in fifteen minutes, which
+is the point — a tool that rearranges your files is a tool you should be able
+to read.
+
+```
+$ min
+
+  nimo › /clear
+
+  what should be clear?
+
+   ▸ Desktop        85 items
+     Downloads      296 items
+     Screenshots    12 screenshots loose
+     Dock           the apps you never open
+     Trash          18 items
+     Disk           caches your apps rebuild by themselves
+     Everything     all of it, one step at a time
 ```
 
-Four steps, each one asks before it does anything, and each one can be undone.
+Nothing there is deleted. Files move into one folder, sorted by what they are,
+and every single move is written down — so `min undo` puts any of it back
+exactly where it was.
 
-It is one bash script and eleven small libraries. No dependencies, no daemon, no
-account, nothing running in the background. You can read the whole thing in
-fifteen minutes, which is the point: a tool that rearranges your files and your
-dock is a tool you should be able to read.
-
-## Install
+## Getting started
 
 ```bash
-git clone git@github.com:danielkopa/nimo.git ~/nimo
-cd ~/nimo
-./install.sh
+git clone git@github.com:danielkopa/nimo.git ~/nimo && ~/nimo/install.sh
 ```
 
-That puts a `min` symlink on your PATH, so you can run `min` from anywhere.
-Later, `min update` pulls the newest version. To remove it: `./uninstall.sh`.
+Then type `min`. Or `min preview` first, which cannot change anything at all.
+
+## Why nimo
+
+Cleaners ask you to trust a binary with your disk. nimo asks you to trust four
+hundred lines of shell you can read over a coffee, and then holds to six rules
+it cannot quietly break, because there are tests standing on all of them:
+nothing without a yes, everything undoable, only inside your home folder, no
+sudo, no network, and the number it shows you is the number you get.
 
 ## The way in
 
@@ -505,6 +536,19 @@ macOS with the bash that ships with it (3.2) or anything newer. `min desktop`,
 no tracking. To put it online, open **Settings → Pages** on GitHub, set the
 source to the `main` branch and the folder to `/docs`. It lands at
 `danielkopa.github.io/nimo`.
+
+## Contributing
+
+Pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) has the rules
+that matter — bash 3.2, both suites green, and a fix comes with a test that
+fails without it. Found something instead?
+[Open an issue](https://github.com/danielkopa/nimo/issues).
+
+## Security
+
+nimo moves your files and changes your preferences. If you find a way to turn
+that against someone, please tell us privately first —
+see [SECURITY.md](SECURITY.md).
 
 ## License
 
