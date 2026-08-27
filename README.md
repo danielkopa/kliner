@@ -62,8 +62,18 @@ Later, `min update` pulls the newest version. To remove it: `./uninstall.sh`.
   nimo › /undo
 ```
 
-`/clear` asks what should be clear — desktop, downloads, screenshots, dock,
-disk — and you pick with the arrow keys. Say it outright if you prefer:
+`/clear` asks what should be clear and counts each one as it asks, so the menu
+itself shows you where the mess actually is:
+
+```
+   ▸ Desktop        85 items
+     Downloads      296 items
+     Screenshots    12 screenshots loose
+     Dock           the apps you never open
+     Trash          18 items
+     Disk           caches your apps rebuild by themselves
+     Everything     all of it, one step at a time
+``` Say it outright if you prefer:
 `/clear desktop`, or `/cleardesktop`.
 
 The slash is optional, the spaces are optional, and so is remembering the exact
@@ -107,7 +117,10 @@ Screenshots, Images, Documents, Video, Audio, Archives, Code, Folders, Other.
 ```
 
 Nothing is deleted. Nothing is renamed — if a name is already taken, the new
-file becomes `invoice 2.pdf`. Hidden files are left alone. Every single move is
+file becomes `invoice 2.pdf`. Hidden files are left alone, and so is anything
+still arriving: a `.download`, `.crdownload`, `.part` or `.partial` is a file a
+browser is still writing, and moving it out from under the browser breaks the
+download. Every single move is
 written down in `~/.nimo/undo/`, so:
 
 ```bash
@@ -271,7 +284,7 @@ anything.
 | Command | What it does |
 | --- | --- |
 | `min clear` | pick what should be clear — desktop, downloads, screenshots, dock, disk |
-| `min tidy` | desktop, dock, wallpaper and preferences, in order |
+| `min tidy` | desktop, downloads, screenshots, dock, wallpaper and preferences, in order |
 | `min desktop` | clear your desktop — `--undo` puts it back |
 | `min downloads` | the same sorter, pointed at `~/Downloads` |
 | `min screenshots` | gather every loose screenshot into `~/Pictures/Screenshots` |
@@ -387,7 +400,7 @@ Every push runs everything on GitHub Actions: ShellCheck, a parse on both bash
 install-then-uninstall round trip. The bash 3.2 claim in this README is not a
 claim; it is a job that fails if it stops being true.
 
-A hundred and forty checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
+A hundred and fifty-one checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
 command and flag, the safety guard, the arrow-key picker driven by simulated
 keystrokes, the menu, the undo history, the config file, the desktop sorted and then
 fully undone, and a complete clean where the promised number is compared

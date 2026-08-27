@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.16.0
+
+- **The `/clear` menu counts what it is offering.** Desktop 85 items,
+  Downloads 296 items, 12 screenshots loose — choosing is much easier when the
+  menu already shows where the mess is. The Trash is one of the choices now
+- **`min tidy` covers downloads and screenshots too.** It was walking past the
+  folder that fills up fastest
+- **Anything still arriving is left alone.** `.download`, `.crdownload`,
+  `.part`, `.partial` and friends are files a browser is still writing; moving
+  one breaks the download and leaves half a file under a name nobody
+  recognises
+- **`min doctor` says what to do next** — one line, only when there is
+  something worth doing
+- Sorting a few hundred files now says how far along it is
+
 ## 0.15.0
 
 - **The frames are back.** Taking them off made nimo look like every other

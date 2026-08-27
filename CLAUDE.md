@@ -10,7 +10,7 @@ side dish. When in doubt, make the desktop calmer.
 ```bash
 ./min                 # the prompt — this is the front door
 ./min clear desktop   # or say it outright
-bash test/run.sh -q   # 142 checks, anywhere
+bash test/run.sh -q   # 151 checks, anywhere
 bash test/macos.sh -q # 86 checks, the macOS-only parts, faked
 ```
 
@@ -68,6 +68,12 @@ form). Both are matched: `/cleardesktop` and `/clear desktop` are one command.
   no exclamation marks. Say what happened, then how to undo it.
 - Comments explain *why*, especially where the code looks odd. Most of the odd
   code below is a bug that was paid for once already.
+
+## Rules of thumb
+
+- A menu that asks you to choose should count what it is offering.
+- Never move a file something else is still writing.
+- `min doctor` should end with the one thing worth doing next, or nothing.
 
 ## Traps that have already bitten, with tests standing on them
 
