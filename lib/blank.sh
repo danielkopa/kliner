@@ -23,11 +23,24 @@ nimo_cmd_blank() {
         return 1
     fi
 
-    # a bare name means the folder you are standing in
+    # Every path becomes absolute before anything looks at it.
+    #
+    # The guard that keeps nimo inside your home folder compares against
+    # $HOME, and a relative path never starts with it — so `min blank
+    # Documents/notes.txt`, typed from your home folder, was refused as
+    # "outside your home folder". The most natural way to use the command was
+    # the one way it could not be used.
+    # A quoted tilde is a literal tilde: the shell expanded nothing, so nimo
+    # has to. That is the point of these two lines, not an oversight.
+    # shellcheck disable=SC2088
     case "$target" in
-        /*|~*) ;;
-        *) [ -e "$target" ] || [ ! -e "$PWD/$target" ] || target="$PWD/$target" ;;
+        /*)  ;;
+        "~") target="$HOME" ;;
+        "~/"*) target="$HOME/${target#\~/}" ;;
+        *)   target="$PWD/$target" ;;
     esac
+    # tidy up the "./" a shell tab-completion leaves behind
+    target=$(printf '%s' "$target" | sed -e 's|/\./|/|g' -e 's|//*|/|g')
 
     if [ ! -e "$target" ]; then
         nimo_warn "there is no $target"
@@ -52,7 +65,8 @@ nimo_cmd_blank() {
     bytes=$(wc -c < "$target" 2>/dev/null | tr -d ' ')
 
     nimo_panel_open "empty a file"
-    nimo_row "$(basename "$target")" "$(nimo_human_bytes "${bytes:-0}")" "${target%/*}"
+    local where="${target%/*}"
+    nimo_row "$(basename "$target")" "$(nimo_human_bytes "${bytes:-0}")" "${where#$HOME/}"
     nimo_blank
 
     if [ "${bytes:-0}" -eq 0 ]; then
