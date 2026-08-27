@@ -83,7 +83,57 @@ nimo_dock_rewrite() {
     return 0
 }
 
+# The dock's auto-hide has a wait built into it, and the slide itself is
+# slower than it needs to be. Two preferences fix both, and both are written
+# down first, so min undo puts the sluggish version back.
+nimo_cmd_dock_fast() {
+    nimo_header
+
+    if ! nimo_is_macos; then
+        nimo_warn "the Dock is a macOS thing"
+        nimo_blank
+        return 0
+    fi
+
+    nimo_panel_open "a dock that keeps up"
+    nimo_say "No wait before it slides, and a slide that takes 0.15s instead of half a second."
+    nimo_blank
+    nimo_dim "defaults write com.apple.dock autohide-delay -float 0"
+    nimo_dim "defaults write com.apple.dock autohide-time-modifier -float 0.15"
+    nimo_panel_close
+    nimo_blank
+
+    if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
+        nimo_dim "preview only — nothing was changed"
+        nimo_blank
+        return 0
+    fi
+
+    if ! nimo_confirm "Speed the dock up?"; then
+        nimo_blank
+        nimo_dim "left as it was"
+        nimo_blank
+        return 0
+    fi
+
+    nimo_look_log
+    nimo_run defaults write com.apple.dock autohide -bool true
+    nimo_run defaults write com.apple.dock autohide-delay -float 0
+    nimo_run defaults write com.apple.dock autohide-time-modifier -float 0.15
+    killall Dock >/dev/null 2>&1
+
+    nimo_blank
+    nimo_ok "The dock keeps up now."
+    nimo_dim "back to the slow one with  min setup --restore"
+    nimo_blank
+    return 0
+}
+
 nimo_cmd_dock() {
+    if [ "${NIMO_FAST:-0}" = "1" ]; then
+        nimo_cmd_dock_fast
+        return $?
+    fi
     if [ "${NIMO_RESTORE:-0}" = "1" ]; then
         nimo_dock_restore
         return 0
