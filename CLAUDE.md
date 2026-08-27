@@ -170,6 +170,21 @@ own face. `tools/screen.py` renders a raw stream the way a terminal would, so
 the suite can check what is on screen and not only which bytes were sent — a
 grep sees a perfectly good face either way.
 
+## Names people actually have
+
+A file name is not a word. `test/run.sh` makes seventeen of the awkward ones —
+quotes, apostrophes, backslashes, a leading dash, globs, `$(whoami)`,
+backticks, pipes, semicolons, 180 characters, an emoji — and insists nimo
+moves them all and runs none of them.
+
+Two it will not move, on purpose: a newline or a tab in the name. The undo log
+is one line per move, and those names are not one line. `find` prints a
+newline name as two lines, neither of which is a file, so `nimo_folder_items`
+drops anything that is not under the folder it was asked about and does not
+exist, and `nimo_unnameable_count` counts the difference so the panel can say
+how many were left alone. Sorting fewer things than are in the folder and
+saying nothing is the failure mode worth avoiding.
+
 ## Forks are the whole cost
 
 nimo is bash, so the only thing that ever makes it slow is starting processes.

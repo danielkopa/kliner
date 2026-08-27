@@ -307,6 +307,58 @@ check "and it counted all of them"       "HOME=\"$MANY\" bash \"$MIN\" downloads
 check "the classifier forks per file 0x" "! grep -q 'basename \"\$path\"\|\$(nimo_bucket_of' \"$ROOT/lib/desktop.sh\""
 rm -rf "$MANY"
 
+# ---- names people actually have -------------------------------------------
+#
+# A file name is not a word. It can hold a quote, an apostrophe, a backslash,
+# a leading dash, a glob character, a command substitution, a semicolon, a
+# pipe, 180 characters, or an emoji — and every one of those has, somewhere,
+# been the bug that deleted the wrong thing or ran the wrong command.
+#
+# nimo moves all of them and executes none of them. The two it cannot move are
+# the two it cannot write down: a newline or a tab in the name, because the
+# undo log is one line per move and a name with a newline in it is not one
+# line. Those it names and leaves alone, rather than sorting fewer things than
+# are in the folder and saying nothing.
+
+NASTY="$BOX/nasty"
+mkdir -p "$NASTY/Desktop"
+python3 - "$NASTY/Desktop" <<'MAKE'
+import os, sys
+d = sys.argv[1]
+for n in ["spaces in name.txt", "it's an apostrophe.pdf", 'double"quote.txt',
+          "back\\slash.txt", "-rf.txt", "--help.pdf", "unicode ✨.png",
+          "$(whoami).txt", "`id`.txt", "semi;colon.txt", "pipe|char.txt",
+          "star*.txt", "quest?.txt", "[bracket].txt", "x" * 180 + ".txt",
+          "new\nline.txt", "tab\there.txt"]:
+    try:
+        open(os.path.join(d, n), "w").close()
+    except OSError:
+        pass
+MAKE
+
+nasty() { HOME="$NASTY" bash "$MIN" "$@" </dev/null 2>&1; }
+
+check "it counts only what it can move"   "nasty desktop --dry-run -q --no-color | grep -q '15 items'"
+check "and names the two it cannot"       "nasty desktop --dry-run -q --no-color | grep -q 'newline or a tab'"
+check "nothing in a name is ever run"     "! nasty desktop --dry-run -q --no-color | grep -q 'root\|uid='"
+
+nasty desktop -y -q --no-color >/dev/null 2>&1
+check "all fifteen are filed"             "[ \$(find \"$NASTY/Desktop/Tidy\" -type f | wc -l) = 15 ]"
+check "nothing failed to move"            "! nasty desktop -y -q --no-color | grep -q 'could not be moved'"
+check "the quote one is there"            "[ -f \"$NASTY/Desktop/Tidy/Documents/double\\\"quote.txt\" ]"
+check "and the one starting with a dash"  "[ -f \"$NASTY/Desktop/Tidy/Documents/-rf.txt\" ]"
+check "and the command substitution one"  "[ -f \"$NASTY/Desktop/Tidy/Documents/\\\$(whoami).txt\" ]"
+# counted through -print0, because a name with a newline in it is two lines
+# to `find` and one file to everything else — which is the whole point here
+nfiles() { find "$1" -maxdepth 1 -type f -print0 2>/dev/null | tr -dc '\0' | wc -c | tr -d ' '; }
+
+check "the awkward two stayed put"        "[ \"\$(nfiles \"$NASTY/Desktop\")\" = 2 ]"
+
+nasty desktop --undo -q --no-color >/dev/null 2>&1
+check "and undo brings all fifteen back"  "[ \"\$(nfiles \"$NASTY/Desktop\")\" = 17 ]"
+check "the log has one line per move"     "[ \$(cat \"$NASTY/.nimo/undo\"/desktop-*.tsv | wc -l) = 15 ]"
+rm -rf "$NASTY"
+
 # ---- what is still arriving stays put ------------------------------------
 #
 # A browser writes film.mp4.download while it is still fetching. Moving that

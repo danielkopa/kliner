@@ -180,6 +180,16 @@ nimo_folder_items() {
     local dir="$1" item name
     [ -d "$dir" ] || return 0
     find "$dir" -mindepth 1 -maxdepth 1 2>/dev/null | while IFS= read -r item; do
+        # A name with a newline in it arrives here as two lines: the half
+        # before it, which is not a path to anything, and the half after,
+        # which is not even absolute. Both are dropped — nimo moves what it
+        # can name in a log it can read back, and says how many it left.
+        case "$item" in
+            "$dir"/*) ;;
+            *) continue ;;
+        esac
+        [ -e "$item" ] || continue
+
         name="${item##*/}"
         case "$name" in
             .*|"$NIMO_TIDY_DIR_NAME") continue ;;
@@ -190,6 +200,32 @@ nimo_folder_items() {
         esac
         printf '%s\n' "$item"
     done
+}
+
+# How many nimo will not touch because their names cannot survive a line in a
+# log: a newline or a tab in the name. Counted so the panel can say so, rather
+# than quietly sorting fewer things than are in the folder.
+nimo_unnameable_count() {
+    local dir="$1" lines nulls
+    [ -d "$dir" ] || { printf '0'; return 0; }
+    lines=$(find "$dir" -mindepth 1 -maxdepth 1 2>/dev/null | grep -c . 2>/dev/null)
+    nulls=$(find "$dir" -mindepth 1 -maxdepth 1 -print0 2>/dev/null | tr -dc '\0' | wc -c | tr -d ' ')
+    case "${lines:-}" in ''|*[!0-9]*) lines=0 ;; esac
+    case "${nulls:-}" in ''|*[!0-9]*) nulls=0 ;; esac
+    # every newline inside a name adds a line that is not a file
+    local extra=$((lines - nulls))
+    [ "$extra" -lt 0 ] && extra=0
+
+    local item tabs=0
+    while IFS= read -r item; do
+        [ -n "$item" ] || continue
+        case "$item" in *$'\t'*) tabs=$((tabs + 1)) ;; esac
+    done <<INNER
+$(find "$dir" -mindepth 1 -maxdepth 1 2>/dev/null)
+INNER
+
+    # one newline in a name is one extra line and one file nimo skips
+    printf '%s' "$((extra + tabs))"
 }
 
 # Undo one sorting run.
@@ -321,11 +357,22 @@ EOF
     nimo_rule
     nimo_total "In there" "$(nimo_plural "$total" item)"
 
-    local arriving
+    local arriving odd
     arriving=$(nimo_arriving_count "$src")
     if [ "$arriving" -gt 0 ]; then
         nimo_blank
         nimo_dim "$(nimo_plural "$arriving" file) still downloading — left alone"
+    fi
+    odd=$(nimo_unnameable_count "$src")
+    if [ "$odd" -gt 0 ]; then
+        [ "$arriving" -gt 0 ] || nimo_blank
+        if [ "$odd" = "1" ]; then
+            nimo_dim "1 file has a newline or a tab in its name"
+            nimo_dim "nimo cannot write that down, so it leaves it alone"
+        else
+            nimo_dim "$odd files have a newline or a tab in their names"
+            nimo_dim "nimo cannot write those down, so it leaves them alone"
+        fi
     fi
     nimo_panel_close
 
