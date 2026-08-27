@@ -326,8 +326,10 @@ man min
 ## Tests
 
 ```bash
-bash test/run.sh      # 110 checks — everything that runs anywhere
+bash test/run.sh      # 114 checks — everything that runs anywhere
 bash test/macos.sh    # 68 checks — the parts that only run on a Mac
+
+bash test/run.sh -q   # only what went wrong, and the verdict
 ```
 
 The dock, the wallpaper and the preferences only ever run on a Mac, which used

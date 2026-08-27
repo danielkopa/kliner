@@ -21,11 +21,17 @@ fi
 PASS=0
 FAIL=0
 FAILED=""
+QUIET=0
+
+# -q prints only what went wrong, and the verdict
+case "${1:-}" in
+    -q|--quiet) QUIET=1 ;;
+esac
 
 check() {
     if eval "$2" >/dev/null 2>&1; then
         PASS=$((PASS + 1))
-        printf '  %s✓%s %s\n' "$G" "$Z" "$1"
+        [ "$QUIET" = "1" ] || printf '  %s✓%s %s\n' "$G" "$Z" "$1"
     else
         FAIL=$((FAIL + 1))
         FAILED="$FAILED
