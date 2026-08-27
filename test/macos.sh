@@ -376,6 +376,18 @@ check "restoring twice is not an error"    "mac setup --restore -q --no-color >/
 rm -rf "$BOX/.nimo/backups"
 check "nothing to restore says so calmly"  "mac setup --restore -q --no-color | grep -q 'has not changed any preferences'"
 
+# ---- zen -----------------------------------------------------------------
+
+rm -rf "$BOX/.nimo/backups"
+: > "$PREFS"; : > "$WROTE"
+
+check "zen hides the desktop icons"        "mac zen -y -q --no-color >/dev/null 2>&1; [ \"\$(fakedefaults read com.apple.finder CreateDesktop)\" = false ]"
+check "zen writes down how to undo it"     "ls '$BOX'/.nimo/backups/setup-*.tsv >/dev/null 2>&1"
+check "zen twice is not a problem"         "mac zen -y -q --no-color | grep -q 'already like that'"
+check "zen --restore brings them back"     "mac zen --restore -y -q --no-color >/dev/null 2>&1; [ \"\$(fakedefaults read com.apple.finder CreateDesktop)\" = true ]"
+check "zen --dry-run changes nothing"      "fakedefaults write com.apple.finder CreateDesktop -bool true; mac zen --dry-run -q --no-color >/dev/null 2>&1; [ \"\$(fakedefaults read com.apple.finder CreateDesktop)\" = true ]"
+check "zen --dry-run shows the command"    "mac zen --dry-run -q --no-color | grep -q 'CreateDesktop -bool false'"
+
 # ---- the wallpaper -------------------------------------------------------
 #
 # The list comes from paths that only exist on a real Mac, so this part

@@ -122,7 +122,7 @@ typed() {
 }
 
 check "the prompt greets you"             "typed '' | grep -q 'nimo ›'"
-check "/ lists what you can type"         "typed '/' | grep -q '/clean desktop'"
+check "/ lists what you can type"         "typed '/' | grep -q '/cleardesktop'"
 check "/doctor runs doctor"               "typed '/doctor' | grep -q 'your computer'"
 check "the slash is optional"             "typed 'doctor' | grep -q 'your computer'"
 check "/preview runs preview"             "typed '/preview' | grep -q 'safe to clean'"
@@ -136,6 +136,35 @@ check "/quit leaves quietly"              "typed '/doctor' | grep -q 'bye'"
 check "the prompt exits 0"                "printf '/quit\n' | NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -q --no-color >/dev/null 2>&1"
 check "end of input is not an error"      "printf '' | NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -q --no-color >/dev/null 2>&1"
 check "one command cannot leak into next" "typed '/preview --json' | grep -q 'safe_bytes' && typed '/preview' | grep -q 'safe to clean'"
+
+# ---- the newer commands -------------------------------------------------
+
+DL="$BOX/Downloads"
+mkdir -p "$DL" "$BOX/Documents" "$BOX/Pictures"
+touch "$DL/Screenshot B.png" "$DL/installer.dmg" "$DL/report.pdf"
+touch "$BOX/Documents/Screenshot C.png"
+
+check "/cleardesktop reaches the desktop"  "typed '/cleardesktop --dry-run' | grep -q 'your desktop'"
+check "/clearfiles means the same"         "typed '/clearfiles --dry-run' | grep -q 'your desktop'"
+check "/cleardownloads reaches downloads"  "typed '/cleardownloads --dry-run' | grep -q 'your downloads'"
+check "/cleandock reaches the dock"        "typed '/cleandock' | grep -q 'macOS\|your dock'"
+check "spaces are optional both ways"      "typed '/clear downloads --dry-run' | grep -q 'your downloads'"
+
+check "downloads sorts downloads"          "min downloads -y -q --no-color >/dev/null 2>&1; [ -f '$DL/Tidy/Archives/installer.dmg' ]"
+check "and files the documents too"        "[ -f '$DL/Tidy/Documents/report.pdf' ]"
+check "downloads --undo puts them back"    "min downloads --undo -q --no-color >/dev/null 2>&1; [ -f '$DL/installer.dmg' ]"
+
+touch "$BOX/Desktop/Screenshot A.png"
+check "screenshots gathers them up"        "min screenshots -y -q --no-color >/dev/null 2>&1; [ -f '$BOX/Pictures/Screenshots/Screenshot A.png' ]"
+check "from every folder it looks in"      "[ -f '$BOX/Pictures/Screenshots/Screenshot C.png' ]"
+check "and leaves everything else alone"   "[ -f '$DL/report.pdf' ]"
+check "screenshots --undo puts them back"  "min screenshots --undo -q --no-color >/dev/null 2>&1; [ -f '$BOX/Desktop/Screenshot A.png' ] && [ -f '$BOX/Documents/Screenshot C.png' ]"
+
+rm -f "$BOX/Desktop/Screenshot A.png" "$BOX/Documents/Screenshot C.png" "$DL/Screenshot B.png"
+rm -rf "$DL/Tidy" "$BOX/Pictures/Screenshots"
+
+check "nothing loose is a calm answer"     "min screenshots -q --no-color | grep -q 'No loose screenshots'"
+check "zen says no away from macOS"        "[ \"\$(uname -s)\" = Darwin ] || min zen -q --no-color | grep -q 'macOS'"
 
 # ---- the way in ---------------------------------------------------------
 
@@ -255,7 +284,7 @@ min desktop --undo -q --no-color >/dev/null 2>&1
 check "undo brings everything back"       "[ -f '$DESK/invoice.pdf' ] && [ -f '$DESK/photo of the sea.JPG' ]"
 check "undo keeps folders intact"         "[ -d '$DESK/a project' ]"
 check "undo clears the Tidy folder away"  "[ ! -d '$DESK/Tidy' ]"
-check "undo with nothing to undo is calm" "min desktop --undo -q --no-color >/dev/null; min desktop --undo -q --no-color | grep -q 'back on your desktop\|nothing to undo'"
+check "undo with nothing to undo is calm" "min desktop --undo -q --no-color >/dev/null 2>&1; min desktop --undo -q --no-color 2>&1 | grep -qE 'put back|nothing to undo'"
 
 check "dock says no on this machine"      "[ \"\$(uname -s)\" = Darwin ] || min dock -q --no-color | grep -q 'macOS'"
 check "wallpaper says no on this machine" "[ \"\$(uname -s)\" = Darwin ] || min wallpaper -q --no-color | grep -q 'macOS'"
