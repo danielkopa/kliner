@@ -98,9 +98,86 @@ nimo_cmd_appearance() {
 nimo_cmd_dark()  { nimo_cmd_appearance dark; }
 nimo_cmd_light() { nimo_cmd_appearance light; }
 
+# The Windows counterpart: the taskbar, which slides away the same way.
+#
+# The setting is one bit inside StuckRects3, and the taskbar reads that blob
+# when Explorer starts and at no other time. So this is the one place in nimo
+# that restarts Explorer — asked for separately, and never as a side effect of
+# something else. Nothing is deleted by it: Windows brings the shell straight
+# back, the desktop icons keep their places, and a file browser has no unsaved
+# work to lose.
+nimo_hide_windows() {
+    if ! nimo_ps_ready; then
+        nimo_warn "nimo needs PowerShell to reach the taskbar, and cannot find it"
+        nimo_blank
+        return 1
+    fi
+
+    local hidden want
+    hidden=$(nimo_win_taskbar_hidden)
+    want=1
+    [ "${NIMO_RESTORE:-0}" = "1" ] && want=0
+
+    nimo_panel_open "the taskbar"
+    if [ "$want" = "1" ]; then
+        nimo_say "It slides away until you reach for it."
+    else
+        nimo_say "It stays put again."
+    fi
+    nimo_panel_close
+
+    if [ "$hidden" = "$want" ]; then
+        nimo_dim "already like that — nothing to do"
+        nimo_blank
+        return 0
+    fi
+
+    if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
+        nimo_blank
+        nimo_win_taskbar_hide "$want"
+        nimo_dim "preview only — nothing was changed"
+        nimo_blank
+        return 0
+    fi
+
+    if ! nimo_confirm "$([ "$want" = 1 ] && echo "Hide the taskbar?" || echo "Bring the taskbar back?")"; then
+        nimo_blank
+        nimo_dim "left as it was"
+        nimo_blank
+        return 0
+    fi
+
+    nimo_win_taskbar_hide "$want"
+
+    nimo_blank
+    nimo_ok "$([ "$want" = 1 ] && echo "Set to slide away." || echo "Set to stay put.")"
+    nimo_blank
+    nimo_dim "the taskbar reads this when Explorer starts, so it needs a restart"
+    nimo_dim "nothing is lost by that — no files, no icon positions, no windows"
+    nimo_dim "with unsaved work. Signing out and back in does the same thing."
+    nimo_blank
+
+    if nimo_confirm "Restart Explorer now?"; then
+        nimo_win_restart_explorer
+        nimo_blank
+        nimo_ok "Done."
+    else
+        nimo_blank
+        nimo_dim "it will take effect the next time you sign in"
+    fi
+    [ "$want" = "1" ] && nimo_dim "back with  min hide --restore"
+    nimo_blank
+    return 0
+}
+
 # The menu bar is the last thing on a clean screen that never goes away.
 nimo_cmd_hide() {
     nimo_header
+
+    if [ "$(nimo_platform)" = "windows" ]; then
+        nimo_hide_windows
+        return $?
+    fi
 
     if ! nimo_is_macos; then
         nimo_warn "the menu bar is a macOS thing"

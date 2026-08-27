@@ -109,6 +109,68 @@ esac
 exit 1
 SHIM
 
+# A PowerShell that knows the four questions nimo asks it, and nothing else.
+# The Recycle Bin is files plus an index, so nimo never reads it directly —
+# it asks Windows what is in there and asks Windows to empty it.
+BIN="$BOX/recycle-bin"
+printf '4\n' > "$BIN.count"
+printf '7340032\n' > "$BIN.size"
+
+cat > "$FAKE/powershell.exe" <<SHIM
+#!/bin/sh
+BIN="$BIN"
+PSLOG="$BOX/powershell"
+APPS="$BOX/installed"
+SHIM
+cat >> "$FAKE/powershell.exe" <<'SHIM'
+cmd="$*"
+printf '%s
+' "$cmd" >> "$PSLOG"
+case "$cmd" in
+    *StuckRects3*Settings[8]*=*|*'$v[8] = ('*)
+        # the write: one bit in byte eight
+        case "$cmd" in
+            *-bor*)  printf '1\n' > "$BIN.taskbar" ;;
+            *-band*) printf '0\n' > "$BIN.taskbar" ;;
+        esac
+        exit 0 ;;
+    *StuckRects3*)
+        # the read
+        [ -f "$BIN.taskbar" ] && cat "$BIN.taskbar" || printf '0\n'
+        exit 0 ;;
+    *Stop-Process*explorer*)
+        printf 'restarted\n' >> "$BIN.explorer"
+        exit 0 ;;
+    *Clear-RecycleBin*)
+        printf '0
+' > "$BIN.count"
+        printf '0
+' > "$BIN.size"
+        exit 0 ;;
+    *'Items()).Count'*)
+        cat "$BIN.count"; exit 0 ;;
+    *'$i.Size'*)
+        cat "$BIN.size"; exit 0 ;;
+    *Uninstall*)
+        [ -f "$APPS" ] && cat "$APPS"
+        exit 0 ;;
+    *Win32_Battery*)
+        [ -f "$BIN.battery" ] && cat "$BIN.battery"
+        exit 0 ;;
+    *TotalPhysicalMemory*)
+        echo 17179869184
+        exit 0 ;;
+esac
+exit 0
+SHIM
+
+# what this pretend machine has installed:  name <TAB> yyyymmdd <TAB> KB
+printf 'Old Video Editor	20190104	480000
+A Browser	20260801	320000
+Tiny Utility	20200612	900
+' \
+    > "$BOX/installed"
+
 # the poke Windows wants after a wallpaper or a theme changes
 cat > "$FAKE/RUNDLL32.EXE" <<SHIM
 #!/bin/sh
@@ -184,7 +246,6 @@ check "it does not look for ~/Library"    "! win preview -q --no-color | grep -q
 # ---- what windows simply does not have -----------------------------------
 
 check "the dock is not a windows thing"   "win dock -q --no-color | grep -q 'macOS'"
-check "nor the unused-apps list"          "win apps -q --no-color | grep -q 'macOS'"
 
 # ---- what windows does have --------------------------------------------
 #
@@ -259,9 +320,58 @@ replay() {
 }
 check "a value nimo invented is unset"    "replay \"\$FIRST\"; ! reg_has 'AppsUseLightTheme'"
 
-check "the recycle bin is left to windows" "win empty -q --no-color | grep -q 'Recycle Bin'"
-check "and it says how to empty it"       "win empty -q --no-color | grep -q 'Clear-RecycleBin'"
-check "it does not delete anything there" "win empty -y -q --no-color >/dev/null 2>&1; [ -d '$BOX/OneDrive/Desktop' ]"
+# ---- what is installed --------------------------------------------------
+#
+# Windows records no equivalent of "last opened", so nimo answers the question
+# it can answer — how long each thing has been sitting there — and says which
+# question that is rather than implying the other.
+
+check "it lists what is installed"        "win apps -q --no-color | grep -q 'Old Video Editor'"
+check "with a readable install date"      "win apps -q --no-color | grep -q '2019-01-04'"
+check "and how much room it takes"        "win apps -q --no-color | grep -q '469 MB'"
+check "something installed last week is out" "! win apps -q --no-color | grep -q 'A Browser'"
+check "it admits what windows cannot say" "win apps -q --no-color | grep -q 'does not record when you last opened'"
+check "and offers no way to uninstall"    "win apps -q --no-color | grep -q 'does not uninstall anything'"
+check "it never calls an uninstaller"     "! grep -q 'msiexec\|Uninstall-Package\|/x ' '$ROOT/lib/apps.sh'"
+check "the list is read from HKLM and HKCU" "grep -q 'Uninstall' '$BOX/powershell'"
+
+# ---- the taskbar --------------------------------------------------------
+#
+# Auto-hide is one bit inside a forty-byte blob, and the taskbar reads that
+# blob when Explorer starts and at no other time. So this is the one place in
+# nimo that restarts Explorer, and it asks separately before doing it.
+
+check "a dry run shows what it would do"  "win hide --dry-run -q --no-color | grep -q 'StuckRects3'"
+check "and writes nothing"                "[ ! -f '$BIN.taskbar' ]"
+check "and restarts nothing"              "[ ! -f '$BIN.explorer' ]"
+check "it calls it the taskbar"           "win hide --dry-run -q --no-color | grep -q 'the taskbar'"
+check "it says nothing is lost by it"     "win hide --dry-run --restore -q --no-color >/dev/null; win hide -q --no-color -y | grep -q 'no files, no icon positions'"
+check "hiding sets the bit"               "[ \"\$(cat '$BIN.taskbar')\" = 1 ]"
+check "and explorer is restarted once"    "[ \"\$(wc -l < '$BIN.explorer' | tr -d ' ')\" = 1 ]"
+check "asking again changes nothing"      "win hide -y -q --no-color | grep -q 'already like that'"
+check "--restore clears the bit"          "win hide --restore -y -q --no-color >/dev/null 2>&1; [ \"\$(cat '$BIN.taskbar')\" = 0 ]"
+
+# ---- the recycle bin ----------------------------------------------------
+#
+# nimo never reaches into it: that is files plus an index, and removing one
+# without the other leaves Windows confused about what it still holds. It asks
+# Windows what is in there, and asks Windows to empty it.
+
+check "it says what is in the bin"        "win empty --dry-run -q --no-color | grep -q '4 items'"
+check "and how big that is"               "win empty --dry-run -q --no-color | grep -q '7.0 MB'"
+check "it calls it the recycle bin"       "win empty --dry-run -q --no-color | grep -qi 'recycle bin'"
+check "a dry run empties nothing"         "[ \"\$(cat '$BIN.count')\" = 4 ]"
+check "and it warns it cannot be undone"  "win empty --dry-run -q --no-color | grep -q 'not undoable'"
+
+win empty -y -q --no-color >/dev/null 2>&1
+check "emptying goes through windows"     "grep -q 'Clear-RecycleBin' '$BOX/powershell'"
+check "and the bin comes back empty"      "[ \"\$(cat '$BIN.count')\" = 0 ]"
+check "it reports what it freed"          "printf '4\\n' > '$BIN.count'; printf '7340032\\n' > '$BIN.size'; win empty -y -q --no-color | grep -q 'Freed 7.0 MB'"
+check "nimo never reads the bin itself"   "! grep -q 'find.*Recycle' '$ROOT/lib/apps.sh'"
+check "and deletes nothing on the desktop" "[ -f '$BOX/OneDrive/Desktop/report.pdf' ]"
+check "a second run says already empty"   "win empty -y -q --no-color | grep -q 'Already empty'"
+printf '4\n' > "$BIN.count"
+check "doctor counts what is in it"       "win doctor -q --no-color | grep -q 'Recycle Bin'"
 
 # ---- the menu only offers what windows can do ----------------------------
 #
@@ -273,7 +383,7 @@ wmenu() { printf '\n' | PATH="$FAKE:$PATH" HOME="$BOX" bash "$MIN" clear --no-co
 
 check "the menu lists what it offers"     "wmenu | grep -q '^ *1  '"
 check "no dock on windows"                "! wmenu | grep -q 'Dock'"
-check "no trash to empty either"          "! wmenu | grep -q 'Trash'"
+check "the bin is offered, not a Trash"   "wmenu | grep -q 'Bin' && ! wmenu | grep -q 'Trash'"
 check "the disk is still on offer"        "wmenu | grep -q 'Disk'"
 check "and the numbers match the rows"    "[ \"\$(wmenu | sed -n 's/.*Which one? 1-\\([0-9]*\\).*/\\1/p')\" = \"\$(wmenu | grep -c '^ *[0-9]  ')\" ]"
 
@@ -283,6 +393,16 @@ check "the menu counts OneDrive's shots"  "wmenu | grep -q '1 loose'"
 check "and the command agrees with it"    "win screenshots --dry-run -q --no-color | grep -q '1 file'"
 
 # ---- windows, spelled the way people say it ------------------------------
+
+# Win32_Battery answers both halves at once: the percentage, and a small
+# enumeration where 1 is on the battery, 2 is on mains and 3 is charged.
+battery_says() { printf '%s\n' "$1" > "$BIN.battery"; win doctor -q --no-color | sed -n 's/.*Battery *//p'; }
+
+check "doctor reads the battery"          "[ \"\$(battery_says '87 1')\" = '87%  ·  on battery' ]"
+check "and knows when it is plugged in"   "[ \"\$(battery_says '64 2')\" = '64%  ·  plugged in' ]"
+check "and when it is full"               "[ \"\$(battery_says '100 3')\" = '100%  ·  charged' ]"
+check "a desktop pc has no battery line"  ": > '$BIN.battery'; ! win doctor -q --no-color | grep -q Battery"
+check "and still reports the memory"      "win doctor -q --no-color | grep -q Memory"
 
 check "doctor says Windows, not MINGW"    "win doctor -q --no-color | grep -q 'Windows 11'"
 check "and which bash it is running in"   "win doctor -q --no-color | grep -q 'Git Bash'"
@@ -294,6 +414,16 @@ check "the bin is named, not counted"     "win doctor -q --no-color | grep -q 'R
 check "top works"                         "win top -q --no-color | grep -q '█'"
 check "duplicates works"                  "win duplicates -q --no-color | grep -q 'copies\\|more than once'"
 check "the prompt works"                  "printf '/quit\\n' | NIMO_REPL_FORCE=1 PATH=\"$FAKE:\$PATH\" HOME=\"$BOX\" bash \"$MIN\" -q --no-color 2>&1 | grep -q 'nimo ›'"
+
+# the list you get for "/" only offers what this computer can carry out
+wslash() { printf '/\n/quit\n' | NIMO_REPL_FORCE=1 NIMO_NO_CLEAR=1 PATH="$FAKE:$PATH" HOME="$BOX" bash "$MIN" -q --no-color 2>&1; }
+
+check "the list offers the windows setup" "wslash | grep -q 'explorer and the taskbar'"
+check "and not a dock that is not there"  "! wslash | grep -q '/fastdock\|/dock'"
+check "the taskbar is offered instead"    "wslash | grep -q '/hide'"
+check "and what is installed"             "wslash | grep -q '/apps'"
+check "the wallpaper is offered though"   "wslash | grep -q '/wallpaper'"
+check "and it counts what is lying about" "wslash | grep -q 'on your desktop right now'"
 check "the guard still refuses outside"   "PATH=\"$FAKE:\$PATH\" HOME=\"$BOX\" bash -c '. $ROOT/lib/ui.sh; . $ROOT/lib/core.sh; nimo_is_protected /c/Windows'"
 
 # ---- and it will not delete your pc either -------------------------------

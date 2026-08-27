@@ -592,15 +592,32 @@ What runs where, exactly:
 | | macOS | Windows | Linux |
 | --- | --- | --- | --- |
 | `desktop` `downloads` `screenshots` `blank` `undo` | yes | yes | yes |
-| `clean` `preview` `top` `doctor` `duplicates` | yes | yes | yes |
-| `wallpaper` `dark` `light` `zen` `setup` | yes | yes | — |
-| `dock` `hide` `apps` `empty` | yes | — | `empty` only |
+| `clean` `preview` `top` `doctor` `duplicates` `empty` | yes | yes | yes |
+| `wallpaper` `dark` `light` `zen` `setup` `hide` `apps` | yes | yes | — |
+| `dock` | yes | — | — |
 
 On Windows everything nimo changes is HKCU: the signed-in user's own settings,
 the counterpart of `defaults` on a Mac. Nothing under HKLM, nothing that needs
 an administrator, and every value written down first so `min undo` can put it
-back. nimo never restarts Explorer to make a setting take — it uses the
-documented refresh and tells you if a sign-out is still needed.
+back.
+
+A few things Windows only tells you through its own shell, so nimo asks
+PowerShell for them: what is in the Recycle Bin and to empty it, what is
+installed, the battery, and the one bit inside `StuckRects3` that makes the
+taskbar slide away. `min empty` never reaches into the bin itself — that is
+files plus an index, and removing one without the other leaves Windows
+confused about what it still holds.
+
+`min hide` is the only command in nimo that restarts Explorer, because the
+taskbar reads that setting when Explorer starts and at no other time. It asks
+separately before doing it, and nothing is lost by it: no files, no desktop
+icon positions, no window with unsaved work. Signing out does the same thing.
+Nothing else in nimo restarts Explorer — the rest use the documented refresh
+and say so if a sign-out is still needed.
+
+`min apps` is read-only on both. On Windows it lists what has been installed
+longest, because Windows records no equivalent of "last opened" — and it says
+so, rather than implying the other question.
 
 Anything a platform genuinely does not have says so plainly, and `min clear`
 does not even offer it.

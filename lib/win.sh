@@ -159,3 +159,131 @@ nimo_win_refresh() {
         || return 1
     return 0
 }
+
+# ---- PowerShell ----------------------------------------------------------
+#
+# `reg` covers the settings; a few things Windows only tells you through its
+# own shell. A function so the suite can stand a fake one in front of it.
+nimo_ps() {
+    if nimo_have powershell.exe; then
+        powershell.exe -NoProfile -NonInteractive -Command "$1" 2>/dev/null
+        return $?
+    fi
+    if nimo_have powershell; then
+        powershell -NoProfile -NonInteractive -Command "$1" 2>/dev/null
+        return $?
+    fi
+    if nimo_have pwsh; then
+        pwsh -NoProfile -NonInteractive -Command "$1" 2>/dev/null
+        return $?
+    fi
+    return 1
+}
+
+nimo_ps_ready() {
+    nimo_have powershell.exe || nimo_have powershell || nimo_have pwsh
+}
+
+# The Recycle Bin is not a folder anyone should be reading files out of — it
+# is files plus an index. Windows will say what is in it, though, and Windows
+# will empty it. nimo asks, and never reaches in.
+NIMO_WIN_BIN_COUNT='$b = (New-Object -ComObject Shell.Application).NameSpace(0xA); if ($b -eq $null) { 0 } else { @($b.Items()).Count }'
+NIMO_WIN_BIN_SIZE='$b = (New-Object -ComObject Shell.Application).NameSpace(0xA); if ($b -eq $null) { 0 } else { $s = 0; foreach ($i in $b.Items()) { $s += $i.Size }; $s }'
+
+# a number, always — the callers do arithmetic with these
+nimo_win_number() {
+    local out
+    out=$(nimo_ps "$1" 2>/dev/null) || { printf '0'; return 0; }
+    out=$(printf '%s' "$out" | tr -d ' \r\n')
+    case "$out" in
+        ''|*[!0-9]*) printf '0' ;;
+        *)           printf '%s' "$out" ;;
+    esac
+}
+
+nimo_win_bin_count() { nimo_win_number "$NIMO_WIN_BIN_COUNT"; }
+nimo_win_bin_kb()    { printf '%s' "$(( $(nimo_win_number "$NIMO_WIN_BIN_SIZE") / 1024 ))"; }
+
+nimo_win_bin_empty() {
+    nimo_ps 'Clear-RecycleBin -Force -ErrorAction SilentlyContinue' >/dev/null 2>&1
+    return 0
+}
+
+# ---- what is installed ---------------------------------------------------
+#
+# Read only. nimo lists what is on the machine and when it was installed; it
+# has never uninstalled anything and this does not start.
+NIMO_WIN_APPS='
+$keys = @(
+  "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+  "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
+  "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*"
+)
+Get-ItemProperty $keys -ErrorAction SilentlyContinue |
+  Where-Object { $_.DisplayName -and -not $_.SystemComponent } |
+  ForEach-Object {
+    "{0}`t{1}`t{2}" -f $_.DisplayName, $_.InstallDate, $_.EstimatedSize
+  }'
+
+nimo_win_apps() { nimo_ps "$NIMO_WIN_APPS"; }
+
+# ---- the taskbar ---------------------------------------------------------
+#
+# Auto-hide is one bit inside a forty-byte blob under StuckRects3, which is
+# why this is PowerShell and not `reg`: reading a REG_BINARY back out of
+# `reg query` as hex and writing it again is a way to get one byte wrong.
+NIMO_WIN_STUCK='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
+
+nimo_win_taskbar_hidden() {
+    local v
+    v=$(nimo_win_number "\$v = (Get-ItemProperty -Path '$NIMO_WIN_STUCK' -Name Settings -ErrorAction SilentlyContinue).Settings; if (\$v -eq \$null) { 0 } else { \$v[8] -band 1 }")
+    [ "$v" = "1" ] && printf '1' || printf '0'
+}
+
+nimo_win_taskbar_hide() {
+    local want="$1" op
+    if [ "$want" = "1" ]; then op='-bor 1'; else op='-band 254'; fi
+    if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
+        printf '  %s$ powershell -Command "…StuckRects3 Settings[8] %s"%s\n' \
+            "$NIMO_C_DIM" "$op" "$NIMO_C_RESET"
+        return 0
+    fi
+    nimo_ps "\$p = '$NIMO_WIN_STUCK'; \$v = (Get-ItemProperty -Path \$p -Name Settings -ErrorAction SilentlyContinue).Settings; if (\$v -ne \$null) { \$v[8] = (\$v[8] $op); Set-ItemProperty -Path \$p -Name Settings -Value \$v }" >/dev/null 2>&1
+    return 0
+}
+
+# The one thing in nimo that restarts Explorer, because the taskbar reads this
+# setting when it starts and at no other time. It is asked for separately,
+# every time, and it deletes nothing: Windows brings the shell straight back,
+# your desktop icons keep their places, and File Explorer has no unsaved work
+# to lose.
+nimo_win_restart_explorer() {
+    nimo_ps 'Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 400; if (-not (Get-Process -Name explorer -ErrorAction SilentlyContinue)) { Start-Process explorer.exe }' >/dev/null 2>&1
+    return 0
+}
+
+# ---- the battery ---------------------------------------------------------
+#
+# Win32_Battery answers both halves at once. BatteryStatus is a small
+# enumeration: 1 is running on the battery, 2 is on mains, 3 is fully charged.
+NIMO_WIN_BATTERY='$b = Get-CimInstance -ClassName Win32_Battery -ErrorAction SilentlyContinue | Select-Object -First 1; if ($b -eq $null) { "" } else { "{0} {1}" -f $b.EstimatedChargeRemaining, $b.BatteryStatus }'
+
+nimo_win_battery() {
+    local raw pct code state
+    raw=$(nimo_ps "$NIMO_WIN_BATTERY" 2>/dev/null) || return 1
+    raw=$(printf '%s' "$raw" | tr -d '\r' | head -1)
+    pct=$(printf '%s' "$raw" | awk '{print $1 + 0}')
+    code=$(printf '%s' "$raw" | awk '{print $2 + 0}')
+    case "$pct" in ''|0) [ "$pct" = "0" ] && [ -z "$raw" ] && return 1 ;; esac
+    [ -n "$raw" ] || return 1
+
+    case "$code" in
+        1)  state="on battery" ;;
+        2)  state="plugged in" ;;
+        3)  state="charged" ;;
+        4|5) state="running low" ;;
+        6|7|8|9) state="charging" ;;
+        *)  state="plugged in" ;;
+    esac
+    printf '%s%%  ·  %s' "$pct" "$state"
+}

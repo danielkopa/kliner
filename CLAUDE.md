@@ -204,8 +204,30 @@ nimo does not kill Explorer to make a setting take. `nimo_win_refresh` is the
 documented poke and the whole of it; anything that still needs a sign-out says
 so.
 
-`test/windows.sh` stands a fake `reg` in front of the real one, backed by a
-TSV. Two traps in writing that shim, both now commented in it: a registry key
+`reg` covers the settings. A few things Windows only tells you through its own
+shell, so `nimo_ps` asks PowerShell: what is in the Recycle Bin and to empty
+it, what is installed, the battery, total memory, and the one bit inside
+`StuckRects3` that makes the taskbar slide away. Both are functions so the
+suite can stand fakes in front of them.
+
+`min hide` is the only command that restarts Explorer, and it asks separately
+before doing it. The taskbar reads `StuckRects3` when Explorer starts and at no
+other time, so there is no other way; everything else uses `nimo_win_refresh`
+and says so if a sign-out is still needed. Do not add a second caller.
+
+`min empty` never reaches into the Recycle Bin. That is files plus an index,
+and removing one without the other leaves Windows confused about what it still
+holds — so nimo asks Windows what is in there and asks Windows to empty it.
+`nimo_has_trash` / `nimo_trash_count` / `nimo_trash_kb` / `nimo_trash_empty`
+are the four ways to ask, because "is there a trash here" and "where is it"
+stopped being the same question the moment Windows was answered properly.
+
+`min apps` is read-only on both. Windows records no equivalent of
+`kMDItemLastUsedDate`, so it lists what has been installed longest and says
+which question it is answering.
+
+`test/windows.sh` stands a fake `reg` and a fake `powershell.exe` in front of
+the real ones, backed by a TSV and a few state files. Two traps in writing that shim, both now commented in it: a registry key
 is full of backslashes, so `grep` reads `\S` and `\W` as patterns of its own —
 and awk's `-v k="HKCU\S…"` expands the escapes on the way in, so the value has
 to arrive through `ENVIRON`.

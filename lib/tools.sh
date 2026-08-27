@@ -97,12 +97,20 @@ nimo_memory_line() {
         kb=$(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1024 ))
     elif [ -r /proc/meminfo ]; then
         kb=$(awk '/^MemTotal:/ {print $2 + 0; exit}' /proc/meminfo 2>/dev/null)
+    elif [ "$(nimo_platform)" = "windows" ]; then
+        # Git Bash usually mounts /proc, but MSYS2 without it and Cygwin do
+        # not always, and then doctor simply had no memory line at all.
+        kb=$(( $(nimo_win_number '(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory') / 1024 ))
     fi
     [ "${kb:-0}" -gt 0 ] || return 1
     nimo_human_kb "$kb"
 }
 
 nimo_battery_line() {
+    if [ "$(nimo_platform)" = "windows" ]; then
+        nimo_win_battery
+        return $?
+    fi
     nimo_have pmset || return 1
     local raw pct state
     raw=$(pmset -g batt 2>/dev/null) || return 1
@@ -152,14 +160,13 @@ nimo_cmd_doctor() {
     nimo_blank
     nimo_fact "Desktop" "$(nimo_plural "$(nimo_count_dir_items "$(nimo_desktop_dir)")" item)"
     nimo_fact "Downloads" "$(nimo_plural "$(nimo_count_dir_items "$(nimo_downloads_dir)")" item)"
-    # One source for where the trash is. Windows has no folder nimo may empty,
-    # so it gets a line that says so rather than a count of nothing.
-    local doc_trash
-    doc_trash=$(nimo_trash_dir)
-    if [ -n "$doc_trash" ]; then
-        nimo_fact "Trash" "$(nimo_plural "$(nimo_count_dir_items "$doc_trash")" item)"
-    else
-        nimo_fact "Recycle Bin" "Windows empties this one"
+    # One source for what is in the bin, whatever this system calls it.
+    if nimo_has_trash; then
+        if [ "$(nimo_platform)" = "windows" ]; then
+            nimo_fact "Recycle Bin" "$(nimo_plural "$(nimo_trash_count)" item)"
+        else
+            nimo_fact "Trash" "$(nimo_plural "$(nimo_trash_count)" item)"
+        fi
     fi
 
     nimo_blank
@@ -320,24 +327,24 @@ nimo_cmd_clear() {
     if [ -z "$target" ]; then
         nimo_header
         nimo_panel_open "what should be clear?"
-        nimo_dim "everything here can be undone"
 
         # counting is cheap here, and choosing is much easier when the menu
         # already tells you where the mess actually is
         nimo_progress "counting …"
-        local n_desk n_down n_shots n_trash kb_desk kb_down kb_trash trash
+        local n_desk n_down n_shots n_trash kb_desk kb_down kb_trash has_trash
         local desk down
         desk=$(nimo_desktop_dir)
         down=$(nimo_downloads_dir)
-        trash=$(nimo_trash_dir)
         n_desk=$(nimo_count_sortable "$desk")
         n_down=$(nimo_count_sortable "$down")
         n_shots=$(nimo_count_loose_screenshots)
         n_trash=0
         kb_trash=0
-        if [ -n "$trash" ]; then
-            n_trash=$(nimo_count_children "$trash")
-            kb_trash=$(nimo_children_kb "$trash")
+        has_trash=0
+        if nimo_has_trash; then
+            has_trash=1
+            n_trash=$(nimo_trash_count)
+            kb_trash=$(nimo_trash_kb)
         fi
         kb_desk=$(nimo_children_kb "$desk")
         kb_down=$(nimo_children_kb "$down")
@@ -351,6 +358,13 @@ nimo_cmd_clear() {
         done
         total_kb=$((kb_desk + kb_down + kb_trash))
 
+        # It said "everything here can be undone" with the trash sitting in the
+        # list, which is the one row that cannot be. Say which.
+        if [ "$has_trash" = "1" ]; then
+            nimo_dim "all of it can be undone, except taking the rubbish out"
+        else
+            nimo_dim "everything here can be undone"
+        fi
         [ "$total_kb" -gt 0 ] && nimo_dim "$(nimo_human_kb "$total_kb") in all, and none of it is deleted"
         nimo_blank
 
@@ -371,8 +385,11 @@ nimo_cmd_clear() {
         nimo_offer "$(printf '%s %-11s %-11s %s' ▤ Desktop     "$(nimo_plural "$n_desk" item)"  "$(nimo_bar "$n_desk" "$most" 12)")" desktop
         nimo_offer "$(printf '%s %-11s %-11s %s' ▼ Downloads   "$(nimo_plural "$n_down" item)"  "$(nimo_bar "$n_down" "$most" 12)")" downloads
         nimo_offer "$(printf '%s %-11s %-11s %s' ▣ Screenshots "$n_shots loose" "$(nimo_bar "$n_shots" "$most" 12)")" screenshots
-        [ -n "$trash" ] && \
-            nimo_offer "$(printf '%s %-11s %-11s %s' ○ Trash       "$(nimo_plural "$n_trash" item)"  "$(nimo_bar "$n_trash" "$most" 12)")" trash
+        if [ "$has_trash" = "1" ]; then
+            local bin_label="Trash"
+            [ "$(nimo_platform)" = "windows" ] && bin_label="Bin"
+            nimo_offer "$(printf '%s %-11s %-11s %s' ○ "$bin_label" "$(nimo_plural "$n_trash" item)"  "$(nimo_bar "$n_trash" "$most" 12)")" trash
+        fi
         [ "$(nimo_platform)" = "macos" ] && \
             nimo_offer "$(printf '%s %-11s %s' ■ Dock        'the apps you never open')" dock
         nimo_offer "$(printf '%s %-11s %s' ◍ Disk        'caches your apps rebuild by themselves')" disk

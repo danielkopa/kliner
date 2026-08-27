@@ -60,13 +60,19 @@ them back.
 Switch the appearance. The previous setting is written down first.
 .TP
 .B min hide
-Let the menu bar slide away. \fB\-\-restore\fR brings it back.
+Let the menu bar slide away \- on Windows, the taskbar.
+\fB\-\-restore\fR brings it back. This is the only command in nimo that
+restarts Explorer, because the taskbar reads the setting when Explorer starts
+and at no other time; it asks separately before doing so, and nothing is lost
+by it.
 .TP
 .B min duplicates
 Report files kept in more than one place. Never deletes anything.
 .TP
 .B min apps
-List apps not opened in six months, biggest first. Never uninstalls anything.
+List apps not opened in six months, biggest first. On Windows there is no
+record of when a program was last opened, so it lists what has been installed
+longest instead, and says so. Never uninstalls anything.
 .TP
 .B min blank \fIFILE\fR
 Empty a file, keeping a copy of what was in it in \fI~/.nimo/undo\fR, so
@@ -77,7 +83,9 @@ No wait before the dock slides, and a quick slide. Both settings are written
 down first, so \fBmin setup \-\-restore\fR puts the sluggish ones back.
 .TP
 .B min empty
-Empty the Trash. The one command with no undo.
+Empty the Trash, or the Recycle Bin on Windows. The one command with no undo.
+nimo never reaches into the Recycle Bin itself \- it asks Windows what is in
+there and asks Windows to empty it.
 .TP
 .B min dock
 List the dock and remove only the entries you tick. The dock is exported first;
