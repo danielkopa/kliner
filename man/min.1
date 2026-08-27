@@ -60,6 +60,12 @@ Let the menu bar slide away. \fB\-\-restore\fR brings it back.
 .B min duplicates
 Report files kept in more than one place. Never deletes anything.
 .TP
+.B min apps
+List apps not opened in six months, biggest first. Never uninstalls anything.
+.TP
+.B min empty
+Empty the Trash. The one command with no undo.
+.TP
 .B min dock
 List the dock and remove only the entries you tick. The dock is exported first;
 \fB\-\-restore\fR brings it back.
@@ -152,7 +158,7 @@ The command line did not make sense.
 .B bash test/run.sh
 runs 110 checks against a throwaway computer in \fI/tmp\fR.
 .B bash test/macos.sh
-runs 80 more against a simulated macOS, so the dock, wallpaper and preference
+runs 86 more against a simulated macOS, so the dock, wallpaper and preference
 code can be tested without a Mac and without touching yours.
 .SH SEE ALSO
 The full documentation lives in the repository README.

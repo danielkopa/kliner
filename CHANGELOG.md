@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.15.0
+
+- **The frames are back.** Taking them off made nimo look like every other
+  script; they were the thing that made it look like nimo. Reverted
+- **A better face.** Rounded, symmetrical, and drawn so every line is the same
+  width
+- **`min apps`** — asks macOS when you last opened each app and lists what you
+  have not touched in six months, biggest first. It reports and stops:
+  uninstalling is not a decision a script should make
+- **`min empty`** — takes the trash out, and tells you what that was worth.
+  The one command with no undo, because the Trash already was the undo
+- **Fixed: a test was killing the thing it was testing.** Piping straight into
+  `grep -q` ends the pipeline at the first match, and the command behind it
+  dies of SIGPIPE — so the appearance switch never got as far as switching
+- Untangled two aliases: `/apps` is the app list, `/cleartrash` empties the bin
+
 ## 0.14.0
 
 - **The frames are gone.** Every screen was sitting in a drawn box that was

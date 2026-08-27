@@ -141,6 +141,14 @@ different sizes cannot be the same file — and only reads the handful of
 candidates left over. It reports them and stops there: it cannot know which
 copy you meant to keep, so it does not choose.
 
+### `min apps` · `min empty`
+
+`min apps` asks macOS when you last opened each app and lists the ones you have
+not touched in six months, biggest first. It reports and stops — it does not
+uninstall anything, because that is not a decision a script should make. Drag
+the ones you agree with to the Trash, then `min empty` takes it out and tells
+you what that was worth.
+
 ### `min zen`
 
 The fastest calm desktop there is: Finder stops drawing icons on it. Nothing
@@ -271,6 +279,8 @@ anything.
 | `min dark` · `min light` | switch appearance |
 | `min hide` | let the menu bar slide away — `--restore` brings it back |
 | `min duplicates` | the same file, kept more than once — reported, never deleted |
+| `min apps` | what you installed once and never opened again |
+| `min empty` | take the trash out |
 | `min dock` | pick what stays — `--restore` puts it back |
 | `min wallpaper` | pick one macOS already has — `--restore` puts it back |
 | `min undo` | everything nimo has done, and a way back |
@@ -348,8 +358,8 @@ man min
 ## Tests
 
 ```bash
-bash test/run.sh      # 133 checks — everything that runs anywhere
-bash test/macos.sh    # 80 checks — the parts that only run on a Mac
+bash test/run.sh      # 140 checks — everything that runs anywhere
+bash test/macos.sh    # 86 checks — the parts that only run on a Mac
 
 bash test/run.sh -q   # only what went wrong, and the verdict
 ```
@@ -377,7 +387,7 @@ Every push runs everything on GitHub Actions: ShellCheck, a parse on both bash
 install-then-uninstall round trip. The bash 3.2 claim in this README is not a
 claim; it is a job that fails if it stops being true.
 
-A hundred and thirty-three checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
+A hundred and forty checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
 command and flag, the safety guard, the arrow-key picker driven by simulated
 keystrokes, the menu, the undo history, the config file, the desktop sorted and then
 fully undone, and a complete clean where the promised number is compared
@@ -424,6 +434,7 @@ nimo
     ├── wall.sh            the wallpaper
     ├── look.sh            appearance and the menu bar
     ├── dupes.sh           the same file, more than once
+    ├── apps.sh            unused apps, and the trash
     ├── undo.sh            the history, and the way back
     ├── scan.sh            every place nimo knows how to look
     ├── clean.sh           scan, report, clean, json
