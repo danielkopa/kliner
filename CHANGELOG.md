@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.25.0
+
+Found by walking every command and reading the output, rather than by waiting
+for someone to hit them.
+
+- **Fixed: `min blank` refused every relative path.** The guard that keeps nimo
+  inside your home folder compares against `$HOME`, and `Documents/notes.txt`
+  never starts with it — so the most natural way to type the command was the
+  one way it could not be used. Paths are made absolute first now, including
+  a quoted `~`, and shown back relative to home
+- **Fixed: duplicates printed the folder, not the file.** Five copies in one
+  folder read as five identical lines of "also in Downloads", which tells you
+  nothing about which five files they were. Each copy is named in full now, in
+  a stable order
+- `min clean --only trash` says so in the heading instead of a stray line above
+  it
+
 ## 0.24.0
 
 - **Three ways to sort.** `--by kind` is still the default; `--by letter` files

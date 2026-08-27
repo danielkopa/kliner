@@ -77,6 +77,11 @@ form). Both are matched: `/cleardesktop` and `/clear desktop` are one command.
 
 ## Rules of thumb
 
+- Make every path absolute before the safety guard sees it. The guard compares
+  against `$HOME`; a relative path never matches and is refused as "outside
+  your home folder", which looks like a bug in the guard and is a bug in the
+  caller.
+
 - Marks and glyphs come from the box-drawing block, drawn here. No fetched icon
   sets, no emoji: this is a terminal tool and both age badly in one.
 
