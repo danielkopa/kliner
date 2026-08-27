@@ -19,6 +19,8 @@ nimo_repl_list() {
     nimo_blank
     printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "also  /tidy  /zen  /dark  /hide  /empty  /apps  /duplicates" "$NIMO_C_RESET"
     printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "      /doctor  /top  /preview  /menu  /quit" "$NIMO_C_RESET"
+    nimo_blank
+    printf '%s%-13s %s%s%s\n' "$NIMO_PAD" "/auto" "$NIMO_C_DIM" "stop asking me — one yes for the whole session" "$NIMO_C_RESET"
     nimo_panel_close
     nimo_blank
     nimo_dim "or say it outright:  /clear desktop"
@@ -138,7 +140,7 @@ nimo_repl_guess() {
     local phrase="$1" word name shared best="" best_score=0
 
     for word in $phrase; do
-        for name in clear tidy desktop downloads screenshots dock wallpaper zen dark light hide empty apps duplicates preview clean top doctor setup undo update menu; do
+        for name in clear auto tidy desktop downloads screenshots dock wallpaper zen dark light hide empty apps duplicates preview clean top doctor setup undo update menu; do
             shared=$(nimo_shared_prefix "$word" "$name")
             if [ "$shared" -gt "$best_score" ]; then
                 best_score="$shared"
@@ -156,6 +158,63 @@ nimo_repl_guess() {
     return 1
 }
 
+# ---- saying yes once, for the whole session ------------------------------
+#
+# Every command asks before it changes anything, which is right the first few
+# times and wearing by the twentieth. This is the same bargain a terminal
+# agent offers: you say yes once, deliberately, knowing what it covers, and
+# then nothing asks again until you leave.
+
+# NIMO_AUTO=1 in the environment starts the prompt already in auto, for the
+# times you know exactly what you are about to do:  NIMO_AUTO=1 min
+NIMO_AUTO="${NIMO_AUTO:-0}"
+case "$NIMO_AUTO" in
+    1|true|yes) NIMO_AUTO=1 ;;
+    *)          NIMO_AUTO=0 ;;
+esac
+
+nimo_auto_explain() {
+    nimo_panel_open "yes to everything"
+    nimo_say "nimo stops asking. Every command runs the moment you type it."
+    nimo_blank
+    nimo_dim "this covers this session only — it is off again next time"
+    nimo_dim "undo still works for everything that has one:  /undo"
+    nimo_dim "the trash is the exception. /empty has no undo, auto or not."
+    nimo_panel_close
+}
+
+nimo_auto_set() {
+    local want="$1"
+
+    if [ "$want" = "0" ]; then
+        NIMO_AUTO=0
+        nimo_blank
+        nimo_ok "nimo asks again."
+        nimo_blank
+        return 0
+    fi
+
+    if [ "$NIMO_AUTO" = "1" ]; then
+        nimo_blank
+        nimo_dim "already on — /auto off to turn it back"
+        nimo_blank
+        return 0
+    fi
+
+    nimo_auto_explain
+    if nimo_confirm "Stop asking for the rest of this session?"; then
+        NIMO_AUTO=1
+        nimo_blank
+        nimo_ok "Yes to everything, until you leave."
+        nimo_blank
+    else
+        nimo_blank
+        nimo_dim "still asking"
+        nimo_blank
+    fi
+    return 0
+}
+
 # Fix the typos in a whole line, word by word, and hand back what it
 # probably said. "clean deskopt" comes back as "clean desktop".
 nimo_repl_correct() {
@@ -164,7 +223,7 @@ nimo_repl_correct() {
     for word in $phrase; do
         best="$word"
         best_score=0
-        for name in clear tidy desktop downloads screenshots dock wallpaper zen dark light hide empty apps duplicates preview clean top doctor setup undo update menu; do
+        for name in clear auto tidy desktop downloads screenshots dock wallpaper zen dark light hide empty apps duplicates preview clean top doctor setup undo update menu; do
             shared=$(nimo_shared_prefix "$word" "$name")
             if [ "$shared" -gt "$best_score" ]; then
                 best_score="$shared"
@@ -204,6 +263,12 @@ nimo_repl_do() {
             return 0 ;;
         quit|exit|q|bye|leave|stop)
             return 1 ;;
+        auto|yolo|"stop asking"|"yes to everything"|autoon|"auto on")
+            nimo_auto_set 1
+            return 0 ;;
+        "auto off"|autooff|"ask me"|manual)
+            nimo_auto_set 0
+            return 0 ;;
     esac
 
     cmd=$(nimo_repl_command "$phrase")
@@ -234,8 +299,11 @@ nimo_repl_do() {
 
     # Each command runs as its own nimo, so nothing one does leaks into the
     # next: the flags, the scan results and the confirmations all start clean.
+    local auto=""
+    [ "$NIMO_AUTO" = "1" ] && auto="-y"
+
     # shellcheck disable=SC2086
-    bash "$NIMO_SELF" "$cmd" ${NIMO_INHERIT:-} $flags
+    bash "$NIMO_SELF" "$cmd" ${NIMO_INHERIT:-} $auto $flags
     return 0
 }
 
@@ -248,16 +316,28 @@ nimo_repl() {
         printf '\n%s                       nimo%s\n' "$NIMO_C_DIM" "$NIMO_C_RESET"
     fi
     nimo_blank
-    nimo_dim "/ to see what it can do"
+    if [ "$NIMO_AUTO" = "1" ]; then
+        nimo_dim "auto is on — nothing will ask. /auto off to change that."
+    else
+        nimo_dim "/ to see what it can do"
+    fi
 
     local line prompt
-    prompt=$(printf '  %snimo%s %s›%s ' "$NIMO_C_BOLD" "$NIMO_C_RESET" "$NIMO_C_CYAN" "$NIMO_C_RESET")
 
     # readline gives line editing and an up-arrow history, but only when
     # there is a terminal on the other end
     set -o history 2>/dev/null || true
 
     while :; do
+        if [ "$NIMO_AUTO" = "1" ]; then
+            prompt=$(printf '  %snimo%s %sauto%s %s›%s ' \
+                "$NIMO_C_BOLD" "$NIMO_C_RESET" \
+                "$NIMO_C_YELLOW" "$NIMO_C_RESET" \
+                "$NIMO_C_CYAN" "$NIMO_C_RESET")
+        else
+            prompt=$(printf '  %snimo%s %s›%s ' \
+                "$NIMO_C_BOLD" "$NIMO_C_RESET" "$NIMO_C_CYAN" "$NIMO_C_RESET")
+        fi
         nimo_blank
         if [ -t 0 ]; then
             IFS= read -r -e -p "$prompt" line || { printf '\n'; break; }
