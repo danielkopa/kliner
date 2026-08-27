@@ -116,6 +116,14 @@ ShellCheck and an install/uninstall round trip. See `.github/workflows/ci.yml`.
 
 When a bug is found, the fix and a test that fails without it go in together.
 
+## The repository itself
+
+`assets/nimo-*.svg` is the banner, one variant per GitHub theme, referenced
+from the README with `<picture>`. `CONTRIBUTING.md`, `SECURITY.md` and the
+`.github` templates exist and are meant to be kept true — if an invariant
+changes, they change with it. The badge that claims a test count is a promise
+like any other: update it when the suites grow.
+
 ## The website
 
 `docs/index.html` is the whole site — one file, no build step. GitHub Pages

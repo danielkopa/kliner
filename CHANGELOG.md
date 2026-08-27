@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.18.0
+
+- **The repository looks like a project now.** A real logo — an SVG banner
+  with a light and a dark variant, so it reads on both GitHub themes — the
+  tagline, a row of links, and badges for CI, bash 3.2, the test count, the
+  dependency count and the licence
+- README rebuilt in the order people actually read: what it is, one screen of
+  it working, one command to get it, and why you would trust it
+- **CONTRIBUTING.md** — the invariants, bash 3.2, both suites, and the rule
+  that a fix arrives with a test that fails without it
+- **SECURITY.md** — where to send something privately, and the five promises
+  worth trying to break
+- Issue and pull request templates that ask for `min doctor` and remind people
+  that `min undo` comes before the bug report
+
 ## 0.17.0
 
 - **`/auto` — say yes once, for the whole session.** Every command asking every
