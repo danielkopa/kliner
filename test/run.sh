@@ -292,6 +292,15 @@ check "blank refuses a folder"            "min blank '$BOX/Documents' -q --no-co
 check "blank refuses outside your home"   "min blank /etc/hosts -q --no-color 2>&1 | grep -q 'outside your home'"
 NOTE_BYTES=$(wc -c < "$BOX/Documents/notes.txt" | tr -d ' ')
 
+# a relative path is how anyone would actually type this, and it was the one
+# way the command could not be used: the home-folder guard compares against
+# $HOME, and "Documents/notes.txt" never starts with it
+check "blank takes a relative path"       "cd \"$BOX\" && min blank Documents/notes.txt --dry-run -q --no-color | grep -q 'notes.txt'"
+check "blank takes ./ in front of it"     "cd \"$BOX\" && min blank ./Documents/notes.txt --dry-run -q --no-color | grep -q 'notes.txt'"
+check "blank takes ~ as your home"        "cd / && min blank '~/Documents/notes.txt' --dry-run -q --no-color | grep -q 'notes.txt'"
+check "blank takes the whole path"        "min blank '$BOX/Documents/notes.txt' --dry-run -q --no-color | grep -q 'notes.txt'"
+check "and shows it relative to home"     "min blank '$BOX/Documents/notes.txt' --dry-run -q --no-color | grep -q ' Documents$'"
+
 check "blank shows the size in bytes"     "min blank '$BOX/Documents/notes.txt' --dry-run -q --no-color | grep -q \"\$NOTE_BYTES B\""
 check "--dry-run empties nothing"         "[ \$(wc -c < '$BOX/Documents/notes.txt') -eq \$NOTE_BYTES ]"
 
@@ -329,8 +338,8 @@ dd if=/dev/zero of="$BOX/Downloads/alone.bin" bs=1024 count=300 2>/dev/null
 printf 'y' >> "$BOX/Downloads/alone.bin"
 
 check "duplicates finds the copies"       "min duplicates -q --no-color | grep -q 'paper'"
-check "and counts what they cost"         "min duplicates -q --no-color | grep -q '1 file with copies'"
-check "it names where each copy sits"     "[ \$(min duplicates -q --no-color | grep -c 'also in') -eq 2 ]"
+check "and counts what they cost"         "min duplicates -q --no-color | grep -q 'kept more than once'"
+check "it names every copy, with its path" "[ \$(min duplicates -q --no-color | grep -c '  also  ') -eq 2 ]"
 check "a lonely file is not a copy"       "! min duplicates -q --no-color | grep -q alone"
 check "duplicates never deletes"          "min duplicates -q --no-color >/dev/null; [ -f '$DUP/paper.pdf' ] && [ -f '$BOX/Downloads/paper copy.pdf' ]"
 check "it says so out loud"               "min duplicates -q --no-color | grep -q 'does not delete'"
