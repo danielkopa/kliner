@@ -5,7 +5,11 @@ nimo_report() {
     local i n kb count safe_kb=0 review_kb=0 shown=0
     n=$NIMO_T_N
 
-    nimo_panel_open "safe to clean"
+    if [ -n "${NIMO_ONLY:-}" ]; then
+        nimo_panel_open "safe to clean · only ${NIMO_ONLY}"
+    else
+        nimo_panel_open "safe to clean"
+    fi
     i=0
     while [ "$i" -lt "$n" ]; do
         if [ "${NIMO_T_SAFETY[$i]}" = "safe" ] && nimo_selected "$i"; then
@@ -138,10 +142,6 @@ nimo_cmd_clean() {
 
     nimo_header
     nimo_register_targets
-
-    if [ -n "${NIMO_ONLY:-}" ]; then
-        nimo_dim "only: ${NIMO_ONLY}"
-    fi
 
     nimo_dim "looking around your computer …"
     nimo_scan

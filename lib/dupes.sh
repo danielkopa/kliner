@@ -85,7 +85,7 @@ EOF
         local hash size copies first home_rel
         while IFS= read -r hash; do
             [ -n "$hash" ] || continue
-            copies=$(awk -F'\t' -v h="$hash" '$1 == h {print $3}' "$work/hashes")
+            copies=$(awk -F'\t' -v h="$hash" '$1 == h {print $3}' "$work/hashes" | sort)
             [ "$(nimo_line_count "$copies")" -gt 1 ] || continue
             size=$(awk -F'\t' -v h="$hash" '$1 == h {print $2; exit}' "$work/hashes")
             groups=$((groups + 1))
@@ -99,8 +99,11 @@ EOF
                     nimo_row_kb "$(basename "$file")" "$((size / 1024))" "${home_rel#$HOME/}"
                     first=0
                 else
-                    home_rel="${file%/*}"
-                    printf '%s%s  also in %s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "${home_rel#$HOME/}" "$NIMO_C_RESET"
+                    # the name too, not just the folder: five identical
+                    # "also in Downloads" lines tell you nothing about which
+                    # five files they were
+                    home_rel="${file#$HOME/}"
+                    printf '%s%s  also  %s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "$home_rel" "$NIMO_C_RESET"
                 fi
             done <<EOF
 $copies
@@ -121,9 +124,10 @@ EOF
         return 0
     fi
 
-    nimo_total "$(nimo_plural "$groups" file) with copies" "$(nimo_human_kb "$wasted")"
+    nimo_total "$(nimo_plural "$groups" file) kept more than once" "$(nimo_human_kb "$wasted")"
     nimo_panel_close
-    nimo_dim "nimo does not delete these — it cannot know which copy you meant"
+    nimo_dim "$(nimo_human_kb "$wasted") of that is copies you already have"
+    nimo_dim "nimo does not delete any of them — it cannot know which one you meant"
     nimo_blank
     return 0
 }
