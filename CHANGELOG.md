@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.21.0
+
+- **Windows.** Under Git Bash, MSYS2 or Cygwin, `$HOME` is already
+  `C:/Users/<name>` — so the rule that keeps nimo inside your home folder holds
+  there untouched. nimo finds the Desktop after Windows has moved it into
+  OneDrive (and is not fooled by the empty one left behind), looks for junk
+  under `AppData` instead of `~/Library`, and leaves the Recycle Bin alone,
+  because it is an index as well as a folder
+- **WSL is treated as Linux, on purpose.** Its home is a Linux home; the
+  Windows one sits outside it, and reaching there would mean widening the one
+  guard that never widens
+- `test/windows.sh` — 27 checks against a faked Git Bash, and CI runs both it
+  and the main suite on a real Windows machine
+- **The menu weighs what it offers.** Counts, a bar apiece drawn against the
+  biggest pile, and the total above it — so you can see where the mess is
+  before you have chosen anything. The selected row is bold now, not merely
+  pointed at
+
 ## 0.20.0
 
 - **The face is alive.** It draws itself in a row at a time and blinks once,

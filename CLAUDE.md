@@ -12,6 +12,7 @@ side dish. When in doubt, make the desktop calmer.
 ./min clear desktop   # or say it outright
 bash test/run.sh -q   # 160 checks, anywhere
 bash test/macos.sh -q # 86 checks, the macOS-only parts, faked
+bash test/windows.sh -q # 27 checks, the Windows parts, faked
 ```
 
 ## Invariants — break these and the project is pointless
@@ -25,7 +26,10 @@ bash test/macos.sh -q # 86 checks, the macOS-only parts, faked
    is exported before it is touched; every preference's old value *and type*
    are written down; the old wallpaper is saved. The single exception is
    `min empty`, because the Trash already was the undo — and it says so.
-3. **Only inside `$HOME`.** `nimo_is_protected` in `lib/core.sh` refuses any
+3. **Only inside `$HOME`.** This is why WSL is treated as Linux and not as
+   Windows: the Windows profile lives outside the WSL home, and no feature is
+   worth widening this. Under Git Bash `$HOME` *is* `C:/Users/<name>`, so
+   Windows support needed no exception at all. `nimo_is_protected` in `lib/core.sh` refuses any
    path outside the home folder, and `$HOME` itself, `/`, `/System`,
    `/Applications`. Never route around it.
 4. **No sudo. Ever.**
@@ -106,6 +110,9 @@ form). Both are matched: `/cleardesktop` and `/clear desktop` are one command.
 ## Testing
 
 `test/run.sh` runs everywhere against a throwaway `$HOME` in `/tmp`.
+`test/windows.sh` does the same with a fake `uname` reporting MINGW, a profile
+whose Desktop has moved into OneDrive, and caches under `AppData`.
+
 `test/macos.sh` puts fake `defaults`, `osascript`, `killall`, `sw_vers`,
 `pmset`, `mdls`, `sqlite3` and `uname` in front of the real ones and runs the
 real code against them, so the dock, wallpaper and preference paths are tested

@@ -20,7 +20,7 @@ disk back. Every step asks first. Every step can be undone.
 [![ci](https://github.com/danielkopa/nimo/actions/workflows/ci.yml/badge.svg)](https://github.com/danielkopa/nimo/actions/workflows/ci.yml)
 [![release](https://img.shields.io/github/v/tag/danielkopa/nimo?label=release&color=0e7a72)](https://github.com/danielkopa/nimo/releases)
 ![bash 3.2](https://img.shields.io/badge/bash-3.2-1d2225)
-![tests](https://img.shields.io/badge/tests-246-0e7a72)
+![tests](https://img.shields.io/badge/tests-281-0e7a72)
 ![dependencies](https://img.shields.io/badge/dependencies-0-0e7a72)
 [![license](https://img.shields.io/badge/license-MIT-1d2225)](LICENSE)
 
@@ -32,8 +32,8 @@ disk back. Every step asks first. Every step can be undone.
 
 ## What is nimo?
 
-nimo is a command line tool for the parts of a Mac that quietly get away from
-you: eighty-five things on the desktop, three hundred in Downloads, a dock full
+nimo is a command line tool for the parts of a computer that quietly get away
+from you: eighty-five things on the desktop, three hundred in Downloads, a dock full
 of apps Apple put there, a wallpaper you never chose.
 
 It is one bash script and fourteen small libraries. No dependencies, no daemon,
@@ -503,6 +503,7 @@ nimo
 ├── man/min.1              the manual page
 ├── test/run.sh            the suite that runs anywhere
 ├── test/macos.sh          the macOS parts, against a fake macOS
+├── test/windows.sh        the same, against a fake Git Bash
 └── lib
     ├── ui.sh              banner, panels, bars, the way output looks
     ├── core.sh            sizes, disk, config, the safety guard
@@ -529,6 +530,27 @@ nimo_register slack "Slack cache" contents safe \
     "rebuilt when Slack starts" \
     "$HOME/Library/Application Support/Slack/Cache"
 ```
+
+## Windows and Linux
+
+The desktop, the downloads, the screenshots, the duplicates, the disk and the
+prompt all work anywhere bash does.
+
+On **Windows** — Git Bash, MSYS2 or Cygwin — `$HOME` is already
+`C:/Users/<name>`, so the rule that keeps nimo inside your home folder holds
+there with nothing widened for the occasion. It finds the Desktop after Windows
+has moved it into OneDrive, looks for junk under `AppData` rather than
+`~/Library`, and leaves the Recycle Bin to Windows, because that is an index as
+well as a folder and half-deleting it helps nobody. `test/windows.sh` runs the
+real code against a faked Git Bash, and CI runs it on a real Windows machine
+too.
+
+**WSL is deliberately treated as Linux.** Its home is a Linux home; your
+Windows files live outside it, and reaching over there would mean loosening the
+one rule this tool will not loosen.
+
+The dock, the wallpaper, the appearance switch, the menu bar, `min setup`,
+`min zen` and `min apps` are macOS only, and say so plainly anywhere else.
 
 ## Requirements
 
