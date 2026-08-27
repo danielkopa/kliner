@@ -28,6 +28,11 @@ prefix and suggested, never run on your behalf. Flags work there too. Piped or
 redirected,
 .B min
 prints this help instead.
+.PP
+.B /auto
+stops the asking for the rest of the session. It explains what that covers and
+asks once; the prompt then reads \fBnimo auto \(rs\(rs>\fR until you leave or
+type \fB/auto off\fR. \fBNIMO_AUTO=1\fR in the environment starts there.
 .SH COMMANDS
 .TP
 .B min clear \fR[\fIwhat\fR]

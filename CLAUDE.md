@@ -10,7 +10,7 @@ side dish. When in doubt, make the desktop calmer.
 ```bash
 ./min                 # the prompt — this is the front door
 ./min clear desktop   # or say it outright
-bash test/run.sh -q   # 151 checks, anywhere
+bash test/run.sh -q   # 160 checks, anywhere
 bash test/macos.sh -q # 86 checks, the macOS-only parts, faked
 ```
 
@@ -18,7 +18,9 @@ bash test/macos.sh -q # 86 checks, the macOS-only parts, faked
 
 1. **Nothing happens without a yes.** Every command that changes something
    shows what it is about to do and waits. `--dry-run` must change nothing at
-   all, ever, in any command.
+   all, ever, in any command. `/auto` is the one way to stop the asking, and it
+   is itself a deliberate yes: it explains what it covers, asks once, shows in
+   the prompt the whole time, and dies with the session.
 2. **Everything is undoable.** Desktop moves are logged file by file; the dock
    is exported before it is touched; every preference's old value *and type*
    are written down; the old wallpaper is saved. The single exception is

@@ -83,6 +83,33 @@ by shared prefix rather than substring, so `/wallpapr` and even
 `/clean deskopt` are understood — nimo says what it thinks you meant and waits
 rather than guessing on your behalf.
 
+### Saying yes once
+
+Every command asks before it changes anything, which is right the first few
+times and wearing by the twentieth. `/auto` is the same bargain a terminal
+agent offers: you say yes once, deliberately, knowing what it covers, and then
+nothing asks again until you leave.
+
+```
+  nimo › /auto
+
+  yes to everything
+
+    nimo stops asking. Every command runs the moment you type it.
+
+    this covers this session only — it is off again next time
+    undo still works for everything that has one:  /undo
+    the trash is the exception. /empty has no undo, auto or not.
+
+  Stop asking for the rest of this session? [y/N] y
+
+  nimo auto › _
+```
+
+The prompt says `auto` for as long as it is on, so you always know which one
+you are in. `/auto off` puts the questions back, and leaving does too.
+`NIMO_AUTO=1 min` starts there, and `-y` does the same for one command.
+
 Flags work at the prompt too: `/clean --only trash`, `/desktop --undo`.
 `/menu` switches to picking with the arrow keys, and `min --menu` starts there.
 
@@ -327,7 +354,9 @@ anything.
 ## Rules nimo follows
 
 - **Nothing happens without a yes.** Every command that changes something
-  shows you what it is about to do and waits.
+  shows you what it is about to do and waits — unless you have said yes to the
+  whole session with `/auto`, which is itself a yes, given once and shown in
+  the prompt the entire time it lasts.
 - **Everything is undoable.** Desktop moves are logged file by file. The dock
   is exported before it is touched. The old wallpaper is written down.
 - **Only inside your home folder.** nimo refuses any path outside `$HOME`, and
@@ -400,7 +429,7 @@ Every push runs everything on GitHub Actions: ShellCheck, a parse on both bash
 install-then-uninstall round trip. The bash 3.2 claim in this README is not a
 claim; it is a job that fails if it stops being true.
 
-A hundred and fifty-one checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
+A hundred and sixty checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
 command and flag, the safety guard, the arrow-key picker driven by simulated
 keystrokes, the menu, the undo history, the config file, the desktop sorted and then
 fully undone, and a complete clean where the promised number is compared

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.17.0
+
+- **`/auto` — say yes once, for the whole session.** Every command asking every
+  time is right at first and wearing by the twentieth. Turning it on explains
+  exactly what it covers and asks once; after that nothing asks. The prompt
+  reads `nimo auto ›` for as long as it lasts, so the mode is never a surprise,
+  and it is off again next time you start
+- `/auto off` puts the questions back. `NIMO_AUTO=1 min` starts in it.
+  `/yolo` is the same thing for people who type that
+- Undo still covers everything it covered before. The trash is the one
+  exception and says so on the way in
+
 ## 0.16.0
 
 - **The `/clear` menu counts what it is offering.** Desktop 85 items,
