@@ -305,6 +305,33 @@ check "the menu lists every command"      "printf 'q' | NIMO_PICK_FORCE=1 HOME=\
 check "the menu runs what you choose"     "printf '\\033[B\\033[B\\033[B\\033[B\\n' | NIMO_PICK_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" --menu --no-color 2>/dev/null | grep -q 'safe to clean'"
 check "q leaves the menu without doing"   "printf 'q' | NIMO_PICK_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" --menu --no-color >/dev/null 2>&1; [ \$? -eq 0 ]"
 
+# ---- yes to everything ---------------------------------------------------
+
+mkdir -p "$BOX/Desktop"
+touch "$BOX/Desktop/auto-one.pdf" "$BOX/Desktop/auto-two.png"
+
+# auto is what actually hands -y to each command, so the proof is that a
+# command which would otherwise stop at the question goes all the way through
+printf '/clear desktop\n/quit\n' | NIMO_AUTO=1 NIMO_REPL_FORCE=1 HOME="$BOX" \
+    bash "$MIN" -q --no-color >/dev/null 2>&1
+
+check "auto carries the yes through"      "[ -f '$BOX/Desktop/Tidy/Documents/auto-one.pdf' ]"
+min desktop --undo -q --no-color >/dev/null 2>&1
+
+# and without it, the same line stops at the question and changes nothing
+printf '/clear desktop\n/quit\n' | NIMO_REPL_FORCE=1 HOME="$BOX" \
+    bash "$MIN" -q --no-color >/dev/null 2>&1
+
+check "without auto nothing is moved"     "[ -f '$BOX/Desktop/auto-one.pdf' ]"
+check "auto says what it covers"          "printf '/auto\\n/quit\\n' | NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -y -q --no-color 2>&1 | grep -q 'Yes to everything'"
+check "auto explains itself first"        "printf '/auto\\n/quit\\n' | NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -y -q --no-color 2>&1 | grep -q 'this session only'"
+check "auto warns about the trash"        "printf '/auto\\n/quit\\n' | NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -y -q --no-color 2>&1 | grep -q 'no undo'"
+check "the prompt shows it is on"         "printf '/quit\\n' | NIMO_AUTO=1 NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -q --no-color 2>&1 | grep -q 'nimo auto'"
+check "and off again on request"          "printf '/auto off\\n/quit\\n' | NIMO_AUTO=1 NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -q --no-color 2>&1 | grep -q 'asks again'"
+check "turning it on twice is calm"       "printf '/auto\\n/quit\\n' | NIMO_AUTO=1 NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -q --no-color 2>&1 | grep -q 'already on'"
+check "/yolo means the same thing"        "printf '/yolo\\n/quit\\n' | NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -y -q --no-color 2>&1 | grep -q 'Yes to everything'"
+rm -f "$BOX/Desktop/auto-one.pdf" "$BOX/Desktop/auto-two.png"
+
 # ---- choosing things ----------------------------------------------------
 
 pick() {
