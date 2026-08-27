@@ -151,6 +151,18 @@ things draw it: `nimo_face` plain, and `nimo_face_hello` which draws it in and
 blinks. Animation is gated on `nimo_can_animate` — a terminal, a shell that can
 `sleep 0.01`, and nobody asking for quiet — and never costs more than 400 ms.
 
+## Nothing may drift
+
+`test/run.sh` walks `nimo_dispatch` in `min` and insists every command it finds
+appears in `min help`, `completions/min.bash`, `man/min.1`, `README.md` and
+`lib/repl.sh`, and that `VERSION`, `min version` and `CHANGELOG.md` agree. Add
+a command and the suite tells you the five places you forgot. This is cheaper
+than remembering.
+
+The website counts as documentation. It drifted eleven versions once; do not
+let that happen again — `docs/index.html` and the published artifact are the
+same file.
+
 ## The website
 
 `docs/index.html` is the whole site — one file, no build step. GitHub Pages

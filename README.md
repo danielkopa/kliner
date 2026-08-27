@@ -20,7 +20,7 @@ disk back. Every step asks first. Every step can be undone.
 [![ci](https://github.com/danielkopa/nimo/actions/workflows/ci.yml/badge.svg)](https://github.com/danielkopa/nimo/actions/workflows/ci.yml)
 [![release](https://img.shields.io/github/v/tag/danielkopa/nimo?label=release&color=0e7a72)](https://github.com/danielkopa/nimo/releases)
 ![bash 3.2](https://img.shields.io/badge/bash-3.2-1d2225)
-![tests](https://img.shields.io/badge/tests-281-0e7a72)
+![tests](https://img.shields.io/badge/tests-289-0e7a72)
 ![dependencies](https://img.shields.io/badge/dependencies-0-0e7a72)
 [![license](https://img.shields.io/badge/license-MIT-1d2225)](LICENSE)
 
@@ -466,7 +466,7 @@ Every push runs everything on GitHub Actions: ShellCheck, a parse on both bash
 install-then-uninstall round trip. The bash 3.2 claim in this README is not a
 claim; it is a job that fails if it stops being true.
 
-A hundred and sixty-six checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
+A hundred and seventy-six checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
 command and flag, the safety guard, the arrow-key picker driven by simulated
 keystrokes, the menu, the undo history, the config file, the desktop sorted and then
 fully undone, and a complete clean where the promised number is compared

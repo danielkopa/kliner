@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.22.0
+
+- **A test that documentation cannot drift.** Every command nimo can dispatch
+  must appear in `min help`, in the tab completions, in the manual, in the
+  README and as a word at the prompt — and the version must agree with itself
+  in `VERSION`, in `min version` and in this file. It found `min version`
+  missing from the manual on its first run, which is exactly the sort of small
+  rot it exists to stop
+- **The website is the tool again.** It had drifted eleven versions behind: no
+  Windows, no `/auto`, no `/clear` menu, none of the newer commands. Rebuilt,
+  with the animated demo playing in the page itself rather than a screenshot
+  of one
+
 ## 0.21.0
 
 - **Windows.** Under Git Bash, MSYS2 or Cygwin, `$HOME` is already
