@@ -161,18 +161,44 @@ The face lives in `nimo_face_rows` with the eye row split out, because two
 things draw it: `nimo_face` plain, and `nimo_face_hello` which draws it in and
 blinks. Animation is gated on `nimo_can_animate` — a terminal, a shell that can
 `sleep 0.01`, and nobody asking for quiet — and never costs more than 400 ms.
+`NIMO_ANIMATE_FORCE=1` is the way in for tests, since the suite has no terminal.
+
+Cursor movement is relative, always: `\033[6A` up and `\033[6B` back. `\033[s`
+and `\033[u` are not the same escape everywhere, and on the terminals that
+ignore them nimo printed its prompt, its hint and its whole menu on top of its
+own face. `tools/screen.py` renders a raw stream the way a terminal would, so
+the suite can check what is on screen and not only which bytes were sent — a
+grep sees a perfectly good face either way.
 
 ## Nothing may drift
 
 `test/run.sh` walks `nimo_dispatch` in `min` and insists every command it finds
 appears in `min help`, `completions/min.bash`, `man/min.1`, `README.md` and
-`lib/repl.sh`, and that `VERSION`, `min version` and `CHANGELOG.md` agree. Add
-a command and the suite tells you the five places you forgot. This is cheaper
-than remembering.
+`lib/repl.sh`, and that `VERSION`, `min version`, `CHANGELOG.md` and the tag in
+`Formula/nimo.rb` agree. Add a command and the suite tells you the five places
+you forgot. This is cheaper than remembering.
+
+The same walk runs over the flag parser: every long flag `min` accepts has to
+turn up in `min help`, `man/min.1` and the completions. That is the quiet half
+of drift — not a promise nimo breaks, a feature nobody can find. `--color` sat
+there unmentioned for eight versions.
 
 The website counts as documentation. It drifted eleven versions once; do not
 let that happen again — `docs/index.html` and the published artifact are the
 same file.
+
+## Two platforms, one menu
+
+Nothing is offered that this computer cannot do. `min clear` builds its rows
+per platform rather than printing a fixed seven — Windows has no Dock, and no
+Recycle Bin nimo is allowed to empty. Both suites check their own side, because
+"only offer what it can do" turns into "offer less than it can" the moment only
+one of them is tested.
+
+Anything that reads the desktop or the downloads goes through
+`nimo_desktop_dir` / `nimo_downloads_dir`, never `$HOME/Desktop`. On a
+signed-in Windows, and on a Mac with a synced desktop, those are not the same
+folder — the menu once counted one and the command read the other.
 
 ## The website
 

@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.26.0
+
+The face, the menus and Windows. Found the same way as 0.25.0 — by running
+every command against a faked macOS and a faked Windows and reading what came
+back — plus one bug reported with a screenshot.
+
+- **Fixed: nimo printed its prompt on top of its own face.** The blink moved
+  the cursor up six rows and came back with `\033[u`, which is not the same
+  escape on every terminal. On the ones that ignore it the cursor simply stayed
+  where it was, and the prompt, the hint and the whole menu landed across the
+  face. It moves back down now, relatively, the way every terminal understands
+- **Fixed: every menu off a terminal was an unanswerable question.** The
+  fallback asked "Which one? (1-7):" and never said what 1 to 7 were. Piped,
+  scripted, over ssh with no tty, or on `TERM=dumb`, `min clear` offered a
+  choice you could not see. It lists and numbers them now, and takes `all`
+- **Fixed: the menu counted screenshots in the wrong desktop.** It read
+  `~/Desktop` while `min screenshots` read the real one — OneDrive's, or
+  iCloud's. Any signed-in Windows was told it had none, and then shown five
+- **The menu only offers what your computer can do.** It was a fixed list of
+  seven, so Windows was offered a Dock it does not have and a Recycle Bin nimo
+  is not allowed to empty. Rows are built per platform now
+- **Windows, spelled the way people say it.** `min doctor` said
+  `MINGW64_NT-10.0-22631 3.4.10`; it says `Windows 11 (Git Bash · x86_64)`, and
+  names the Recycle Bin instead of counting a Trash folder that is not there
+- `--auto` — the flag spelling of `/auto`: yes to everything, in one command
+  and in the prompt
+- Files still downloading were skipped in silence; the panel says how many and
+  why
+- ctrl-c during a pick left the terminal with no cursor until the next `reset`
+- `min help` listed `min setup` twice, and never mentioned `--color`, `--help`
+  or `--version`; the manual was missing eight flags. A new drift test walks
+  the flag parser the way the old one walks the dispatcher, so this cannot
+  come back
+- `tools/screen.py` renders a raw terminal stream the way a terminal would, so
+  the suite can check what is on screen and not only which bytes were sent
+
 ## 0.25.0
 
 Found by walking every command and reading the output, rather than by waiting
