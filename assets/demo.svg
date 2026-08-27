@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 531 415" width="531" height="415" role="img" aria-label="nimo sorting 296 downloads, in a terminal">
+<rect width="531" height="415" rx="12" fill="#0B0D0E" stroke="#1A1E20"/>
+<circle cx="26" cy="24" r="5" fill="#262E30"/>
+<circle cx="44" cy="24" r="5" fill="#262E30"/>
+<circle cx="62" cy="24" r="5" fill="#262E30"/>
+<text x="82" y="28" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" fill="#6A7679">daniel — min</text>
+<line x1="0" y1="44" x2="531" y2="44" stroke="#1A1E20"/>
+<g opacity="0">
+<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.0000;0.0000;0.0976;0.1016;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
+<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">$ min</text>
+</g>
+<g opacity="0">
+<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.0936;0.0976;0.2561;0.2601;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
+<text x="22" y="85.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">             ╭───────────────╮</text>
+<text x="22" y="104.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">           ╭─╯               ╰─╮</text>
+<text x="22" y="124.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          ╭╯                   ╰╮</text>
+<text x="22" y="143.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          │     ●         ●     │</text>
+<text x="22" y="163.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          │                     │</text>
+<text x="22" y="182.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          │      ╰───────╯      │</text>
+<text x="22" y="202.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          ╰╮                   ╭╯</text>
+<text x="22" y="221.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">           ╰─╮               ╭─╯</text>
+<text x="22" y="241.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">             ╰───────────────╯</text>
+<text x="22" y="280.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">                     nimo</text>
+<text x="22" y="319.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  / to see what it can do</text>
+<text x="22" y="358.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  nimo › </text>
+</g>
+<g opacity="0">
+<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.2521;0.2561;0.3171;0.3211;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
+<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  nimo › /clear</text>
+</g>
+<g opacity="0">
+<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.3131;0.3171;0.4512;0.4552;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
+<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  nimo › /clear</text>
+<text x="22" y="104.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  ╭─ what should be clear? ─────────────────────</text>
+<text x="22" y="143.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">     nothing is deleted — everything can be undone</text>
+<text x="22" y="182.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#EEF2F3">   ▸ Desktop        85 items</text>
+<text x="22" y="202.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Downloads      296 items</text>
+<text x="22" y="221.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Screenshots    12 screenshots loose</text>
+<text x="22" y="241.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Dock           the apps you never open</text>
+<text x="22" y="260.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Trash          18 items</text>
+<text x="22" y="280.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Everything     all of it, one step at a time</text>
+</g>
+<g opacity="0">
+<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.4472;0.4512;0.5488;0.5528;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
+<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  nimo › /clear</text>
+<text x="22" y="104.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  ╭─ what should be clear? ─────────────────────</text>
+<text x="22" y="143.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">     nothing is deleted — everything can be undone</text>
+<text x="22" y="182.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Desktop        85 items</text>
+<text x="22" y="202.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#EEF2F3">   ▸ Downloads      296 items</text>
+<text x="22" y="221.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Screenshots    12 screenshots loose</text>
+<text x="22" y="241.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Dock           the apps you never open</text>
+<text x="22" y="260.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Trash          18 items</text>
+<text x="22" y="280.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Everything     all of it, one step at a time</text>
+</g>
+<g opacity="0">
+<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.5448;0.5488;0.7195;0.7235;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
+<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  ╭─ your downloads ────────────────────────────</text>
+<text x="22" y="104.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Documents                      118 items</text>
+<text x="22" y="124.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Archives                        61 items</text>
+<text x="22" y="143.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Images                          54 items</text>
+<text x="22" y="163.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Video                           31 items</text>
+<text x="22" y="182.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Code                            18 items</text>
+<text x="22" y="202.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Other                           14 items</text>
+<text x="22" y="241.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">     ─────────────────────────────────</text>
+<text x="22" y="260.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#EEF2F3">     In there                       296 items</text>
+<text x="22" y="299.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  ╰─────────────────────────────────────────────</text>
+<text x="22" y="338.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  everything moves into  Downloads/Tidy/&lt;kind&gt;/</text>
+<text x="22" y="358.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  nothing is deleted, nothing is renamed</text>
+</g>
+<g opacity="0">
+<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.7155;0.7195;0.8171;0.8211;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
+<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  everything moves into  Downloads/Tidy/&lt;kind&gt;/</text>
+<text x="22" y="85.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  nothing is deleted, nothing is renamed</text>
+<text x="22" y="124.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  Sort 296 items? [y/N] y</text>
+</g>
+<g opacity="0">
+<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.8131;0.8171;1.0000;1.0000;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
+<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  Sort 296 items? [y/N] y</text>
+<text x="22" y="104.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">  ✓ Sorted — 296 items filed away</text>
+<text x="22" y="124.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  Downloads/Tidy/</text>
+<text x="22" y="163.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  changed your mind?  min downloads --undo</text>
+<text x="22" y="202.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  nimo › </text>
+</g>
+</svg>
