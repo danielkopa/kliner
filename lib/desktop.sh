@@ -67,11 +67,11 @@ nimo_free_name() {
     printf '%s/%s %s%s' "$dir" "$base" "$$" "$ext"
 }
 
-# Everything on the desktop that nimo is willing to move.
-nimo_desktop_items() {
-    local desk="$HOME/Desktop"
-    [ -d "$desk" ] || return 0
-    find "$desk" -mindepth 1 -maxdepth 1 2>/dev/null | while IFS= read -r item; do
+# Everything in a folder that nimo is willing to move.
+nimo_folder_items() {
+    local dir="$1"
+    [ -d "$dir" ] || return 0
+    find "$dir" -mindepth 1 -maxdepth 1 2>/dev/null | while IFS= read -r item; do
         case "$(basename "$item")" in
             .*|"$NIMO_TIDY_DIR_NAME") continue ;;
         esac
@@ -88,10 +88,12 @@ nimo_desktop_undo() {
     nimo_panel_open "put it back"
 
     local latest="${1:-}"
-    [ -n "$latest" ] || latest=$(ls -1 "$NIMO_UNDO_DIR"/desktop-*.tsv 2>/dev/null | tail -1)
+    [ -n "$latest" ] || latest=$(ls -1 "$NIMO_UNDO_DIR"/desktop-*.tsv \
+                                      "$NIMO_UNDO_DIR"/downloads-*.tsv \
+                                      "$NIMO_UNDO_DIR"/screenshots-*.tsv 2>/dev/null | tail -1)
 
-    if [ -z "$latest" ]; then
-        nimo_dim "nimo has not tidied your desktop yet — nothing to undo"
+    if [ -z "$latest" ] || [ ! -f "$latest" ]; then
+        nimo_dim "nimo has not moved anything yet — nothing to undo"
         nimo_panel_close
         nimo_blank
         return 0
@@ -112,45 +114,46 @@ nimo_desktop_undo() {
     done < "$latest"
 
     # tidy up the folders we emptied, but never anything with content left
-    find "$HOME/Desktop/$NIMO_TIDY_DIR_NAME" -type d -depth 2>/dev/null \
-        | while IFS= read -r d; do rmdir "$d" 2>/dev/null || true; done
+    local room
+    for room in "$HOME/Desktop/$NIMO_TIDY_DIR_NAME" "$HOME/Downloads/$NIMO_TIDY_DIR_NAME"; do
+        [ -d "$room" ] || continue
+        find "$room" -type d -depth 2>/dev/null \
+            | while IFS= read -r d; do rmdir "$d" 2>/dev/null || true; done
+    done
 
-    nimo_ok "$(nimo_plural "$back" file) back on your desktop"
+    nimo_ok "$(nimo_plural "$back" file) put back"
     [ "$missing" -gt 0 ] && nimo_dim "$missing were moved or renamed since, so nimo left them alone"
     nimo_panel_close
     nimo_blank
     return 0
 }
 
-nimo_cmd_desktop() {
-    if [ "${NIMO_UNDO:-0}" = "1" ]; then
-        nimo_desktop_undo
-        return 0
-    fi
+# The one sorter behind /desktop, /downloads and /screenshots.
+#
+#   $1 the folder to sort        $2 what to call it out loud
+#   $3 where the sorted copy goes    $4 the undo log's prefix
+nimo_sort_folder() {
+    local src="$1" title="$2" root="$3" tag="$4"
 
-    nimo_header
-
-    local desk="$HOME/Desktop"
-    if [ ! -d "$desk" ]; then
-        nimo_warn "you do not seem to have a Desktop folder"
+    if [ ! -d "$src" ]; then
+        nimo_warn "there is no $src to sort"
         nimo_blank
         return 1
     fi
 
     local items count
-    items=$(nimo_desktop_items)
+    items=$(nimo_folder_items "$src")
     count=$(nimo_line_count "$items")
 
-    nimo_panel_open "your desktop"
+    nimo_panel_open "$title"
 
     if [ "$count" -eq 0 ]; then
-        nimo_ok "Your desktop is already clear."
+        nimo_ok "Nothing to sort — it is already clear."
         nimo_panel_close
         nimo_blank
         return 0
     fi
 
-    # count them by kind, keeping bash 3.2 in mind: no associative arrays
     local kinds="Screenshots Images Documents Video Audio Archives Code Apps Folders Other"
     local kind n item total=0
     for kind in $kinds; do
@@ -169,33 +172,33 @@ EOF
 
     nimo_blank
     nimo_rule
-    nimo_total "On your desktop" "$(nimo_plural "$total" item)"
+    nimo_total "In there" "$(nimo_plural "$total" item)"
     nimo_panel_close
 
     nimo_blank
-    nimo_dim "everything moves into  Desktop/$NIMO_TIDY_DIR_NAME/<kind>/"
-    nimo_dim "nothing is deleted, nothing is renamed, and  min desktop --undo  puts it all back"
+    nimo_dim "everything moves into  ${root#$HOME/}/<kind>/"
+    nimo_dim "nothing is deleted, nothing is renamed, and  min $tag --undo  puts it all back"
     nimo_blank
 
     if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
-        nimo_dim "preview only — your desktop was not touched"
+        nimo_dim "preview only — nothing was moved"
         nimo_blank
         return 0
     fi
 
-    if ! nimo_confirm "Clear your desktop?"; then
+    if ! nimo_confirm "Sort $(nimo_plural "$total" item)?"; then
         nimo_blank
-        nimo_dim "your desktop is exactly as it was"
+        nimo_dim "left exactly as it was"
         nimo_blank
         return 0
     fi
 
     mkdir -p "$NIMO_UNDO_DIR" 2>/dev/null
     local log
-    log=$(nimo_free_file "$NIMO_UNDO_DIR/desktop-$(date +%Y%m%d-%H%M%S)" .tsv)
+    log=$(nimo_free_file "$NIMO_UNDO_DIR/$tag-$(date +%Y%m%d-%H%M%S)" .tsv)
     : > "$log"
 
-    local root="$desk/$NIMO_TIDY_DIR_NAME" moved=0 failed=0 dest target
+    local moved=0 failed=0 dest target
     while IFS= read -r item; do
         [ -n "$item" ] || continue
         kind=$(nimo_kind_of "$item")
@@ -213,11 +216,127 @@ $items
 EOF
 
     nimo_blank
-    nimo_ok "Your desktop is clear — $(nimo_plural "$moved" item) filed away"
-    nimo_dim "Desktop/$NIMO_TIDY_DIR_NAME/"
+    nimo_ok "Sorted — $(nimo_plural "$moved" item) filed away"
+    nimo_dim "${root#$HOME/}/"
     [ "$failed" -gt 0 ] && nimo_warn "$failed could not be moved and were left where they are"
     nimo_blank
-    nimo_dim "changed your mind?  min desktop --undo"
+    nimo_dim "changed your mind?  min $tag --undo"
+    nimo_blank
+    return 0
+}
+
+nimo_cmd_desktop() {
+    if [ "${NIMO_UNDO:-0}" = "1" ]; then
+        nimo_desktop_undo
+        return 0
+    fi
+    nimo_header
+    nimo_sort_folder "$HOME/Desktop" "your desktop" \
+        "$HOME/Desktop/$NIMO_TIDY_DIR_NAME" desktop
+}
+
+nimo_cmd_downloads() {
+    if [ "${NIMO_UNDO:-0}" = "1" ]; then
+        nimo_desktop_undo
+        return 0
+    fi
+    nimo_header
+    nimo_sort_folder "$HOME/Downloads" "your downloads" \
+        "$HOME/Downloads/$NIMO_TIDY_DIR_NAME" downloads
+}
+
+# Screenshots end up wherever they were taken. This gathers them from the
+# usual scattering grounds into one folder, and nowhere else.
+nimo_cmd_screenshots() {
+    if [ "${NIMO_UNDO:-0}" = "1" ]; then
+        nimo_desktop_undo
+        return 0
+    fi
+
+    nimo_header
+
+    local room="$HOME/Pictures/Screenshots" found="" item where
+    for where in "$HOME/Desktop" "$HOME/Downloads" "$HOME/Documents"; do
+        [ -d "$where" ] || continue
+        while IFS= read -r item; do
+            [ -n "$item" ] || continue
+            [ "$(nimo_kind_of "$item")" = "Screenshots" ] || continue
+            found="$found$item
+"
+        done <<EOF
+$(nimo_folder_items "$where")
+EOF
+    done
+
+    local count
+    count=$(nimo_line_count "$found")
+
+    nimo_panel_open "your screenshots"
+
+    if [ "$count" -eq 0 ]; then
+        nimo_ok "No loose screenshots — nothing to gather."
+        nimo_panel_close
+        nimo_blank
+        return 0
+    fi
+
+    local shown=0
+    while IFS= read -r item; do
+        [ -n "$item" ] || continue
+        shown=$((shown + 1))
+        [ "$shown" -gt 8 ] && continue
+        where="${item%/*}"
+        nimo_row "$(basename "$item")" "" "${where#$HOME/}"
+    done <<EOF
+$found
+EOF
+    [ "$count" -gt 8 ] && nimo_dim "… and $((count - 8)) more"
+
+    nimo_blank
+    nimo_rule
+    nimo_total "Loose screenshots" "$(nimo_plural "$count" file)"
+    nimo_panel_close
+
+    nimo_blank
+    nimo_dim "they all move into  Pictures/Screenshots/"
+    nimo_dim "nothing is deleted, and  min screenshots --undo  puts them back"
+    nimo_blank
+
+    if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
+        nimo_dim "preview only — nothing was moved"
+        nimo_blank
+        return 0
+    fi
+
+    if ! nimo_confirm "Gather $(nimo_plural "$count" screenshot)?"; then
+        nimo_blank
+        nimo_dim "left exactly where they are"
+        nimo_blank
+        return 0
+    fi
+
+    mkdir -p "$room" "$NIMO_UNDO_DIR" 2>/dev/null
+    local log target moved=0 failed=0
+    log=$(nimo_free_file "$NIMO_UNDO_DIR/screenshots-$(date +%Y%m%d-%H%M%S)" .tsv)
+    : > "$log"
+
+    while IFS= read -r item; do
+        [ -n "$item" ] || continue
+        target=$(nimo_free_name "$room" "$(basename "$item")")
+        if mv "$item" "$target" 2>/dev/null; then
+            printf '%s\t%s\n' "$item" "$target" >> "$log"
+            moved=$((moved + 1))
+        else
+            failed=$((failed + 1))
+        fi
+    done <<EOF
+$found
+EOF
+
+    nimo_blank
+    nimo_ok "Gathered — $(nimo_plural "$moved" screenshot) in one place"
+    nimo_dim "Pictures/Screenshots/"
+    [ "$failed" -gt 0 ] && nimo_warn "$failed could not be moved"
     nimo_blank
     return 0
 }
