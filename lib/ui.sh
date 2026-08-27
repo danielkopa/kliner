@@ -61,6 +61,22 @@ ART
     printf '   %sv%s%s\n' "$NIMO_C_DIM" "$NIMO_VERSION" "$NIMO_C_RESET"
 }
 
+# nimo itself. The face from the very first sketch, kept.
+nimo_face() {
+    printf '%s' "$NIMO_C_CYAN"
+    cat <<'FACE'
+
+                 .───────────.
+               .'             '.
+              /    ·       ·    \
+             |        ─          |
+              \                 /
+               '._           _.'
+                  '─────────'
+FACE
+    printf '%s' "$NIMO_C_RESET"
+}
+
 # One quiet line. Shown by every other command, so the output
 # you came for stays on screen.
 nimo_header() {
