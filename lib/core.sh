@@ -165,6 +165,7 @@ nimo_read_config() {
             limit) case "$value" in ''|*[!0-9]*) ;; *) NIMO_LIMIT="$value" ;; esac ;;
             jobs)  case "$value" in ''|*[!0-9]*) ;; *) NIMO_JOBS="$value" ;; esac ;;
             color) case "$value" in auto|always|never) NIMO_COLOR="$value" ;; esac ;;
+            animation) case "$value" in auto|never|off|no) NIMO_ANIMATE=never ;; esac ;;
             tidy)  NIMO_TIDY_DIR_NAME="$value" ;;
         esac
     done < "$file"

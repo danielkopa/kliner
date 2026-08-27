@@ -19,7 +19,7 @@
 #
 set -u
 
-NIMO_VERSION="0.19.0"
+NIMO_VERSION="0.20.0"
 
 # --- find our own directory, even when called through a symlink ---------
 nimo_root() {
@@ -64,6 +64,7 @@ NIMO_MENU=0
 NIMO_TARGET=""
 NIMO_LIMIT=15
 NIMO_COLOR=auto
+NIMO_ANIMATE=auto
 NIMO_COMMAND=""
 
 nimo_usage() {
@@ -114,6 +115,7 @@ nimo_usage() {
         --limit N       how many rows min top shows (default 15)
         --json          machine readable output for clean and preview
         --no-color      plain output
+        --no-animation  no drawing itself in, no blink
     -q, --quiet         no banner
 
   Examples
@@ -173,6 +175,7 @@ while [ $# -gt 0 ]; do
             ;;
         --limit=*)      NIMO_LIMIT="${1#--limit=}" ;;
         --no-color)     NIMO_COLOR=never ;;
+        --no-animation) NIMO_ANIMATE=never ;;
         --color)        NIMO_COLOR=always ;;
         --only)
             shift
@@ -238,6 +241,7 @@ case "$NIMO_COLOR" in
     always) NIMO_INHERIT="$NIMO_INHERIT --color" ;;
 esac
 [ "$NIMO_QUIET" = "1" ]      && NIMO_INHERIT="$NIMO_INHERIT -q"
+[ "$NIMO_ANIMATE" = "never" ] && NIMO_INHERIT="$NIMO_INHERIT --no-animation"
 [ "$NIMO_ASSUME_YES" = "1" ] && NIMO_INHERIT="$NIMO_INHERIT -y"
 [ "$NIMO_DRY_RUN" = "1" ]    && NIMO_INHERIT="$NIMO_INHERIT -n"
 [ "$NIMO_DAYS" != "30" ]     && NIMO_INHERIT="$NIMO_INHERIT --days $NIMO_DAYS"
