@@ -89,6 +89,12 @@ cat > "$FAKE/killall" <<'SHIM'
 exit 0
 SHIM
 
+cat > "$FAKE/launchctl" <<SHIM
+#!/bin/sh
+echo "\$*" >> "$STATE/launchctl"
+exit 0
+SHIM
+
 # A `defaults` that is real enough for nimo, and only for nimo.
 cat > "$FAKE/defaults" <<SHIM
 #!/bin/sh
@@ -583,8 +589,8 @@ mkdir -p "$BOX/Library/LaunchAgents"
 
 check "it reads your login items"         "mac startup --list -q --no-color | grep -q 'Dropbox'"
 check "and the agents in your Library"    "mac startup --list -q --no-color | grep -q 'com.example.updater'"
-check "an agent is reported, not touched" "mac startup --list -q --no-color | grep -q 'background agent'"
-check "and it says why it is left alone" "mac startup --list -q --no-color | grep -q 'only reports these'"
+check "an agent is listed as one"         "mac startup --list -q --no-color | grep -q 'background agent'"
+check "and it is yours to turn off"       "! mac startup --list -q --no-color | grep -q 'only reports these'"
 check "it counts all of them"             "mac startup --list -q --no-color | grep -q '3 things'"
 check "it promises to delete nothing"     "mac startup --list -q --no-color | grep -q 'uninstalled or deleted'"
 check "a list changes nothing"            "grep -q Dropbox '$STATE/login-items'"
@@ -597,6 +603,15 @@ check "the agent file is still there"     "[ -f '$BOX/Library/LaunchAgents/com.e
 check "--undo makes the login item again" "mac startup --undo -q --no-color >/dev/null 2>&1; grep -q Dropbox '$STATE/login-items'"
 check "with the path it had before"       "grep -q '/Applications/Dropbox.app' '$STATE/login-items'"
 check "and it shows up in min undo"       "mac undo --list -q --no-color | grep -q 'stopped things starting'"
+
+# A LaunchAgent in your own Library is yours. It is unloaded first and then
+# moved: a plist still loaded and no longer on disk is the one state worth
+# avoiding. Nothing is deleted — the file is in ~/.nimo/backups.
+check "stopping an agent moves the plist" "mstop '3' >/dev/null 2>&1; [ ! -f '$BOX/Library/LaunchAgents/com.example.updater.plist' ]"
+check "it is moved, not deleted"          "ls '$BOX/.nimo/backups/startup'/*.plist >/dev/null 2>&1"
+check "launchctl was asked to unload it"  "grep -q 'unload' '$STATE/launchctl'"
+check "--undo puts the plist back"        "mac startup --undo -q --no-color >/dev/null 2>&1; [ -f '$BOX/Library/LaunchAgents/com.example.updater.plist' ]"
+check "and loads it again"                "grep -q 'load -w' '$STATE/launchctl'"
 
 # ---- all of it at once ---------------------------------------------------
 

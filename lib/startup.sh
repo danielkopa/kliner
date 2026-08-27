@@ -108,15 +108,18 @@ nimo_startup_where() {
 nimo_startup_why() {
     case "$1" in
         machine) printf 'needs an administrator' ;;
-        agent)   printf 'a background agent — launchctl' ;;
         *)       printf 'not nimos to change' ;;
     esac
 }
 
 # Can nimo turn this one off without asking anybody for a password?
+#
+# Everything in your own home folder, and nothing outside it. A LaunchAgent in
+# ~/Library/LaunchAgents is yours; the same file in /Library belongs to the
+# machine and nimo never sees it, because it never looks there.
 nimo_startup_mine() {
     case "$1" in
-        run|folder|login) return 0 ;;
+        run|folder|login|agent) return 0 ;;
         *) return 1 ;;
     esac
 }
@@ -140,6 +143,17 @@ nimo_startup_stop() {
         login)
             osascript -e "tell application \"System Events\" to delete login item \"$name\"" >/dev/null 2>&1 || return 1
             printf 'login\t%s\t%s\n' "$name" "$what" >> "$NIMO_STARTUP_STORE"
+            return 0 ;;
+        agent)
+            # Unload it first, so it stops now rather than at the next login,
+            # and then move the file. A plist that is still loaded and no
+            # longer on disk is the one state worth avoiding.
+            [ -f "$what" ] || return 1
+            launchctl unload -w "$what" >/dev/null 2>&1
+            mkdir -p "$(nimo_startup_store)" 2>/dev/null
+            dest=$(nimo_free_name "$(nimo_startup_store)" "$(basename "$what")")
+            mv "$what" "$dest" 2>/dev/null || return 1
+            printf 'agent\t%s\t%s\n' "$what" "$dest" >> "$NIMO_STARTUP_STORE"
             return 0 ;;
     esac
     return 1
@@ -171,6 +185,17 @@ nimo_startup_undo() {
             file)
                 if [ -e "$b" ] && [ ! -e "$a" ]; then
                     mv "$b" "$a" 2>/dev/null && back=$((back + 1))
+                else
+                    missed=$((missed + 1))
+                fi ;;
+            agent)
+                if [ -e "$b" ] && [ ! -e "$a" ]; then
+                    if mv "$b" "$a" 2>/dev/null; then
+                        launchctl load -w "$a" >/dev/null 2>&1
+                        back=$((back + 1))
+                    else
+                        missed=$((missed + 1))
+                    fi
                 else
                     missed=$((missed + 1))
                 fi ;;

@@ -71,8 +71,10 @@ Report files kept in more than one place. Never deletes anything.
 .TP
 .B min startup
 List everything that launches when you sign in \- the registry's Run key and
-the Startup folder on Windows, the login items on macOS \- and stop the ones
-you tick. Nothing is uninstalled and nothing is deleted: a program you stop
+the Startup folder on Windows, the login items and the LaunchAgents in your own
+Library on macOS \- and stop the ones you tick. An agent is unloaded with
+\fBlaunchctl\fR before its file is moved, so it stops now rather than at the
+next login. Nothing is uninstalled and nothing is deleted: a program you stop
 still starts when you open it yourself. Entries set for everyone on the
 machine need an administrator, so nimo lists those and leaves them alone.
 \fB\-\-undo\fR puts back what it moved.

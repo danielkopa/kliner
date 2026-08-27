@@ -629,7 +629,9 @@ Windows, login items and `~/Library/LaunchAgents` on macOS. It names all of
 them — the ones it can turn off and the ones it will only report, with the
 reason beside each. Nothing is uninstalled and nothing is deleted: a registry
 value is written down and removed, a shortcut is moved aside, a login item is
-deleted through System Events and its path kept. A program you stop still
+deleted through System Events and its path kept, and a LaunchAgent is unloaded
+with `launchctl` before its file is moved — so it stops now, rather than at
+the next login. A program you stop still
 starts when you open it yourself. Anything set for everyone on the machine
 needs an administrator, so nimo lists it and leaves it alone.
 
