@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.44.0
+
+### `min undo --all`
+
+`min tidy` is six commands, so putting it back was six commands, in the right
+order, and knowing which. Now it is one.
+
+- Newest first, because a later change can sit on top of an earlier one —
+  undo the earlier one first and the later one goes straight back on top of it
+- `--dry-run` lists what it would put back and touches nothing
+- It asks once, and off a terminal it refuses without `--yes`, like everything
+  else that changes something
+- **A log that has been replayed is no longer offered again.** Undoing the
+  same thing twice was never useful, and "what nimo has done" should mean
+  "what nimo can still put back". The logs are moved to `~/.nimo/undo/done`
+  rather than deleted — nimo does not delete
+
 ## 0.43.0
 
 ### `min top` steps into things

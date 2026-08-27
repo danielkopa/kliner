@@ -7,7 +7,7 @@
 class Nimo < Formula
   desc "Make your workspace clean"
   homepage "https://danielkopa.github.io/nimo/"
-  url "https://github.com/danielkopa/nimo/archive/refs/tags/v0.43.0.tar.gz"
+  url "https://github.com/danielkopa/nimo/archive/refs/tags/v0.44.0.tar.gz"
   license "MIT"
   head "https://github.com/danielkopa/nimo.git", branch: "main"
 
