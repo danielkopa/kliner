@@ -45,7 +45,7 @@ nimo_report() {
         fi
         i=$((i + 1))
     done
-    [ "$shown" = "0" ] && nimo_dim "nothing here either"
+    [ "$shown" = "0" ] && nimo_dim "nothing here that needs a second look"
     nimo_panel_close
 
     NIMO_SAFE_KB="$safe_kb"
