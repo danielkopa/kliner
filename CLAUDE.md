@@ -170,6 +170,28 @@ own face. `tools/screen.py` renders a raw stream the way a terminal would, so
 the suite can check what is on screen and not only which bytes were sent — a
 grep sees a perfectly good face either way.
 
+## A tick you can stand behind
+
+Apple has moved the wallpaper three times, and the AppleScript that used to
+work still returns success on some systems while changing nothing. `nimo_wall_apply`
+therefore **reads the wallpaper back** after every method and only reports
+success if it moved. Three outcomes, three different sentences:
+
+- moved → the tick, and `NIMO_WALL_METHOD` remembers which way worked so the
+  rest of the session skips the audition
+- did not move → say the Mac ignored it, print what osascript actually said,
+  and point at `tools/wallcheck.sh`
+- cannot read it back at all → that is the Automation permission, and saying
+  "could not set it" would send the user looking in the wrong place
+
+`NIMO_WALL_UNSURE` covers the fourth case: told, could not check. It gets a
+note, never a tick.
+
+The fake Mac in `test/macos.sh` remembers the wallpaper it was told to set —
+a fake that always answers the same thing cannot test a read-back. And
+`NIMO_OSA_LIES=1` is Apple's bug itself: every command succeeds and nothing
+changes.
+
 ## Two memories, not one
 
 `min wallpaper` applies each one as you flip, which means two different things

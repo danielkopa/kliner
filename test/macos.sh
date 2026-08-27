@@ -199,7 +199,7 @@ cat > "$FAKE/osascript" <<SHIM
 #!/bin/sh
 SCRIPTED="$SCRIPTED"
 LOGIN="$STATE/login-items"
-NIMO_FAKE_CURRENT_WALL="$BOX/pics/Sonoma Horizon.heic"
+WALL="$STATE/wallpaper"
 SHIM
 cat >> "$FAKE/osascript" <<'SHIM'
 shift 2>/dev/null || true
@@ -230,10 +230,20 @@ case "$*" in
         exit 0 ;;
 esac
 
+# The wallpaper this pretend Mac is actually showing. It has to be
+# remembered rather than made up, because nimo reads it back to check that
+# setting it worked — Apple's own AppleScript returns success on some
+# systems while changing nothing, so "it did not error" is not enough.
 case "$*" in
     *"get desktop picture"*)
         [ "${NIMO_OSA_FAIL:-0}" = "1" ] && exit 1
-        echo "$NIMO_FAKE_CURRENT_WALL"
+        cat "$WALL" 2>/dev/null
+        exit 0 ;;
+    *"set picture to POSIX file"*|*"set desktop picture to POSIX file"*)
+        [ "${NIMO_OSA_FAIL:-0}" = "1" ] && exit 1
+        # NIMO_OSA_LIES is the Sonoma bug itself: says yes, changes nothing
+        [ "${NIMO_OSA_LIES:-0}" = "1" ] && exit 0
+        printf '%s\n' "$*" | sed -n 's/.*POSIX file "\([^"]*\)".*/\1/p' > "$WALL"
         exit 0 ;;
 esac
 [ "${NIMO_OSA_FAIL:-0}" = "1" ] && exit 1
@@ -530,6 +540,7 @@ wall() {
         nimo_cmd_wallpaper' _ "$1" 2>&1
 }
 
+printf '%s\n' "$PICS/Sonoma Horizon.heic" > "$STATE/wallpaper"
 : > "$SCRIPTED"
 LIST=$(wall list)
 check "wallpaper lists what the mac has"   "printf '%s' \"\$LIST\" | grep -q 'Sonoma Horizon'"
@@ -550,6 +561,28 @@ check "--restore names the old wallpaper"  "printf '%s' \"\$OUT\" | grep -q 'Son
 OUT=$(NIMO_OSA_FAIL=1 wall set)
 check "falls back when macOS says no"      "[ -s '$SQL' ]"
 check "the fallback nudges the Dock"       "grep -q 'desktoppicture' '$SQL' || grep -q 'update data set value' '$SQL'"
+
+# ---- a tick nimo can stand behind ----------------------------------------
+#
+# Apple has moved the wallpaper three times, and the AppleScript that used to
+# work still returns success on some systems while changing nothing at all.
+# nimo used to print a tick on "osascript did not error", which is the worst
+# thing a tool can do: you go looking for the fault in your own eyes.
+#
+# NIMO_OSA_LIES is that exact failure — every command succeeds and the
+# wallpaper never moves.
+
+WAS=$(cat "$STATE/wallpaper")
+OUT=$(NIMO_OSA_LIES=1 wall set)
+check "a lie is not reported as done"      "! printf '%s' \"\$OUT\" | grep -q 'Wallpaper set'"
+check "and it says the Mac ignored it"     "printf '%s' \"\$OUT\" | grep -q 'did not'"
+check "and where to look next"             "printf '%s' \"\$OUT\" | grep -q 'wallcheck'"
+check "it tried every way it knows"        "[ \"\$(grep -c 'POSIX file' '$SCRIPTED')\" -ge 2 ]"
+printf '%s\n' "$WAS" > "$STATE/wallpaper"
+
+OUT=$(NIMO_OSA_FAIL=1 wall set)
+check "unreadable is a different sentence" "printf '%s' \"\$OUT\" | grep -q 'cannot read your wallpaper\|could not read the wallpaper'"
+check "and it names the permission"        "printf '%s' \"\$OUT\" | grep -q 'Automation'"
 
 # ---- flipping through them ----------------------------------------------
 #

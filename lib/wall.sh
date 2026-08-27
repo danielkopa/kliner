@@ -55,9 +55,39 @@ nimo_wall_current() {
     osascript -e 'tell application "Finder" to get POSIX path of (get desktop picture as alias)' 2>/dev/null
 }
 
-# Three ways to set it, because Apple keeps moving this one.
+# Setting it, and then checking that it happened.
+#
+# Apple has moved this three times: up to Ventura the Dock kept it in an
+# sqlite database, Sonoma moved it to WallpaperAgent, and the AppleScript that
+# used to work still **returns success on some of those systems while
+# changing nothing at all**. So "osascript did not error" is not the same as
+# "the wallpaper changed", and nimo used to print a tick either way — which is
+# the worst thing a tool can do, because you then look for the fault in your
+# own eyes.
+#
+# It reads the wallpaper back now. If it did not move, nimo says so.
+
+NIMO_WALL_METHOD=""   # the one that worked here, once we know
+NIMO_WALL_WHY=""      # what the system said, when nothing worked
+NIMO_WALL_UNSURE=0    # it was told to; nimo could not check that it did
+
+# Did it actually take? Empty means nimo cannot read the wallpaper at all,
+# which is a different problem and gets a different sentence.
+nimo_wall_took() {
+    local want="$1" now
+    sleep 0.4 2>/dev/null || sleep 1
+    now=$(nimo_wall_current 2>/dev/null) || now=""
+    [ -n "$now" ] || return 2
+    [ "$now" = "$want" ]
+}
+
+nimo_wall_osa() {
+    NIMO_WALL_WHY=$(osascript -e "$1" 2>&1)
+    [ -z "$NIMO_WALL_WHY" ]
+}
+
 nimo_wall_apply() {
-    local pic="$1"
+    local pic="$1" verdict
 
     if [ "$(nimo_platform)" = "windows" ]; then
         # The value is a path Windows has to be able to read, so it goes in
@@ -68,20 +98,90 @@ nimo_wall_apply() {
         return 0
     fi
 
-    if osascript -e "tell application \"System Events\" to tell every desktop to set picture to POSIX file \"$pic\"" >/dev/null 2>&1; then
-        return 0
+    # Once one of them is known to work on this machine, the rest of the
+    # session uses it directly — flipping through forty wallpapers should not
+    # re-run the whole audition each time.
+    case "$NIMO_WALL_METHOD" in
+        events) nimo_wall_osa "tell application \"System Events\" to tell every desktop to set picture to POSIX file \"$pic\""; return 0 ;;
+        finder) nimo_wall_osa "tell application \"Finder\" to set desktop picture to POSIX file \"$pic\""; return 0 ;;
+        agent)
+            nimo_wall_osa "tell application \"System Events\" to tell every desktop to set picture to POSIX file \"$pic\""
+            killall WallpaperAgent >/dev/null 2>&1
+            return 0 ;;
+        dock)
+            sqlite3 "$HOME/Library/Application Support/Dock/desktoppicture.db" \
+                "update data set value = '$pic'" >/dev/null 2>&1
+            killall Dock >/dev/null 2>&1
+            return 0 ;;
+    esac
+
+    nimo_wall_osa "tell application \"System Events\" to tell every desktop to set picture to POSIX file \"$pic\""
+    nimo_wall_took "$pic"; verdict=$?
+    if [ "$verdict" = "0" ]; then NIMO_WALL_METHOD=events; return 0; fi
+
+    # 2 means nimo cannot read the wallpaper back at all. It can still try the
+    # rest — a Mac that refuses to answer questions may still take orders —
+    # but it cannot claim any of it worked, so it says that instead of a tick.
+    if [ "$verdict" = "2" ]; then
+        NIMO_WALL_UNSURE=1
+        nimo_wall_osa "tell application \"Finder\" to set desktop picture to POSIX file \"$pic\""
+        killall WallpaperAgent >/dev/null 2>&1
+        if nimo_have sqlite3; then
+            local blind="$HOME/Library/Application Support/Dock/desktoppicture.db"
+            if [ -f "$blind" ] && sqlite3 "$blind" "update data set value = '$pic'" >/dev/null 2>&1; then
+                killall Dock >/dev/null 2>&1
+                return 0
+            fi
+        fi
+        return 2
     fi
-    if osascript -e "tell application \"Finder\" to set desktop picture to POSIX file \"$pic\"" >/dev/null 2>&1; then
-        return 0
-    fi
+
+    nimo_wall_osa "tell application \"Finder\" to set desktop picture to POSIX file \"$pic\""
+    if nimo_wall_took "$pic"; then NIMO_WALL_METHOD=finder; return 0; fi
+
+    # Written, but not redrawn: since Sonoma the screen belongs to
+    # WallpaperAgent, and it reads the setting when it starts.
+    killall WallpaperAgent >/dev/null 2>&1
+    if nimo_wall_took "$pic"; then NIMO_WALL_METHOD=agent; return 0; fi
+
     if nimo_have sqlite3; then
         local db="$HOME/Library/Application Support/Dock/desktoppicture.db"
         if [ -f "$db" ] && sqlite3 "$db" "update data set value = '$pic'" >/dev/null 2>&1; then
             killall Dock >/dev/null 2>&1
-            return 0
+            if nimo_wall_took "$pic"; then NIMO_WALL_METHOD=dock; return 0; fi
         fi
     fi
     return 1
+}
+
+# Told, but not checked. Said out loud, because a tick nimo cannot stand
+# behind is worse than no tick: you go looking for the fault in your own eyes.
+nimo_wall_unsure_note() {
+    [ "${NIMO_WALL_UNSURE:-0}" = "1" ] || return 0
+    nimo_blank
+    nimo_dim "nimo could not read the wallpaper back, so it cannot promise that took"
+    nimo_dim "if the screen did not change, allow your terminal to control"
+    nimo_dim "System Events in  Settings › Privacy & Security › Automation"
+}
+
+# The sentence to print when it did not work, which depends on why.
+nimo_wall_complain() {
+    case "${1:-1}" in
+        2)
+            nimo_warn "nimo cannot read your wallpaper, so it cannot set one either"
+            nimo_blank
+            nimo_dim "that is almost always one permission:"
+            nimo_dim "System Settings › Privacy & Security › Automation"
+            nimo_dim "find your terminal in the list and allow System Events and Finder"
+            ;;
+        *)
+            nimo_warn "nimo asked your Mac to change the wallpaper and it did not"
+            [ -n "${NIMO_WALL_WHY:-}" ] && nimo_dim "it said: $NIMO_WALL_WHY"
+            nimo_blank
+            nimo_dim "this one is Apple's, not yours — run  bash tools/wallcheck.sh"
+            nimo_dim "in the nimo folder and send what it prints"
+            ;;
+    esac
 }
 
 # nimo's own taste: the plainest thing available.
@@ -201,9 +301,9 @@ nimo_wall_step() {
         at=$(nimo_wall_where "$list" "$nextone")
         nimo_ok "$(nimo_wall_pretty "$nextone")"
         nimo_dim "$at of $count   ·   min next   min prev   min wallpaper --restore"
+        nimo_wall_unsure_note
     else
-        nimo_warn "your system would not let nimo set the wallpaper"
-        nimo_dim "give your terminal Automation access, or set it in System Settings"
+        nimo_wall_complain "$?"
     fi
     nimo_blank
     return 0
@@ -247,7 +347,13 @@ nimo_wall_browse() {
         drawn=1
     }
 
-    nimo_wall_apply "$here" >/dev/null 2>&1
+    # If the first one does not take, everything after it is a menu that
+    # changes nothing — better to stop here and say why.
+    nimo_wall_apply "$here" >/dev/null 2>&1 || {
+        printf '\033[?25h' >&2
+        NIMO_WALL_FAILED=$?
+        return 2
+    }
     nimo_wall_draw
 
     while :; do
@@ -385,6 +491,10 @@ EOF
         return 0
     fi
 
+    # The panel above is a list; from here on nimo is doing something, and
+    # a box left open runs the result into it.
+    [ "$browse" = "1" ] || nimo_panel_close
+
     local chosen=""
     if [ "${NIMO_RANDOM:-0}" = "1" ]; then
         chosen=$(printf '%s\n' "$list" | awk 'BEGIN{srand()} {a[NR]=$0} END{print a[int(rand()*NR)+1]}')
@@ -394,7 +504,15 @@ EOF
         # A list of names tells you nothing about a wallpaper. This puts each
         # one on your own screen as you move through them, and puts back the
         # one you had if you change your mind.
-        if ! chosen=$(nimo_wall_browse "$list" "$count") || [ -z "$chosen" ]; then
+        chosen=$(nimo_wall_browse "$list" "$count")
+        case "$?" in
+            2)
+                nimo_blank
+                nimo_wall_complain 1
+                nimo_blank
+                return 1 ;;
+        esac
+        if [ -z "$chosen" ]; then
             nimo_blank
             nimo_dim "put back the one you had"
             nimo_blank
@@ -436,9 +554,9 @@ EOF
         nimo_wall_remember "$chosen"
         nimo_ok "Wallpaper set — $(nimo_wall_pretty "$chosen")"
         nimo_dim "flip on with  min next   ·   undo with  min wallpaper --restore"
+        nimo_wall_unsure_note
     else
-        nimo_warn "macOS would not let nimo set the wallpaper"
-        nimo_dim "System Settings → Wallpaper, or give your terminal Automation access"
+        nimo_wall_complain "$?"
     fi
     nimo_blank
     return 0
