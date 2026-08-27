@@ -391,9 +391,38 @@ check "every command is in the manual"    "[ -z \"\$(missing_from '$ROOT/man/min
 check "every command has a prompt word"   "[ -z \"\$(missing_from '$ROOT/lib/repl.sh')\" ]"
 check "every command is in the readme"    "[ -z \"\$(missing_from '$ROOT/README.md')\" ]"
 
+# The same rule for flags. `--color` was accepted by the parser and mentioned
+# nowhere, which is the quiet half of drift: not a promise nimo breaks, a
+# feature nobody can find.
+flagged() {
+    sed -n '/^while \[ \$# -gt 0 \]/,/^done/p' "$ROOT/min" \
+        | sed -n 's/^        \(-[^)]*\)).*/\1/p' \
+        | tr '|' '\n' | sed -e 's/=\*$//' \
+        | grep '^--' | sort -u
+}
+
+flags_missing_from() {
+    local where="$1" name
+    # roff spells every dash \- , so the man page is read with the backslashes
+    # taken out rather than with a second, cleverer pattern
+    tr -d '\\' < "$where" > "$BOX/flat.txt"
+    while IFS= read -r name; do
+        [ -n "$name" ] || continue
+        grep -q -- "$name" "$BOX/flat.txt" || printf '%s ' "$name"
+    done <<EOF
+$(flagged)
+EOF
+}
+
+check "there are flags to check"          "[ \$(flagged | wc -l) -ge 14 ]"
+check "every flag is in min help"         "[ -z \"\$(flags_missing_from '$BOX/help.txt')\" ]"
+check "every flag is in the manual"       "[ -z \"\$(flags_missing_from '$ROOT/man/min.1')\" ]"
+check "every flag tab-completes"          "[ -z \"\$(flags_missing_from '$ROOT/completions/min.bash')\" ]"
+
 # and the version has to agree with itself everywhere it is written down
 check "the version agrees with itself"    "[ \"\$(tr -d ' \n' < '$ROOT/VERSION')\" = \"\$(min version | awk '{print \$2}')\" ]"
 check "the changelog knows this version"  "grep -q \"^## \$(tr -d ' \n' < '$ROOT/VERSION')\" '$ROOT/CHANGELOG.md'"
+check "the formula points at this tag"    "grep -q \"v\$(tr -d ' \n' < '$ROOT/VERSION')\.tar\.gz\" '$ROOT/Formula/nimo.rb'"
 
 # ---- the way in ---------------------------------------------------------
 
@@ -412,6 +441,26 @@ check "the whole face, not part of it"    "[ \$(faces | grep -c '│\\|╭\\|╰
 check "animation = off is understood"     "mkdir -p \"$BOX/.nimo\"; printf 'animation = off\\n' > \"$BOX/.nimo/config\"; min --no-color >/dev/null 2>&1; rm -rf \"$BOX/.nimo\""
 check "the eyes have a closed row too"    "grep -q 'NIMO_FACE_EYES_SHUT' \"$ROOT/lib/ui.sh\""
 check "the demo is what the maker makes"  "python3 \"$ROOT/tools/make-demo.py\" | diff -q - \"$ROOT/assets/demo.svg\""
+
+# The blink moves the cursor up six rows and back. It used to come back with
+# `\033[u`, which is not the same escape on every terminal — on the ones that
+# ignore it the cursor simply stayed six rows up, and nimo printed its prompt,
+# its hint and its whole menu straight over its own face. Nothing text-based
+# could see it: the bytes were all correct, the screen was not. So these run
+# the stream through a terminal instead of a grep.
+anim() {
+    printf '/quit\n' | NIMO_ANIMATE_FORCE=1 NIMO_REPL_FORCE=1 NIMO_NO_CLEAR=1 \
+        HOME="$BOX" bash "$MIN" --no-color 2>&1
+}
+still() {
+    printf '/quit\n' | NIMO_REPL_FORCE=1 NIMO_NO_CLEAR=1 \
+        HOME="$BOX" bash "$MIN" --no-animation --no-color 2>&1
+}
+
+check "the blink saves no cursor"         "! anim | cat -v | grep -q '\^\[\[[su]'"
+check "what goes up comes back down"      "[ \"\$(anim | cat -v | grep -o '\^\[\[6A' | wc -l)\" = \"\$(anim | cat -v | grep -o '\^\[\[6B' | wc -l)\" ]"
+check "blinking leaves the same screen"   "diff -q <(anim | python3 \"$ROOT/tools/screen.py\") <(still | python3 \"$ROOT/tools/screen.py\")"
+check "and the prompt is below the face"  "[ \"\$(anim | python3 \"$ROOT/tools/screen.py\" | grep -n 'nimo . /quit' | head -1 | cut -d: -f1)\" -gt 10 ]"
 
 # ---- yes to everything ---------------------------------------------------
 
@@ -434,6 +483,7 @@ check "without auto nothing is moved"     "[ -f '$BOX/Desktop/auto-one.pdf' ]"
 check "auto says what it covers"          "printf '/auto\\n/quit\\n' | NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -y -q --no-color 2>&1 | grep -q 'Yes to everything'"
 check "auto explains itself first"        "printf '/auto\\n/quit\\n' | NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -y -q --no-color 2>&1 | grep -q 'this session only'"
 check "auto warns about the trash"        "printf '/auto\\n/quit\\n' | NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -y -q --no-color 2>&1 | grep -q 'no undo'"
+check "--auto is the flag for /auto"      "printf '/quit\\n' | NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" --auto -q --no-color 2>&1 | grep -q 'nimo auto'"
 check "the prompt shows it is on"         "printf '/quit\\n' | NIMO_AUTO=1 NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -q --no-color 2>&1 | grep -q 'nimo auto'"
 check "and off again on request"          "printf '/auto off\\n/quit\\n' | NIMO_AUTO=1 NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -q --no-color 2>&1 | grep -q 'asks again'"
 check "turning it on twice is calm"       "printf '/auto\\n/quit\\n' | NIMO_AUTO=1 NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -q --no-color 2>&1 | grep -q 'already on'"
@@ -472,6 +522,16 @@ pick_plain() {
 
 check "falls back to typing numbers"      "[ \"\$(printf '2 4\\n' | pick_plain multi)\" = '2 4' ]"
 check "the fallback ignores nonsense"     "[ \"\$(printf '2 nope 99\\n' | pick_plain multi)\" = '2' ]"
+
+# It asked "Which one? (1-7):" and never said what 1 to 7 were. Off a terminal
+# — a pipe, a script, ssh with no tty — every menu nimo has was an unanswerable
+# question, and `min clear` is the menu people meet first.
+menu_off_tty() { printf '\n' | HOME="$BOX" bash "$MIN" clear --no-color 2>&1; }
+
+check "the plain menu lists its options"  "menu_off_tty | grep -qi 'desktop'"
+check "and numbers them"                  "menu_off_tty | grep -q '^ *1  '"
+check "as many lines as it offers"        "[ \"\$(menu_off_tty | sed -n 's/.*Which one? 1-\\([0-9]*\\).*/\\1/p')\" = \"\$(menu_off_tty | grep -c '^ *[0-9]  ')\" ]"
+check "typing all ticks everything"       "[ \"\$(printf 'all\\n' | pick_plain multi)\" = '1 2 3 4' ]"
 
 # ---- the undo history ---------------------------------------------------
 

@@ -96,6 +96,10 @@ nimo_face() {
 # sleep in fractions, and nobody having asked for quiet.
 nimo_can_animate() {
     [ "${NIMO_ANIMATE:-auto}" = "never" ] && return 1
+    # The suite has no terminal, so the animated path could never be checked —
+    # which is how a cursor escape that put the whole prompt on top of the face
+    # shipped. This is the only way in.
+    [ "${NIMO_ANIMATE_FORCE:-0}" = "1" ] && return 0
     [ "${NIMO_QUIET:-0}" = "1" ] && return 1
     [ -t 1 ] || return 1
     case "${TERM:-}" in dumb|"") return 1 ;; esac
@@ -123,11 +127,17 @@ nimo_face_hello() {
 $(nimo_face_rows)
 EOF
 
-    # the eyes are six rows above where the cursor now sits
+    # The eyes are six rows above where the cursor now sits.
+    #
+    # Up and down, never save and restore. `\033[s` and `\033[u` are not the
+    # same escape on every terminal — some read `CSI s` as a margin command
+    # and never move the cursor back. On those, nimo left the cursor six rows
+    # up and then printed its prompt, its hint and its whole menu straight
+    # over its own face. `\033[6A` / `\033[6B` are relative, and universal.
     sleep 0.12
-    printf '\033[s\033[6A\r%s\033[u' "$NIMO_FACE_EYES_SHUT"
+    printf '\033[6A\r%s\033[6B\r' "$NIMO_FACE_EYES_SHUT"
     sleep 0.11
-    printf '\033[s\033[6A\r%s\033[u' "$NIMO_FACE_EYES_OPEN"
+    printf '\033[6A\r%s\033[6B\r' "$NIMO_FACE_EYES_OPEN"
 
     printf '%s' "$NIMO_C_RESET"
     return 0
