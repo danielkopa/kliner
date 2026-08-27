@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.11.0
+
+- **`min` on its own is a prompt now.** Type `/clean desktop`, `/wallpaper`,
+  `/undo` — the slash is optional, and so is the exact wording: `/desktop`,
+  `clean desktop` and `clear desktop` all land in the same place
+- Typos are matched on shared prefix, not substring, because `wallpapr`
+  neither contains nor is contained by `wallpaper`. Whole lines are corrected
+  too, so `/clean deskopt` comes back as "did you mean /clean desktop?" — and
+  nimo suggests rather than guessing on your behalf
+- Flags pass straight through: `/clean --only trash`, `/desktop --undo`
+- Each command runs as its own nimo, so nothing one does leaks into the next
+- `/menu` and `min --menu` still give the arrow-key list
+- **Fixed: `df` returning nothing made every disk figure blow up.** On a home
+  directory it cannot stat, `min doctor` printed
+  `[: : integer expression expected` in the middle of the panel
+- 158 checks across the two suites
+
 ## 0.10.0
 
 nimo said everything was undoable. `min setup` was the exception. It is not

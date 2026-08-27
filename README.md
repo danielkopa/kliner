@@ -43,7 +43,7 @@ Later, `min update` pulls the newest version. To remove it: `./uninstall.sh`.
 
 ## The way in
 
-`min` on its own, in a real terminal, is a menu rather than a wall of help:
+`min` on its own is a prompt. Type what you want:
 
 ```
    ███╗   ██╗██╗███╗   ███╗ ██████╗
@@ -55,14 +55,23 @@ Later, `min update` pulls the newest version. To remove it: `./uninstall.sh`.
 
    make your computer feel better
 
-  ↑↓ move   enter choose   q cancel
+  type a command, or / to see them all. ctrl-d to leave.
 
-   ▸ tidy       the whole thing, step by step
-     desktop    clear your desktop, nothing lost
-     dock       keep only the apps you open
-     wallpaper  a calmer wallpaper
-     preview    what could be freed, changing nothing
+  nimo › /clean desktop
+  nimo › /wallpaper
+  nimo › /undo
 ```
+
+The slash is optional, and so is remembering the exact word: `/desktop`,
+`clean desktop` and `clear desktop` all mean the same thing. Typos are caught
+by shared prefix rather than substring, so `/wallpapr` and even
+`/clean deskopt` are understood — nimo says what it thinks you meant and waits
+rather than guessing on your behalf.
+
+Flags work at the prompt too: `/clean --only trash`, `/desktop --undo`.
+`/menu` switches to picking with the arrow keys, and `min --menu` starts there.
+
+Piped into anything, `min` prints the help it always did.
 
 Piped into anything, or in a terminal that cannot do it, the same `min` prints
 the help it always did.
@@ -239,6 +248,7 @@ anything.
 | `--undo` | put your desktop back the way it was |
 | `--restore` | put the dock or the wallpaper back |
 | `--random` | let nimo pick the wallpaper |
+| `--menu` | pick from a list with the arrow keys |
 | `--list` | list what a command offers, without asking anything |
 | `--only a,b` | limit to certain items or setup groups |
 | `--days N` | what counts as an old download (default 30) |
@@ -295,7 +305,7 @@ man min
 ## Tests
 
 ```bash
-bash test/run.sh      # 81 checks — everything that runs anywhere
+bash test/run.sh      # 96 checks — everything that runs anywhere
 bash test/macos.sh    # 62 checks — the parts that only run on a Mac
 ```
 
@@ -322,7 +332,7 @@ Every push runs everything on GitHub Actions: ShellCheck, a parse on both bash
 install-then-uninstall round trip. The bash 3.2 claim in this README is not a
 claim; it is a job that fails if it stops being true.
 
-Eighty-one checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
+Ninety-six checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
 command and flag, the safety guard, the arrow-key picker driven by simulated
 keystrokes, the menu, the undo history, the config file, the desktop sorted and then
 fully undone, and a complete clean where the promised number is compared
@@ -360,6 +370,7 @@ nimo
     ├── ui.sh              banner, panels, bars, the way output looks
     ├── core.sh            sizes, disk, config, the safety guard
     ├── pick.sh            choosing things with the arrow keys
+    ├── repl.sh            the prompt, and what it understands
     ├── desktop.sh         clearing the desktop, and putting it back
     ├── dock.sh            reading and rebuilding the dock
     ├── wall.sh            the wallpaper

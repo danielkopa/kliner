@@ -14,6 +14,20 @@ Every command that changes something shows what it is about to do and waits for
 a yes. Every change nimo makes can be reversed with
 .BR "min undo" .
 nimo never touches a path outside your home folder and never asks for sudo.
+.SH THE PROMPT
+Run
+.B min
+with no command and it opens a prompt. Type
+.B /clean desktop
+,
+.B /wallpaper
+,
+.B /undo
+\- the slash is optional, as is the exact wording. Typos are matched on shared
+prefix and suggested, never run on your behalf. Flags work there too. Piped or
+redirected,
+.B min
+prints this help instead.
 .SH COMMANDS
 .TP
 .B min tidy
@@ -113,7 +127,7 @@ Something could not be done.
 The command line did not make sense.
 .SH TESTS
 .B bash test/run.sh
-runs 81 checks against a throwaway computer in \fI/tmp\fR.
+runs 96 checks against a throwaway computer in \fI/tmp\fR.
 .B bash test/macos.sh
 runs 62 more against a simulated macOS, so the dock, wallpaper and preference
 code can be tested without a Mac and without touching yours.
