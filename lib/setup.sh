@@ -278,3 +278,86 @@ nimo_cmd_setup() {
     nimo_blank
     return 0
 }
+
+# ---- min zen -------------------------------------------------------------
+#
+# The fastest way to a calm desktop: stop drawing it. Nothing is moved and
+# nothing is deleted — Finder simply stops painting icons on the wallpaper,
+# and everything is still there in ~/Desktop.
+
+nimo_cmd_zen() {
+    nimo_header
+
+    if ! nimo_is_macos; then
+        nimo_warn "hiding desktop icons is a macOS thing"
+        nimo_blank
+        return 0
+    fi
+
+    nimo_panel_open "zen"
+
+    local showing
+    showing=$(defaults read com.apple.finder CreateDesktop 2>/dev/null) || showing=1
+    case "$showing" in
+        0|false|no) showing=0 ;;
+        *)          showing=1 ;;
+    esac
+
+    local want=0
+    [ "${NIMO_RESTORE:-0}" = "1" ] && want=1
+
+    if [ "$want" = "1" ]; then
+        nimo_say "Your desktop icons come back."
+    else
+        nimo_say "Finder stops drawing icons on your desktop."
+        nimo_blank
+        nimo_dim "the files stay exactly where they are, in ~/Desktop"
+        nimo_dim "you reach them in Finder, or with  min zen --restore"
+    fi
+
+    if [ "$showing" = "$want" ]; then
+        nimo_blank
+        nimo_dim "already like that — nothing to do"
+        nimo_panel_close
+        nimo_blank
+        return 0
+    fi
+
+    nimo_panel_close
+    nimo_blank
+
+    if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
+        nimo_dim "\$ defaults write com.apple.finder CreateDesktop -bool $([ "$want" = 1 ] && echo true || echo false)"
+        nimo_dim "preview only — nothing was changed"
+        nimo_blank
+        return 0
+    fi
+
+    if ! nimo_confirm "$([ "$want" = "1" ] && echo "Show your desktop icons again?" || echo "Hide your desktop icons?")"; then
+        nimo_blank
+        nimo_dim "nothing was changed"
+        nimo_blank
+        return 0
+    fi
+
+    mkdir -p "$NIMO_BACKUP_DIR" 2>/dev/null
+    NIMO_SETUP_LOG=$(nimo_free_file "$NIMO_BACKUP_DIR/setup-$(date +%Y%m%d-%H%M%S)" .tsv)
+    : > "$NIMO_SETUP_LOG"
+
+    if [ "$want" = "1" ]; then
+        nimo_run defaults write com.apple.finder CreateDesktop -bool true
+    else
+        nimo_run defaults write com.apple.finder CreateDesktop -bool false
+    fi
+    killall Finder >/dev/null 2>&1
+
+    nimo_blank
+    if [ "$want" = "1" ]; then
+        nimo_ok "Your desktop is back."
+    else
+        nimo_ok "Quiet desktop."
+        nimo_dim "bring it back with  min zen --restore"
+    fi
+    nimo_blank
+    return 0
+}
