@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.39.0
+
+- **The wallpaper store is found by what it holds, not by what Apple calls
+  it.** Sonoma put the path under a `relative` key; a later macOS need not.
+  nimo now also looks for any string that is a `file://` URL ending in an
+  image — which is what a wallpaper is, whatever the key around it happens to
+  be called this year. A folder URL, or anything that is not an image, is
+  still left exactly where it was
+- **`min wallpaper --restore` has two ways back now.** Setting the wallpaper
+  you had is the surgical one and is tried first, because it leaves alone
+  anything else you have changed since. Putting the whole store file back is
+  the exact one, and it is what is left when the picture you had has since
+  been deleted — which used to end in "could not put it back" while nimo was
+  holding a perfectly good copy of the setting the whole time
+- It says which of the two it used, and forgets both afterwards, so the next
+  change is a fresh one to come back to
+
 ## 0.38.0
 
 - **When the wallpaper store is there but shaped differently**, nimo says so
