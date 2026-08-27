@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.35.0
+
+### Flip through the wallpapers, on your own screen
+
+A list of names tells you nothing about a wallpaper. `min wallpaper` now puts
+each one **on your desktop as you move through them**:
+
+```
+  Sonoma Horizon                     4 of 47
+
+  ↑↓ or n p  flip     r  random     enter  keep it     q  put it back
+  it changes on your screen as you move
+```
+
+- `n` and `p`, or the arrow keys, step through them; `r` jumps to a random
+  one; `enter` keeps what is showing; `q` puts back the one you started with
+- **`min next` and `min prev`** — the same step, from the prompt, for when you
+  would rather flip a bit at a time than sit in the browser. `/next` and
+  `/prev` work at the nimo prompt too
+- nimo remembers two different things while you do this: the wallpaper you had
+  before it ever touched anything, and the one it is showing you now. So `q`
+  puts back the first, not the one you saw a second ago — and
+  `min wallpaper --restore` still works after twenty steps
+- `--restore` arms it again afterwards: the next change is a fresh one to come
+  back to, and the flipping starts from where you actually are
+- Windows gets the same thing, over the wallpapers under `C:\Windows\Web`
+
+Where the arrow keys cannot work — a pipe, a script, `TERM=dumb` — it falls
+back to typing a number, as before, and says that `min next` exists.
+
 ## 0.34.0
 
 Names people actually have.
