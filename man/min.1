@@ -1,6 +1,6 @@
 .TH MIN 1 "2026" "nimo" "User Commands"
 .SH NAME
-min \- make your computer feel better
+min \- make your workspace clean
 .SH SYNOPSIS
 .B min
 [\fICOMMAND\fR] [\fIOPTIONS\fR]
@@ -67,6 +67,14 @@ Report files kept in more than one place. Never deletes anything.
 .TP
 .B min apps
 List apps not opened in six months, biggest first. Never uninstalls anything.
+.TP
+.B min blank \fIFILE\fR
+Empty a file, keeping a copy of what was in it in \fI~/.nimo/undo\fR, so
+\fBmin undo\fR can put the contents back. The file itself stays where it is.
+.TP
+.B min dock \-\-fast
+No wait before the dock slides, and a quick slide. Both settings are written
+down first, so \fBmin setup \-\-restore\fR puts the sluggish ones back.
 .TP
 .B min empty
 Empty the Trash. The one command with no undo.

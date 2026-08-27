@@ -19,7 +19,7 @@
 #
 set -u
 
-NIMO_VERSION="0.22.0"
+NIMO_VERSION="0.24.0"
 
 # --- find our own directory, even when called through a symlink ---------
 nimo_root() {
@@ -39,7 +39,7 @@ NIMO_ROOT=$(nimo_root)
 NIMO_LIB="$NIMO_ROOT/lib"
 NIMO_SELF="$NIMO_ROOT/min"
 
-for _nimo_mod in ui core pick repl scan clean setup desktop dock wall look dupes apps undo tools; do
+for _nimo_mod in ui core pick repl scan clean setup desktop dock wall look dupes apps blank undo tools; do
     if [ ! -r "$NIMO_LIB/$_nimo_mod.sh" ]; then
         echo "nimo: cannot find $NIMO_LIB/$_nimo_mod.sh" >&2
         echo "nimo: is the whole repository still in one piece?" >&2
@@ -61,6 +61,8 @@ NIMO_UNDO=0
 NIMO_RESTORE=0
 NIMO_RANDOM=0
 NIMO_MENU=0
+NIMO_FAST=0
+NIMO_BY=kind
 NIMO_TARGET=""
 NIMO_LIMIT=15
 NIMO_COLOR=auto
@@ -90,6 +92,8 @@ nimo_usage() {
     min duplicates      the same file, kept more than once
     min apps            what you installed once and never opened again
     min empty           take the trash out
+    min blank FILE      empty a file, keeping what was in it
+    min dock --fast     a dock that slides the moment you reach for it
     min dock            keep only the apps you actually open
 
     min clean           scan your computer, then free up space
@@ -111,6 +115,8 @@ nimo_usage() {
         --restore       put the dock, wallpaper or preferences back
         --random        let nimo pick the wallpaper
         --menu          pick from a list with the arrow keys
+        --fast          with min dock: no wait, and a quick slide
+        --by WHAT       sort by kind (default), letter, or date
         --list          list the setup groups
         --limit N       how many rows min top shows (default 15)
         --json          machine readable output for clean and preview
@@ -149,7 +155,7 @@ nimo_read_config
 # --- argument parsing ----------------------------------------------------
 while [ $# -gt 0 ]; do
     case "$1" in
-        clear|clean|preview|setup|top|doctor|update|tidy|desktop|downloads|screenshots|zen|dark|light|hide|duplicates|apps|empty|dock|wallpaper|undo|menu|help|version)
+        clear|clean|preview|setup|top|doctor|update|tidy|desktop|downloads|screenshots|zen|dark|light|hide|duplicates|apps|empty|blank|dock|wallpaper|undo|menu|help|version)
             if [ -z "$NIMO_COMMAND" ]; then
                 NIMO_COMMAND="$1"
             elif [ -z "$NIMO_TARGET" ]; then
@@ -165,6 +171,16 @@ while [ $# -gt 0 ]; do
         --restore)      NIMO_RESTORE=1 ;;
         --random)       NIMO_RANDOM=1 ;;
         --menu)         NIMO_MENU=1 ;;
+        --fast)         NIMO_FAST=1 ;;
+        --by)
+            shift
+            if [ $# -eq 0 ]; then
+                echo "nimo: --by needs kind, letter or date" >&2
+                exit 2
+            fi
+            NIMO_BY="$1"
+            ;;
+        --by=*)         NIMO_BY="${1#--by=}" ;;
         --limit)
             shift
             if [ $# -eq 0 ]; then
@@ -223,6 +239,14 @@ case "$NIMO_DAYS" in
         ;;
 esac
 
+case "$NIMO_BY" in
+    kind|letter|date) ;;
+    *)
+        echo "nimo: --by takes kind, letter or date" >&2
+        exit 2
+        ;;
+esac
+
 case "$NIMO_LIMIT" in
     ''|*[!0-9]*|0)
         echo "nimo: --limit must be a positive whole number" >&2
@@ -244,6 +268,7 @@ esac
 [ "$NIMO_ANIMATE" = "never" ] && NIMO_INHERIT="$NIMO_INHERIT --no-animation"
 [ "$NIMO_ASSUME_YES" = "1" ] && NIMO_INHERIT="$NIMO_INHERIT -y"
 [ "$NIMO_DRY_RUN" = "1" ]    && NIMO_INHERIT="$NIMO_INHERIT -n"
+[ "$NIMO_BY" != "kind" ]     && NIMO_INHERIT="$NIMO_INHERIT --by $NIMO_BY"
 [ "$NIMO_DAYS" != "30" ]     && NIMO_INHERIT="$NIMO_INHERIT --days $NIMO_DAYS"
 [ "$NIMO_LIMIT" != "15" ]    && NIMO_INHERIT="$NIMO_INHERIT --limit $NIMO_LIMIT"
 
@@ -263,6 +288,7 @@ nimo_dispatch() {
         duplicates) nimo_cmd_duplicates ;;
         apps)      nimo_cmd_apps ;;
         empty)     nimo_cmd_empty ;;
+        blank)     nimo_cmd_blank ;;
         dock)      nimo_cmd_dock ;;
         wallpaper) nimo_cmd_wallpaper ;;
         undo)      nimo_cmd_undo ;;
