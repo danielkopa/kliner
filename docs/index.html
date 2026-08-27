@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="nimo makes a Mac feel minimal again: a clear desktop, a dock with only what you open, a calmer wallpaper, and the disk back. Every step asks first. Every step can be undone.">
+<meta name="description" content="nimo makes a computer feel minimal again: a clear desktop, a dock with only what you open, a calmer wallpaper, and the disk back. Every step asks first. Every step can be undone. macOS, Linux and Windows.">
 <meta name="color-scheme" content="dark light">
 <meta property="og:title" content="nimo">
 <meta property="og:description" content="Make your Mac feel minimal again.">
@@ -284,6 +284,9 @@
   pre.screen u { color: var(--term-warm); text-decoration: none; }
   pre.screen s { color: #EEF2F3; text-decoration: none; font-weight: 500; }
 
+  .demo-wrap { padding: 0; line-height: 0; background: var(--term-bg); }
+  .demo { display: block; width: 100%; height: auto; }
+
   .reveal > * { opacity: 0; animation: fade 0.45s ease forwards; }
   @keyframes fade { to { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) {
@@ -419,7 +422,7 @@
 
   <header class="hero">
     <div class="hero-in">
-      <span class="pill"><b>v0.10.0</b> min setup can be undone now, key by key</span>
+      <span class="pill"><b>v0.21.0</b> now on Windows too, without loosening a thing</span>
 
       <h1>Make your Mac<br>feel minimal again.</h1>
 
@@ -438,9 +441,9 @@
 
       <div class="facts">
         <span><b>0</b> dependencies</span>
-        <span><b>143</b> tests</span>
+        <span><b>289</b> tests</span>
         <span>bash <b>3.2</b></span>
-        <span><b>~4000</b> lines you can read</span>
+        <span><b>~5000</b> lines you can read</span>
         <span><b>MIT</b></span>
       </div>
     </div>
@@ -452,25 +455,106 @@
         <span class="dot"></span><span class="dot"></span><span class="dot"></span>
         <span class="term-title">daniel — min</span>
       </div>
-      <pre class="screen reveal" aria-label="The nimo menu running in a terminal"><span><b>   ███╗   ██╗██╗███╗   ███╗ ██████╗ </b>
-</span><span><b>   ████╗  ██║██║████╗ ████║██╔═══██╗</b>
-</span><span><b>   ██╔██╗ ██║██║██╔████╔██║██║   ██║</b>
-</span><span><b>   ██║╚██╗██║██║██║╚██╔╝██║██║   ██║</b>
-</span><span><b>   ██║ ╚████║██║██║ ╚═╝ ██║╚██████╔╝</b>
-</span><span><b>   ╚═╝  ╚═══╝╚═╝╚═╝     ╚═╝ ╚═════╝ </b>
-</span><span>
-</span><span><i>   make your computer feel better</i>
-</span><span><i>   v0.10.0</i>
-</span><span>
-</span><span><i>  ↑↓ move   enter choose   q cancel</i>
-</span><span>
-</span><span>   <b>▸</b> <s>tidy</s>       the whole thing, step by step
-</span><span>     desktop    clear your desktop, nothing lost
-</span><span>     dock       keep only the apps you open
-</span><span>     wallpaper  a calmer wallpaper
-</span><span>     preview    what could be freed, changing nothing
-</span><span>     undo       put something back</span></pre>
+      <div class="demo-wrap">
+<svg class="demo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 531 415" role="img" aria-label="nimo sorting 296 downloads, in a terminal">
+<rect width="531" height="415" rx="12" fill="#0B0D0E" stroke="#1A1E20"/>
+<circle cx="26" cy="24" r="5" fill="#262E30"/>
+<circle cx="44" cy="24" r="5" fill="#262E30"/>
+<circle cx="62" cy="24" r="5" fill="#262E30"/>
+<text x="82" y="28" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" fill="#6A7679">daniel — min</text>
+<line x1="0" y1="44" x2="531" y2="44" stroke="#1A1E20"/>
+<g opacity="0">
+<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.0000;0.0000;0.0976;0.1016;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
+<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">$ min</text>
+</g>
+<g opacity="0">
+<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.0936;0.0976;0.2561;0.2601;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
+<text x="22" y="85.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">             ╭───────────────╮</text>
+<text x="22" y="104.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">           ╭─╯               ╰─╮</text>
+<text x="22" y="124.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          ╭╯                   ╰╮</text>
+<g>
+<text x="22" y="143.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          │     ●         ●     │</text>
+<animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.9581;0.9582;1" dur="3.1s" repeatCount="indefinite" calcMode="discrete"/>
+</g>
+<g opacity="0">
+<text x="22" y="143.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          │     ─         ─     │</text>
+<animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.9581;0.9582;1" dur="3.1s" repeatCount="indefinite" calcMode="discrete"/>
+</g>
+<text x="22" y="163.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          │                     │</text>
+<text x="22" y="182.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          │      ╰───────╯      │</text>
+<text x="22" y="202.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          ╰╮                   ╭╯</text>
+<text x="22" y="221.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">           ╰─╮               ╭─╯</text>
+<text x="22" y="241.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">             ╰───────────────╯</text>
+<text x="22" y="280.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">                     nimo</text>
+<text x="22" y="319.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  / to see what it can do</text>
+<text x="22" y="358.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  nimo › </text>
+</g>
+<g opacity="0">
+<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.2521;0.2561;0.3171;0.3211;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
+<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  nimo › /clear</text>
+</g>
+<g opacity="0">
+<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.3131;0.3171;0.4512;0.4552;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
+<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  nimo › /clear</text>
+<text x="22" y="104.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  ╭─ what should be clear? ─────────────────────</text>
+<text x="22" y="143.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">     nothing is deleted — everything can be undone</text>
+<text x="22" y="182.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">     1.4 GB in all, and none of it is deleted</text>
+<text x="22" y="221.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#EEF2F3">   ▸ Desktop       85 items    ████········</text>
+<text x="22" y="241.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Downloads     296 items   ████████████</text>
+<text x="22" y="260.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Screenshots   12 loose    █···········</text>
+<text x="22" y="280.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Trash         18 items    █···········</text>
+<text x="22" y="299.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Dock          the apps you never open</text>
+<text x="22" y="319.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Everything    all of it, one step at a time</text>
+</g>
+<g opacity="0">
+<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.4472;0.4512;0.5488;0.5528;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
+<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  nimo › /clear</text>
+<text x="22" y="104.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  ╭─ what should be clear? ─────────────────────</text>
+<text x="22" y="143.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">     nothing is deleted — everything can be undone</text>
+<text x="22" y="182.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">     1.4 GB in all, and none of it is deleted</text>
+<text x="22" y="221.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Desktop       85 items    ████········</text>
+<text x="22" y="241.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#EEF2F3">   ▸ Downloads     296 items   ████████████</text>
+<text x="22" y="260.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Screenshots   12 loose    █···········</text>
+<text x="22" y="280.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Trash         18 items    █···········</text>
+<text x="22" y="299.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Dock          the apps you never open</text>
+<text x="22" y="319.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Everything    all of it, one step at a time</text>
+</g>
+<g opacity="0">
+<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.5448;0.5488;0.7195;0.7235;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
+<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  ╭─ your downloads ────────────────────────────</text>
+<text x="22" y="104.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Documents                      118 items</text>
+<text x="22" y="124.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Archives                        61 items</text>
+<text x="22" y="143.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Images                          54 items</text>
+<text x="22" y="163.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Video                           31 items</text>
+<text x="22" y="182.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Code                            18 items</text>
+<text x="22" y="202.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Other                           14 items</text>
+<text x="22" y="241.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">     ─────────────────────────────────</text>
+<text x="22" y="260.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#EEF2F3">     In there                       296 items</text>
+<text x="22" y="299.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  ╰─────────────────────────────────────────────</text>
+<text x="22" y="338.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  everything moves into  Downloads/Tidy/&lt;kind&gt;/</text>
+<text x="22" y="358.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  nothing is deleted, nothing is renamed</text>
+</g>
+<g opacity="0">
+<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.7155;0.7195;0.8171;0.8211;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
+<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  everything moves into  Downloads/Tidy/&lt;kind&gt;/</text>
+<text x="22" y="85.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  nothing is deleted, nothing is renamed</text>
+<text x="22" y="124.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  Sort 296 items? [y/N] y</text>
+</g>
+<g opacity="0">
+<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.8131;0.8171;1.0000;1.0000;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
+<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  Sort 296 items? [y/N] y</text>
+<text x="22" y="104.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">  ✓ Sorted — 296 items filed away</text>
+<text x="22" y="124.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  Downloads/Tidy/</text>
+<text x="22" y="163.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  changed your mind?  min downloads --undo</text>
+<text x="22" y="202.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  nimo › </text>
+</g>
+</svg>
+      </div>
     </div>
+    <p style="color: var(--faint); font-size: 0.8rem; margin-top: 0.6rem; text-align: center;">
+      That is the real thing, playing. Not a video — twelve kilobytes of SVG,
+      generated from a file of frames in the repository.
+    </p>
   </section>
 
   <section>
@@ -613,18 +697,28 @@
     <div class="stack-l">
       <div class="head">
         <span class="eyebrow">the whole surface</span>
-        <h2>Eleven commands. No flags you need to memorise.</h2>
+        <h2>Eighteen commands. None you need to memorise.</h2>
       </div>
 
       <div class="grid">
         <div class="card">
-          <span class="mono">min tidy</span>
-          <p>Desktop, dock, wallpaper and preferences, in order.</p>
-          <span class="tag">asks four times</span>
+          <span class="mono">min clear</span>
+          <p>Asks what should be clear, and counts each one as it asks.</p>
+          <span class="tag">the front door</span>
         </div>
         <div class="card">
           <span class="mono">min desktop</span>
           <p>Everything filed into <code>Desktop/Tidy/</code> by kind.</p>
+          <span class="tag">--undo</span>
+        </div>
+        <div class="card">
+          <span class="mono">min downloads</span>
+          <p>The same sorter, pointed at the folder that fills up fastest.</p>
+          <span class="tag">--undo</span>
+        </div>
+        <div class="card">
+          <span class="mono">min screenshots</span>
+          <p>Gathers the loose ones into <code>Pictures/Screenshots</code>.</p>
           <span class="tag">--undo</span>
         </div>
         <div class="card">
@@ -636,6 +730,21 @@
           <span class="mono">min wallpaper</span>
           <p>The calm ones macOS already ships with.</p>
           <span class="tag">--random · --restore</span>
+        </div>
+        <div class="card">
+          <span class="mono">min zen</span>
+          <p>Finder stops drawing icons on the desktop at all.</p>
+          <span class="tag">--restore</span>
+        </div>
+        <div class="card">
+          <span class="mono">min dark · light</span>
+          <p>Switch the appearance, with the old setting written down.</p>
+          <span class="tag">reversible</span>
+        </div>
+        <div class="card">
+          <span class="mono">min hide</span>
+          <p>The menu bar slides away until you reach for it.</p>
+          <span class="tag">--restore</span>
         </div>
         <div class="card">
           <span class="mono">min undo</span>
@@ -653,13 +762,23 @@
           <span class="tag">--json</span>
         </div>
         <div class="card">
-          <span class="mono">min top</span>
-          <p>The biggest folders in your home, with bars.</p>
-          <span class="tag">--limit</span>
+          <span class="mono">min duplicates</span>
+          <p>The same file kept in three places. Reported, never deleted.</p>
+          <span class="tag">read only</span>
         </div>
         <div class="card">
-          <span class="mono">min doctor</span>
-          <p>Disk, memory, battery, uptime and clutter on one screen.</p>
+          <span class="mono">min apps</span>
+          <p>What you installed once and have not opened in six months.</p>
+          <span class="tag">read only</span>
+        </div>
+        <div class="card">
+          <span class="mono">min empty</span>
+          <p>Takes the trash out, and says what that was worth.</p>
+          <span class="tag">the one with no undo</span>
+        </div>
+        <div class="card">
+          <span class="mono">min top · doctor</span>
+          <p>The biggest folders, and how the machine is doing.</p>
           <span class="tag">changes nothing</span>
         </div>
         <div class="card">
@@ -668,14 +787,9 @@
           <span class="tag">--dry-run · --restore</span>
         </div>
         <div class="card">
-          <span class="mono">min update</span>
-          <p><code>git pull</code> wherever nimo lives.</p>
-          <span class="tag">keeps the symlink</span>
-        </div>
-        <div class="card">
-          <span class="mono">man min</span>
-          <p>A real manual page, installed alongside.</p>
-          <span class="tag">for the rest</span>
+          <span class="mono">min tidy</span>
+          <p>All of it, one step at a time, asking each time.</p>
+          <span class="tag">or /auto, once</span>
         </div>
       </div>
     </div>
@@ -721,6 +835,91 @@
     </div>
   </section>
 
+  <section>
+    <div class="stack-l">
+      <div class="head">
+        <span class="eyebrow">the front door</span>
+        <h2>A menu that weighs what it offers.</h2>
+        <p>
+          Type <code>/clear</code> and nimo counts each pile before it asks, and draws
+          each one against the biggest. You can see where the mess is before you have
+          chosen anything.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="term">
+          <pre class="screen">  <i>╭─ what should be clear? ──────────────────</i>
+
+     <i>everything here can be undone</i>
+     <i>1.4 GB in all, and none of it is deleted</i>
+
+   <b>▸</b> <s>Desktop       85 items    ████········</s>
+     Downloads     296 items   <b>████████████</b>
+     Screenshots   12 loose    <b>█</b>···········
+     Trash         18 items    <b>█</b>···········
+     Dock          <i>the apps you never open</i>
+     Everything    <i>all of it, one step at a time</i>
+
+  <i>╰──────────────────────────────────────────</i></pre>
+        </div>
+
+        <div class="stack">
+          <div class="cap">
+            <span class="mono">/auto</span>
+            <p>Say yes once, for the whole session — the same bargain a terminal agent offers.</p>
+          </div>
+          <div class="term">
+            <pre class="screen">  <i>╭─ yes to everything ──────────────────────</i>
+
+     nimo stops asking. Every command runs
+     the moment you type it.
+
+     <i>this covers this session only</i>
+     <i>undo still works:  /undo</i>
+     <i>the trash is the exception</i>
+
+  <i>╰──────────────────────────────────────────</i>
+
+  Stop asking for this session? [y/N] <s>y</s>
+
+  <b>nimo</b> <u>auto</u> <b>›</b> _</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="stack-l">
+      <div class="head">
+        <span class="eyebrow">and not only on a mac</span>
+        <h2>Windows, without loosening a thing.</h2>
+        <p>
+          Under Git Bash, MSYS2 or Cygwin, <code>$HOME</code> is already
+          <code>C:/Users/&lt;name&gt;</code> — so the rule that keeps nimo inside your home
+          folder holds there untouched. It finds the Desktop after Windows has moved it
+          into OneDrive, is not fooled by the empty one left behind, and looks for junk
+          under <code>AppData</code> rather than <code>~/Library</code>.
+        </p>
+        <p>
+          It leaves the Recycle Bin alone, because that is an index as well as a folder
+          and half-deleting it helps nobody. And <strong>WSL is treated as Linux on
+          purpose</strong>: its home is a Linux home, the Windows one sits outside it,
+          and reaching over there would mean widening the one guard that never widens.
+        </p>
+      </div>
+
+      <div class="matrix">
+        <div class="job"><span class="tick">✓</span> <span>the desktop, downloads, screenshots</span> <span class="where">everywhere</span></div>
+        <div class="job"><span class="tick">✓</span> <span>duplicates, top, doctor, the prompt</span> <span class="where">everywhere</span></div>
+        <div class="job"><span class="tick">✓</span> <span>caches under <span class="what">AppData</span></span> <span class="where">windows</span></div>
+        <div class="job"><span class="tick">✓</span> <span>caches under <span class="what">~/Library</span></span> <span class="where">macos</span></div>
+        <div class="job"><span class="tick">✓</span> <span>dock, wallpaper, appearance, setup</span> <span class="where">macos only</span></div>
+      </div>
+    </div>
+  </section>
+
   <section id="promises">
     <div class="stack-l">
       <div class="head">
@@ -761,19 +960,19 @@
     <div class="stack-l">
       <div class="head">
         <span class="eyebrow">how it is kept honest</span>
-        <h2>The bash 3.2 promise is a job that fails.</h2>
+        <h2>Every promise here is a job that fails.</h2>
         <p>
-          Eighty-one checks run against a fake computer in <code>/tmp</code> with its own fake
+          A hundred and seventy-six checks run against a fake computer in <code>/tmp</code> with its own fake
           home — including the arrow-key picker, driven by simulated keystrokes, and a
           full clean where the promised number is compared against the freed one. Your
           real files are never read.
         </p>
         <p>
           The dock, the wallpaper and the preferences only ever run on a Mac, which used
-          to make them the parts nobody could test. Sixty-two more checks put fake
+          to make them the parts nobody could test. A hundred and thirteen more checks put fake
           <code>defaults</code>, <code>osascript</code>, <code>pmset</code> and
           <code>uname</code> in front of the real ones and run the real code against
-          them — the right apps leave the dock and the rest keep their order, the backup
+          them — for macOS and for Git Bash alike — the right apps leave the dock and the rest keep their order, the backup
           is written <em>before</em> anything changes, <code>--restore</code> brings it
           all back, and no line anywhere reaches for sudo.
         </p>
@@ -793,11 +992,12 @@
           <div class="job"><span class="tick">✓</span> <span>shellcheck</span> <span class="where">ubuntu</span></div>
           <div class="job"><span class="tick">✓</span> <span>parses on <span class="what">bash 3.2</span></span> <span class="where">container</span></div>
           <div class="job"><span class="tick">✓</span> <span>parses on <span class="what">bash 5</span></span> <span class="where">container</span></div>
-          <div class="job"><span class="tick">✓</span> <span>81 tests</span> <span class="where">ubuntu</span></div>
-          <div class="job"><span class="tick">✓</span> <span>62 macOS tests, <span class="what">simulated</span></span> <span class="where">ubuntu</span></div>
-          <div class="job"><span class="tick">✓</span> <span>81 tests, <span class="what">/bin/bash</span></span> <span class="where">macos</span></div>
-          <div class="job"><span class="tick">✓</span> <span>62 macOS tests, <span class="what">/bin/bash</span></span> <span class="where">macos</span></div>
+          <div class="job"><span class="tick">✓</span> <span>176 + 86 + 27 tests</span> <span class="where">ubuntu</span></div>
+          <div class="job"><span class="tick">✓</span> <span>all three, <span class="what">/bin/bash 3.2</span></span> <span class="where">macos</span></div>
+          <div class="job"><span class="tick">✓</span> <span>176 + 27 tests</span> <span class="where">windows</span></div>
+          <div class="job"><span class="tick">✓</span> <span>parses on bash 3.2 and 5</span> <span class="where">container</span></div>
           <div class="job"><span class="tick">✓</span> <span>install, then uninstall</span> <span class="where">macos</span></div>
+          <div class="job"><span class="tick">✓</span> <span>a release that does not run <span class="what">cannot ship</span></span> <span class="where">on tag</span></div>
         </div>
 
         <div class="term">
@@ -816,7 +1016,7 @@
   <b>✓</b> falls back when macOS says no
   <i>  …</i>
 
-  <b>✓ 62 passed</b></pre>
+  <b>✓ 86 passed</b></pre>
         </div>
       </div>
     </div>
