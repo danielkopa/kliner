@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.30.0
+
+### min startup — what launches when you sign in
+
+The slowest, most cluttered part of a computer is usually the part nobody
+looks at: the six things that start themselves every morning.
+
+- Reads four places — the `Run` key and the Startup folder on Windows, login
+  items and `~/Library/LaunchAgents` on macOS — and names all of them: the
+  ones nimo can turn off, and the ones it will only report, with the reason
+  beside each. A count of things you cannot see is not a report
+- **Nothing is uninstalled and nothing is deleted.** A registry value is
+  written down and removed, a shortcut is moved into `~/.nimo/backups`, a
+  login item is deleted through System Events and its path kept. A program you
+  stop still starts when you open it yourself
+- Anything set for everyone on the machine needs an administrator, so nimo
+  lists it and never writes to it
+- **One undo covers both halves.** The startup log names the preferences log
+  it opened, so `min startup --undo` puts the registry values and the moved
+  shortcuts back together — rather than leaving you to know that one of them
+  needed `min setup --restore` as well
+
+### The rest
+
+- `min clean` on Windows knows the caches people there actually have: Chrome
+  and Edge code caches, Firefox, Brave and Opera, Teams, Slack, VS Code,
+  Discord and Spotify, Gradle, Cargo, NuGet and Go build, and the thumbnail
+  cache. Three that look exactly like junk and are not — the Package Cache,
+  the Visual Studio installer cache and `.nuget/packages` — are named in the
+  source with the reason, and left alone
+- The `/` list offers `/startup`
+
 ## 0.29.0
 
 Found by running every command against a faked Windows and reading the output,
