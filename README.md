@@ -57,13 +57,14 @@ Later, `min update` pulls the newest version. To remove it: `./uninstall.sh`.
 
   type a command, or / to see them all. ctrl-d to leave.
 
-  nimo › /clean desktop
-  nimo › /wallpaper
-  nimo › /undo
+  nimo › /cleardesktop
+  nimo › /screenshots
+  nimo › /zen
 ```
 
-The slash is optional, and so is remembering the exact word: `/desktop`,
-`clean desktop` and `clear desktop` all mean the same thing. Typos are caught
+The slash is optional, the spaces are optional, and so is remembering the exact
+word: `/desktop`, `/cleardesktop`, `/clear desktop`, `/clearfiles` and
+`/sort desktop` all mean the same thing. Typos are caught
 by shared prefix rather than substring, so `/wallpapr` and even
 `/clean deskopt` are understood — nimo says what it thinks you meant and waits
 rather than guessing on your behalf.
@@ -110,6 +111,23 @@ min desktop --undo
 ```
 
 puts all forty-seven back exactly where they were, down to the folder.
+
+### `min downloads` · `min screenshots`
+
+`min downloads` is the same sorter pointed at `~/Downloads` — the folder that
+quietly reaches three hundred items while you are not looking. Same rules, same
+undo log, same `--undo`.
+
+`min screenshots` gathers every loose screenshot out of your desktop, downloads
+and documents into `~/Pictures/Screenshots`. It only touches files it
+recognises as screenshots, by name, and puts them all back with
+`min screenshots --undo`.
+
+### `min zen`
+
+The fastest calm desktop there is: Finder stops drawing icons on it. Nothing
+moves, nothing is deleted, everything is still in `~/Desktop` and still in
+Finder. `min zen --restore` brings the icons back.
 
 ### `min dock`
 
@@ -228,6 +246,9 @@ anything.
 | --- | --- |
 | `min tidy` | desktop, dock, wallpaper and preferences, in order |
 | `min desktop` | clear your desktop — `--undo` puts it back |
+| `min downloads` | the same sorter, pointed at `~/Downloads` |
+| `min screenshots` | gather every loose screenshot into `~/Pictures/Screenshots` |
+| `min zen` | stop drawing icons on the desktop at all — `--restore` brings them back |
 | `min dock` | pick what stays — `--restore` puts it back |
 | `min wallpaper` | pick one macOS already has — `--restore` puts it back |
 | `min undo` | everything nimo has done, and a way back |
@@ -305,8 +326,8 @@ man min
 ## Tests
 
 ```bash
-bash test/run.sh      # 96 checks — everything that runs anywhere
-bash test/macos.sh    # 62 checks — the parts that only run on a Mac
+bash test/run.sh      # 110 checks — everything that runs anywhere
+bash test/macos.sh    # 68 checks — the parts that only run on a Mac
 ```
 
 The dock, the wallpaper and the preferences only ever run on a Mac, which used
@@ -332,7 +353,7 @@ Every push runs everything on GitHub Actions: ShellCheck, a parse on both bash
 install-then-uninstall round trip. The bash 3.2 claim in this README is not a
 claim; it is a job that fails if it stops being true.
 
-Ninety-six checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
+A hundred and ten checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
 command and flag, the safety guard, the arrow-key picker driven by simulated
 keystrokes, the menu, the undo history, the config file, the desktop sorted and then
 fully undone, and a complete clean where the promised number is compared
@@ -371,7 +392,7 @@ nimo
     ├── core.sh            sizes, disk, config, the safety guard
     ├── pick.sh            choosing things with the arrow keys
     ├── repl.sh            the prompt, and what it understands
-    ├── desktop.sh         clearing the desktop, and putting it back
+    ├── desktop.sh         the sorter behind desktop, downloads and screenshots
     ├── dock.sh            reading and rebuilding the dock
     ├── wall.sh            the wallpaper
     ├── undo.sh            the history, and the way back

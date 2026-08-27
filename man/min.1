@@ -37,6 +37,16 @@ Desktop, dock, wallpaper and preferences, in that order. Each step asks first.
 Move everything on the desktop into \fIDesktop/Tidy/\fR, sorted by kind.
 Nothing is deleted or renamed. \fB\-\-undo\fR puts it all back.
 .TP
+.B min downloads
+The same sorter, pointed at \fI~/Downloads\fR.
+.TP
+.B min screenshots
+Gather every loose screenshot into \fI~/Pictures/Screenshots\fR.
+.TP
+.B min zen
+Stop drawing icons on the desktop. Nothing moves; \fB\-\-restore\fR brings
+them back.
+.TP
 .B min dock
 List the dock and remove only the entries you tick. The dock is exported first;
 \fB\-\-restore\fR brings it back.
@@ -127,9 +137,9 @@ Something could not be done.
 The command line did not make sense.
 .SH TESTS
 .B bash test/run.sh
-runs 96 checks against a throwaway computer in \fI/tmp\fR.
+runs 110 checks against a throwaway computer in \fI/tmp\fR.
 .B bash test/macos.sh
-runs 62 more against a simulated macOS, so the dock, wallpaper and preference
+runs 68 more against a simulated macOS, so the dock, wallpaper and preference
 code can be tested without a Mac and without touching yours.
 .SH SEE ALSO
 The full documentation lives in the repository README.

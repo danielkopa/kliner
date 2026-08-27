@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.12.0
+
+- **nimo has a face again.** The sketch from the very first version is what
+  greets you at the prompt
+- **Spaces are optional.** `/cleardesktop`, `/clear desktop`, `/clearfiles`,
+  `/cleandock`, `/cleardownloads` — everything is matched twice, as typed and
+  with the spaces removed, so nobody has to remember which form nimo wanted
+- **`min downloads`** — the desktop sorter, pointed at `~/Downloads`
+- **`min screenshots`** — gathers loose screenshots out of the desktop,
+  downloads and documents into `~/Pictures/Screenshots`
+- **`min zen`** — Finder stops drawing icons on the desktop. Nothing moves,
+  nothing is deleted, `--restore` brings them back
+- One sorter now serves desktop, downloads and screenshots, so they share the
+  same rules, the same undo log and the same guarantees
+- **Fixed: the prompt did not hand its flags down.** A session started with
+  `-y` or `--no-color` launched its commands with neither, so a confirmation
+  that had already been answered sat there waiting
+- 178 checks across the two suites
+
 ## 0.11.0
 
 - **`min` on its own is a prompt now.** Type `/clean desktop`, `/wallpaper`,
