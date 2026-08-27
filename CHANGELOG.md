@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.38.0
+
+- **When the wallpaper store is there but shaped differently**, nimo says so
+  and asks to be shown the file, rather than reporting the same failure as a
+  missing permission. Those are two different problems and they are fixed in
+  two different places — telling them apart is the whole job of the message
+- `tools/wallstore.sh` prints the shape of that file: every key and how often,
+  anything that looks like a path, the nesting, and whether the wallpaper is
+  hidden inside a data blob. It changes nothing. Apple has moved this file
+  before and will again, and guessing at the shape of a file nimo is about to
+  write is the one thing it must not do
+- A check for exactly that state, because a real macOS 26 turned up in it
+
 ## 0.37.0
 
 **The wallpaper no longer needs anybody's permission.**
