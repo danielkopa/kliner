@@ -640,6 +640,37 @@ check "everything else in the file stays"  "grep -q 'com.apple.wallpaper.choice.
 check "and it kept the original file"      "[ -f '$BOX/.nimo/backups/wallpaper-store.plist' ]"
 check "the agent is asked to reread it"    "grep -q 'WallpaperAgent' '$ROOT/lib/wall.sh'"
 
+# A store shaped differently — no `relative` key at all, which is what a
+# later macOS looks like. nimo finds the wallpaper by what it is rather than
+# by what the key around it is called, and leaves everything that is not an
+# image exactly where it was.
+cat > "$STORE_DIR/Index.plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0">
+<dict>
+  <key>Spaces</key>
+  <dict>
+    <key>Desktop</key>
+    <dict>
+      <key>SomeNewKeyApplePicked</key>
+      <string>file:///System/Library/Desktop%20Pictures/Old%20One.heic</string>
+      <key>Folder</key>
+      <string>file:///System/Library/Desktop%20Pictures</string>
+      <key>Provider</key>
+      <string>com.apple.wallpaper.choice.image</string>
+    </dict>
+  </dict>
+</dict>
+</plist>
+PLIST
+
+check "it finds it without the old key"    "[ \"\$(store_says)\" = '/System/Library/Desktop Pictures/Old One.heic' ]"
+check "and can write it there too"         "store_set '$PICS/Sonoma Horizon.heic'; store_says | grep -q 'Sonoma Horizon'"
+check "a folder is not a wallpaper"        "grep -q '<string>file:///System/Library/Desktop%20Pictures</string>' '$STORE_DIR/Index.plist'"
+check "and nothing else in it moved"       "grep -q 'com.apple.wallpaper.choice.image' '$STORE_DIR/Index.plist'"
+
+make_store "/System/Library/Desktop%20Pictures/Radial%20Sky%20Blue.heic"
+
 # The real machine this came from: Automation refused, -1743 for ever, and
 # nothing at all in Settings to switch on. The store still works.
 make_store "/System/Library/Desktop%20Pictures/Radial%20Sky%20Blue.heic"
@@ -648,6 +679,25 @@ OUT=$(NIMO_OSA_FAIL=1 wall set)
 check "it works with AppleScript refused"  "printf '%s' \"\$OUT\" | grep -q 'Wallpaper set'"
 check "and it never had to ask permission" "[ ! -s '$SCRIPTED' ]"
 check "the store is what changed"          "store_says | grep -q 'Black'"
+
+# Two ways back, and the second is the one that matters when the first
+# cannot work: the picture you had has been deleted since. nimo keeps a copy
+# of the setting itself, so it still has an answer.
+make_store "$PICS/Sonoma%20Horizon.heic"
+rm -rf "$BOX/.nimo/backups"
+printf '%s\n' "$PICS/Sonoma Horizon.heic" > "$STATE/wallpaper"
+store_set "$PICS/Ventura Graphic.heic" >/dev/null 2>&1
+check "it kept a copy of the setting"      "[ -f '$BOX/.nimo/backups/wallpaper-store.plist' ]"
+
+printf '%s\n' "$PICS/gone-for-ever.heic" > "$BOX/.nimo/backups/wallpaper.txt"
+OUT=$(wall restore)
+check "a deleted picture is not the end"   "printf '%s' \"\$OUT\" | grep -q 'Wallpaper restored'"
+check "and it says which way it went back" "printf '%s' \"\$OUT\" | grep -q 'the whole'"
+check "the store is exactly as it was"     "store_says | grep -q 'Sonoma Horizon'"
+check "and nimo is armed for the next one" "[ ! -f '$BOX/.nimo/backups/wallpaper-store.plist' ]"
+
+make_store "/System/Library/Desktop%20Pictures/Radial%20Sky%20Blue.heic"
+rm -rf "$BOX/.nimo/backups"
 
 # And when the store is not there at all — a Mac older than Sonoma, or one
 # where Apple has moved it again — it falls back rather than stopping.

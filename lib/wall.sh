@@ -129,18 +129,39 @@ nimo_url_decode() {
 }
 
 # What the store says is showing, as a plain path.
-nimo_wall_store_read() {
-    local store url
+#
+# Two ways of finding it, and the second is the reason this survives Apple:
+# Sonoma put the path under a `relative` key, and a later macOS may not. So if
+# that key is not there, nimo looks for any string that is a file:// URL
+# ending in an image — which is what a wallpaper is, whatever the key around
+# it happens to be called this year. A folder URL, or anything that is not an
+# image, is left alone.
+NIMO_WALL_IMAGE_RE='\\.([Hh][Ee][Ii][Cc]|[Jj][Pp][Ee]?[Gg]|[Pp][Nn][Gg]|[Tt][Ii][Ff][Ff]?)$'
+
+nimo_wall_store_xml() {
+    local store
     store=$(nimo_wall_store)
     [ -f "$store" ] || return 1
     nimo_have plutil || return 1
-    url=$(plutil -convert xml1 -o - "$store" 2>/dev/null \
-        | awk '/<key>relative<\/key>/ { want = 1; next }
-               want && /<string>/ {
-                   line = $0
-                   sub(/.*<string>/, "", line); sub(/<\/string>.*/, "", line)
-                   print line; exit
-               }')
+    plutil -convert xml1 -o - "$store" 2>/dev/null
+}
+
+nimo_wall_store_read() {
+    local url
+    url=$(nimo_wall_store_xml | awk -v img="$NIMO_WALL_IMAGE_RE" '
+        /<key>relative<\/key>/ { want = 1; next }
+        want && /<string>/ {
+            line = $0
+            sub(/.*<string>/, "", line); sub(/<\/string>.*/, "", line)
+            if (line ~ /^file:\/\//) { print line; exit }
+            want = 0
+        }
+        /<string>file:\/\// {
+            line = $0
+            sub(/.*<string>/, "", line); sub(/<\/string>.*/, "", line)
+            if (line ~ img) { spare = spare == "" ? line : spare }
+        }
+        END { if (spare != "") print spare }') || return 1
     [ -n "$url" ] || return 1
     case "$url" in
         file://*) ;;
@@ -160,17 +181,36 @@ nimo_wall_store_write() {
     tmp="${TMPDIR:-/tmp}/nimo-wall.$$"
     plutil -convert xml1 -o "$tmp.xml" "$store" 2>/dev/null || { rm -f "$tmp.xml"; return 1; }
 
-    # Only the strings that follow a <key>relative</key>. Nothing else in this
-    # file is a path, and nimo is not going to find out the hard way.
-    awk -v url="$url" '
-        prev ~ /<key>relative<\/key>/ && /<string>/ {
-            i = index($0, "<string>")
-            j = index($0, "</string>")
-            if (i > 0 && j > i) {
-                $0 = substr($0, 1, i + 7) url substr($0, j)
+    # Two rules, and nothing else in the file is touched by either:
+    #
+    #   a string right after a <key>relative</key>   — Sonoma's shape
+    #   any file:// string that names an image        — whatever Apple calls
+    #                                                   the key this year
+    #
+    # A folder URL, or a string that is not an image, is left exactly as it
+    # was. That is the difference between editing this file and rewriting it.
+    awk -v url="$url" -v img="$NIMO_WALL_IMAGE_RE" '
+        {
+            hit = 0
+            if (prev ~ /<key>relative<\/key>/ && /<string>/) hit = 1
+            else if (/<string>file:\/\//) {
+                line = $0
+                sub(/.*<string>/, "", line); sub(/<\/string>.*/, "", line)
+                if (line ~ img) hit = 1
             }
+            if (hit) {
+                i = index($0, "<string>")
+                j = index($0, "</string>")
+                if (i > 0 && j > i) {
+                    was = $0
+                    $0 = substr($0, 1, i + 7) url substr($0, j)
+                    prev = was
+                    print
+                    next
+                }
+            }
+            print; prev = $0
         }
-        { print; prev = $0 }
     ' "$tmp.xml" > "$tmp.new" 2>/dev/null || { rm -f "$tmp.xml" "$tmp.new"; return 1; }
 
     grep -q -- "$url" "$tmp.new" || { rm -f "$tmp.xml" "$tmp.new"; return 1; }
@@ -545,12 +585,28 @@ nimo_wall_browse() {
     done
 }
 
+# Two ways back, tried in that order for a reason.
+#
+# Setting the wallpaper you had is the surgical one: it leaves alone anything
+# else you have changed since. Putting the whole store file back is the exact
+# one, and it is what is left when the surgical way cannot work — the picture
+# has been deleted, or your Mac will not take orders. nimo keeps both, so it
+# has an answer either way.
+nimo_wall_forget() {
+    rm -f "$NIMO_BACKUP_DIR/wallpaper.txt" \
+          "$NIMO_BACKUP_DIR/$NIMO_WALL_AT" \
+          "$NIMO_BACKUP_DIR/wallpaper-store.plist" 2>/dev/null
+}
+
 nimo_wall_restore() {
     nimo_header
     nimo_panel_open "put the wallpaper back"
 
-    local saved="$NIMO_BACKUP_DIR/wallpaper.txt" was
-    if [ ! -f "$saved" ]; then
+    local saved="$NIMO_BACKUP_DIR/wallpaper.txt" kept was store
+    kept="$NIMO_BACKUP_DIR/wallpaper-store.plist"
+    store=$(nimo_wall_store)
+
+    if [ ! -f "$saved" ] && [ ! -f "$kept" ]; then
         nimo_dim "no wallpaper saved yet — nimo has not changed it"
         nimo_panel_close
         nimo_blank
@@ -561,14 +617,32 @@ nimo_wall_restore() {
     if [ -n "$was" ] && [ -f "$was" ] && nimo_wall_apply "$was"; then
         # armed again: the next change is a fresh "before" to come back to,
         # and the flipping starts from where you actually are
-        rm -f "$saved" "$NIMO_BACKUP_DIR/$NIMO_WALL_AT" 2>/dev/null
+        nimo_wall_forget
         nimo_ok "Wallpaper restored"
         nimo_dim "$(nimo_wall_pretty "$was")"
-    else
-        nimo_warn "could not put it back"
-        nimo_dim "it was: ${was:-unknown}"
+        nimo_panel_close
+        nimo_blank
+        return 0
     fi
 
+    if [ -f "$kept" ] && [ -f "$store" ] && cp "$kept" "$store" 2>/dev/null; then
+        killall WallpaperAgent >/dev/null 2>&1
+        nimo_wall_forget
+        nimo_ok "Wallpaper restored"
+        if [ -n "$was" ] && [ ! -f "$was" ]; then
+            nimo_dim "the picture you had is gone, so nimo put back the whole"
+            nimo_dim "setting instead — exactly as it was before it started"
+        else
+            nimo_dim "put back from the copy nimo kept of the setting itself"
+        fi
+        nimo_panel_close
+        nimo_blank
+        return 0
+    fi
+
+    nimo_warn "could not put it back"
+    nimo_dim "it was: ${was:-unknown}"
+    [ -n "$was" ] && [ ! -f "$was" ] && nimo_dim "and that file is not there any more"
     nimo_panel_close
     nimo_blank
     return 0

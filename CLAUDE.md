@@ -184,6 +184,18 @@ else in that file is a path, and nimo is not going to find out the hard way.
 The original is copied to `backups/wallpaper-store.plist` before the first
 write.
 
+Two rules for finding the wallpaper in there, and the second is why this
+survives Apple: a string right after a `<key>relative</key>` — Sonoma's shape
+— **or** any `file://` string that names an image, whatever the key is called.
+A folder URL is not an image and is left alone. That is the difference between
+editing this file and rewriting it.
+
+`min wallpaper --restore` has two ways back, in this order: set the wallpaper
+you had (surgical, leaves your other changes alone), or copy the whole store
+file back (exact, and the only thing left when that picture has been deleted).
+Both are kept, so there is always an answer; `nimo_wall_forget` clears all
+three files afterwards so the next change is a fresh "before".
+
 `plutil` for the conversion, `awk` for the swap. **No `strtonum`** in the URL
 decoder: that is a gawk extension and the awk macOS ships is the one Kernighan
 wrote. Paths are percent-encoded byte by byte under `LC_ALL=C`, so an accented
