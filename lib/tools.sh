@@ -108,8 +108,8 @@ nimo_cmd_doctor() {
     nimo_fact "Uptime" "$(nimo_uptime_line)"
 
     local free total used
-    free=$(nimo_disk_free_kb)
-    total=$(nimo_disk_total_kb)
+    free=$(nimo_disk_free_kb); free=${free:-0}
+    total=$(nimo_disk_total_kb); total=${total:-0}
     used=$((total - free))
     if [ "$total" -gt 0 ]; then
         nimo_fact "Disk" \

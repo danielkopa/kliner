@@ -98,8 +98,18 @@ nimo_have() { command -v "$1" >/dev/null 2>&1; }
 
 # --- disk ----------------------------------------------------------------
 
-nimo_disk_free_kb()  { df -Pk "$HOME" 2>/dev/null | awk 'NR == 2 {print $4 + 0}'; }
-nimo_disk_total_kb() { df -Pk "$HOME" 2>/dev/null | awk 'NR == 2 {print $2 + 0}'; }
+# These must always print a number. On a home directory df cannot stat — a
+# stale mount, a deleted directory — it printed nothing at all, and every
+# arithmetic test downstream then failed with "integer expression expected".
+nimo_disk_free_kb() {
+    df -Pk "$HOME" 2>/dev/null \
+        | awk 'NR == 2 {print $4 + 0; found = 1} END {if (!found) print 0}'
+}
+
+nimo_disk_total_kb() {
+    df -Pk "$HOME" 2>/dev/null \
+        | awk 'NR == 2 {print $2 + 0; found = 1} END {if (!found) print 0}'
+}
 
 nimo_disk_line() {
     local free total
