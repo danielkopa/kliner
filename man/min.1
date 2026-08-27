@@ -97,7 +97,11 @@ there and asks Windows to empty it.
 .TP
 .B min dock
 List the dock and remove only the entries you tick. The dock is exported first;
-\fB\-\-restore\fR brings it back.
+\fB\-\-restore\fR brings it back. On Windows it does the same for the apps
+pinned to the taskbar: a pin is a shortcut plus a blob under Taskband that
+Explorer keeps in step with it, so nimo moves the shortcut aside and clears
+the blob together, and \fB\-\-restore\fR puts both back. Nothing is
+uninstalled either way.
 .TP
 .B min wallpaper
 Choose from the wallpapers your system already ships with \- macOS's Desktop

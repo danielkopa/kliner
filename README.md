@@ -594,8 +594,8 @@ What runs where, exactly:
 | --- | --- | --- | --- |
 | `desktop` `downloads` `screenshots` `blank` `undo` | yes | yes | yes |
 | `clean` `preview` `top` `doctor` `duplicates` `empty` | yes | yes | yes |
-| `wallpaper` `dark` `light` `zen` `setup` `hide` `apps` `startup` | yes | yes | — |
-| `dock` | yes | — | — |
+| `wallpaper` `dark` `light` `zen` `setup` `hide` `apps` `startup` `dock` | yes | yes | — |
+| `dock --fast` | yes | — | — |
 
 On Windows everything nimo changes is HKCU: the signed-in user's own settings,
 the counterpart of `defaults` on a Mac. Nothing under HKLM, nothing that needs
@@ -615,6 +615,14 @@ separately before doing it, and nothing is lost by it: no files, no desktop
 icon positions, no window with unsaved work. Signing out does the same thing.
 Nothing else in nimo restarts Explorer — the rest use the documented refresh
 and say so if a sign-out is still needed.
+
+`min dock` on Windows is the row of apps pinned to the taskbar. A pin is two
+things at once — a shortcut in a folder, and a blob under `Taskband` that
+Explorer keeps in step with it — so removing one without the other leaves a
+pin that comes back, or a gap that does not fill. nimo moves the shortcut
+aside, writes the blob down and clears it, and lets Explorer rebuild the blob
+from the folder. `min dock --restore` puts both back. Unpinning does not
+uninstall anything.
 
 `min startup` reads four places: the `Run` key and the Startup folder on
 Windows, login items and `~/Library/LaunchAgents` on macOS. It names all of

@@ -307,3 +307,31 @@ nimo_win_run_values() {
 nimo_win_startup_folder() {
     printf '%s' "$HOME/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup"
 }
+
+# ---- the taskbar's pinned apps -------------------------------------------
+#
+# Pinning is two things at once: a shortcut in a folder, and a blob under
+# Taskband that Explorer keeps in step with it. Removing one without the other
+# leaves a pin that comes back, or a gap that does not fill — so nimo moves
+# the shortcut aside, writes the blob down and clears it, and lets Explorer
+# rebuild the blob from the folder when it next starts.
+NIMO_WIN_TASKBAND='HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
+
+nimo_win_pinned_dir() {
+    printf '%s' "$HOME/AppData/Roaming/Microsoft/Internet Explorer/Quick Launch/User Pinned/TaskBar"
+}
+
+# one line per pin:  name <TAB> the shortcut
+nimo_win_pinned() {
+    local dir item name
+    dir=$(nimo_win_pinned_dir)
+    [ -d "$dir" ] || return 0
+    while IFS= read -r item; do
+        [ -n "$item" ] || continue
+        name=$(basename "$item")
+        case "$name" in .*|desktop.ini) continue ;; esac
+        printf '%s\t%s\n' "${name%.*}" "$item"
+    done <<INNER
+$(find "$dir" -mindepth 1 -maxdepth 1 -type f -name '*.lnk' 2>/dev/null | sort)
+INNER
+}

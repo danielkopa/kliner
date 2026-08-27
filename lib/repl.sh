@@ -90,7 +90,7 @@ nimo_repl_list() {
 
     case "$plat" in
         macos)   also="/tidy /doctor /preview /empty /dock /hide /apps /menu /quit" ;;
-        windows) also="/tidy /doctor /preview /empty /hide /apps /menu /quit" ;;
+        windows) also="/tidy /doctor /preview /empty /dock /hide /apps /menu /quit" ;;
         *)       also="/tidy /doctor /preview /empty /menu /quit" ;;
     esac
     printf '%s%s%-14s %s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "also" "$also" "$NIMO_C_RESET"

@@ -253,6 +253,15 @@ commands, in order.
 `nimo_setup_restore` opens a panel of its own, and closing a panel resets
 `NIMO_PAD` — so a nested call has to save and restore it. Panels do not nest.
 
+`min dock` on Windows is the taskbar's pinned apps. A pin is two things at
+once: a shortcut under `Quick Launch/User Pinned/TaskBar`, and a `Favorites`
+blob under `Taskband` that Explorer keeps in step with it. Remove one without
+the other and you get a pin that comes back or a gap that does not fill — so
+both move together, and the replay is `nimo_startup_undo`, which already knows
+how to put a moved file and a recorded registry value back at the same time.
+It takes a title and a verb so the dock does not tell you its pins are about
+to start themselves.
+
 ## Two platforms, one menu
 
 Nothing is offered that this computer cannot do. `min clear` builds its rows

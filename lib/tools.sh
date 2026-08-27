@@ -276,9 +276,8 @@ nimo_cmd_tidy() {
     nimo_cmd_screenshots
     # Running every step and letting the ones this machine cannot do print an
     # apology turned tidy into a list of things nimo would not be doing.
-    [ "$plat" = "macos" ] && nimo_cmd_dock
     case "$plat" in
-        macos|windows) nimo_cmd_wallpaper; nimo_cmd_setup ;;
+        macos|windows) nimo_cmd_dock; nimo_cmd_wallpaper; nimo_cmd_setup ;;
     esac
 
     NIMO_QUIET="$was_quiet"
@@ -288,7 +287,12 @@ nimo_cmd_tidy() {
     nimo_blank
     nimo_dim "undo the desktop     min desktop --undo"
     nimo_dim "undo the downloads   min downloads --undo"
-    [ "$plat" = "macos" ] && nimo_dim "undo the dock        min dock --restore"
+    case "$plat" in
+        macos)
+            nimo_dim "undo the dock        min dock --restore" ;;
+        windows)
+            nimo_dim "undo the taskbar     min dock --restore" ;;
+    esac
     case "$plat" in
         macos|windows)
             nimo_dim "undo the wallpaper   min wallpaper --restore"
@@ -313,8 +317,10 @@ nimo_menu_items() {
         "$(printf '%-10s %s' tidy      'the whole thing, step by step')" \
         "$(printf '%-10s %s' desktop   'clear your desktop, nothing lost')" \
         "$(printf '%-10s %s' downloads 'the same, for your downloads')"
-    [ "$plat" = "macos" ] && \
-        printf '%s\n' "$(printf '%-10s %s' dock 'keep only the apps you open')"
+    case "$plat" in
+        macos)   printf '%s\n' "$(printf '%-10s %s' dock 'keep only the apps you open')" ;;
+        windows) printf '%s\n' "$(printf '%-10s %s' dock 'keep only the apps you pin')" ;;
+    esac
     case "$plat" in
         macos|windows)
             printf '%s\n' \
@@ -414,8 +420,12 @@ nimo_cmd_clear() {
             [ "$(nimo_platform)" = "windows" ] && bin_label="Bin"
             nimo_offer "$(printf '%s %-11s %-11s %s' ○ "$bin_label" "$(nimo_plural "$n_trash" item)"  "$(nimo_bar "$n_trash" "$most" 12)")" trash
         fi
-        [ "$(nimo_platform)" = "macos" ] && \
-            nimo_offer "$(printf '%s %-11s %s' ■ Dock        'the apps you never open')" dock
+        case "$(nimo_platform)" in
+            macos)
+                nimo_offer "$(printf '%s %-11s %s' ■ Dock        'the apps you never open')" dock ;;
+            windows)
+                nimo_offer "$(printf '%s %-11s %s' ■ Taskbar     'the apps you never open')" dock ;;
+        esac
         nimo_offer "$(printf '%s %-11s %s' ◍ Disk        'caches your apps rebuild by themselves')" disk
         nimo_offer "$(printf '%s %-11s %s' ◆ Everything  'all of it, one step at a time')" everything
 

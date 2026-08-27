@@ -282,7 +282,6 @@ check "and the reason is written down"    "grep -q 'Repair and' '$ROOT/lib/scan.
 
 # ---- what windows simply does not have -----------------------------------
 
-check "the dock is not a windows thing"   "win dock -q --no-color | grep -q 'macOS'"
 
 # ---- what windows does have --------------------------------------------
 #
@@ -357,6 +356,35 @@ replay() {
 }
 check "a value nimo invented is unset"    "replay \"\$FIRST\"; ! reg_has 'AppsUseLightTheme'"
 
+# ---- the taskbar's pinned apps -------------------------------------------
+#
+# A pin is two things at once: a shortcut in a folder, and a blob under
+# Taskband that Explorer keeps in step with it. Removing one without the other
+# leaves a pin that comes back, or a gap that does not fill.
+
+PINS="$BOX/AppData/Roaming/Microsoft/Internet Explorer/Quick Launch/User Pinned/TaskBar"
+mkdir -p "$PINS"
+for a in "File Explorer" "Microsoft Edge" "Mail" "Xbox"; do : > "$PINS/$a.lnk"; done
+printf 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Taskband\tFavorites\tREG_BINARY\t00AABBCC\n' >> "$REG"
+
+check "it reads what is pinned"           "win dock --list -q --no-color | grep -q 'Microsoft Edge'"
+check "and counts them"                   "win dock --list -q --no-color | grep -q '4 apps'"
+check "it calls it a taskbar, not a dock" "win dock --list -q --no-color | grep -q 'pinned to your taskbar'"
+check "it promises to uninstall nothing"  "win dock --list -q --no-color | grep -q 'does not uninstall anything'"
+check "a list changes nothing"            "[ -f \"$PINS/Xbox.lnk\" ] && reg_has 'Favorites'"
+
+unpin() { printf '%s\n' "$1" | PATH="$FAKE:$PATH" HOME="$BOX" bash "$MIN" dock -y -q --no-color 2>&1; }
+
+check "unpinning moves the shortcut"      "unpin '4' >/dev/null 2>&1; [ ! -f \"$PINS/Xbox.lnk\" ]"
+check "it is moved, not deleted"          "ls '$BOX/.nimo/backups/taskbar'/*.lnk >/dev/null 2>&1"
+check "and the blob is cleared with it"   "! reg_has 'Favorites'"
+check "because half a pin comes back"     "grep -q 'in step with it' '$ROOT/lib/win.sh'"
+check "the others are left pinned"        "[ -f \"$PINS/Mail.lnk\" ]"
+check "--restore puts the shortcut back"  "win dock --restore -q --no-color >/dev/null 2>&1; [ -f \"$PINS/Xbox.lnk\" ]"
+check "and the blob with it"              "reg_has 'Favorites'"
+check "and it says pins, not startup"     "win dock --restore -q --no-color | grep -q 'pins'"
+
+
 # ---- what starts when you sign in ---------------------------------------
 #
 # Two registry keys and a folder. HKCU is yours; HKLM belongs to the machine
@@ -385,7 +413,7 @@ stop_them() { printf '%s\n' "$1" | PATH="$FAKE:$PATH" HOME="$BOX" bash "$MIN" st
 
 check "stopping one clears the value"     "stop_them '1' >/dev/null 2>&1; ! reg_has 'OneDrive'"
 check "and leaves the others alone"       "reg_has 'Spotify'"
-check "it wrote the old value down"       "grep -q 'OneDrive' \$(ls '$BOX/.nimo/backups'/setup-*.tsv | tail -1)"
+check "it wrote the old value down"       "grep -q 'OneDrive' '$BOX/.nimo/backups'/setup-*.tsv"
 check "--undo puts it straight back"      "win startup --undo -q --no-color >/dev/null 2>&1; reg_has 'OneDrive'"
 
 check "stopping a shortcut moves it"      "stop_them '3' >/dev/null 2>&1; [ ! -f \"$STARTUP_DIR/Some Updater.lnk\" ]"
@@ -394,7 +422,7 @@ check "and --undo moves it back"          "win startup --undo -q --no-color >/de
 
 check "one undo covers both kinds"        "stop_them '1 3' >/dev/null 2>&1; win startup --undo -q --no-color >/dev/null 2>&1; reg_has 'OneDrive' && [ -f \"$STARTUP_DIR/Some Updater.lnk\" ]"
 check "and it shows up in min undo"       "win undo --list -q --no-color | grep -q 'stopped things starting'"
-check "the machine key is never written"  "! grep -q 'HKLM' \$(ls '$BOX/.nimo/backups'/setup-*.tsv | tail -1)"
+check "the machine key is never written"  "! grep -q 'HKLM' '$BOX/.nimo/backups'/setup-*.tsv"
 
 # ---- what is installed --------------------------------------------------
 #
@@ -495,7 +523,8 @@ check "the prompt works"                  "printf '/quit\\n' | NIMO_REPL_FORCE=1
 wslash() { printf '/\n/quit\n' | NIMO_REPL_FORCE=1 NIMO_NO_CLEAR=1 PATH="$FAKE:$PATH" HOME="$BOX" bash "$MIN" -q --no-color 2>&1; }
 
 check "the list offers the windows setup" "wslash | grep -q 'explorer and the taskbar'"
-check "and not a dock that is not there"  "! wslash | grep -q '/fastdock\|/dock'"
+check "the taskbar is offered as /dock"   "wslash | grep -q '/dock'"
+check "but not the mac's fast dock"       "! wslash | grep -q '/fastdock'"
 # ---- tidy, and the arrow menu -------------------------------------------
 #
 # tidy used to run every step and let the ones this machine cannot do print an
@@ -503,13 +532,13 @@ check "and not a dock that is not there"  "! wslash | grep -q '/fastdock\|/dock'
 
 check "tidy calls it a pc, not a mac"     "win tidy --dry-run -q --no-color | grep -q 'minimal pc'"
 check "and does not mention a mac at all" "! win tidy --dry-run -q --no-color | grep -q 'minimal mac'"
-check "it skips the dock step entirely"   "! win tidy --dry-run -q --no-color | grep -q 'Dock is a macOS thing'"
-check "and offers no dock to undo"        "! win tidy --dry-run -q --no-color | grep -q 'min dock --restore'"
+check "no step apologises for itself"     "! win tidy --dry-run -q --no-color | grep -q 'macOS thing'"
+check "and offers the taskbar to undo"    "win tidy --dry-run -q --no-color | grep -q 'undo the taskbar'"
 check "it still does the wallpaper"       "win tidy --dry-run -q --no-color | grep -q 'wallpapers on this pc'"
 check "and the settings, with a way back" "win tidy --dry-run -q --no-color | grep -q 'min setup --restore'"
 
 wmenu_arrows() { printf 'q' | NIMO_PICK_FORCE=1 PATH="$FAKE:$PATH" HOME="$BOX" bash "$MIN" --menu --no-color 2>&1; }
-check "the arrow menu has no dock"        "! wmenu_arrows | grep -q 'dock'"
+check "the arrow menu pins, not opens"    "wmenu_arrows | grep -q 'the apps you pin'"
 check "but it has the wallpaper"          "wmenu_arrows | grep -q 'wallpaper'"
 
 check "the taskbar is offered instead"    "wslash | grep -q '/hide'"

@@ -149,10 +149,13 @@ nimo_startup_stop() {
 # and the registry values this same run wrote down come back with them.
 # shellcheck disable=SC2120  # min undo hands over an exact log; --undo does not
 nimo_startup_undo() {
-    local log="${1:-}" kind a b back=0 missed=0 prefs="" was
+    # $2 and $3 let `min dock --restore` on Windows share this replay without
+    # telling you its pins are about to start themselves.
+    local log="${1:-}" title="${2:-start these again}" verb="${3:-will start again}"
+    local kind a b back=0 missed=0 prefs="" was
 
     [ "${NIMO_UNDO_QUIET:-0}" = "1" ] || nimo_header
-    nimo_panel_open "start these again"
+    nimo_panel_open "$title"
 
     [ -n "$log" ] || log=$(nimo_newest "$NIMO_UNDO_DIR"/startup-*.tsv) || log=""
     if [ -z "$log" ] || [ ! -f "$log" ]; then
@@ -197,7 +200,7 @@ nimo_startup_undo() {
         back=$((back + $(nimo_file_lines "$prefs")))
     fi
 
-    nimo_ok "$(nimo_plural "$back" thing) will start again"
+    nimo_ok "$(nimo_plural "$back" thing) $verb"
     [ "$missed" -gt 0 ] && nimo_dim "$missed had already been changed, so nimo left them alone"
     nimo_panel_close
     nimo_blank

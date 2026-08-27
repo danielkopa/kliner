@@ -129,17 +129,128 @@ nimo_cmd_dock_fast() {
     return 0
 }
 
+# The Windows counterpart: the row of pinned apps on the taskbar.
+#
+# A pin is two things at once — a shortcut in a folder, and a blob under
+# Taskband that Explorer keeps in step with it. Removing one without the other
+# leaves a pin that comes back, or a gap that does not fill. So the shortcut
+# is moved aside, the blob is written down and cleared, and Explorer rebuilds
+# the blob from the folder when it next starts.
+#
+# Nothing is uninstalled. Unpinning an app does not remove it, and it is one
+# `min dock --restore` away from being back where it was.
+nimo_dock_windows() {
+    local pins count
+    pins=$(nimo_win_pinned)
+    count=$(nimo_line_count "$pins")
+
+    nimo_panel_open "pinned to your taskbar"
+
+    if [ "$count" -eq 0 ]; then
+        nimo_dim "nothing is pinned to your taskbar"
+        nimo_panel_close
+        nimo_blank
+        return 0
+    fi
+
+    local labels="" paths="" name what
+    while IFS=$'\t' read -r name what; do
+        [ -n "${name:-}" ] || continue
+        labels="$labels$name
+"
+        paths="$paths$what
+"
+        nimo_say "$name"
+    done <<INNER
+$pins
+INNER
+
+    nimo_blank
+    nimo_rule
+    nimo_total "Pinned" "$(nimo_plural "$count" app)"
+    nimo_panel_close
+    nimo_blank
+    nimo_dim "unpinning does not uninstall anything — the app stays exactly"
+    nimo_dim "where it is, and  min dock --restore  puts the pins back"
+    nimo_blank
+
+    if [ "${NIMO_LIST:-0}" = "1" ] || [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
+        nimo_dim "run  min dock  to pick what goes"
+        nimo_blank
+        return 0
+    fi
+
+    local wanted
+    if ! wanted=$(nimo_pick multi "↑↓ move   space tick what goes   a all   n none   enter confirm   q cancel" "$labels"); then
+        nimo_dim "nothing was changed"
+        nimo_blank
+        return 0
+    fi
+    if [ -z "$wanted" ]; then
+        nimo_dim "nothing ticked — your taskbar is as it was"
+        nimo_blank
+        return 0
+    fi
+
+    local n
+    n=$(printf '%s' "$wanted" | wc -w | tr -d ' ')
+    if ! nimo_confirm "Unpin $(nimo_plural "$n" app)?"; then
+        nimo_blank
+        nimo_dim "left as it was"
+        nimo_blank
+        return 0
+    fi
+
+    mkdir -p "$NIMO_UNDO_DIR" "$NIMO_BACKUP_DIR/taskbar" 2>/dev/null
+    local log dest src gone=0 i
+    log=$(nimo_free_file "$NIMO_UNDO_DIR/startup-$(date +%Y%m%d-%H%M%S)" .tsv)
+    : > "$log"
+    nimo_look_log
+    printf 'prefs\t%s\t\n' "$NIMO_SETUP_LOG" >> "$log"
+
+    # the blob first, so a failure here happens before anything moves
+    nimo_win_record "$NIMO_WIN_TASKBAND" Favorites
+    nimo_reg_erase "$NIMO_WIN_TASKBAND" Favorites
+
+    for i in $wanted; do
+        src=$(printf '%s' "$paths" | sed -n "${i}p")
+        [ -n "$src" ] || continue
+        [ -f "$src" ] || continue
+        dest=$(nimo_free_name "$NIMO_BACKUP_DIR/taskbar" "$(basename "$src")")
+        mv "$src" "$dest" 2>/dev/null || continue
+        printf 'file\t%s\t%s\n' "$src" "$dest" >> "$log"
+        gone=$((gone + 1))
+    done
+
+    nimo_blank
+    nimo_ok "$(nimo_plural "$gone" app) unpinned"
+    nimo_blank
+    nimo_dim "the taskbar redraws when Explorer next starts"
+    nimo_dim "changed your mind?  min dock --restore"
+    nimo_blank
+    return 0
+}
+
 nimo_cmd_dock() {
     if [ "${NIMO_FAST:-0}" = "1" ]; then
         nimo_cmd_dock_fast
         return $?
     fi
     if [ "${NIMO_RESTORE:-0}" = "1" ]; then
+        if [ "$(nimo_platform)" = "windows" ]; then
+            nimo_startup_undo "" "put the pins back" "pinned again"
+            return 0
+        fi
         nimo_dock_restore
         return 0
     fi
 
     nimo_header
+
+    if [ "$(nimo_platform)" = "windows" ]; then
+        nimo_dock_windows
+        return $?
+    fi
 
     if ! nimo_is_macos; then
         nimo_warn "the Dock is a macOS thing"
