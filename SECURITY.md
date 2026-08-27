@@ -4,7 +4,7 @@ nimo runs with your user's permissions and moves your files. Please report
 anything that could be turned against someone privately, rather than in a
 public issue.
 
-**daniel@rlx.sk** — please put "nimo" in the subject.
+**nimo@danielkopa.com** — please put "nimo" in the subject.
 
 Include what you typed, what happened, and what an attacker would get out of
 it. A reply usually comes within a few days.
