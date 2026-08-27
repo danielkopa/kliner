@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.28.0
+
+The list you get for `/`, and the last of what Windows could not do.
+
+### The prompt
+
+- **The `/` list is built, not written out.** It is grouped by what you came
+  to do — clear something, make it yours, get the disk back, and back again —
+  it counts what is actually lying about before you have chosen anything, and
+  it only offers what this computer can carry out. A Windows machine was being
+  handed a dock and a menu bar it does not have
+
+### Windows
+
+- **`min empty` empties the Recycle Bin.** nimo never reaches into it — that
+  is files plus an index, and removing one without the other leaves Windows
+  confused about what it still holds. It asks Windows what is in there, shows
+  you, and asks Windows to empty it
+- **`min apps` lists what is installed**, longest-installed first, with sizes
+  and dates. Windows records no equivalent of "last opened", so it says which
+  question it is answering instead of implying the other. Read only, as on
+  macOS
+- **`min hide` makes the taskbar slide away.** One bit inside `StuckRects3`,
+  which the taskbar reads when Explorer starts and at no other time — so this
+  is the only command in nimo that restarts Explorer, it asks separately
+  before doing it, and it says plainly that nothing is lost by it
+- **`min doctor` reads the battery and the memory**, so it says the same
+  things on both systems
+- `min clear` offers the Bin now that there is something behind it, and the
+  panel no longer claims everything in the list can be undone while the
+  rubbish is sitting in it
+
+The Windows suite is 116 checks, up from 27 three versions ago.
+
 ## 0.27.0
 
 Two things, both asked for: it must not be able to delete your computer, and
