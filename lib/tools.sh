@@ -52,9 +52,37 @@ nimo_os_line() {
             "$(sw_vers -productName 2>/dev/null)" \
             "$(sw_vers -productVersion 2>/dev/null)" \
             "$(uname -m)"
-    else
-        printf '%s %s (%s)' "$(uname -s)" "$(uname -r)" "$(uname -m)"
+        return 0
     fi
+
+    # Git Bash answers `uname -s` with MINGW64_NT-10.0-22631, which is true and
+    # unreadable. The number on the end is the Windows build, and 22000 is
+    # where 11 begins; the prefix says which of the three bashes this is.
+    if [ "$(nimo_platform)" = "windows" ]; then
+        local raw build name shell
+        raw=$(uname -s 2>/dev/null)
+        build=$(printf '%s' "$raw" | sed -n 's/.*[-.]\([0-9][0-9]*\)$/\1/p')
+        name="Windows"
+        if [ -n "$build" ] && [ "$build" -ge 22000 ] 2>/dev/null; then
+            name="Windows 11"
+        elif [ -n "$build" ]; then
+            name="Windows 10"
+        fi
+        case "$raw" in
+            MINGW*)  shell="Git Bash" ;;
+            MSYS*)   shell="MSYS2" ;;
+            CYGWIN*) shell="Cygwin" ;;
+            *)       shell="" ;;
+        esac
+        if [ -n "$shell" ]; then
+            printf '%s (%s · %s)' "$name" "$shell" "$(uname -m)"
+        else
+            printf '%s (%s)' "$name" "$(uname -m)"
+        fi
+        return 0
+    fi
+
+    printf '%s %s (%s)' "$(uname -s)" "$(uname -r)" "$(uname -m)"
 }
 
 nimo_uptime_line() {
@@ -124,10 +152,14 @@ nimo_cmd_doctor() {
     nimo_blank
     nimo_fact "Desktop" "$(nimo_plural "$(nimo_count_dir_items "$(nimo_desktop_dir)")" item)"
     nimo_fact "Downloads" "$(nimo_plural "$(nimo_count_dir_items "$(nimo_downloads_dir)")" item)"
-    if nimo_is_macos; then
-        nimo_fact "Trash" "$(nimo_plural "$(nimo_count_dir_items "$HOME/.Trash")" item)"
+    # One source for where the trash is. Windows has no folder nimo may empty,
+    # so it gets a line that says so rather than a count of nothing.
+    local doc_trash
+    doc_trash=$(nimo_trash_dir)
+    if [ -n "$doc_trash" ]; then
+        nimo_fact "Trash" "$(nimo_plural "$(nimo_count_dir_items "$doc_trash")" item)"
     else
-        nimo_fact "Trash" "$(nimo_plural "$(nimo_count_dir_items "$HOME/.local/share/Trash/files")" item)"
+        nimo_fact "Recycle Bin" "Windows empties this one"
     fi
 
     nimo_blank
@@ -322,16 +354,29 @@ nimo_cmd_clear() {
         [ "$total_kb" -gt 0 ] && nimo_dim "$(nimo_human_kb "$total_kb") in all, and none of it is deleted"
         nimo_blank
 
-        local labels choice
+        # The rows are built, not written out. A fixed list of seven meant
+        # Windows was offered a Dock it does not have and a Recycle Bin nimo
+        # is not allowed to empty — and picking either got you an apology.
+        # Nothing is offered here that this computer cannot actually do.
+        local labels="" targets="" choice
+        nimo_offer() {
+            labels="${labels}$1
+"
+            targets="${targets}$2
+"
+        }
+
         # a mark apiece, drawn from the box-drawing block every terminal has,
         # rather than an icon set fetched from somewhere with a licence
-        labels="$(printf '%s %-11s %-11s %s' ▤ Desktop     "$(nimo_plural "$n_desk" item)"  "$(nimo_bar "$n_desk" "$most" 12)")
-$(printf '%s %-11s %-11s %s' ▼ Downloads   "$(nimo_plural "$n_down" item)"  "$(nimo_bar "$n_down" "$most" 12)")
-$(printf '%s %-11s %-11s %s' ▣ Screenshots "$n_shots loose" "$(nimo_bar "$n_shots" "$most" 12)")
-$(printf '%s %-11s %-11s %s' ○ Trash       "$(nimo_plural "$n_trash" item)"  "$(nimo_bar "$n_trash" "$most" 12)")
-$(printf '%s %-11s %s' ■ Dock        'the apps you never open')
-$(printf '%s %-11s %s' ◍ Disk        'caches your apps rebuild by themselves')
-$(printf '%s %-11s %s' ◆ Everything  'all of it, one step at a time')"
+        nimo_offer "$(printf '%s %-11s %-11s %s' ▤ Desktop     "$(nimo_plural "$n_desk" item)"  "$(nimo_bar "$n_desk" "$most" 12)")" desktop
+        nimo_offer "$(printf '%s %-11s %-11s %s' ▼ Downloads   "$(nimo_plural "$n_down" item)"  "$(nimo_bar "$n_down" "$most" 12)")" downloads
+        nimo_offer "$(printf '%s %-11s %-11s %s' ▣ Screenshots "$n_shots loose" "$(nimo_bar "$n_shots" "$most" 12)")" screenshots
+        [ -n "$trash" ] && \
+            nimo_offer "$(printf '%s %-11s %-11s %s' ○ Trash       "$(nimo_plural "$n_trash" item)"  "$(nimo_bar "$n_trash" "$most" 12)")" trash
+        [ "$(nimo_platform)" = "macos" ] && \
+            nimo_offer "$(printf '%s %-11s %s' ■ Dock        'the apps you never open')" dock
+        nimo_offer "$(printf '%s %-11s %s' ◍ Disk        'caches your apps rebuild by themselves')" disk
+        nimo_offer "$(printf '%s %-11s %s' ◆ Everything  'all of it, one step at a time')" everything
 
         if ! choice=$(nimo_pick single "↑↓ move   enter choose   q cancel" "$labels") || [ -z "$choice" ]; then
             nimo_panel_close
@@ -342,15 +387,13 @@ $(printf '%s %-11s %s' ◆ Everything  'all of it, one step at a time')"
         fi
         nimo_panel_close
 
-        case "$choice" in
-            1) target=desktop ;;
-            2) target=downloads ;;
-            3) target=screenshots ;;
-            4) target=trash ;;
-            5) target=dock ;;
-            6) target=disk ;;
-            7) target=everything ;;
-        esac
+        target=$(printf '%s\n' "$targets" | sed -n "${choice}p")
+        [ -n "$target" ] || {
+            nimo_blank
+            nimo_dim "nothing was changed"
+            nimo_blank
+            return 0
+        }
     fi
 
     case "$(printf '%s' "$target" | tr '[:upper:]' '[:lower:]')" in

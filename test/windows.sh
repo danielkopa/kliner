@@ -123,6 +123,32 @@ check "the recycle bin is left to windows" "win empty -q --no-color | grep -q 'R
 check "and it says how to empty it"       "win empty -q --no-color | grep -q 'Clear-RecycleBin'"
 check "it does not delete anything there" "win empty -y -q --no-color >/dev/null 2>&1; [ -d '$BOX/OneDrive/Desktop' ]"
 
+# ---- the menu only offers what windows can do ----------------------------
+#
+# It used to be a fixed list of seven. Windows was offered a Dock it does not
+# have and a Recycle Bin nimo is not allowed to empty, and picking either got
+# you an apology instead of a clean desktop.
+
+wmenu() { printf '\n' | PATH="$FAKE:$PATH" HOME="$BOX" bash "$MIN" clear --no-color 2>&1; }
+
+check "the menu lists what it offers"     "wmenu | grep -q '^ *1  '"
+check "no dock on windows"                "! wmenu | grep -q 'Dock'"
+check "no trash to empty either"          "! wmenu | grep -q 'Trash'"
+check "the disk is still on offer"        "wmenu | grep -q 'Disk'"
+check "and the numbers match the rows"    "[ \"\$(wmenu | sed -n 's/.*Which one? 1-\\([0-9]*\\).*/\\1/p')\" = \"\$(wmenu | grep -c '^ *[0-9]  ')\" ]"
+
+# the menu counted ~/Desktop while `min screenshots` read OneDrive's, so a
+# signed-in Windows was always told it had none
+check "the menu counts OneDrive's shots"  "wmenu | grep -q '1 loose'"
+check "and the command agrees with it"    "win screenshots --dry-run -q --no-color | grep -q '1 file'"
+
+# ---- windows, spelled the way people say it ------------------------------
+
+check "doctor says Windows, not MINGW"    "win doctor -q --no-color | grep -q 'Windows 11'"
+check "and which bash it is running in"   "win doctor -q --no-color | grep -q 'Git Bash'"
+check "no MINGW64_NT anywhere in it"      "! win doctor -q --no-color | grep -q 'MINGW64_NT'"
+check "the bin is named, not counted"     "win doctor -q --no-color | grep -q 'Recycle Bin'"
+
 # ---- the parts that work everywhere --------------------------------------
 
 check "top works"                         "win top -q --no-color | grep -q '█'"

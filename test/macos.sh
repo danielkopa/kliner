@@ -518,6 +518,20 @@ OUT=$(NIMO_OSA_FAIL=1 wall set)
 check "falls back when macOS says no"      "[ -s '$SQL' ]"
 check "the fallback nudges the Dock"       "grep -q 'desktoppicture' '$SQL' || grep -q 'update data set value' '$SQL'"
 
+# ---- the menu, on the platform that has everything -----------------------
+#
+# The other half of the Windows check: the rows nimo drops there have to still
+# be here, or "only offer what this computer can do" quietly becomes "offer
+# less than it can".
+
+mmenu() { printf '\n' | PATH="$FAKE:$PATH" HOME="$BOX" bash "$MIN" clear --no-color 2>&1; }
+
+check "the mac menu offers the dock"      "mmenu | grep -q 'Dock'"
+check "and the trash"                     "mmenu | grep -q 'Trash'"
+check "and everything at once"            "mmenu | grep -q 'Everything'"
+check "seven rows, numbered"              "[ \"\$(mmenu | grep -c '^ *[0-9]  ')\" = 7 ]"
+check "and the prompt agrees there are 7" "mmenu | grep -q 'Which one? 1-7'"
+
 # ---- all of it at once ---------------------------------------------------
 
 : > "$WROTE"

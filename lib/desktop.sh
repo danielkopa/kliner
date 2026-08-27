@@ -130,6 +130,22 @@ nimo_still_arriving() {
     return 1
 }
 
+# How many nimo deliberately left where they are, so it can say so out loud.
+# Six files sorted out of seven, with the seventh still sitting there and no
+# word about why, reads like nimo missed one.
+nimo_arriving_count() {
+    local dir="$1" item n=0
+    [ -d "$dir" ] || { printf '0'; return 0; }
+    while IFS= read -r item; do
+        [ -n "$item" ] || continue
+        case "$(basename "$item")" in .*) continue ;; esac
+        nimo_still_arriving "$item" && n=$((n + 1))
+    done <<EOF
+$(find "$dir" -mindepth 1 -maxdepth 1 2>/dev/null)
+EOF
+    printf '%s' "$n"
+}
+
 nimo_folder_items() {
     local dir="$1"
     [ -d "$dir" ] || return 0
@@ -260,6 +276,13 @@ EOF
     nimo_blank
     nimo_rule
     nimo_total "In there" "$(nimo_plural "$total" item)"
+
+    local arriving
+    arriving=$(nimo_arriving_count "$src")
+    if [ "$arriving" -gt 0 ]; then
+        nimo_blank
+        nimo_dim "$(nimo_plural "$arriving" file) still downloading — left alone"
+    fi
     nimo_panel_close
 
     nimo_blank
@@ -436,9 +459,13 @@ EOF
 }
 
 # What each of these would find, cheaply enough to show in a menu.
+# Where `min screenshots` looks, and nowhere else. The menu used to count
+# ~/Desktop while the command itself read OneDrive's — so on any signed-in
+# Windows, and on any Mac with a synced desktop, the menu said "0 loose" and
+# the command then found five.
 nimo_count_loose_screenshots() {
     local where item n=0
-    for where in "$HOME/Desktop" "$HOME/Downloads" "$HOME/Documents"; do
+    for where in "$(nimo_desktop_dir)" "$(nimo_downloads_dir)" "$HOME/Documents"; do
         [ -d "$where" ] || continue
         while IFS= read -r item; do
             [ -n "$item" ] || continue
