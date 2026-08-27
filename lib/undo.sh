@@ -13,60 +13,46 @@ nimo_cmd_undo() {
     nimo_header
     nimo_panel_open "what nimo has done"
 
-    local labels="" actions="" f stamp when lines
+    local labels="" actions="" f stamp when lines name kind label
 
-    # newest first, by modification time — see nimo_newest in core.sh
+    # Everything nimo can reverse, newest first — across kinds, not within
+    # them. Grouping by kind first meant the newest thing you did was rarely
+    # the first thing offered, which is the one thing this list is for.
     while IFS= read -r f; do
         [ -n "$f" ] || continue
         [ -f "$f" ] || continue
-        stamp=$(basename "$f" | sed -e 's/^desktop-//' -e 's/\.tsv$//')
+        name=$(basename "$f")
+        kind=""
+        case "$name" in
+            desktop-*)     kind=desktop; label="cleared your desktop" ;;
+            downloads-*)   kind=desktop; label="sorted your downloads" ;;
+            screenshots-*) kind=desktop; label="gathered screenshots" ;;
+            blank-*)       kind=blank;   label="emptied a file" ;;
+            dock-*)        kind=dock;    label="rebuilt your dock" ;;
+            setup-*)       kind=setup;   label="changed preferences" ;;
+            wallpaper.txt) kind=wallpaper; label="changed your wallpaper" ;;
+            *) continue ;;
+        esac
+
+        stamp=$(printf '%s' "$name" | sed -e 's/^[a-z]*-//' -e 's/\.[a-z]*$//')
         when=$(nimo_undo_when "$stamp")
-        lines=$(grep -c . "$f" 2>/dev/null || true)
-        labels="$labels$(printf '%-22s %-18s %s' "cleared your desktop" "$when" "$(nimo_plural "${lines:-0}" file)")
+
+        case "$kind" in
+            desktop) lines="$(nimo_plural "$(grep -c . "$f" 2>/dev/null || echo 0)" file)" ;;
+            setup)   lines="$(nimo_plural "$(grep -c . "$f" 2>/dev/null || echo 0)" setting)" ;;
+            blank)   lines="$(basename "$(cut -f1 "$f" 2>/dev/null | head -1)")" ;;
+            wallpaper) lines="back to $(nimo_wall_pretty "$(cat "$f" 2>/dev/null)")"; when="" ;;
+            *)       lines="" ;;
+        esac
+
+        labels="$labels$(printf '%-22s %-18s %s' "$label" "$when" "$lines")
 "
-        actions="${actions}desktop	$f
+        actions="${actions}${kind}	$f
 "
     done <<EOF
-$(ls -1t "$NIMO_UNDO_DIR"/desktop-*.tsv 2>/dev/null)
+$(ls -1t "$NIMO_UNDO_DIR"/*.tsv "$NIMO_BACKUP_DIR"/dock-*.plist \
+         "$NIMO_BACKUP_DIR"/setup-*.tsv "$NIMO_BACKUP_DIR"/wallpaper.txt 2>/dev/null)
 EOF
-
-    while IFS= read -r f; do
-        [ -n "$f" ] || continue
-        [ -f "$f" ] || continue
-        stamp=$(basename "$f" | sed -e 's/^dock-//' -e 's/\.plist$//')
-        when=$(nimo_undo_when "$stamp")
-        labels="$labels$(printf '%-22s %-18s %s' "rebuilt your dock" "$when" "")
-"
-        actions="${actions}dock	$f
-"
-    done <<EOF
-$(ls -1t "$NIMO_BACKUP_DIR"/dock-*.plist 2>/dev/null)
-EOF
-
-    # preference changes
-    while IFS= read -r f; do
-        [ -n "$f" ] || continue
-        [ -f "$f" ] || continue
-        stamp=$(basename "$f" | sed -e 's/^setup-//' -e 's/\.tsv$//')
-        when=$(nimo_undo_when "$stamp")
-        lines=$(grep -c . "$f" 2>/dev/null || true)
-        labels="$labels$(printf '%-22s %-18s %s' "changed preferences" "$when" "$(nimo_plural "${lines:-0}" setting)")
-"
-        actions="${actions}setup	$f
-"
-    done <<EOF
-$(ls -1t "$NIMO_BACKUP_DIR"/setup-*.tsv 2>/dev/null)
-EOF
-
-    # the wallpaper nimo replaced
-    f="$NIMO_BACKUP_DIR/wallpaper.txt"
-    if [ -f "$f" ]; then
-        when=$(cat "$f" 2>/dev/null)
-        labels="$labels$(printf '%-22s %-18s %s' "changed your wallpaper" "" "back to $(nimo_wall_pretty "${when:-unknown}")")
-"
-        actions="${actions}wallpaper	$f
-"
-    fi
 
     local count
     count=$(nimo_line_count "$actions")
@@ -122,9 +108,10 @@ EOF
     nimo_blank
     NIMO_UNDO_QUIET=1
     case "$kind" in
-        desktop)   nimo_desktop_undo "$file" ;;
+        desktop)   nimo_sort_undo any "$file" ;;
         dock)      nimo_dock_restore "$file" ;;
         setup)     nimo_setup_restore "$file" ;;
+        blank)     nimo_blank_undo "$file" ;;
         wallpaper) nimo_wall_restore ;;
     esac
     NIMO_UNDO_QUIET=0
