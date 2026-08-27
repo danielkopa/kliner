@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.37.0
+
+**The wallpaper no longer needs anybody's permission.**
+
+Every way nimo had of setting it went through Apple Events, and a Mac that has
+once been told "Don't Allow" answers `-1743` for ever and never asks again —
+so on a machine in that state nothing worked, and there was often no toggle in
+Settings to turn on, because a permission that was never granted has nothing
+to show.
+
+Since Sonoma the wallpaper lives in a plist in your **own home folder**, and
+`WallpaperAgent` reads it when it starts. nimo reads and writes that now, and
+tries it first:
+
+- No Automation permission, no dialog, and it works when AppleScript is
+  refused outright
+- It edits the file the careful way — read what is there, swap the image out,
+  put it back — rather than writing a plist from scratch, because the shape of
+  that file is Apple's and it changes. Only the strings that follow a
+  `relative` key are touched
+- The original file is kept whole in `~/.nimo/backups` before anything is
+  written
+- Reading the current wallpaper goes through it too, so nimo can check its own
+  work on a Mac that will not answer questions
+- If the store is not there — an older macOS, or Apple moving it again — the
+  AppleScript routes still run, exactly as before
+
+And when it is Apple Events that failed, nimo now recognises `-1743` and says
+the one thing that fixes it: `tccutil reset AppleEvents`, then say yes.
+
+`tools/wallcheck.sh` tests this route too and prints what the store holds.
+
 ## 0.36.0
 
 **Fixed: nimo said the wallpaper was set when it was not.**
