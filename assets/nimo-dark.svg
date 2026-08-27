@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 240" width="880" height="240" role="img" aria-label="nimo — make your computer feel better">
+  <g fill="none" stroke="#5FD3C6" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M96 44 h84 a44 44 0 0 1 44 44 v64 a44 44 0 0 1 -44 44 h-84 a44 44 0 0 1 -44 -44 v-64 a44 44 0 0 1 44 -44 z"/>
+    <path d="M112 148 q26 22 52 0"/>
+  </g>
+  <circle cx="108" cy="108" r="9" fill="#5FD3C6"/>
+  <circle cx="168" cy="108" r="9" fill="#5FD3C6"/>
+  <text x="276" y="126" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="82" font-weight="600" letter-spacing="-2" fill="#ECEFF1">nimo</text>
+  <text x="280" y="166" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="23" fill="#9AA4AB">make your computer feel better</text>
+</svg>
