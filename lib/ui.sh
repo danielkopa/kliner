@@ -58,6 +58,7 @@ nimo_logo() {
 ART
     printf '%s' "$NIMO_C_RESET"
     printf '\n   %smake your computer feel better%s\n' "$NIMO_C_DIM" "$NIMO_C_RESET"
+    printf '   %sv%s%s\n' "$NIMO_C_DIM" "$NIMO_VERSION" "$NIMO_C_RESET"
 }
 
 # nimo itself. The face from the very first sketch, kept.
@@ -65,13 +66,15 @@ nimo_face() {
     printf '%s' "$NIMO_C_CYAN"
     cat <<'FACE'
 
-                 .───────────.
-               .'             '.
-              /    ·       ·    \
-             |        ─          |
-              \                 /
-               '._           _.'
-                  '─────────'
+              ╭───────────────╮
+            ╭─╯               ╰─╮
+           ╭╯                   ╰╮
+           │     ●         ●     │
+           │                     │
+           │      ╰───────╯      │
+           ╰╮                   ╭╯
+            ╰─╮               ╭─╯
+              ╰───────────────╯
 FACE
     printf '%s' "$NIMO_C_RESET"
 }
@@ -86,27 +89,32 @@ nimo_header() {
         "$NIMO_C_DIM" "$NIMO_VERSION" "$NIMO_C_RESET"
 }
 
-# ---- the way things sit on the page -------------------------------------
+# ---- panels -------------------------------------------------------------
 #
-# No boxes. A quiet title, room around it, and the content indented under it.
-# Frames were drawing more attention than anything they contained, and a tool
-# whose whole point is a clear desktop should not hand you a cluttered screen.
+# No right hand border on purpose: block characters and box drawing are not
+# one byte wide, so anything that pads to a closing │ drifts out of line the
+# moment a bar or an accent shows up.
 
 NIMO_PAD="  "
-NIMO_INDENT="    "
+NIMO_PANEL_WIDTH=52
 
 nimo_dashes() {
     awk -v n="${1:-0}" 'BEGIN { for (i = 0; i < n; i++) printf "─" }'
 }
 
 nimo_panel_open() {
-    printf '\n  %s%s%s\n\n' "$NIMO_C_DIM" "${1:-}" "$NIMO_C_RESET"
-    NIMO_PAD="$NIMO_INDENT"
+    local title="${1:-}" fill
+    fill=$((NIMO_PANEL_WIDTH - ${#title} - 4))
+    [ "$fill" -lt 0 ] && fill=0
+    printf '\n  %s╭─ %s%s %s%s%s\n\n' \
+        "$NIMO_C_DIM" "$NIMO_C_RESET$NIMO_C_BOLD" "$title" \
+        "$NIMO_C_RESET$NIMO_C_DIM" "$(nimo_dashes "$fill")" "$NIMO_C_RESET"
+    NIMO_PAD="     "
 }
 
 nimo_panel_close() {
+    printf '\n  %s╰%s%s\n' "$NIMO_C_DIM" "$(nimo_dashes "$NIMO_PANEL_WIDTH")" "$NIMO_C_RESET"
     NIMO_PAD="  "
-    printf '\n'
 }
 
 # Big numbers should read as big numbers.
@@ -127,7 +135,7 @@ nimo_ok()    { printf '%s%s✓%s %s\n' "$NIMO_PAD" "$NIMO_C_GREEN" "$NIMO_C_RESE
 nimo_warn()  { printf '%s%s!%s %s\n' "$NIMO_PAD" "$NIMO_C_YELLOW" "$NIMO_C_RESET" "$1"; }
 nimo_err()   { printf '  %s✗%s %s\n' "$NIMO_C_RED" "$NIMO_C_RESET" "$1" >&2; }
 nimo_blank() { printf '\n'; }
-nimo_rule()  { printf '\n'; }
+nimo_rule()  { printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "$(nimo_dashes 41)" "$NIMO_C_RESET"; }
 
 # nimo_row <label> <size> [note]
 nimo_row() {
