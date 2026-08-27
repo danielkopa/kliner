@@ -15,41 +15,48 @@ nimo_cmd_undo() {
 
     local labels="" actions="" f stamp when lines
 
-    # Timestamped names sort chronologically, so the glob walks them oldest
-    # first and every line is prepended — which leaves newest at the top.
-    for f in "$NIMO_UNDO_DIR"/desktop-*.tsv; do
+    # newest first, by modification time — see nimo_newest in core.sh
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
         [ -f "$f" ] || continue
         stamp=$(basename "$f" | sed -e 's/^desktop-//' -e 's/\.tsv$//')
         when=$(nimo_undo_when "$stamp")
         lines=$(grep -c . "$f" 2>/dev/null || true)
-        labels="$(printf '%-22s %-18s %s' "cleared your desktop" "$when" "$(nimo_plural "${lines:-0}" file)")
-$labels"
-        actions="desktop	$f
-$actions"
-    done
+        labels="$labels$(printf '%-22s %-18s %s' "cleared your desktop" "$when" "$(nimo_plural "${lines:-0}" file)")
+"
+        actions="${actions}desktop	$f
+"
+    done <<EOF
+$(ls -1t "$NIMO_UNDO_DIR"/desktop-*.tsv 2>/dev/null)
+EOF
 
-    # same trick for the dock
-    for f in "$NIMO_BACKUP_DIR"/dock-*.plist; do
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
         [ -f "$f" ] || continue
         stamp=$(basename "$f" | sed -e 's/^dock-//' -e 's/\.plist$//')
         when=$(nimo_undo_when "$stamp")
-        labels="$(printf '%-22s %-18s %s' "rebuilt your dock" "$when" "")
-$labels"
-        actions="dock	$f
-$actions"
-    done
+        labels="$labels$(printf '%-22s %-18s %s' "rebuilt your dock" "$when" "")
+"
+        actions="${actions}dock	$f
+"
+    done <<EOF
+$(ls -1t "$NIMO_BACKUP_DIR"/dock-*.plist 2>/dev/null)
+EOF
 
     # preference changes
-    for f in "$NIMO_BACKUP_DIR"/setup-*.tsv; do
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
         [ -f "$f" ] || continue
         stamp=$(basename "$f" | sed -e 's/^setup-//' -e 's/\.tsv$//')
         when=$(nimo_undo_when "$stamp")
         lines=$(grep -c . "$f" 2>/dev/null || true)
-        labels="$(printf '%-22s %-18s %s' "changed preferences" "$when" "$(nimo_plural "${lines:-0}" setting)")
-$labels"
-        actions="setup	$f
-$actions"
-    done
+        labels="$labels$(printf '%-22s %-18s %s' "changed preferences" "$when" "$(nimo_plural "${lines:-0}" setting)")
+"
+        actions="${actions}setup	$f
+"
+    done <<EOF
+$(ls -1t "$NIMO_BACKUP_DIR"/setup-*.tsv 2>/dev/null)
+EOF
 
     # the wallpaper nimo replaced
     f="$NIMO_BACKUP_DIR/wallpaper.txt"

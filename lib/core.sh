@@ -189,3 +189,21 @@ nimo_free_file() {
     done
     printf '%s' "$try"
 }
+
+# The newest of a set of files, by when it was last written.
+#
+# Not by name. Sorting names looked equivalent — the logs are timestamped, so
+# alphabetical order is chronological order — right up until two runs landed in
+# the same second and one of them grew a "_2". `ls` sorts using the locale's
+# collation, and macOS terminals default to en_US.UTF-8, where "_2.tsv" sorts
+# *before* ".tsv" — the exact opposite of the C locale that CI runs in. So the
+# newest log came out first on Linux and last on a Mac, and `min desktop --undo`
+# replayed the wrong run there and only there. Modification time is what was
+# meant all along, and it means the same thing everywhere.
+nimo_newest() {
+    [ "$#" -gt 0 ] || return 1
+    local newest
+    newest=$(ls -1t "$@" 2>/dev/null | head -1)
+    [ -n "$newest" ] || return 1
+    printf '%s' "$newest"
+}

@@ -99,10 +99,10 @@ nimo_sort_undo() {
 
     if [ -z "$latest" ]; then
         case "$tag" in
-            any) latest=$(ls -1 "$NIMO_UNDO_DIR"/desktop-*.tsv \
-                                "$NIMO_UNDO_DIR"/downloads-*.tsv \
-                                "$NIMO_UNDO_DIR"/screenshots-*.tsv 2>/dev/null | tail -1) ;;
-            *)   latest=$(ls -1 "$NIMO_UNDO_DIR/$tag"-*.tsv 2>/dev/null | tail -1) ;;
+            any) latest=$(nimo_newest "$NIMO_UNDO_DIR"/desktop-*.tsv \
+                                      "$NIMO_UNDO_DIR"/downloads-*.tsv \
+                                      "$NIMO_UNDO_DIR"/screenshots-*.tsv) || latest="" ;;
+            *)   latest=$(nimo_newest "$NIMO_UNDO_DIR/$tag"-*.tsv) || latest="" ;;
         esac
     fi
 

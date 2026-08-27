@@ -82,7 +82,7 @@ nimo_setup_restore() {
     nimo_panel_open "put the preferences back"
 
     local latest="${1:-}"
-    [ -n "$latest" ] || latest=$(ls -1 "$NIMO_BACKUP_DIR"/setup-*.tsv 2>/dev/null | tail -1)
+    [ -n "$latest" ] || latest=$(nimo_newest "$NIMO_BACKUP_DIR"/setup-*.tsv) || latest=""
 
     if [ -z "$latest" ] || [ ! -f "$latest" ]; then
         nimo_dim "nimo has not changed any preferences yet"

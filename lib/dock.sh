@@ -46,7 +46,7 @@ nimo_dock_restore() {
     nimo_panel_open "put the dock back"
 
     local latest="${1:-}"
-    [ -n "$latest" ] || latest=$(ls -1 "$NIMO_BACKUP_DIR"/dock-*.plist 2>/dev/null | tail -1)
+    [ -n "$latest" ] || latest=$(nimo_newest "$NIMO_BACKUP_DIR"/dock-*.plist) || latest=""
 
     if [ -z "$latest" ]; then
         nimo_dim "no dock backup yet — nimo has not changed your dock"
