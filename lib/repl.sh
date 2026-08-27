@@ -12,10 +12,15 @@
 # Every command, with the words that reach it.
 nimo_repl_list() {
     nimo_panel_open "what you can type"
-    printf '%s%-13s %s%s%s\n' "$NIMO_PAD" "/clear"     "$NIMO_C_DIM" "desktop, downloads, screenshots, dock — you pick" "$NIMO_C_RESET"
-    printf '%s%-13s %s%s%s\n' "$NIMO_PAD" "/wallpaper" "$NIMO_C_DIM" "a calmer one, from what macOS ships" "$NIMO_C_RESET"
-    printf '%s%-13s %s%s%s\n' "$NIMO_PAD" "/setup"     "$NIMO_C_DIM" "a small, sane macOS setup" "$NIMO_C_RESET"
-    printf '%s%-13s %s%s%s\n' "$NIMO_PAD" "/undo"      "$NIMO_C_DIM" "put anything back" "$NIMO_C_RESET"
+    printf '%s%s %-13s %s%s%s\n' "$NIMO_PAD" "▤" "/clear"     "$NIMO_C_DIM" "desktop, downloads, screenshots, dock — you pick" "$NIMO_C_RESET"
+    printf '%s%s %-13s %s%s%s\n' "$NIMO_PAD" "◐" "/wallpaper" "$NIMO_C_DIM" "a calmer one, from what macOS ships" "$NIMO_C_RESET"
+    printf '%s%s %-13s %s%s%s\n' "$NIMO_PAD" "■" "/setup"     "$NIMO_C_DIM" "a small, sane macOS setup" "$NIMO_C_RESET"
+    printf '%s%s %-13s %s%s%s\n' "$NIMO_PAD" "↺" "/undo"      "$NIMO_C_DIM" "put anything back" "$NIMO_C_RESET"
+    nimo_blank
+    printf '%s%s %-13s %s%s%s\n' "$NIMO_PAD" "▸" "/fastdock"  "$NIMO_C_DIM" "no wait before the dock slides" "$NIMO_C_RESET"
+    printf '%s%s %-13s %s%s%s\n' "$NIMO_PAD" "▢" "/cleandoc"  "$NIMO_C_DIM" "empty a file, keeping what was in it" "$NIMO_C_RESET"
+    nimo_blank
+    printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "sort by what it is, or --by letter, or --by date" "$NIMO_C_RESET"
     nimo_blank
     printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "also  /tidy  /zen  /dark  /hide  /empty  /apps  /duplicates" "$NIMO_C_RESET"
     printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "      /doctor  /top  /preview  /menu  /quit" "$NIMO_C_RESET"
@@ -59,6 +64,10 @@ nimo_repl_command() {
             printf 'duplicates'; return 0 ;;
         apps|unusedapps|oldapps|whatdoiuse)
             printf 'apps'; return 0 ;;
+        cleandoc|cleanfile|blankfile|emptyfile|blank)
+            printf 'blank'; return 0 ;;
+        fastdock|dockfast|quickdock|speeddock)
+            printf 'dock --fast'; return 0 ;;
         empty|emptytrash|takeouttrash|bin)
             printf 'empty'; return 0 ;;
         cleardisk|cleandisk|freespace|clearspace|cleancache|clearcache|clearjunk|cleanjunk)
@@ -90,6 +99,10 @@ nimo_repl_command() {
             printf 'duplicates' ;;
         apps|"unused apps"|"old apps")
             printf 'apps' ;;
+        blank|"clean doc"|"clean file"|"empty file"|"blank file")
+            printf 'blank' ;;
+        "fast dock"|"dock fast"|"speed up the dock")
+            printf 'dock --fast' ;;
         empty|"empty trash"|trash|bin)
             printf 'empty' ;;
         dock|"clean dock"|"clear dock"|"tidy dock"|"fix dock")
@@ -215,6 +228,48 @@ nimo_auto_set() {
     return 0
 }
 
+NIMO_COMMAND_WORDS="blank clear tidy desktop downloads screenshots dock wallpaper zen dark light hide empty apps duplicates preview clean top doctor setup undo update menu version"
+
+# Everything that starts with what was typed.
+nimo_repl_prefix_all() {
+    local want="$1" name out=""
+    case "$want" in
+        *' '*|'') return 1 ;;
+    esac
+    for name in $NIMO_COMMAND_WORDS; do
+        case "$name" in
+            "$want"*) out="$out /$name" ;;
+        esac
+    done
+    [ -n "$out" ] || return 1
+    printf '%s' "${out# }"
+    return 0
+}
+
+# The one command that starts with what was typed, when there is exactly one.
+nimo_repl_prefix() {
+    local want="$1" name hit="" hits=0
+
+    case "$want" in
+        *' '*) return 1 ;;   # only single words; phrases are matched properly
+        '')    return 1 ;;
+    esac
+
+    for name in $NIMO_COMMAND_WORDS; do
+        case "$name" in
+            "$want"*)
+                hits=$((hits + 1))
+                hit="$name"
+                ;;
+        esac
+    done
+
+    # two commands start with "d"; that is a question, not an answer
+    [ "$hits" -eq 1 ] || return 1
+    printf '%s' "$hit"
+    return 0
+}
+
 # Fix the typos in a whole line, word by word, and hand back what it
 # probably said. "clean deskopt" comes back as "clean desktop".
 nimo_repl_correct() {
@@ -273,7 +328,23 @@ nimo_repl_do() {
 
     cmd=$(nimo_repl_command "$phrase")
 
+    # Half a word is enough when only one command starts that way. /cle is
+    # clear, /desk is desktop, /dup is duplicates — the same thing tab would
+    # do for you, without needing a terminal that can do tab.
     if [ -z "$cmd" ]; then
+        cmd=$(nimo_repl_prefix "$phrase") || cmd=""
+    fi
+
+    if [ -z "$cmd" ]; then
+        # an ambiguous prefix is a question, and the honest answer is the list
+        local starts
+        if starts=$(nimo_repl_prefix_all "$phrase"); then
+            nimo_blank
+            nimo_warn "\"$phrase\" could be $(printf '%s' "$starts" | sed 's/ /, /g; s/\(.*\), /\1 or /')"
+            nimo_blank
+            return 0
+        fi
+
         local fixed
         fixed=$(nimo_repl_correct "$phrase")
 
@@ -302,8 +373,9 @@ nimo_repl_do() {
     local auto=""
     [ "$NIMO_AUTO" = "1" ] && auto="-y"
 
+    # a couple of prompt words stand for a command plus a flag
     # shellcheck disable=SC2086
-    bash "$NIMO_SELF" "$cmd" ${NIMO_INHERIT:-} $auto $flags
+    bash "$NIMO_SELF" $cmd ${NIMO_INHERIT:-} $auto $flags
     return 0
 }
 
@@ -324,10 +396,20 @@ nimo_repl() {
 
     local line prompt
 
-    # readline gives line editing and an up-arrow history, but only when
-    # there is a terminal on the other end
+    # readline gives line editing and an up-arrow history; the file makes that
+    # history outlive the session, the way a shell's does
     set -o history 2>/dev/null || true
+    local hist="$HOME/.nimo/history"
+    mkdir -p "$HOME/.nimo" 2>/dev/null
+    [ -f "$hist" ] && history -r "$hist" 2>/dev/null
 
+    # A terminal cancels the line you are typing; it does not throw you out of
+    # the program. Without this, one stray ctrl-c in the middle of a thought
+    # ends the session — and interrupting a command that is running would take
+    # the prompt down with it.
+    trap ':' INT
+
+    local rc
     while :; do
         if [ "$NIMO_AUTO" = "1" ]; then
             prompt=$(printf '  %snimo%s %sauto%s %s›%s ' \
@@ -340,8 +422,17 @@ nimo_repl() {
         fi
         nimo_blank
         if [ -t 0 ]; then
-            IFS= read -r -e -p "$prompt" line || { printf '\n'; break; }
-            [ -n "$line" ] && history -s "$line" 2>/dev/null
+            IFS= read -r -e -p "$prompt" line
+            rc=$?
+            if [ "$rc" -gt 128 ]; then
+                printf '\n'          # interrupted: forget the line, keep the prompt
+                continue
+            fi
+            [ "$rc" -eq 0 ] || { printf '\n'; break; }
+            if [ -n "$line" ]; then
+                history -s "$line" 2>/dev/null
+                printf '%s\n' "$line" >> "$hist" 2>/dev/null
+            fi
         else
             printf '%s' "$prompt"
             IFS= read -r line || { printf '\n'; break; }
@@ -350,6 +441,11 @@ nimo_repl() {
 
         nimo_repl_do "$line" || break
     done
+
+    # keep the last two hundred lines and no more
+    if [ -f "$hist" ]; then
+        tail -200 "$hist" > "$hist.trim" 2>/dev/null && mv "$hist.trim" "$hist" 2>/dev/null
+    fi
 
     nimo_blank
     return 0
