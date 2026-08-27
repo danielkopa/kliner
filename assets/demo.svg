@@ -14,7 +14,14 @@
 <text x="22" y="85.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">             ╭───────────────╮</text>
 <text x="22" y="104.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">           ╭─╯               ╰─╮</text>
 <text x="22" y="124.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          ╭╯                   ╰╮</text>
+<g>
 <text x="22" y="143.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          │     ●         ●     │</text>
+<animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.9581;0.9582;1" dur="3.1s" repeatCount="indefinite" calcMode="discrete"/>
+</g>
+<g opacity="0">
+<text x="22" y="143.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          │     ─         ─     │</text>
+<animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.9581;0.9582;1" dur="3.1s" repeatCount="indefinite" calcMode="discrete"/>
+</g>
 <text x="22" y="163.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          │                     │</text>
 <text x="22" y="182.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          │      ╰───────╯      │</text>
 <text x="22" y="202.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          ╰╮                   ╭╯</text>

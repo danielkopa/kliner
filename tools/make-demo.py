@@ -30,7 +30,7 @@ FRAMES = [
      ("             ╭───────────────╮", CYAN),
      ("           ╭─╯               ╰─╮", CYAN),
      ("          ╭╯                   ╰╮", CYAN),
-     ("          │     ●         ●     │", CYAN),
+     ("          │     ●         ●     │", CYAN, "          │     ─         ─     │"),
      ("          │                     │", CYAN),
      ("          │      ╰───────╯      │", CYAN),
      ("          ╰╮                   ╭╯", CYAN),
@@ -122,6 +122,10 @@ WIDTH  = int(PAD_X * 2 + CHAR_W * COLS)
 HEIGHT = int(PAD_Y + LINE_H * ROWS + 18)
 
 
+BLINK_CYCLE = 3.1    # seconds between blinks
+BLINK_SHUT  = 0.13   # how long the eyes stay closed
+
+
 def esc(text):
     return (text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
 
@@ -158,15 +162,43 @@ def main():
             f'<animate attributeName="opacity" values="{vals}" keyTimes="{keys}" '
             f'dur="{total:.1f}s" repeatCount="indefinite" calcMode="linear"/>'
         )
-        for row, (text, colour) in enumerate(frame):
+        for row, line in enumerate(frame):
+            text, colour = line[0], line[1]
+            shut = line[2] if len(line) > 2 else None
             if not text:
                 continue
             y = PAD_Y + LINE_H * (row + 1)
+
+            def draw(body):
+                return (
+                    f'<text x="{PAD_X}" y="{y:.1f}" xml:space="preserve" '
+                    f'font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" '
+                    f'font-size="13" fill="{colour}">{esc(body)}</text>'
+                )
+
+            if shut is None:
+                out.append(draw(text))
+                continue
+
+            # a blink: the open eyes step aside for a moment and come back.
+            # both rows live inside the frame group, so the frame's own
+            # opacity still decides whether either of them is on screen.
+            a = 1 - (BLINK_SHUT / BLINK_CYCLE)
+            keys = f"0;{a:.4f};{a + 0.0001:.4f};1"
+            out.append('<g>')
+            out.append(draw(text))
             out.append(
-                f'<text x="{PAD_X}" y="{y:.1f}" xml:space="preserve" '
-                f'font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" '
-                f'font-size="13" fill="{colour}">{esc(text)}</text>'
+                f'<animate attributeName="opacity" values="1;1;0;0" keyTimes="{keys}" '
+                f'dur="{BLINK_CYCLE}s" repeatCount="indefinite" calcMode="discrete"/>'
             )
+            out.append('</g>')
+            out.append('<g opacity="0">')
+            out.append(draw(shut))
+            out.append(
+                f'<animate attributeName="opacity" values="0;0;1;1" keyTimes="{keys}" '
+                f'dur="{BLINK_CYCLE}s" repeatCount="indefinite" calcMode="discrete"/>'
+            )
+            out.append('</g>')
         out.append('</g>')
         start += hold
 
