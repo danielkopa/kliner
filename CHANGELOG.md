@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.32.0
+
+- **Fixed: `./install.sh` produced a broken `min` on Windows.** `ln -s` under
+  Git Bash quietly copies the file instead of linking it, and a copy of `min`
+  is broken from the moment it lands — `min` finds its `lib/` folder beside
+  itself, and beside the copy there is nothing. The link is checked now rather
+  than assumed, and where it did not take, a two-line launcher is written
+  instead. It also picks `~/bin`, the one directory the bash Git ships puts on
+  your PATH for you, and names `~/.bashrc` instead of advising you to edit a
+  `~/.zshrc` that is not there
+- `./uninstall.sh` knows both shapes, and removes the launcher only when it
+  says it is ours — a `min` somebody else put there is left exactly where it is
+- CI installs and uninstalls on a real Windows machine, not only on macOS
+- **`min startup` can turn a LaunchAgent off**, not just report it. It is
+  unloaded with `launchctl` first and then moved, so it stops now rather than
+  at the next login — and a plist that is still loaded and no longer on disk
+  is the one state worth avoiding. `--undo` moves it back and loads it again
+
 ## 0.31.0
 
 `min dock` on Windows: the row of apps pinned to your taskbar.
