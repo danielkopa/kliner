@@ -155,7 +155,44 @@ nimo_register_targets_windows() {
     nimo_register browser-cache "Browser caches" contents safe \
         "rebuilt as you browse" \
         "$HOME/AppData/Local/Google/Chrome/User Data/Default/Cache" \
-        "$HOME/AppData/Local/Microsoft/Edge/User Data/Default/Cache"
+        "$HOME/AppData/Local/Google/Chrome/User Data/Default/Code Cache" \
+        "$HOME/AppData/Local/Microsoft/Edge/User Data/Default/Cache" \
+        "$HOME/AppData/Local/Microsoft/Edge/User Data/Default/Code Cache" \
+        "$HOME/AppData/Local/BraveSoftware/Brave-Browser/User Data/Default/Cache" \
+        "$HOME/AppData/Local/Mozilla/Firefox/Profiles" \
+        "$HOME/AppData/Local/Opera Software/Opera Stable/Cache"
+
+    # Every one of these is a folder its own tool refills on demand. None of
+    # them is a setting, a login, or anything you typed.
+    nimo_register dev-caches "Build caches" contents safe \
+        "your tools rebuild them" \
+        "$HOME/.gradle/caches" \
+        "$HOME/.cargo/registry/cache" \
+        "$HOME/AppData/Local/NuGet/Cache" \
+        "$HOME/AppData/Local/go-build"
+
+    # Deliberately not here, and this is the reason rather than an oversight:
+    #
+    #   AppData/Local/Package Cache          the installers Windows keeps so
+    #   AppData/Local/Microsoft/VisualStudio/Packages   Repair and Uninstall
+    #                                        still work. They look exactly
+    #                                        like junk and are not.
+    #   .nuget/packages                      restorable, but only with the
+    #                                        network, and only if the feed is
+    #                                        still up.
+
+    nimo_register app-caches "App caches" contents safe \
+        "the apps refill them" \
+        "$HOME/AppData/Roaming/Microsoft/Teams/Cache" \
+        "$HOME/AppData/Roaming/Slack/Cache" \
+        "$HOME/AppData/Roaming/Code/Cache" \
+        "$HOME/AppData/Roaming/Code/CachedData" \
+        "$HOME/AppData/Roaming/discord/Cache" \
+        "$HOME/AppData/Roaming/Spotify/Data"
+
+    nimo_register thumbnails "Thumbnail cache" contents safe \
+        "explorer draws them again" \
+        "$HOME/AppData/Local/Microsoft/Windows/Explorer"
 
     nimo_register downloads "Old downloads" older review \
         "untouched for a while" \
