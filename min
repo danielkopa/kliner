@@ -19,7 +19,7 @@
 #
 set -u
 
-NIMO_VERSION="0.10.0"
+NIMO_VERSION="0.11.0"
 
 # --- find our own directory, even when called through a symlink ---------
 nimo_root() {
@@ -37,8 +37,9 @@ nimo_root() {
 
 NIMO_ROOT=$(nimo_root)
 NIMO_LIB="$NIMO_ROOT/lib"
+NIMO_SELF="$NIMO_ROOT/min"
 
-for _nimo_mod in ui core pick scan clean setup desktop dock wall undo tools; do
+for _nimo_mod in ui core pick repl scan clean setup desktop dock wall undo tools; do
     if [ ! -r "$NIMO_LIB/$_nimo_mod.sh" ]; then
         echo "nimo: cannot find $NIMO_LIB/$_nimo_mod.sh" >&2
         echo "nimo: is the whole repository still in one piece?" >&2
@@ -59,6 +60,7 @@ NIMO_JSON=0
 NIMO_UNDO=0
 NIMO_RESTORE=0
 NIMO_RANDOM=0
+NIMO_MENU=0
 NIMO_LIMIT=15
 NIMO_COLOR=auto
 NIMO_COMMAND=""
@@ -68,7 +70,7 @@ nimo_usage() {
 
   Commands
 
-    min                 say hello
+    min                 a prompt: type /clean desktop, /wallpaper, /undo
     min tidy            the whole thing: desktop, dock, wallpaper, preferences
 
     min desktop         clear your desktop, nothing lost
@@ -94,6 +96,7 @@ nimo_usage() {
         --undo          put your desktop back the way it was
         --restore       put the dock, wallpaper or preferences back
         --random        let nimo pick the wallpaper
+        --menu          pick from a list with the arrow keys
         --list          list the setup groups
         --limit N       how many rows min top shows (default 15)
         --json          machine readable output for clean and preview
@@ -131,7 +134,7 @@ nimo_read_config
 # --- argument parsing ----------------------------------------------------
 while [ $# -gt 0 ]; do
     case "$1" in
-        clean|preview|setup|top|doctor|update|tidy|desktop|dock|wallpaper|undo|help|version)
+        clean|preview|setup|top|doctor|update|tidy|desktop|dock|wallpaper|undo|menu|help|version)
             [ -z "$NIMO_COMMAND" ] && NIMO_COMMAND="$1"
             ;;
         -n|--dry-run)   NIMO_DRY_RUN=1 ;;
@@ -142,6 +145,7 @@ while [ $# -gt 0 ]; do
         --undo)         NIMO_UNDO=1 ;;
         --restore)      NIMO_RESTORE=1 ;;
         --random)       NIMO_RANDOM=1 ;;
+        --menu)         NIMO_MENU=1 ;;
         --limit)
             shift
             if [ $# -eq 0 ]; then
@@ -219,6 +223,7 @@ nimo_dispatch() {
         setup)     nimo_cmd_setup ;;
         update)    nimo_cmd_update ;;
         version)   nimo_version ;;
+        menu)      nimo_menu_then_run ;;
         help)      nimo_logo; nimo_usage ;;
     esac
 }
@@ -228,17 +233,35 @@ if [ -n "$NIMO_COMMAND" ]; then
     exit $?
 fi
 
-# `min` on its own: a way in if the terminal can do it, the help if it cannot
-nimo_logo
-if nimo_pick_capable; then
-    printf '\n'
-    _nimo_choice=$(nimo_menu) || _nimo_choice=""
-    if [ -n "$_nimo_choice" ]; then
-        nimo_dispatch "$_nimo_choice"
-        exit $?
+# `min --menu`, and the fallback for `min` on a terminal that cannot prompt
+nimo_menu_then_run() {
+    nimo_logo
+    if ! nimo_pick_capable; then
+        nimo_usage
+        return 0
     fi
     printf '\n'
-    exit 0
+    local choice
+    choice=$(nimo_menu) || choice=""
+    if [ -n "$choice" ]; then
+        nimo_dispatch "$choice"
+        return $?
+    fi
+    printf '\n'
+    return 0
+}
+
+if [ "$NIMO_MENU" = "1" ]; then
+    nimo_menu_then_run
+    exit $?
 fi
 
+# `min` on its own is a prompt. Anywhere it cannot prompt — a pipe, a script,
+# a cron job — it prints the help it always did.
+if [ -t 0 ] || [ "${NIMO_REPL_FORCE:-0}" = "1" ]; then
+    nimo_repl
+    exit $?
+fi
+
+nimo_logo
 nimo_usage
