@@ -405,7 +405,12 @@ check "dark writes down what it was"      "ls '$BOX'/.nimo/backups/setup-*.tsv >
 check "dark records light as never set"   "grep -q 'AppleInterfaceStyle	absent' \$(ls -1 '$BOX'/.nimo/backups/setup-*.tsv | tail -1)"
 
 fakedefaults write NSGlobalDomain AppleInterfaceStyle -string Dark
-check "nimo can see it is dark now"       "mac light -y -q --no-color 2>&1 | grep -q 'dark  →  light'"
+# Piping straight into grep -q would end this test early: grep exits on the
+# first match and the command behind it dies of SIGPIPE before it has done
+# anything. Whenever the command must finish, its output is captured first.
+appearance_run() { mac light -y -q --no-color 2>&1; }
+
+check "nimo can see it is dark now"       "[ -n \"\$(appearance_run | grep 'dark  →  light')\" ]"
 check "light asks it to go back"          "grep -q 'set dark mode to false' '$SCRIPTED'"
 check "asking for what you have is calm"  "fakedefaults write NSGlobalDomain AppleInterfaceStyle -string Dark; mac dark -y -q --no-color | grep -q 'already dark'"
 
@@ -418,6 +423,43 @@ check "hide twice is not a problem"       "mac hide -y -q --no-color | grep -q '
 check "hide --restore brings it back"     "mac hide --restore -y -q --no-color >/dev/null 2>&1; [ \"\$(fakedefaults read NSGlobalDomain _HIHideMenuBar)\" = false ]"
 check "hide --dry-run changes nothing"    "fakedefaults delete NSGlobalDomain _HIHideMenuBar; mac hide --dry-run -q --no-color >/dev/null 2>&1; ! fakedefaults read NSGlobalDomain _HIHideMenuBar"
 check "hide --dry-run shows the command"  "mac hide --dry-run -q --no-color | grep -q '_HIHideMenuBar -bool true'"
+
+# ---- apps you never open -------------------------------------------------
+
+APPS="$BOX/Applications"
+mkdir -p "$APPS/Forgotten.app/Contents" "$APPS/Daily.app/Contents"
+dd if=/dev/zero of="$APPS/Forgotten.app/Contents/blob" bs=1024 count=4096 2>/dev/null
+dd if=/dev/zero of="$APPS/Daily.app/Contents/blob" bs=1024 count=1024 2>/dev/null
+
+cat > "$FAKE/mdls" <<'SHIM'
+#!/bin/sh
+# only ever asked for kMDItemLastUsedDate -raw <app>
+case "$*" in
+    *Forgotten.app*) echo "2019-03-04 11:02:00 +0000" ;;
+    *Daily.app*)     printf '%s 09:00:00 +0000' "$(date +%Y-%m-%d)" ;;
+    *)               echo "(null)" ;;
+esac
+SHIM
+chmod +x "$FAKE/mdls"
+
+apps_says() {
+    PATH="$FAKE:$PATH" HOME="$BOX" bash -c '
+        NIMO_VERSION=test
+        for m in ui core pick scan clean setup desktop dock wall look dupes apps undo tools; do
+            . "'"$ROOT"'/lib/$m.sh"
+        done
+        NIMO_QUIET=1; NIMO_COLOR=never; NIMO_LIMIT=15; NIMO_DAYS=180
+        nimo_init_colors
+        nimo_app_dirs() { printf "%s\n" "'"$APPS"'"; }
+        nimo_cmd_apps' 2>&1
+}
+
+check "apps finds the forgotten one"      "apps_says | grep -q Forgotten"
+check "apps leaves out what you use"      "! apps_says | grep -q Daily"
+check "apps shows how big it is"          "apps_says | grep -q '4.0 MB'"
+check "apps says when it was last opened" "apps_says | grep -q '2019-03-04'"
+check "apps never uninstalls anything"    "apps_says >/dev/null; [ -d '$APPS/Forgotten.app' ]"
+check "apps says so out loud"             "apps_says | grep -q 'does not uninstall'"
 
 # ---- the wallpaper -------------------------------------------------------
 #

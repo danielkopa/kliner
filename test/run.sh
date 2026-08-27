@@ -225,6 +225,11 @@ check "zen says no away from macOS"        "[ \"\$(uname -s)\" = Darwin ] || min
 
 # ---- the same file, more than once --------------------------------------
 
+case "$(uname -s)" in
+    Darwin) TRASHDIR="$BOX/.Trash" ;;
+    *)      TRASHDIR="$BOX/.local/share/Trash/files" ;;
+esac
+
 DUP="$BOX/Documents"
 mkdir -p "$DUP" "$BOX/Downloads/sub"
 dd if=/dev/zero of="$DUP/paper.pdf" bs=1024 count=200 2>/dev/null
@@ -243,6 +248,18 @@ check "it says so out loud"               "min duplicates -q --no-color | grep -
 rm -f "$DUP/paper.pdf" "$BOX/Downloads/paper copy.pdf" "$BOX/Downloads/sub/paper (1).pdf" "$BOX/Downloads/alone.bin"
 check "nothing doubled is a calm answer"  "min duplicates -q --no-color | grep -q 'No copies'"
 
+mkdir -p "$TRASHDIR"
+dd if=/dev/zero of="$TRASHDIR/thrown.bin" bs=1024 count=2048 2>/dev/null
+touch "$TRASHDIR/note.txt"
+
+check "empty sees what is in there"       "min empty --dry-run -q --no-color | grep -q 'waiting to be taken out'"
+check "empty --dry-run empties nothing"   "[ -f '$TRASHDIR/thrown.bin' ]"
+check "empty says it cannot be undone"    "min empty --dry-run -q --no-color | grep -q 'not undoable'"
+check "empty takes it out"                "min empty -y -q --no-color >/dev/null 2>&1; [ ! -f '$TRASHDIR/thrown.bin' ]"
+check "empty reports what it freed"       "dd if=/dev/zero of='$TRASHDIR/again.bin' bs=1024 count=1024 2>/dev/null; min empty -y -q --no-color | grep -q 'Freed 1.0 MB'"
+check "an empty trash is a calm answer"   "min empty -q --no-color | grep -q 'Already empty'"
+
+check "apps says no away from macOS"      "[ \"\$(uname -s)\" = Darwin ] || min apps -q --no-color | grep -q 'macOS'"
 check "dark says no away from macOS"      "[ \"\$(uname -s)\" = Darwin ] || min dark -q --no-color | grep -q 'macOS'"
 check "hide says no away from macOS"      "[ \"\$(uname -s)\" = Darwin ] || min hide -q --no-color | grep -q 'macOS'"
 
