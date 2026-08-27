@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.43.0
+
+### `min top` steps into things
+
+"Where did my disk go" is a question about a tree, and a flat list of your home
+folder answers it once and then leaves you to guess.
+
+Now you pick the folder that is too big and look inside it, and keep going
+until you find the thing:
+
+```
+  ╭─ inside Movies ───────────────────────────────────
+
+     holiday/                   2.9 MB  ████████████████
+     trailer.mp4                900 KB  █████···········
+```
+
+- `..` comes back up, `q` stops, and it goes no further up than your home
+  folder — the same rule as everywhere else in nimo, even though there is no
+  key in this command that removes anything
+- Files show as well as folders. `du` lists directories only unless you ask
+  for everything, so stepping into a folder of files used to show you nothing
+- `min top Downloads` starts you in there
+- Off a terminal it is the flat list it always was, and says where the rest is
+
 ## 0.42.0
 
 The rest of nimo learns the same lesson: the prompt's list and the wallpaper
