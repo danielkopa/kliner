@@ -12,33 +12,67 @@
 # Every command, with the words that reach it.
 nimo_repl_list() {
     nimo_panel_open "what you can type"
-    printf '%s%-22s %s%s%s\n' "$NIMO_PAD" "/tidy"            "$NIMO_C_DIM" "the whole thing, step by step" "$NIMO_C_RESET"
-    printf '%s%-22s %s%s%s\n' "$NIMO_PAD" "/clean desktop"   "$NIMO_C_DIM" "file everything on your desktop away" "$NIMO_C_RESET"
-    printf '%s%-22s %s%s%s\n' "$NIMO_PAD" "/clean dock"      "$NIMO_C_DIM" "keep only the apps you open" "$NIMO_C_RESET"
-    printf '%s%-22s %s%s%s\n' "$NIMO_PAD" "/wallpaper"       "$NIMO_C_DIM" "a calmer one, from what macOS ships" "$NIMO_C_RESET"
+    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/tidy"         "$NIMO_C_DIM" "the whole thing, step by step" "$NIMO_C_RESET"
+    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/cleardesktop" "$NIMO_C_DIM" "file everything on your desktop away" "$NIMO_C_RESET"
+    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/cleardownloads" "$NIMO_C_DIM" "the same, for your downloads" "$NIMO_C_RESET"
+    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/screenshots"  "$NIMO_C_DIM" "gather every loose screenshot into one place" "$NIMO_C_RESET"
+    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/cleardock"    "$NIMO_C_DIM" "keep only the apps you open" "$NIMO_C_RESET"
+    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/wallpaper"    "$NIMO_C_DIM" "a calmer one, from what macOS ships" "$NIMO_C_RESET"
+    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/zen"          "$NIMO_C_DIM" "stop drawing icons on the desktop at all" "$NIMO_C_RESET"
     printf '\n'
-    printf '%s%-22s %s%s%s\n' "$NIMO_PAD" "/preview"         "$NIMO_C_DIM" "what could be freed — changes nothing" "$NIMO_C_RESET"
-    printf '%s%-22s %s%s%s\n' "$NIMO_PAD" "/clean"           "$NIMO_C_DIM" "free it up, after asking" "$NIMO_C_RESET"
-    printf '%s%-22s %s%s%s\n' "$NIMO_PAD" "/top"             "$NIMO_C_DIM" "the biggest folders in your home" "$NIMO_C_RESET"
-    printf '%s%-22s %s%s%s\n' "$NIMO_PAD" "/doctor"          "$NIMO_C_DIM" "how your computer is doing" "$NIMO_C_RESET"
+    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/preview"      "$NIMO_C_DIM" "what could be freed — changes nothing" "$NIMO_C_RESET"
+    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/clean"        "$NIMO_C_DIM" "free it up, after asking" "$NIMO_C_RESET"
+    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/top"          "$NIMO_C_DIM" "the biggest folders in your home" "$NIMO_C_RESET"
+    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/doctor"       "$NIMO_C_DIM" "how your computer is doing" "$NIMO_C_RESET"
     printf '\n'
-    printf '%s%-22s %s%s%s\n' "$NIMO_PAD" "/setup"           "$NIMO_C_DIM" "a small, sane macOS setup" "$NIMO_C_RESET"
-    printf '%s%-22s %s%s%s\n' "$NIMO_PAD" "/undo"            "$NIMO_C_DIM" "put anything back" "$NIMO_C_RESET"
-    printf '%s%-22s %s%s%s\n' "$NIMO_PAD" "/menu"            "$NIMO_C_DIM" "pick with the arrow keys instead" "$NIMO_C_RESET"
-    printf '%s%-22s %s%s%s\n' "$NIMO_PAD" "/quit"            "$NIMO_C_DIM" "leave" "$NIMO_C_RESET"
+    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/setup"        "$NIMO_C_DIM" "a small, sane macOS setup" "$NIMO_C_RESET"
+    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/undo"         "$NIMO_C_DIM" "put anything back" "$NIMO_C_RESET"
+    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/menu"         "$NIMO_C_DIM" "pick with the arrow keys instead" "$NIMO_C_RESET"
+    printf '%s%-20s %s%s%s\n' "$NIMO_PAD" "/quit"         "$NIMO_C_DIM" "leave" "$NIMO_C_RESET"
     nimo_panel_close
     nimo_blank
-    nimo_dim "flags work here too:  /clean --only trash    /desktop --undo"
+    nimo_dim "spaces are optional — /clear desktop and /cleardesktop are the same thing"
+    nimo_dim "so are flags:  /clean --only trash    /desktop --undo"
     nimo_blank
 }
 
 # A phrase in, a command name out. Empty when nimo has no idea.
+#
+# Everything is matched twice: as typed, and with the spaces taken out, so
+# "/clear desktop" and "/cleardesktop" are the same command and nobody has to
+# remember which one nimo wanted.
 nimo_repl_command() {
+    local squashed
+    squashed=$(printf '%s' "$1" | tr -d ' ')
+
+    case "$squashed" in
+        cleardesktop|cleandesktop|tidydesktop|fixdesktop|sortdesktop|clearfiles|cleanfiles|sortfiles|tidyfiles)
+            printf 'desktop'; return 0 ;;
+        cleardownloads|cleandownloads|tidydownloads|sortdownloads|downloads)
+            printf 'downloads'; return 0 ;;
+        cleardock|cleandock|tidydock|fixdock|clearapps|cleanapps)
+            printf 'dock'; return 0 ;;
+        screenshots|screenshot|clearscreenshots|gatherscreenshots|shots)
+            printf 'screenshots'; return 0 ;;
+        zen|hideicons|hidedesktop|quietdesktop|focus)
+            printf 'zen'; return 0 ;;
+        cleardisk|cleandisk|freespace|clearspace|cleancache|clearcache|clearjunk|cleanjunk)
+            printf 'clean'; return 0 ;;
+        cleartrash|cleantrash|emptytrash)
+            printf 'clean'; return 0 ;;
+    esac
+
     case "$1" in
         tidy|all|everything|"do it"|"do everything"|minimal|"make it minimal")
             printf 'tidy' ;;
-        desktop|"clean desktop"|"clear desktop"|"tidy desktop"|"fix desktop"|"sort desktop"|files)
+        desktop|"clean desktop"|"clear desktop"|"tidy desktop"|"fix desktop"|"sort desktop"|files|"clear files"|"sort files")
             printf 'desktop' ;;
+        downloads|"clean downloads"|"clear downloads"|"tidy downloads"|"sort downloads")
+            printf 'downloads' ;;
+        screenshots|screenshot|shots|"gather screenshots"|"clear screenshots")
+            printf 'screenshots' ;;
+        zen|focus|"hide icons"|"hide desktop"|"quiet desktop"|calm)
+            printf 'zen' ;;
         dock|"clean dock"|"clear dock"|"tidy dock"|"fix dock"|apps)
             printf 'dock' ;;
         wallpaper|wall|background|"change wallpaper"|"set wallpaper"|desktop-picture)
@@ -87,7 +121,7 @@ nimo_repl_guess() {
     local phrase="$1" word name shared best="" best_score=0
 
     for word in $phrase; do
-        for name in tidy desktop dock wallpaper preview clean top doctor setup undo update menu; do
+        for name in tidy desktop downloads screenshots dock wallpaper zen preview clean top doctor setup undo update menu; do
             shared=$(nimo_shared_prefix "$word" "$name")
             if [ "$shared" -gt "$best_score" ]; then
                 best_score="$shared"
@@ -113,7 +147,7 @@ nimo_repl_correct() {
     for word in $phrase; do
         best="$word"
         best_score=0
-        for name in tidy desktop dock wallpaper preview clean top doctor setup undo update menu; do
+        for name in tidy desktop downloads screenshots dock wallpaper zen preview clean top doctor setup undo update menu; do
             shared=$(nimo_shared_prefix "$word" "$name")
             if [ "$shared" -gt "$best_score" ]; then
                 best_score="$shared"
@@ -184,12 +218,21 @@ nimo_repl_do() {
     # Each command runs as its own nimo, so nothing one does leaks into the
     # next: the flags, the scan results and the confirmations all start clean.
     # shellcheck disable=SC2086
-    NIMO_COLOR="$NIMO_COLOR" bash "$NIMO_SELF" "$cmd" $flags
+    bash "$NIMO_SELF" "$cmd" ${NIMO_INHERIT:-} $flags
     return 0
 }
 
 nimo_repl() {
-    nimo_logo
+    if [ -t 1 ] && [ "${NIMO_NO_CLEAR:-0}" != "1" ] && [ "${NIMO_QUIET:-0}" != "1" ]; then
+        clear
+    fi
+    if [ "${NIMO_QUIET:-0}" != "1" ]; then
+        nimo_face
+        printf '\n%s                       NIMO%s\n' "$NIMO_C_BOLD" "$NIMO_C_RESET"
+        printf '%s              make your computer%s\n' "$NIMO_C_DIM" "$NIMO_C_RESET"
+        printf '%s                   feel better.%s\n' "$NIMO_C_DIM" "$NIMO_C_RESET"
+        printf '%s                       v%s%s\n' "$NIMO_C_DIM" "$NIMO_VERSION" "$NIMO_C_RESET"
+    fi
     nimo_blank
     nimo_dim "type a command, or / to see them all. ctrl-d to leave."
 

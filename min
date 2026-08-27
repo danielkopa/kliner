@@ -19,7 +19,7 @@
 #
 set -u
 
-NIMO_VERSION="0.11.0"
+NIMO_VERSION="0.12.0"
 
 # --- find our own directory, even when called through a symlink ---------
 nimo_root() {
@@ -74,6 +74,9 @@ nimo_usage() {
     min tidy            the whole thing: desktop, dock, wallpaper, preferences
 
     min desktop         clear your desktop, nothing lost
+    min downloads       the same, for your downloads
+    min screenshots     gather every loose screenshot into one place
+    min zen             stop drawing icons on the desktop at all
     min dock            keep only the apps you actually open
     min wallpaper       a calmer wallpaper, from the ones macOS ships
     min undo            everything nimo has done, and a way back
@@ -134,7 +137,7 @@ nimo_read_config
 # --- argument parsing ----------------------------------------------------
 while [ $# -gt 0 ]; do
     case "$1" in
-        clean|preview|setup|top|doctor|update|tidy|desktop|dock|wallpaper|undo|menu|help|version)
+        clean|preview|setup|top|doctor|update|tidy|desktop|downloads|screenshots|zen|dock|wallpaper|undo|menu|help|version)
             [ -z "$NIMO_COMMAND" ] && NIMO_COMMAND="$1"
             ;;
         -n|--dry-run)   NIMO_DRY_RUN=1 ;;
@@ -207,12 +210,29 @@ esac
 
 nimo_init_colors
 
+# What the prompt hands down to each command it launches. Without this, a
+# session started with --no-color or -y ran its children with neither, and a
+# piped -y never reached the confirmation that was waiting for it.
+NIMO_INHERIT=""
+case "$NIMO_COLOR" in
+    never)  NIMO_INHERIT="$NIMO_INHERIT --no-color" ;;
+    always) NIMO_INHERIT="$NIMO_INHERIT --color" ;;
+esac
+[ "$NIMO_QUIET" = "1" ]      && NIMO_INHERIT="$NIMO_INHERIT -q"
+[ "$NIMO_ASSUME_YES" = "1" ] && NIMO_INHERIT="$NIMO_INHERIT -y"
+[ "$NIMO_DRY_RUN" = "1" ]    && NIMO_INHERIT="$NIMO_INHERIT -n"
+[ "$NIMO_DAYS" != "30" ]     && NIMO_INHERIT="$NIMO_INHERIT --days $NIMO_DAYS"
+[ "$NIMO_LIMIT" != "15" ]    && NIMO_INHERIT="$NIMO_INHERIT --limit $NIMO_LIMIT"
+
 # --- dispatch ------------------------------------------------------------
 
 nimo_dispatch() {
     case "$1" in
         tidy)      nimo_cmd_tidy ;;
         desktop)   nimo_cmd_desktop ;;
+        downloads) nimo_cmd_downloads ;;
+        screenshots) nimo_cmd_screenshots ;;
+        zen)       nimo_cmd_zen ;;
         dock)      nimo_cmd_dock ;;
         wallpaper) nimo_cmd_wallpaper ;;
         undo)      nimo_cmd_undo ;;
