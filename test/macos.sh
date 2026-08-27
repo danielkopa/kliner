@@ -395,6 +395,30 @@ check "zen --restore brings them back"     "mac zen --restore -y -q --no-color >
 check "zen --dry-run changes nothing"      "fakedefaults write com.apple.finder CreateDesktop -bool true; mac zen --dry-run -q --no-color >/dev/null 2>&1; [ \"\$(fakedefaults read com.apple.finder CreateDesktop)\" = true ]"
 check "zen --dry-run shows the command"    "mac zen --dry-run -q --no-color | grep -q 'CreateDesktop -bool false'"
 
+# ---- appearance and the menu bar -----------------------------------------
+
+rm -rf "$BOX/.nimo/backups"
+: > "$PREFS"; : > "$WROTE"; : > "$SCRIPTED"
+
+check "dark asks the system to go dark"   "mac dark -y -q --no-color >/dev/null 2>&1; grep -q 'set dark mode to true' '$SCRIPTED'"
+check "dark writes down what it was"      "ls '$BOX'/.nimo/backups/setup-*.tsv >/dev/null 2>&1"
+check "dark records light as never set"   "grep -q 'AppleInterfaceStyle	absent' \$(ls -1 '$BOX'/.nimo/backups/setup-*.tsv | tail -1)"
+
+fakedefaults write NSGlobalDomain AppleInterfaceStyle -string Dark
+check "nimo can see it is dark now"       "mac light -y -q --no-color 2>&1 | grep -q 'dark  →  light'"
+check "light asks it to go back"          "grep -q 'set dark mode to false' '$SCRIPTED'"
+check "asking for what you have is calm"  "fakedefaults write NSGlobalDomain AppleInterfaceStyle -string Dark; mac dark -y -q --no-color | grep -q 'already dark'"
+
+: > "$SCRIPTED"
+check "the fallback writes the pref"      "fakedefaults delete NSGlobalDomain AppleInterfaceStyle; NIMO_OSA_FAIL=1 PATH=\"$FAKE:\$PATH\" HOME=\"$BOX\" bash \"$MIN\" dark -y -q --no-color >/dev/null 2>&1 </dev/null; [ \"\$(fakedefaults read NSGlobalDomain AppleInterfaceStyle)\" = Dark ]"
+
+: > "$PREFS"
+check "hide tucks the menu bar away"      "mac hide -y -q --no-color >/dev/null 2>&1; [ \"\$(fakedefaults read NSGlobalDomain _HIHideMenuBar)\" = true ]"
+check "hide twice is not a problem"       "mac hide -y -q --no-color | grep -q 'already like that'"
+check "hide --restore brings it back"     "mac hide --restore -y -q --no-color >/dev/null 2>&1; [ \"\$(fakedefaults read NSGlobalDomain _HIHideMenuBar)\" = false ]"
+check "hide --dry-run changes nothing"    "fakedefaults delete NSGlobalDomain _HIHideMenuBar; mac hide --dry-run -q --no-color >/dev/null 2>&1; ! fakedefaults read NSGlobalDomain _HIHideMenuBar"
+check "hide --dry-run shows the command"  "mac hide --dry-run -q --no-color | grep -q '_HIHideMenuBar -bool true'"
+
 # ---- the wallpaper -------------------------------------------------------
 #
 # The list comes from paths that only exist on a real Mac, so this part

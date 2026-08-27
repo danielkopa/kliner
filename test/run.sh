@@ -143,7 +143,7 @@ typed() {
 }
 
 check "the prompt greets you"             "typed '' | grep -q 'nimo ›'"
-check "/ lists what you can type"         "typed '/' | grep -q '/cleardesktop'"
+check "/ lists what you can type"         "typed '/' | grep -q '/clear' && typed '/' | grep -q '/wallpaper'"
 check "/doctor runs doctor"               "typed '/doctor' | grep -q 'your computer'"
 check "the slash is optional"             "typed 'doctor' | grep -q 'your computer'"
 check "/preview runs preview"             "typed '/preview' | grep -q 'safe to clean'"
@@ -153,7 +153,7 @@ check "flags are passed through"          "typed '/preview --json' | grep -q '\"
 check "a typo is caught"                  "typed '/wallpapr' | grep -q 'did you mean /wallpaper'"
 check "a typo mid-phrase is caught"       "typed '/clean deskopt' | grep -q 'did you mean /clean desktop'"
 check "nonsense is not guessed at"        "typed '/xyzzy' | grep -q 'does not know' && ! typed '/xyzzy' | grep -q 'did you mean'"
-check "/quit leaves quietly"              "typed '/doctor' | grep -q 'bye'"
+check "/quit stops reading there"        "! printf '/quit\n/doctor\n' | NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -q --no-color 2>&1 | grep -q 'your computer'"
 check "the prompt exits 0"                "printf '/quit\n' | NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -q --no-color >/dev/null 2>&1"
 check "end of input is not an error"      "printf '' | NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -q --no-color >/dev/null 2>&1"
 check "one command cannot leak into next" "typed '/preview --json' | grep -q 'safe_bytes' && typed '/preview' | grep -q 'safe to clean'"
@@ -222,6 +222,29 @@ crosstalk() {
 check "each undo takes its own log"       "[ \"\$(crosstalk)\" = ok ]"
 
 check "zen says no away from macOS"        "[ \"\$(uname -s)\" = Darwin ] || min zen -q --no-color | grep -q 'macOS'"
+
+# ---- the same file, more than once --------------------------------------
+
+DUP="$BOX/Documents"
+mkdir -p "$DUP" "$BOX/Downloads/sub"
+dd if=/dev/zero of="$DUP/paper.pdf" bs=1024 count=200 2>/dev/null
+printf 'x' >> "$DUP/paper.pdf"
+cp "$DUP/paper.pdf" "$BOX/Downloads/paper copy.pdf"
+cp "$DUP/paper.pdf" "$BOX/Downloads/sub/paper (1).pdf"
+dd if=/dev/zero of="$BOX/Downloads/alone.bin" bs=1024 count=300 2>/dev/null
+printf 'y' >> "$BOX/Downloads/alone.bin"
+
+check "duplicates finds the copies"       "min duplicates -q --no-color | grep -q 'paper'"
+check "and counts what they cost"         "min duplicates -q --no-color | grep -q '1 file with copies'"
+check "it names where each copy sits"     "[ \$(min duplicates -q --no-color | grep -c 'also in') -eq 2 ]"
+check "a lonely file is not a copy"       "! min duplicates -q --no-color | grep -q alone"
+check "duplicates never deletes"          "min duplicates -q --no-color >/dev/null; [ -f '$DUP/paper.pdf' ] && [ -f '$BOX/Downloads/paper copy.pdf' ]"
+check "it says so out loud"               "min duplicates -q --no-color | grep -q 'does not delete'"
+rm -f "$DUP/paper.pdf" "$BOX/Downloads/paper copy.pdf" "$BOX/Downloads/sub/paper (1).pdf" "$BOX/Downloads/alone.bin"
+check "nothing doubled is a calm answer"  "min duplicates -q --no-color | grep -q 'No copies'"
+
+check "dark says no away from macOS"      "[ \"\$(uname -s)\" = Darwin ] || min dark -q --no-color | grep -q 'macOS'"
+check "hide says no away from macOS"      "[ \"\$(uname -s)\" = Darwin ] || min hide -q --no-color | grep -q 'macOS'"
 
 # ---- the way in ---------------------------------------------------------
 
