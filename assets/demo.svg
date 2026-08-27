@@ -40,24 +40,26 @@
 <text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  nimo › /clear</text>
 <text x="22" y="104.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  ╭─ what should be clear? ─────────────────────</text>
 <text x="22" y="143.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">     nothing is deleted — everything can be undone</text>
-<text x="22" y="182.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#EEF2F3">   ▸ Desktop        85 items</text>
-<text x="22" y="202.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Downloads      296 items</text>
-<text x="22" y="221.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Screenshots    12 screenshots loose</text>
-<text x="22" y="241.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Dock           the apps you never open</text>
-<text x="22" y="260.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Trash          18 items</text>
-<text x="22" y="280.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Everything     all of it, one step at a time</text>
+<text x="22" y="182.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">     1.4 GB in all, and none of it is deleted</text>
+<text x="22" y="221.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#EEF2F3">   ▸ Desktop       85 items    ████········</text>
+<text x="22" y="241.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Downloads     296 items   ████████████</text>
+<text x="22" y="260.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Screenshots   12 loose    █···········</text>
+<text x="22" y="280.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Trash         18 items    █···········</text>
+<text x="22" y="299.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Dock          the apps you never open</text>
+<text x="22" y="319.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Everything    all of it, one step at a time</text>
 </g>
 <g opacity="0">
 <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.4472;0.4512;0.5488;0.5528;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
 <text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  nimo › /clear</text>
 <text x="22" y="104.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  ╭─ what should be clear? ─────────────────────</text>
 <text x="22" y="143.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">     nothing is deleted — everything can be undone</text>
-<text x="22" y="182.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Desktop        85 items</text>
-<text x="22" y="202.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#EEF2F3">   ▸ Downloads      296 items</text>
-<text x="22" y="221.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Screenshots    12 screenshots loose</text>
-<text x="22" y="241.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Dock           the apps you never open</text>
-<text x="22" y="260.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Trash          18 items</text>
-<text x="22" y="280.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Everything     all of it, one step at a time</text>
+<text x="22" y="182.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">     1.4 GB in all, and none of it is deleted</text>
+<text x="22" y="221.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Desktop       85 items    ████········</text>
+<text x="22" y="241.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#EEF2F3">   ▸ Downloads     296 items   ████████████</text>
+<text x="22" y="260.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Screenshots   12 loose    █···········</text>
+<text x="22" y="280.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Trash         18 items    █···········</text>
+<text x="22" y="299.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Dock          the apps you never open</text>
+<text x="22" y="319.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Everything    all of it, one step at a time</text>
 </g>
 <g opacity="0">
 <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.5448;0.5488;0.7195;0.7235;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
