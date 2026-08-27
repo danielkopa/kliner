@@ -329,6 +329,33 @@ two_in_a_second() {
 }
 
 check "two tidies in a second keep both"  "[ \"\$(two_in_a_second)\" = '2 1' ]"
+
+# The same second, and then the undo. The extra log is named "…_2", and `ls`
+# sorts that *before* the plain name under en_US.UTF-8 — the locale a Mac
+# terminal uses — and *after* it under C, which is what CI uses. Picking the
+# newest by name therefore replayed the wrong run on a Mac and only on a Mac.
+# This runs the case under both collations.
+newest_wins() {
+    local box locale="$1"
+    box=$(mktemp -d "${TMPDIR:-/tmp}/nimo-locale.XXXXXX") || return 1
+    mkdir -p "$box/Desktop"
+    touch "$box/Desktop/older.pdf"
+    LC_ALL="$locale" HOME="$box" bash "$MIN" desktop -y -q --no-color >/dev/null 2>&1 </dev/null
+    touch "$box/Desktop/newer.pdf"
+    LC_ALL="$locale" HOME="$box" bash "$MIN" desktop -y -q --no-color >/dev/null 2>&1 </dev/null
+    LC_ALL="$locale" HOME="$box" bash "$MIN" desktop --undo -q --no-color >/dev/null 2>&1 </dev/null
+
+    # the newest run moved newer.pdf, so undoing it must bring exactly that back
+    if [ -f "$box/Desktop/newer.pdf" ] && [ ! -f "$box/Desktop/older.pdf" ]; then
+        printf 'ok'
+    else
+        printf 'wrong-run'
+    fi
+    rm -rf "$box"
+}
+
+check "undo takes the newest under C"     "[ \"\$(newest_wins C)\" = ok ]"
+check "and the newest under en_US.UTF-8"  "[ \"\$(newest_wins en_US.UTF-8)\" = ok ]"
 check "undo --list counts the files"      "min undo --list -q --no-color | grep -q '2 files'"
 
 printf '\n' | NIMO_PICK_FORCE=1 HOME="$BOX" bash "$MIN" undo -q --no-color >/dev/null 2>&1
