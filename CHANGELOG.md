@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.13.0
+
+nimo is for one thing: a clean desktop. The prompt says so now.
+
+- **`/clear`** — one word for what nimo is actually for. On its own it asks
+  what should be clear and you pick: desktop, downloads, screenshots, dock,
+  disk, or all of it. `/clear desktop` and `/cleardesktop` skip the asking
+- The prompt lists four things — `/clear`, `/wallpaper`, `/setup`, `/undo` —
+  and puts everything else on one quiet line underneath. Nothing was removed;
+  it is simply no longer in the way
+- `min clear desktop` works from the shell too: a command can take a second
+  word now
+
 ## 0.12.2
 
 - **Fixed: `min desktop --undo` reversed the wrong run.** The three sorters

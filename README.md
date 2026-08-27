@@ -57,10 +57,14 @@ Later, `min update` pulls the newest version. To remove it: `./uninstall.sh`.
 
   type a command, or / to see them all. ctrl-d to leave.
 
-  nimo › /cleardesktop
-  nimo › /screenshots
-  nimo › /zen
+  nimo › /clear
+  nimo › /wallpaper
+  nimo › /undo
 ```
+
+`/clear` asks what should be clear — desktop, downloads, screenshots, dock,
+disk — and you pick with the arrow keys. Say it outright if you prefer:
+`/clear desktop`, or `/cleardesktop`.
 
 The slash is optional, the spaces are optional, and so is remembering the exact
 word: `/desktop`, `/cleardesktop`, `/clear desktop`, `/clearfiles` and
@@ -244,6 +248,7 @@ anything.
 
 | Command | What it does |
 | --- | --- |
+| `min clear` | pick what should be clear — desktop, downloads, screenshots, dock, disk |
 | `min tidy` | desktop, dock, wallpaper and preferences, in order |
 | `min desktop` | clear your desktop — `--undo` puts it back |
 | `min downloads` | the same sorter, pointed at `~/Downloads` |
@@ -326,7 +331,7 @@ man min
 ## Tests
 
 ```bash
-bash test/run.sh      # 114 checks — everything that runs anywhere
+bash test/run.sh      # 124 checks — everything that runs anywhere
 bash test/macos.sh    # 68 checks — the parts that only run on a Mac
 
 bash test/run.sh -q   # only what went wrong, and the verdict
@@ -355,7 +360,7 @@ Every push runs everything on GitHub Actions: ShellCheck, a parse on both bash
 install-then-uninstall round trip. The bash 3.2 claim in this README is not a
 claim; it is a job that fails if it stops being true.
 
-A hundred and ten checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
+A hundred and twenty-four checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
 command and flag, the safety guard, the arrow-key picker driven by simulated
 keystrokes, the menu, the undo history, the config file, the desktop sorted and then
 fully undone, and a complete clean where the promised number is compared
