@@ -1,5 +1,50 @@
 # Changelog
 
+## 0.27.0
+
+Two things, both asked for: it must not be able to delete your computer, and
+it has to actually do something on Windows.
+
+### The guard that keeps nimo in your home folder
+
+- **Fixed: three spellings walked straight around it.** The guard compared the
+  path it was handed against `$HOME` as text, and a glob does not know that
+  `$HOME/.` is `$HOME` — so that spelling read as "somewhere under your home"
+  and passed. What runs next deletes every child of what it is given: the home
+  folder, emptied, by the one command whose whole promise is that it will not.
+  `$HOME//` and `$HOME/./` did the same. Every path is reduced to one spelling
+  first now
+- **Fixed: an empty `$HOME` opened the whole machine.** `"$HOME"/*` is `/*`,
+  which matches every absolute path there is. A `$HOME` that is empty or not an
+  absolute path now means nimo deletes nothing rather than everything
+- **Fixed: cleaning followed links off the disk.** `find dir/ -mindepth 1`
+  walks through a symlink the moment the path ends in a slash, and a cache
+  folder moved to another drive is exactly that link. Links are refused
+- **Fixed: `min blank` emptied what a link pointed at.** It checked the name
+  you typed and truncated the file at the other end
+- Twenty-nine new checks, each one a spelling of your own home folder, plus a
+  file outside it that has to still be there afterwards
+
+### Windows
+
+- **`min wallpaper` works.** It lists what Windows ships under
+  `C:\Windows\Web`, writes the path Windows can read, and asks Windows to
+  redraw
+- **`min dark` and `min light` work.** Two HKCU values, and nimo reads its own
+  change back
+- **`min zen` works.** Explorer stops drawing desktop icons; the files are not
+  touched either way
+- **`min setup` works**, with two groups that fit the machine: Explorer that
+  shows extensions, opens to This PC and stops advertising in the sidebar, and
+  a taskbar without task view, widgets or a search box
+- One undo log serves both systems. A value that was never set is logged as
+  `REG_NONE`, so it is unset through the registry and not handed to
+  `defaults`, which is not on that machine
+- Everything is HKCU: the signed-in user's own settings, never HKLM, never
+  anything needing an administrator, never a file. nimo does not restart
+  Explorer to make a setting take
+- The Windows suite is 80 checks, up from 27 two versions ago
+
 ## 0.26.0
 
 The face, the menus and Windows. Found the same way as 0.25.0 — by running
