@@ -7,13 +7,13 @@
 #   min tidy        desktop, dock, wallpaper, preferences — the whole thing
 #   min desktop     clear your desktop without losing anything
 #   min dock        keep only the apps you actually open
-#   min wallpaper   a calmer wallpaper, from the ones macOS ships with
+#   min wallpaper   a calmer wallpaper, from the ones your system ships with
 #   min undo        everything nimo has done, and a way back
 #   min clean       scan, then free up space (asks first)
 #   min preview     same scan, guaranteed to change nothing
 #   min top         the biggest folders in your home
 #   min doctor      how your computer is doing
-#   min setup       a small, sane macOS setup
+#   min setup       a small, sane setup for macOS or Windows
 #   min update      pull the newest nimo
 #   min help        this
 #
@@ -39,7 +39,7 @@ NIMO_ROOT=$(nimo_root)
 NIMO_LIB="$NIMO_ROOT/lib"
 NIMO_SELF="$NIMO_ROOT/min"
 
-for _nimo_mod in ui core pick repl scan clean setup desktop dock wall look dupes apps blank undo tools; do
+for _nimo_mod in ui core win pick repl scan clean setup desktop dock wall look dupes apps blank undo tools; do
     if [ ! -r "$NIMO_LIB/$_nimo_mod.sh" ]; then
         echo "nimo: cannot find $NIMO_LIB/$_nimo_mod.sh" >&2
         echo "nimo: is the whole repository still in one piece?" >&2
@@ -77,8 +77,8 @@ nimo_usage() {
     min                 a prompt: type /clean desktop, /wallpaper, /undo
     min clear           pick what should be clear: desktop, dock, downloads …
     min clear desktop   or say it outright
-    min wallpaper       a calmer one, from the ones macOS ships
-    min setup           a small, sane macOS setup
+    min wallpaper       a calmer one, from the ones your system ships
+    min setup           a small, sane setup for this computer
     min undo            put anything back
 
     min tidy            all of it, one step at a time

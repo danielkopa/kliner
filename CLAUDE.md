@@ -187,6 +187,29 @@ The website counts as documentation. It drifted eleven versions once; do not
 let that happen again — `docs/index.html` and the published artifact are the
 same file.
 
+## The Windows side
+
+`lib/win.sh` is the whole of it: a `reg` wrapper, a read that survives the
+`ValueName    REG_DWORD    0x1` layout, a write that records the old value
+first, and the poke Windows wants afterwards. Everything is HKCU — never HKLM,
+never anything needing an administrator, never a file.
+
+One undo log serves both systems. A line whose type starts with `REG_` goes
+back through the registry; everything else is a `defaults` line. A value that
+was **never set** is logged as `REG_NONE`, not with an empty type — otherwise
+the restore hands it to `defaults`, which is not on that machine, and the value
+nimo invented stays behind for good.
+
+nimo does not kill Explorer to make a setting take. `nimo_win_refresh` is the
+documented poke and the whole of it; anything that still needs a sign-out says
+so.
+
+`test/windows.sh` stands a fake `reg` in front of the real one, backed by a
+TSV. Two traps in writing that shim, both now commented in it: a registry key
+is full of backslashes, so `grep` reads `\S` and `\W` as patterns of its own —
+and awk's `-v k="HKCU\S…"` expands the escapes on the way in, so the value has
+to arrive through `ENVIRON`.
+
 ## Two platforms, one menu
 
 Nothing is offered that this computer cannot do. `min clear` builds its rows

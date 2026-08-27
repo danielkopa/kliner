@@ -579,14 +579,30 @@ too.
 Windows files live outside it, and reaching over there would mean loosening the
 one rule this tool will not loosen.
 
-The dock, the wallpaper, the appearance switch, the menu bar, `min setup`,
-`min zen` and `min apps` are macOS only, and say so plainly anywhere else.
+What runs where, exactly:
+
+| | macOS | Windows | Linux |
+| --- | --- | --- | --- |
+| `desktop` `downloads` `screenshots` `blank` `undo` | yes | yes | yes |
+| `clean` `preview` `top` `doctor` `duplicates` | yes | yes | yes |
+| `wallpaper` `dark` `light` `zen` `setup` | yes | yes | — |
+| `dock` `hide` `apps` `empty` | yes | — | `empty` only |
+
+On Windows everything nimo changes is HKCU: the signed-in user's own settings,
+the counterpart of `defaults` on a Mac. Nothing under HKLM, nothing that needs
+an administrator, and every value written down first so `min undo` can put it
+back. nimo never restarts Explorer to make a setting take — it uses the
+documented refresh and tells you if a sign-out is still needed.
+
+Anything a platform genuinely does not have says so plainly, and `min clear`
+does not even offer it.
 
 ## Requirements
 
-macOS with the bash that ships with it (3.2) or anything newer. `min desktop`,
-`min clean`, `min top` and `min doctor` also work on Linux; `min dock`,
-`min wallpaper` and `min setup` are macOS only. Checked with ShellCheck.
+macOS with the bash that ships with it (3.2) or anything newer, Windows with
+Git Bash, MSYS2 or Cygwin, or Linux. No dependencies beyond what each of those
+already has. See the table above for what each one gets. Checked with
+ShellCheck.
 
 ## The website
 

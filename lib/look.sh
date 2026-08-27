@@ -12,6 +12,10 @@ nimo_look_log() {
 }
 
 nimo_dark_now() {
+    if [ "$(nimo_platform)" = "windows" ]; then
+        nimo_win_dark_now
+        return 0
+    fi
     local style
     style=$(defaults read NSGlobalDomain AppleInterfaceStyle 2>/dev/null) || style=""
     case "$style" in
@@ -24,6 +28,10 @@ nimo_dark_now() {
 # way the old value is already written down.
 nimo_dark_apply() {
     local want="$1"
+    if [ "$(nimo_platform)" = "windows" ]; then
+        nimo_win_dark_apply "$want"
+        return 0
+    fi
     if osascript -e "tell application \"System Events\" to tell appearance preferences to set dark mode to $([ "$want" = dark ] && echo true || echo false)" >/dev/null 2>&1; then
         return 0
     fi
@@ -41,11 +49,13 @@ nimo_cmd_appearance() {
     local want="${1:-}"
     nimo_header
 
-    if ! nimo_is_macos; then
-        nimo_warn "appearance is a macOS thing"
-        nimo_blank
-        return 0
-    fi
+    case "$(nimo_platform)" in
+        macos|windows) ;;
+        *)
+            nimo_warn "appearance is a macOS and Windows thing"
+            nimo_blank
+            return 0 ;;
+    esac
 
     local now
     now=$(nimo_dark_now)
@@ -75,7 +85,7 @@ nimo_cmd_appearance() {
     fi
 
     nimo_look_log
-    nimo_setup_record NSGlobalDomain AppleInterfaceStyle
+    [ "$(nimo_platform)" = "macos" ] && nimo_setup_record NSGlobalDomain AppleInterfaceStyle
     nimo_dark_apply "$want"
 
     nimo_blank

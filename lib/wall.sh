@@ -1,10 +1,20 @@
 #!/usr/bin/env bash
-# nimo :: lib/wall.sh — a calmer wallpaper, from the ones macOS already ships.
+# nimo :: lib/wall.sh — a calmer wallpaper, from the ones you already have.
 #
-# Nothing is downloaded. nimo only offers files that are already on your Mac,
-# writes down what you had before, and can put it back.
+# Nothing is downloaded. nimo only offers files that are already on the machine
+# — macOS's Desktop Pictures, or the folders under C:\Windows\Web — writes down
+# what you had before, and can put it back.
 
 nimo_wall_dirs() {
+    if [ "$(nimo_platform)" = "windows" ]; then
+        # Windows keeps its own under Web: one folder per theme, plus the 4K
+        # set and the lock screen pictures. Listing the folders rather than
+        # naming them means a theme nimo has never heard of still turns up.
+        local web
+        web="$(nimo_win_dir)/Web"
+        [ -d "$web" ] && find "$web" -maxdepth 2 -type d 2>/dev/null
+        return 0
+    fi
     printf '%s\n' \
         "/System/Library/Desktop Pictures" \
         "/System/Library/Desktop Pictures/Solid Colors" \
@@ -32,12 +42,31 @@ nimo_wall_pretty() {
 }
 
 nimo_wall_current() {
+    if [ "$(nimo_platform)" = "windows" ]; then
+        local raw
+        raw=$(nimo_reg_read "$NIMO_WIN_DESKTOP" WallPaper 2>/dev/null) || return 1
+        [ -n "$raw" ] || return 1
+        if nimo_have cygpath; then
+            cygpath -u "$raw" 2>/dev/null && return 0
+        fi
+        printf '%s' "$raw" | tr '\\\\' '/'
+        return 0
+    fi
     osascript -e 'tell application "Finder" to get POSIX path of (get desktop picture as alias)' 2>/dev/null
 }
 
 # Three ways to set it, because Apple keeps moving this one.
 nimo_wall_apply() {
     local pic="$1"
+
+    if [ "$(nimo_platform)" = "windows" ]; then
+        # The value is a path Windows has to be able to read, so it goes in
+        # backslashed. Then the documented poke, which is the whole of it —
+        # nimo does not kill Explorer to make a wallpaper take.
+        nimo_win_set "$NIMO_WIN_DESKTOP" WallPaper REG_SZ "$(nimo_win_path "$pic")"
+        nimo_win_refresh
+        return 0
+    fi
 
     if osascript -e "tell application \"System Events\" to tell every desktop to set picture to POSIX file \"$pic\"" >/dev/null 2>&1; then
         return 0
@@ -58,6 +87,13 @@ nimo_wall_apply() {
 # nimo's own taste: the plainest thing available.
 nimo_wall_suggest() {
     local list="$1" pick
+    if [ "$(nimo_platform)" = "windows" ]; then
+        pick=$(printf '%s\n' "$list" | grep -i '/Wallpaper/Windows/' | head -1)
+        [ -n "$pick" ] || pick=$(printf '%s\n' "$list" | grep -i '/Web/Wallpaper/' | head -1)
+        [ -n "$pick" ] || pick=$(printf '%s\n' "$list" | head -1)
+        printf '%s' "$pick"
+        return 0
+    fi
     pick=$(printf '%s\n' "$list" | grep -i '/Solid Colors/' | head -1)
     [ -n "$pick" ] || pick=$(printf '%s\n' "$list" | grep -i 'gradient' | head -1)
     [ -n "$pick" ] || pick=$(printf '%s\n' "$list" | grep -i 'monterey\|ventura\|sonoma\|sequoia' | head -1)
@@ -99,21 +135,30 @@ nimo_cmd_wallpaper() {
 
     nimo_header
 
-    if ! nimo_is_macos; then
-        nimo_warn "min wallpaper only knows how to talk to macOS"
-        nimo_blank
-        return 0
-    fi
+    case "$(nimo_platform)" in
+        macos|windows) ;;
+        *)
+            nimo_warn "min wallpaper knows macOS and Windows, not this"
+            nimo_blank
+            return 0 ;;
+    esac
 
-    local list count
+    local list count where
     list=$(nimo_wall_list | sort)
     count=$(nimo_line_count "$list")
 
-    nimo_panel_open "wallpapers on this mac"
+    if [ "$(nimo_platform)" = "windows" ]; then
+        where="wallpapers on this pc"
+    else
+        where="wallpapers on this mac"
+    fi
+    nimo_panel_open "$where"
 
     if [ "$count" -eq 0 ]; then
-        nimo_dim "nimo could not find any of the wallpapers macOS ships with"
+        nimo_dim "nimo could not find any of the wallpapers your system ships with"
         nimo_panel_close
+        nimo_blank
+        nimo_dim "nothing was changed"
         nimo_blank
         return 1
     fi

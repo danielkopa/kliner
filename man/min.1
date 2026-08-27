@@ -84,7 +84,8 @@ List the dock and remove only the entries you tick. The dock is exported first;
 \fB\-\-restore\fR brings it back.
 .TP
 .B min wallpaper
-Choose from the wallpapers macOS already ships with. Nothing is downloaded.
+Choose from the wallpapers your system already ships with \- macOS's Desktop
+Pictures, or the folders under \fIC:\(rs\(rsWindows\(rs\(rsWeb\fR. Nothing is downloaded.
 \fB\-\-random\fR picks for you, \fB\-\-restore\fR goes back.
 .TP
 .B min undo
@@ -103,7 +104,8 @@ The biggest folders in your home, with bars.
 Disk, memory, battery, uptime, clutter and total junk on one screen.
 .TP
 .B min setup
-Apply a small, sane set of macOS preferences. Every key's previous value and
+Apply a small, sane set of preferences \- \fBdefaults\fR on macOS, HKCU registry
+values on Windows, never anything needing an administrator. Every previous value and
 type are written down first, so \fB\-\-restore\fR can put them back exactly,
 including unsetting keys that had never been set.
 .TP
@@ -200,7 +202,8 @@ The command line did not make sense.
 .B bash test/run.sh
 runs the whole suite against a throwaway computer in \fI/tmp\fR.
 .B bash test/macos.sh
-runs 86 more against a simulated macOS, so the dock, wallpaper and preference
+runs more against a simulated macOS and a simulated Windows, so the dock,
+wallpaper, registry and preference
 code can be tested without a Mac and without touching yours.
 .SH SEE ALSO
 The full documentation lives in the repository README.

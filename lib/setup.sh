@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# nimo :: lib/setup.sh — opinionated, reversible macOS defaults.
+# nimo :: lib/setup.sh — opinionated, reversible preferences.
 #
-# Everything here is a `defaults write`. Nothing is destructive,
-# nothing needs sudo, and every group can be applied on its own:
+# Everything here is a `defaults write` on macOS and an HKCU registry value on
+# Windows. Nothing is destructive, nothing needs sudo or an administrator, and
+# every group can be applied on its own:
 #   min setup --only dock,finder
 
 NIMO_G_ID=(); NIMO_G_LABEL=(); NIMO_G_DESC=()
@@ -18,6 +19,11 @@ nimo_register_group() {
 nimo_register_groups() {
     NIMO_G_ID=(); NIMO_G_LABEL=(); NIMO_G_DESC=()
     NIMO_G_N=0
+    if [ "$(nimo_platform)" = "windows" ]; then
+        nimo_register_group explorer "Explorer" "show extensions, open to This PC, no ads in the sidebar"
+        nimo_register_group taskbar  "Taskbar"  "no task view, no widgets, search as an icon"
+        return 0
+    fi
     nimo_register_group finder      "Finder"      "show extensions, path bar, list view, folders first"
     nimo_register_group dock        "Dock"        "auto-hide instantly, no recent apps, smaller icons"
     nimo_register_group screenshots "Screenshots" "save to ~/Desktop/Screenshots as png, no drop shadow"
@@ -91,16 +97,25 @@ nimo_setup_restore() {
         return 0
     fi
 
+    # One log, two systems. A line whose type starts with REG_ was written by
+    # the Windows side and goes back through the registry; everything else is
+    # a `defaults` line. The alternative was two logs and one `min undo` that
+    # had to guess which it was looking at.
     local back=0 removed=0 skipped=0 domain key state type value
     while IFS=$'\t' read -r domain key state type value; do
         [ -n "${domain:-}" ] || continue
         [ -n "${key:-}" ] || continue
         case "$state" in
             had)
-                defaults write "$domain" "$key" "$type" "$value" >/dev/null 2>&1 \
-                    && back=$((back + 1)) ;;
+                case "$type" in
+                    REG_*) nimo_reg_write "$domain" "$key" "$type" "$value" ;;
+                    *)     defaults write "$domain" "$key" "$type" "$value" >/dev/null 2>&1 ;;
+                esac && back=$((back + 1)) ;;
             absent)
-                defaults delete "$domain" "$key" >/dev/null 2>&1
+                case "$type" in
+                    REG_*) nimo_reg_erase "$domain" "$key" ;;
+                    *)     defaults delete "$domain" "$key" >/dev/null 2>&1 ;;
+                esac
                 removed=$((removed + 1)) ;;
             *)
                 skipped=$((skipped + 1)) ;;
@@ -172,6 +187,24 @@ nimo_apply_dialogs() {
     nimo_run defaults write NSGlobalDomain PMPrintingExpandedStateForPrint2 -bool true
 }
 
+# Two Explorer settings that make Windows feel like the Mac side of nimo:
+# a file manager that tells you what a file is, and a taskbar with only the
+# things you put there. Every value is HKCU and written down before it moves.
+nimo_apply_explorer() {
+    nimo_win_set "$NIMO_WIN_ADVANCED" HideFileExt REG_DWORD 0
+    nimo_win_set "$NIMO_WIN_ADVANCED" LaunchTo    REG_DWORD 1
+    nimo_win_set "$NIMO_WIN_ADVANCED" ShowSyncProviderNotifications REG_DWORD 0
+    NIMO_RESTART_EXPLORER=1
+}
+
+nimo_apply_taskbar() {
+    nimo_win_set "$NIMO_WIN_ADVANCED" ShowTaskViewButton REG_DWORD 0
+    nimo_win_set "$NIMO_WIN_ADVANCED" TaskbarDa          REG_DWORD 0
+    nimo_win_set "$NIMO_WIN_ADVANCED" TaskbarMn          REG_DWORD 0
+    nimo_win_set "$NIMO_WIN_SEARCH"   SearchboxTaskbarMode REG_DWORD 1
+    NIMO_RESTART_EXPLORER=1
+}
+
 nimo_apply_group() {
     case "$1" in
         finder)      nimo_apply_finder ;;
@@ -179,6 +212,8 @@ nimo_apply_group() {
         screenshots) nimo_apply_screenshots ;;
         keyboard)    nimo_apply_keyboard ;;
         dialogs)     nimo_apply_dialogs ;;
+        explorer)    nimo_apply_explorer ;;
+        taskbar)     nimo_apply_taskbar ;;
     esac
 }
 
@@ -189,9 +224,14 @@ nimo_setup_list() {
         printf '  %-14s %s%s%s\n' "${NIMO_G_ID[$i]}" "$NIMO_C_DIM" "${NIMO_G_DESC[$i]}" "$NIMO_C_RESET"
         i=$((i + 1))
     done
+    # the example names groups this computer actually has: on Windows it used
+    # to suggest --only dock,finder, neither of which is offered there
+    local few="${NIMO_G_ID[0]:-}"
+    [ "$NIMO_G_N" -gt 1 ] && few="$few,${NIMO_G_ID[1]}"
+
     nimo_blank
     nimo_dim "apply everything:      min setup"
-    nimo_dim "apply just a few:      min setup --only dock,finder"
+    nimo_dim "apply just a few:      min setup --only $few"
     nimo_dim "see the commands:      min setup --dry-run"
     nimo_blank
 }
@@ -210,12 +250,14 @@ nimo_cmd_setup() {
         return 0
     fi
 
-    if ! nimo_is_macos; then
-        nimo_warn "min setup only knows how to tune macOS."
-        nimo_dim "everything else in nimo works here — try  min clean"
-        nimo_blank
-        return 0
-    fi
+    case "$(nimo_platform)" in
+        macos|windows) ;;
+        *)
+            nimo_warn "min setup knows how to tune macOS and Windows, not this."
+            nimo_dim "everything else in nimo works here — try  min clean"
+            nimo_blank
+            return 0 ;;
+    esac
 
     nimo_title "Minimal setup"
     local i=0 planned=0
@@ -248,7 +290,7 @@ nimo_cmd_setup() {
         nimo_blank
     fi
 
-    NIMO_RESTART_FINDER=0; NIMO_RESTART_DOCK=0; NIMO_RESTART_UI=0
+    NIMO_RESTART_FINDER=0; NIMO_RESTART_DOCK=0; NIMO_RESTART_UI=0; NIMO_RESTART_EXPLORER=0
     mkdir -p "$NIMO_BACKUP_DIR" 2>/dev/null
     NIMO_SETUP_LOG=$(nimo_free_file "$NIMO_BACKUP_DIR/setup-$(date +%Y%m%d-%H%M%S)" .tsv)
     : > "$NIMO_SETUP_LOG"
@@ -271,6 +313,10 @@ nimo_cmd_setup() {
     [ "${NIMO_RESTART_FINDER:-0}" = "1" ] && killall Finder >/dev/null 2>&1
     [ "${NIMO_RESTART_DOCK:-0}" = "1" ] && killall Dock >/dev/null 2>&1
     [ "${NIMO_RESTART_UI:-0}" = "1" ] && killall SystemUIServer >/dev/null 2>&1
+    # Windows gets the documented poke and nothing else. Killing Explorer
+    # would apply these a few seconds sooner and close every folder you had
+    # open to do it.
+    [ "${NIMO_RESTART_EXPLORER:-0}" = "1" ] && nimo_win_refresh
 
     nimo_ok "Setup applied."
     nimo_dim "some changes need a logout to show up everywhere"
@@ -285,13 +331,81 @@ nimo_cmd_setup() {
 # nothing is deleted — Finder simply stops painting icons on the wallpaper,
 # and everything is still there in ~/Desktop.
 
+# The same command on Windows. Explorer keeps one value for it, HideIcons,
+# and the files on the desktop are not touched either way.
+nimo_zen_windows() {
+    nimo_panel_open "zen"
+
+    local showing want
+    showing=$(nimo_win_icons_showing)
+    want=0
+    [ "${NIMO_RESTORE:-0}" = "1" ] && want=1
+
+    if [ "$want" = "1" ]; then
+        nimo_say "Your desktop icons come back."
+    else
+        nimo_say "Explorer stops drawing icons on your desktop."
+        nimo_blank
+        nimo_dim "the files stay exactly where they are, on your Desktop"
+        nimo_dim "you reach them in Explorer, or with  min zen --restore"
+    fi
+
+    if [ "$showing" = "$want" ]; then
+        nimo_blank
+        nimo_dim "already like that — nothing to do"
+        nimo_panel_close
+        nimo_blank
+        return 0
+    fi
+
+    nimo_panel_close
+    nimo_blank
+
+    if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
+        nimo_win_icons_apply "$want"
+        nimo_dim "preview only — nothing was changed"
+        nimo_blank
+        return 0
+    fi
+
+    if ! nimo_confirm "$([ "$want" = "1" ] && echo "Show your desktop icons again?" || echo "Hide your desktop icons?")"; then
+        nimo_blank
+        nimo_dim "nothing was changed"
+        nimo_blank
+        return 0
+    fi
+
+    nimo_look_log
+    nimo_win_icons_apply "$want"
+    nimo_win_refresh
+
+    nimo_blank
+    if [ "$want" = "1" ]; then
+        nimo_ok "Your desktop is back."
+    else
+        nimo_ok "Quiet desktop."
+        nimo_dim "bring it back with  min zen --restore"
+    fi
+    nimo_dim "Explorer picks this up when it next redraws — sign out and back"
+    nimo_dim "in if it has not by then"
+    nimo_blank
+    return 0
+}
+
 nimo_cmd_zen() {
     nimo_header
 
-    if ! nimo_is_macos; then
-        nimo_warn "hiding desktop icons is a macOS thing"
-        nimo_blank
-        return 0
+    case "$(nimo_platform)" in
+        macos|windows) ;;
+        *)
+            nimo_warn "hiding desktop icons is a macOS and Windows thing"
+            nimo_blank
+            return 0 ;;
+    esac
+
+    if [ "$(nimo_platform)" = "windows" ]; then
+        nimo_zen_windows
+        return $?
     fi
 
     nimo_panel_open "zen"
