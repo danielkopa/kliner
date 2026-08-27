@@ -19,7 +19,7 @@
 #
 set -u
 
-NIMO_VERSION="0.12.2"
+NIMO_VERSION="0.13.0"
 
 # --- find our own directory, even when called through a symlink ---------
 nimo_root() {
@@ -61,6 +61,7 @@ NIMO_UNDO=0
 NIMO_RESTORE=0
 NIMO_RANDOM=0
 NIMO_MENU=0
+NIMO_TARGET=""
 NIMO_LIMIT=15
 NIMO_COLOR=auto
 NIMO_COMMAND=""
@@ -71,15 +72,19 @@ nimo_usage() {
   Commands
 
     min                 a prompt: type /clean desktop, /wallpaper, /undo
-    min tidy            the whole thing: desktop, dock, wallpaper, preferences
+    min clear           pick what should be clear: desktop, dock, downloads …
+    min clear desktop   or say it outright
+    min wallpaper       a calmer one, from the ones macOS ships
+    min setup           a small, sane macOS setup
+    min undo            put anything back
+
+    min tidy            all of it, one step at a time
 
     min desktop         clear your desktop, nothing lost
     min downloads       the same, for your downloads
     min screenshots     gather every loose screenshot into one place
     min zen             stop drawing icons on the desktop at all
     min dock            keep only the apps you actually open
-    min wallpaper       a calmer wallpaper, from the ones macOS ships
-    min undo            everything nimo has done, and a way back
 
     min clean           scan your computer, then free up space
     min preview         the same scan, without touching anything
@@ -137,8 +142,12 @@ nimo_read_config
 # --- argument parsing ----------------------------------------------------
 while [ $# -gt 0 ]; do
     case "$1" in
-        clean|preview|setup|top|doctor|update|tidy|desktop|downloads|screenshots|zen|dock|wallpaper|undo|menu|help|version)
-            [ -z "$NIMO_COMMAND" ] && NIMO_COMMAND="$1"
+        clear|clean|preview|setup|top|doctor|update|tidy|desktop|downloads|screenshots|zen|dock|wallpaper|undo|menu|help|version)
+            if [ -z "$NIMO_COMMAND" ]; then
+                NIMO_COMMAND="$1"
+            elif [ -z "$NIMO_TARGET" ]; then
+                NIMO_TARGET="$1"
+            fi
             ;;
         -n|--dry-run)   NIMO_DRY_RUN=1 ;;
         -y|--yes)       NIMO_ASSUME_YES=1 ;;
@@ -186,9 +195,14 @@ while [ $# -gt 0 ]; do
             exit 2
             ;;
         *)
-            echo "nimo: unknown command: $1" >&2
-            echo "nimo: try  min help" >&2
-            exit 2
+            # a second word belongs to the command, as in `min clear desktop`
+            if [ -n "$NIMO_COMMAND" ] && [ -z "$NIMO_TARGET" ]; then
+                NIMO_TARGET="$1"
+            else
+                echo "nimo: unknown command: $1" >&2
+                echo "nimo: try  min help" >&2
+                exit 2
+            fi
             ;;
     esac
     shift
@@ -228,6 +242,7 @@ esac
 
 nimo_dispatch() {
     case "$1" in
+        clear)     nimo_cmd_clear ;;
         tidy)      nimo_cmd_tidy ;;
         desktop)   nimo_cmd_desktop ;;
         downloads) nimo_cmd_downloads ;;

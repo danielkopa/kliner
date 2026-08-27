@@ -260,3 +260,61 @@ nimo_menu() {
     printf '%s\n' "$labels" | sed -n "${choice}p" | awk '{print $1}'
     return 0
 }
+
+# ---- min clear -----------------------------------------------------------
+#
+# One word for the thing nimo is actually for. Type /clear and pick what
+# should be clear; or say it outright with /clear desktop.
+
+nimo_cmd_clear() {
+    local target="${NIMO_TARGET:-}"
+
+    if [ -z "$target" ]; then
+        nimo_header
+        nimo_panel_open "what should be clear?"
+        nimo_dim "nothing is deleted — everything here can be undone"
+        nimo_blank
+
+        local labels choice
+        labels="$(printf '%-14s %s' Desktop     'file everything on it away')
+$(printf '%-14s %s' Downloads   'the same, for your downloads')
+$(printf '%-14s %s' Screenshots 'gather the loose ones into one folder')
+$(printf '%-14s %s' Dock        'keep only the apps you open')
+$(printf '%-14s %s' Disk        'caches your apps rebuild by themselves')
+$(printf '%-14s %s' Everything  'all of it, one step at a time')"
+
+        if ! choice=$(nimo_pick single "↑↓ move   enter choose   q cancel" "$labels") || [ -z "$choice" ]; then
+            nimo_panel_close
+            nimo_blank
+            nimo_dim "nothing was changed"
+            nimo_blank
+            return 0
+        fi
+        nimo_panel_close
+
+        case "$choice" in
+            1) target=desktop ;;
+            2) target=downloads ;;
+            3) target=screenshots ;;
+            4) target=dock ;;
+            5) target=disk ;;
+            6) target=everything ;;
+        esac
+    fi
+
+    case "$(printf '%s' "$target" | tr '[:upper:]' '[:lower:]')" in
+        desktop|files)        nimo_cmd_desktop ;;
+        downloads|download)   nimo_cmd_downloads ;;
+        screenshots|shots)    nimo_cmd_screenshots ;;
+        dock|apps)            nimo_cmd_dock ;;
+        disk|cache|caches|junk|space) nimo_cmd_clean ;;
+        everything|all)       nimo_cmd_tidy ;;
+        *)
+            nimo_header
+            nimo_warn "nimo cannot clear \"$target\""
+            nimo_dim "try  /clear  on its own and pick from the list"
+            nimo_blank
+            return 1 ;;
+    esac
+    return 0
+}
