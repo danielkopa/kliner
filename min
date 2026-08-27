@@ -21,7 +21,7 @@
 #
 set -u
 
-NIMO_VERSION="0.42.0"
+NIMO_VERSION="0.43.0"
 
 # --- find our own directory, even when called through a symlink ---------
 nimo_root() {
@@ -102,7 +102,7 @@ nimo_usage() {
 
     min clean           scan your computer, then free up space
     min preview         the same scan, without touching anything
-    min top             the biggest folders in your home
+    min top             the biggest things in your home — step into them
     min doctor          how your computer is doing
     min update          pull the newest nimo
     min help            show this

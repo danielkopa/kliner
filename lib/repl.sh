@@ -81,7 +81,7 @@ nimo_repl_list() {
 
     nimo_repl_head "get the disk back"
     nimo_repl_row ◍ /clean       "caches your apps rebuild by themselves"
-    nimo_repl_row ◆ /top         "the biggest folders in your home"
+    nimo_repl_row ◆ /top         "the biggest things — step inside them"
     nimo_repl_row ⧉ /duplicates  "the same file, kept more than once"
     nimo_repl_row ▢ /cleandoc    "empty a file, keeping what was in it"
     nimo_blank

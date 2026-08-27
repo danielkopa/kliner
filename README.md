@@ -357,7 +357,7 @@ even with `--yes`: `downloads`, `ios-backups`, `xcode-archives`,
 
 ### `min top` · `min doctor`
 
-`min top` ranks the biggest folders in your home with bars. `min doctor` puts
+`min top` ranks the biggest things in your home with bars — and in a terminal you can step into them: pick the folder that is too big, see what is inside it, and keep going until you find the thing. `..` comes back up, `q` stops, and it goes no further up than your home folder. It only ever measures. `min doctor` puts
 disk, uptime, desktop clutter and total junk on one screen. Neither one changes
 anything.
 
@@ -385,7 +385,7 @@ anything.
 | `min undo` | everything nimo has done, and a way back |
 | `min clean` | free up the caches, after asking |
 | `min preview` | the same scan, unable to delete |
-| `min top` | the biggest folders in your home |
+| `min top` | the biggest things in your home — step into them |
 | `min doctor` | how your computer is doing |
 | `min setup` | a small, sane set of macOS preferences |
 | `min update` | pull the newest nimo |

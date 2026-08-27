@@ -127,8 +127,11 @@ Scan for junk, show the total, and free it after you confirm.
 .B min preview
 The same scan, unable to delete anything.
 .TP
-.B min top
-The biggest folders in your home, with bars.
+.B min top \fR[\fIFOLDER\fR]
+The biggest things in your home, with bars \- and, in a terminal, a way into
+them: pick a folder and it lists what is inside, \fB..\fR comes back up, and
+\fBq\fR stops. It goes no further up than your home folder. It only ever
+measures; there is no key in it that removes anything.
 .TP
 .B min doctor
 Disk, memory, battery, uptime, clutter and total junk on one screen.

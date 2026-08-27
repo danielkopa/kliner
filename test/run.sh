@@ -631,6 +631,49 @@ check "loose screenshots, not looses"     "! list_at 80 | grep -q 'looses'"
 # wrong one — this found exactly that, between lib/ui.sh and lib/scan.sh
 check "no function is defined twice"      "[ -z \"\$(cat '$ROOT'/lib/*.sh | sed -n 's/^\(nimo_[a-z_]*\)() {.*/\1/p' | sort | uniq -d)\" ]"
 
+# ---- min top steps into things --------------------------------------------
+#
+# "Where did my disk go" is a question about a tree, and a flat list of your
+# home folder answers it once and then leaves you to guess. Picking a folder
+# looks inside it; `..` comes back up; it stops at your home folder and goes
+# no further, even though nothing in this command can change anything.
+
+BIG="$BOX/bigtree"
+mkdir -p "$BIG/Movies/holiday" "$BIG/Documents"
+dd if=/dev/zero of="$BIG/Movies/holiday/clip.mov" bs=1024 count=3000 2>/dev/null
+dd if=/dev/zero of="$BIG/Movies/trailer.mp4" bs=1024 count=900 2>/dev/null
+dd if=/dev/zero of="$BIG/Documents/notes.pdf" bs=1024 count=40 2>/dev/null
+dd if=/dev/zero of="$BIG/loose-file.iso" bs=1024 count=1500 2>/dev/null
+
+# a literal newline in a variable: $(printf '\n') is stripped by the command
+# substitution, and "enter" is the key every one of these is about
+NL=$'\n'
+
+top_keys() {
+    printf '%s' "$1" | NIMO_PICK_FORCE=1 HOME="$BIG" bash "$MIN" top -q --no-color 2>&1
+}
+
+check "it lists the biggest first"        "[ \"\$(top_keys q | grep -A2 'biggest folders' | tail -1 | awk '{print \$1}')\" = 'Movies/' ]"
+check "a loose file counts too"           "top_keys q | grep -q 'loose-file.iso'"
+check "and folders are marked as folders" "top_keys q | grep -q 'Movies/'"
+
+# enter on the first row steps in; the first row is the biggest, which is Movies
+check "enter looks inside"                "top_keys \"\${NL}q\" | grep -q 'inside Movies'"
+check "and what is in there is listed"    "top_keys \"\${NL}q\" | grep -q 'holiday/'"
+# inside a folder the first row is `..`, so going deeper is enter, down, enter
+check "two steps go two deep"             "top_keys \"\${NL}j\${NL}q\" | grep -q 'inside Movies/holiday'"
+check "and the file at the bottom shows"  "top_keys \"\${NL}j\${NL}q\" | grep -q 'clip.mov'"
+
+# the first row from inside a folder is `..`
+check ".. is the first row, and comes up"  "[ \"\$(top_keys \"\${NL}\${NL}q\" | grep -c 'biggest folders')\" = 2 ]"
+check "q says it changed nothing"         "top_keys q | grep -q 'only ever measures'"
+check "and it never offers to delete"     "! top_keys q | grep -qi 'delete\\|remove\\|free up'"
+
+# off a terminal it is the flat list it always was, and says where the rest is
+check "off a tty it just prints"          "HOME=\"$BIG\" bash \"$MIN\" top -q --no-color </dev/null | grep -q 'Movies'"
+check "and points at the way in"          "HOME=\"$BIG\" bash \"$MIN\" top -q --no-color </dev/null | grep -q 'step into these'"
+rm -rf "$BIG"
+
 # ---- machine readable, and readable by a machine -------------------------
 #
 # --json is the one output nimo makes that nobody reads with their eyes, which

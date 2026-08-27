@@ -3,45 +3,151 @@
 
 # ---- min top -------------------------------------------------------------
 
-nimo_cmd_top() {
-    nimo_header
-    nimo_panel_open "biggest folders in your home"
+# ---- min top -------------------------------------------------------------
+#
+# "Where did my disk go" is a question about a tree, and a flat list of your
+# home folder answers it once and then leaves you to guess. So this one steps:
+# pick the folder that is too big and look inside it, and keep going until you
+# find the thing.
+#
+# It measures and nothing else. There is no key in here that deletes anything.
 
-    local limit="${NIMO_LIMIT:-15}" list max total
-    nimo_progress "measuring $HOME …"
-    list=$(du -k -d 1 "$HOME" 2>/dev/null \
-        | awk -v h="$HOME" -F'\t' '$2 != h && $2 != h"/"' \
-        | sort -rn \
-        | head -n "$limit")
-    total=$(nimo_children_kb "$HOME")
-    nimo_progress_done
+# kb <TAB> path, biggest first, for the children of one folder
+# -a, because a folder of files is a folder you can step into and see nothing
+# without it: du lists directories only unless you ask for everything.
+nimo_top_children() {
+    du -k -a -d 1 "$1" 2>/dev/null \
+        | awk -v h="$1" -F'\t' '$2 != h && $2 != h"/"' \
+        | sort -rn
+}
+
+nimo_top_draw() {
+    local where="$1" limit="$2" list max total shown=0 kb path name
+    list=$(nimo_top_children "$where" | head -n "$limit")
+    total=$(nimo_path_kb "$where")
+
+    if [ "$where" = "$HOME" ]; then
+        nimo_panel_open "biggest folders in your home"
+    else
+        nimo_panel_open "inside ${where#$HOME/}"
+    fi
 
     if [ -z "$list" ]; then
-        nimo_dim "nothing to measure"
-        nimo_panel_close
+        nimo_dim "nothing in here worth measuring"
         nimo_blank
-        return 0
+        nimo_rule
+        nimo_total "All of it" "$(nimo_human_kb "$total")"
+        nimo_panel_close
+        return 1
     fi
 
     max=$(printf '%s\n' "$list" | head -1 | awk '{print $1 + 0}')
-
-    printf '%s\n' "$list" | while IFS=$'\t' read -r kb path; do
+    while IFS=$'\t' read -r kb path; do
         [ -n "${path:-}" ] || continue
-        printf '%s%-22s %s%10s%s  %s\n' \
-            "$NIMO_PAD" "$(basename "$path")" \
+        name="${path##*/}"
+        [ -d "$path" ] && name="$name/"
+        printf "%s%-${NIMO_TOP_NAME_WIDTH}s %s%10s%s  %s\n" \
+            "$NIMO_PAD" "$name" \
             "$(nimo_size_color "$kb")" "$(nimo_human_kb "$kb")" "$NIMO_C_RESET" \
             "$(nimo_meter "$kb" "$max" "$NIMO_BAR_WIDTH")"
-    done
+        shown=$((shown + 1))
+    done <<EOF
+$list
+EOF
 
     nimo_blank
-    printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "$(nimo_dashes 33)" "$NIMO_C_RESET"
-    printf '%s%s%-22s %10s%s\n' "$NIMO_PAD" "$NIMO_C_BOLD" "Everything in your home" \
-        "$(nimo_human_kb "$total")" "$NIMO_C_RESET"
+    nimo_rule
+    if [ "$where" != "$HOME" ]; then
+        nimo_total "All of it" "$(nimo_human_kb "$total")"
+    elif [ "${NIMO_COLS:-80}" -lt 52 ]; then
+        # the long label is longer than the whole label column in a narrow
+        # window, and a total that sticks out of the table is not a total
+        nimo_total "Your home" "$(nimo_human_kb "$total")"
+    else
+        nimo_total "Everything in your home" "$(nimo_human_kb "$total")"
+    fi
     nimo_panel_close
-    nimo_blank
-    nimo_dim "this is only a measurement — nothing here is deleted or changed"
-    nimo_dim "to see what is actually safe to remove:  min preview"
-    nimo_blank
+    return 0
+}
+
+# The labels the picker offers: the folders you can step into, and the way up.
+nimo_top_choices() {
+    local where="$1" limit="$2" kb path
+    [ "$where" = "$HOME" ] || printf '..\t%s\n' "$(dirname "$where")"
+    while IFS=$'\t' read -r kb path; do
+        [ -n "${path:-}" ] || continue
+        [ -d "$path" ] || continue
+        printf '%s\t%s\n' "${path##*/}" "$path"
+    done <<EOF
+$(nimo_top_children "$where" | head -n "$limit")
+EOF
+}
+
+nimo_cmd_top() {
+    local limit="${NIMO_LIMIT:-15}" where="$HOME"
+
+    # a folder to start in, if you named one:  min top Downloads
+    if [ -n "${NIMO_TARGET:-}" ]; then
+        if [ -d "$HOME/$NIMO_TARGET" ]; then
+            where="$HOME/$NIMO_TARGET"
+        elif [ -d "$NIMO_TARGET" ]; then
+            where=$(cd -P "$NIMO_TARGET" && pwd)
+        fi
+    fi
+
+    nimo_header
+
+    while :; do
+        nimo_progress "measuring ${where#$HOME/} …"
+        local drew
+        nimo_top_draw "$where" "$limit"; drew=$?
+        nimo_progress_done
+
+        # One question, and only one: is there anybody here to answer it?
+        if ! nimo_pick_capable || [ "${NIMO_LIST:-0}" = "1" ]; then
+            nimo_blank
+            nimo_dim "this is only a measurement — nothing here is deleted or changed"
+            if [ "$drew" = "0" ]; then
+                nimo_dim "in a terminal you can step into these:  min top"
+            fi
+            nimo_dim "to see what is actually safe to remove:  min preview"
+            nimo_blank
+            return 0
+        fi
+
+        local choices labels line name path choice
+        choices=$(nimo_top_choices "$where" "$limit")
+        labels=$(printf '%s\n' "$choices" | cut -f1)
+
+        if [ -z "$(printf '%s' "$labels" | tr -d '[:space:]')" ]; then
+            nimo_blank
+            nimo_dim "nothing in here to step into"
+            nimo_blank
+            return 0
+        fi
+
+        nimo_blank
+        if ! choice=$(nimo_pick single "↑↓ move   enter look inside   q stop" "$labels") \
+           || [ -z "$choice" ]; then
+            nimo_blank
+            nimo_dim "nothing was changed — min top only ever measures"
+            nimo_blank
+            return 0
+        fi
+
+        line=$(printf '%s\n' "$choices" | sed -n "${choice}p")
+        path=$(printf '%s' "$line" | cut -f2)
+        [ -n "$path" ] || return 0
+
+        # Up as far as your home folder and no further. The guard that keeps
+        # nimo out of the rest of the disk keeps it out of here too, even
+        # though nothing in this command can change anything.
+        case "$path" in
+            "$HOME") where="$HOME" ;;
+            "$HOME"/*) where="$path" ;;
+            *) where="$HOME" ;;
+        esac
+    done
 }
 
 # ---- min doctor ----------------------------------------------------------

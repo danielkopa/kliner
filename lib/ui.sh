@@ -176,6 +176,7 @@ NIMO_LABEL_WIDTH=27
 NIMO_RULE_WIDTH=41
 NIMO_BAR_WIDTH=16
 NIMO_MENU_BAR_WIDTH=12
+NIMO_TOP_NAME_WIDTH=22
 NIMO_COLS=80
 
 # Not nimo_measure: lib/scan.sh already has one of those, it is sourced later,
@@ -209,6 +210,12 @@ nimo_measure_width() {
     NIMO_MENU_BAR_WIDTH=$((NIMO_PANEL_WIDTH - 40))
     [ "$NIMO_MENU_BAR_WIDTH" -gt 12 ] && NIMO_MENU_BAR_WIDTH=12
     [ "$NIMO_MENU_BAR_WIDTH" -lt 4 ] && NIMO_MENU_BAR_WIDTH=4
+
+    # min top has a name, a size and a bar and no note, so it can give the
+    # name more room than a table row gets
+    NIMO_TOP_NAME_WIDTH=$((NIMO_PANEL_WIDTH - NIMO_BAR_WIDTH - 14))
+    [ "$NIMO_TOP_NAME_WIDTH" -gt 22 ] && NIMO_TOP_NAME_WIDTH=22
+    [ "$NIMO_TOP_NAME_WIDTH" -lt 10 ] && NIMO_TOP_NAME_WIDTH=10
 }
 
 nimo_dashes() {
