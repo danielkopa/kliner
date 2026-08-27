@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.14.0
+
+- **The frames are gone.** Every screen was sitting in a drawn box that was
+  taking more attention than the thing inside it. A quiet title, room around
+  it, content indented underneath — a tool for a clear desktop should not hand
+  you a cluttered screen
+- **`min dark` / `min light`** — switch the appearance. Asked of the system
+  directly so it happens at once, with the old setting written down first
+- **`min hide`** — the menu bar slides away until you reach for it.
+  `--restore` brings it back
+- **`min duplicates`** — the same file kept in several places. Sizes are
+  grouped first, because two files of different sizes cannot be the same file,
+  so only a handful are ever read. Reported and never deleted: nimo cannot know
+  which copy you meant
+- Restored a ShellCheck directive the zsh fix had quietly dropped
+
 ## 0.13.0
 
 nimo is for one thing: a clean desktop. The prompt says so now.

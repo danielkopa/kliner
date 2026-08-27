@@ -51,6 +51,15 @@ Gather every loose screenshot into \fI~/Pictures/Screenshots\fR.
 Stop drawing icons on the desktop. Nothing moves; \fB\-\-restore\fR brings
 them back.
 .TP
+.B min dark \fR/\fB min light
+Switch the appearance. The previous setting is written down first.
+.TP
+.B min hide
+Let the menu bar slide away. \fB\-\-restore\fR brings it back.
+.TP
+.B min duplicates
+Report files kept in more than one place. Never deletes anything.
+.TP
 .B min dock
 List the dock and remove only the entries you tick. The dock is exported first;
 \fB\-\-restore\fR brings it back.
@@ -143,7 +152,7 @@ The command line did not make sense.
 .B bash test/run.sh
 runs 110 checks against a throwaway computer in \fI/tmp\fR.
 .B bash test/macos.sh
-runs 68 more against a simulated macOS, so the dock, wallpaper and preference
+runs 80 more against a simulated macOS, so the dock, wallpaper and preference
 code can be tested without a Mac and without touching yours.
 .SH SEE ALSO
 The full documentation lives in the repository README.
