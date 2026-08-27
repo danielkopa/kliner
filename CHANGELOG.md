@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.42.0
+
+The rest of nimo learns the same lesson: the prompt's list and the wallpaper
+browser fit a narrow window too.
+
+- The `/` list drops the descriptions rather than wrapping them. It is still a
+  list of what you can type without them, and a wrapped one is not
+- The wallpaper browser has three widths of hint line, and its name column
+  follows the panel
+- **Fixed: "2 looses".** `nimo_plural` takes one word, and `nimo_plural 2 loose
+  screenshot` is two arguments — so the prompt offered to gather your looses
+
 ## 0.41.0
 
 **nimo fits the window it is in.**
