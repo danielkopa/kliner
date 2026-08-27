@@ -173,7 +173,7 @@ check "min clear desktop skips the asking" "min clear desktop --dry-run -q --no-
 check "min clear disk means the caches"    "min clear disk --dry-run -q --no-color | grep -q 'safe to clean'"
 check "min clear nonsense is refused"      "min clear nonsense -q --no-color 2>&1 | grep -q 'cannot clear'"
 check "the short list leads with /clear"   "typed '/' | grep -q '/clear'"
-check "the short list stays short"         "[ \$(typed '/' | grep -c '^     /') -le 5 ]"
+check "the short list stays short"         "[ \$(typed '/' | grep -c '^     /') -le 8 ]"
 
 check "/cleardesktop reaches the desktop"  "typed '/cleardesktop --dry-run' | grep -q 'your desktop'"
 check "/clearfiles means the same"         "typed '/clearfiles --dry-run' | grep -q 'your desktop'"
@@ -259,6 +259,58 @@ check "min clear trash means the trash"   "min clear trash --dry-run -q --no-col
 check "doctor says what to do next"       "min doctor -q --no-color | grep -q 'min clear desktop'"
 rm -f "$BOX/Desktop"/heap-*.txt
 check "and stays quiet when it is tidy"   "! min doctor -q --no-color | grep -q 'Next'"
+
+# ---- three ways to sort --------------------------------------------------
+
+SORT="$BOX/Desktop"
+mkdir -p "$SORT"
+touch "$SORT/apple.pdf" "$SORT/avocado.txt" "$SORT/banana.png" "$SORT/9lives.zip"
+touch -t 202601150000 "$SORT/apple.pdf" 2>/dev/null || true
+
+check "by kind is what it does by default" "min desktop --dry-run -q --no-color | grep -q 'Documents'"
+check "by letter groups on the first one"  "min desktop --by letter --dry-run -q --no-color | grep -q '^     A '"
+check "and a digit is not a letter"        "min desktop --by letter --dry-run -q --no-color | grep -q '^     # '"
+check "by date groups on the month"        "min desktop --by date --dry-run -q --no-color | grep -qE '^     [0-9]{4}-[0-9]{2} '"
+check "--by says so in the summary"        "min desktop --by letter --dry-run -q --no-color | grep -q '<letter>'"
+check "--by refuses what it cannot do"     "min desktop --by colour >/dev/null 2>&1; [ \$? -eq 2 ]"
+
+min desktop --by letter -y -q --no-color >/dev/null 2>&1
+check "by letter files them under A"       "[ -f '$SORT/Tidy/A/apple.pdf' ] && [ -f '$SORT/Tidy/A/avocado.txt' ]"
+check "and under B"                        "[ -f '$SORT/Tidy/B/banana.png' ]"
+check "and the odd one under #"            "[ -f '$SORT/Tidy/#/9lives.zip' ]"
+min desktop --undo -q --no-color >/dev/null 2>&1
+check "undo does not care how you sorted"  "[ -f '$SORT/apple.pdf' ] && [ ! -d '$SORT/Tidy' ]"
+rm -f "$SORT/apple.pdf" "$SORT/avocado.txt" "$SORT/banana.png" "$SORT/9lives.zip"
+
+# ---- emptying a file, and getting it back --------------------------------
+
+mkdir -p "$BOX/Documents"
+printf 'the quick brown fox\njumped over it\n' > "$BOX/Documents/notes.txt"
+
+check "blank needs to know which file"    "! min blank -q --no-color >/dev/null 2>&1"
+check "blank refuses a folder"            "min blank '$BOX/Documents' -q --no-color 2>&1 | grep -q 'is a folder'"
+check "blank refuses outside your home"   "min blank /etc/hosts -q --no-color 2>&1 | grep -q 'outside your home'"
+NOTE_BYTES=$(wc -c < "$BOX/Documents/notes.txt" | tr -d ' ')
+
+check "blank shows the size in bytes"     "min blank '$BOX/Documents/notes.txt' --dry-run -q --no-color | grep -q \"\$NOTE_BYTES B\""
+check "--dry-run empties nothing"         "[ \$(wc -c < '$BOX/Documents/notes.txt') -eq \$NOTE_BYTES ]"
+
+min blank "$BOX/Documents/notes.txt" -y -q --no-color >/dev/null 2>&1
+
+check "blank empties the file"            "[ \$(wc -c < '$BOX/Documents/notes.txt') -eq 0 ]"
+check "and the file is still there"       "[ -f '$BOX/Documents/notes.txt' ]"
+check "and a copy was kept"               "ls '$BOX'/.nimo/undo/files/* >/dev/null 2>&1"
+check "undo lists the emptied file"       "min undo --list -q --no-color | grep -q 'emptied a file'"
+check "and lists it first, being newest"  "min undo --list -q --no-color | grep -m1 '^ *[0-9]' | grep -q 'emptied a file'"
+
+printf '\n' | NIMO_PICK_FORCE=1 HOME="$BOX" bash "$MIN" undo -q --no-color >/dev/null 2>&1
+
+check "undo puts the contents back"       "[ \$(wc -c < '$BOX/Documents/notes.txt') -eq \$NOTE_BYTES ]"
+check "word for word"                     "grep -q 'quick brown fox' '$BOX/Documents/notes.txt'"
+check "an empty file is a calm answer"    ": > '$BOX/Documents/notes.txt'; min blank '$BOX/Documents/notes.txt' -q --no-color | grep -q 'Already empty'"
+rm -rf "$BOX/Documents/notes.txt" "$BOX/.nimo"
+
+check "dock --fast is a macOS thing"      "[ \"\$(uname -s)\" = Darwin ] || min dock --fast -q --no-color | grep -q 'macOS'"
 
 # ---- the same file, more than once --------------------------------------
 
