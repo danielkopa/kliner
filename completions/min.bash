@@ -17,12 +17,15 @@ if ! type complete >/dev/null 2>&1; then
     return 0 2>/dev/null || exit 0
 fi
 
+# COMPREPLY is filled the classic way on purpose: mapfile does not exist
+# in the bash 3.2 that ships with macOS.
+# shellcheck disable=SC2207
 _min_complete() {
     local cur prev cmds opts ids groups
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    cmds="clear tidy desktop downloads screenshots zen dock wallpaper undo menu clean preview top doctor setup update help version"
+    cmds="clear tidy dark light hide duplicates desktop downloads screenshots zen dock wallpaper undo menu clean preview top doctor setup update help version"
     opts="--dry-run --yes --only --days --limit --json --undo --restore --random --menu --list --no-color --quiet --help --version"
     ids="user-caches logs crash-reports trash quicklook mail-downloads xcode homebrew node python downloads ios-backups xcode-archives device-support node-modules big-files"
     groups="finder dock screenshots keyboard dialogs"

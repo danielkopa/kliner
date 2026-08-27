@@ -19,7 +19,7 @@
 #
 set -u
 
-NIMO_VERSION="0.13.0"
+NIMO_VERSION="0.14.0"
 
 # --- find our own directory, even when called through a symlink ---------
 nimo_root() {
@@ -39,7 +39,7 @@ NIMO_ROOT=$(nimo_root)
 NIMO_LIB="$NIMO_ROOT/lib"
 NIMO_SELF="$NIMO_ROOT/min"
 
-for _nimo_mod in ui core pick repl scan clean setup desktop dock wall undo tools; do
+for _nimo_mod in ui core pick repl scan clean setup desktop dock wall look dupes undo tools; do
     if [ ! -r "$NIMO_LIB/$_nimo_mod.sh" ]; then
         echo "nimo: cannot find $NIMO_LIB/$_nimo_mod.sh" >&2
         echo "nimo: is the whole repository still in one piece?" >&2
@@ -84,6 +84,9 @@ nimo_usage() {
     min downloads       the same, for your downloads
     min screenshots     gather every loose screenshot into one place
     min zen             stop drawing icons on the desktop at all
+    min dark            switch appearance — min light switches back
+    min hide            let the menu bar slide away
+    min duplicates      the same file, kept more than once
     min dock            keep only the apps you actually open
 
     min clean           scan your computer, then free up space
@@ -142,7 +145,7 @@ nimo_read_config
 # --- argument parsing ----------------------------------------------------
 while [ $# -gt 0 ]; do
     case "$1" in
-        clear|clean|preview|setup|top|doctor|update|tidy|desktop|downloads|screenshots|zen|dock|wallpaper|undo|menu|help|version)
+        clear|clean|preview|setup|top|doctor|update|tidy|desktop|downloads|screenshots|zen|dark|light|hide|duplicates|dock|wallpaper|undo|menu|help|version)
             if [ -z "$NIMO_COMMAND" ]; then
                 NIMO_COMMAND="$1"
             elif [ -z "$NIMO_TARGET" ]; then
@@ -248,6 +251,10 @@ nimo_dispatch() {
         downloads) nimo_cmd_downloads ;;
         screenshots) nimo_cmd_screenshots ;;
         zen)       nimo_cmd_zen ;;
+        dark)      nimo_cmd_dark ;;
+        light)     nimo_cmd_light ;;
+        hide)      nimo_cmd_hide ;;
+        duplicates) nimo_cmd_duplicates ;;
         dock)      nimo_cmd_dock ;;
         wallpaper) nimo_cmd_wallpaper ;;
         undo)      nimo_cmd_undo ;;
