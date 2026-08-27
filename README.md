@@ -428,9 +428,17 @@ printed and numbered instead of drawn.
   is exported before it is touched. The old wallpaper is written down.
 - **Only inside your home folder.** nimo refuses any path outside `$HOME`, and
   refuses `$HOME` itself, `/`, `/System`, `/Applications` and friends. The
-  guard is in `lib/core.sh` and it is four lines long.
-- **No sudo. Ever.**
-- **Nothing is downloaded.** Wallpapers come from what macOS already ships.
+  guard is in `lib/core.sh`, and every path is reduced to one spelling before
+  it is compared: `$HOME/.`, `$HOME//` and `$HOME/./` are all `$HOME`, because
+  a glob does not know that and what runs next empties whatever it is handed.
+  A `$HOME` that is empty, or not an absolute path, means nimo deletes nothing
+  at all rather than guessing. Links are never followed — a cache folder moved
+  to another disk is a link, and `find dir/` walks straight through one.
+  Twenty-nine checks in the suites are nothing but attempts to get around
+  this, each one a spelling of your own home folder.
+- **No sudo. Ever.** On Windows, nothing under HKLM and nothing that asks for
+  an administrator.
+- **Nothing is downloaded.** Wallpapers come from what your system ships with.
 - **The number you see is the number you get.** After cleaning, nimo measures
   again and reports what was actually freed.
 

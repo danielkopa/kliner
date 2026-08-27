@@ -296,6 +296,32 @@ check "duplicates works"                  "win duplicates -q --no-color | grep -
 check "the prompt works"                  "printf '/quit\\n' | NIMO_REPL_FORCE=1 PATH=\"$FAKE:\$PATH\" HOME=\"$BOX\" bash \"$MIN\" -q --no-color 2>&1 | grep -q 'nimo ›'"
 check "the guard still refuses outside"   "PATH=\"$FAKE:\$PATH\" HOME=\"$BOX\" bash -c '. $ROOT/lib/ui.sh; . $ROOT/lib/core.sh; nimo_is_protected /c/Windows'"
 
+# ---- and it will not delete your pc either -------------------------------
+#
+# The same spellings the Linux suite tries, on a profile that looks like
+# Windows: C:/Users/<name>, with the desktop off in OneDrive. A guard that
+# only holds on the platform it was written on is not a guard.
+
+wguard() { PATH="$FAKE:$PATH" HOME="$1" bash -c '. '"$ROOT"'/lib/ui.sh; . '"$ROOT"'/lib/core.sh; nimo_is_protected "$1"' _ "$2"; }
+
+check "windows itself is off limits"      "wguard '$BOX' /c/Windows/System32"
+check "so are the program files"          "wguard '$BOX' '/c/Program Files'"
+check "and another account's profile"     "wguard '$BOX' /c/Users/someone-else"
+check "your profile itself is too"        "wguard '$BOX' '$BOX'"
+check "a dot does not open it"            "wguard '$BOX' '$BOX/.'"
+check "nor two slashes"                   "wguard '$BOX' '$BOX//'"
+check "nor a walk back out of it"         "wguard '$BOX' '$BOX/AppData/../..'"
+check "AppData under it is still fine"    "! wguard '$BOX' '$BOX/AppData/Local/Temp'"
+check "and OneDrive's desktop with it"    "! wguard '$BOX' '$BOX/OneDrive/Desktop'"
+
+# A HOME that Windows handed over with backslashes is not a path this shell
+# can compare against anything. nimo refuses rather than guesses.
+check "a backslashed HOME deletes nothing" "wguard 'C:\\Users\\daniel' 'C:\\Users\\daniel\\Downloads'"
+check "an empty one deletes nothing"      "wguard '' /c/Users/daniel/Downloads"
+
+check "cleaning refuses the profile root" "PATH=\"$FAKE:\$PATH\" HOME=\"$BOX\" bash -c '. $ROOT/lib/ui.sh; . $ROOT/lib/core.sh; nimo_init_colors; nimo_purge_children \"\$HOME/.\"' 2>&1 | grep -q 'refusing'"
+check "and the desktop is still there"    "[ -f '$BOX/OneDrive/Desktop/report.pdf' ]"
+
 printf '\n'
 if [ "$FAIL" -eq 0 ]; then
     printf '  %s✓ %d passed%s\n\n' "$G" "$PASS" "$Z"
