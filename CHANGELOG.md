@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.34.0
+
+Names people actually have.
+
+A file name is not a word. It can hold a quote, an apostrophe, a backslash, a
+leading dash, a glob character, a command substitution, a semicolon, a pipe,
+180 characters or an emoji — and every one of those has, somewhere, been the
+bug that deleted the wrong thing or ran the wrong command. nimo moves all of
+them and executes none of them; there are now eleven checks that say so.
+
+- **Fixed: a name with a newline in it produced two phantom entries.** `find`
+  prints such a name as two lines — the half before, which is not a path to
+  anything, and the half after, which is not even absolute. Both were counted
+  in the panel and both were then reported as "could not be moved". They are
+  dropped now, and the panel says how many files were left and why: nimo's
+  undo log is one line per move, and a name with a newline in it is not one
+  line
+
 ## 0.33.0
 
 **Fixed: sorting a big folder took half a minute before it printed anything.**
