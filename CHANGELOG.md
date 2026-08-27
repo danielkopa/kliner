@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.36.0
+
+**Fixed: nimo said the wallpaper was set when it was not.**
+
+Apple has moved the wallpaper three times — the Dock's sqlite database up to
+Ventura, WallpaperAgent since Sonoma — and the AppleScript that used to work
+still **returns success on some of those systems while changing nothing at
+all**. nimo printed a tick on "osascript did not error", which is the worst
+thing a tool can do: you then go looking for the fault in your own eyes.
+
+- nimo **reads the wallpaper back** now and only says it worked if it moved
+- It tries each way in turn and remembers the one that works on your machine,
+  so flipping through forty of them does not re-run the audition every time
+- If it cannot read the wallpaper at all, that is a different sentence, and it
+  names the one permission that causes it: Settings › Privacy & Security ›
+  Automation
+- If it was told and nimo could not check, it says that instead of a tick
+- The browser stops on the first one that does not take, rather than drawing a
+  menu that changes nothing
+- `tools/wallcheck.sh` tries every method against your own Mac and reports
+  which one actually moved the wallpaper, then puts yours back
+
+The macOS suite's fake now **remembers the wallpaper it was told to set**, so
+the check is real, and `NIMO_OSA_LIES=1` reproduces Apple's bug exactly —
+every command succeeds and nothing changes. Six checks say nimo does not call
+that a success.
+
 ## 0.35.0
 
 ### Flip through the wallpapers, on your own screen
