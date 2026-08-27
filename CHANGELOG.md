@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.33.0
+
+**Fixed: sorting a big folder took half a minute before it printed anything.**
+
+`min downloads --dry-run` on two thousand files sat there for 33 seconds.
+Nobody waits that long; they decide the tool is broken. It takes about a
+second now — the same output, twenty-five times faster.
+
+Three things, all of them the same mistake in different places:
+
+- The sorter was a loop over buckets wrapped around a loop over items, and it
+  worked out each item's kind **inside both**. Ten buckets and two thousand
+  files meant twenty thousand subshells. It decides once per item now and
+  counts the answers
+- `nimo_kind_of` ran a `basename` and a `tr` — two forks — for every file.
+  `${path##*/}` is the same answer, and `shopt -s nocasematch` does what the
+  `tr` was for without leaving the shell
+- `nimo_folder_items` ran a `basename` and a `$(printf '\t')` for every file
+  it listed, which is another two forks each before nimo has decided anything
+  at all
+
+Every classifier now has two shapes: one that sets a variable and one that
+prints. Everything hot calls the setter, because `$( )` is a fork too.
+
+A check in the suite sorts four hundred files and insists it finishes. The
+limit is deliberately loose — it is there to catch the shape of this bug
+coming back, not to police a few hundred milliseconds on a busy machine.
+
 ## 0.32.0
 
 - **Fixed: `./install.sh` produced a broken `min` on Windows.** `ln -s` under
