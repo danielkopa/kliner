@@ -76,16 +76,24 @@ EOF
     printf '\033[?25l' >&2
     nimo_pick_draw() {
         [ "$drawn" -eq 1 ] && printf '\033[%dA' "$((n + 2))" >&2
-        local j=0 pointer box
+        local j=0 pointer box row_a row_b
         printf '  %s%s%s\033[K\n\n' "$NIMO_C_DIM" "$hint" "$NIMO_C_RESET" >&2
         while [ "$j" -lt "$n" ]; do
-            if [ "$j" -eq "$cursor" ]; then pointer="${NIMO_C_CYAN}▸${NIMO_C_RESET}"; else pointer=" "; fi
+            if [ "$j" -eq "$cursor" ]; then
+                pointer="${NIMO_C_CYAN}▸${NIMO_C_RESET}"
+                row_a="$NIMO_C_BOLD"
+                row_b="$NIMO_C_RESET"
+            else
+                pointer=" "
+                row_a=""
+                row_b=""
+            fi
             if [ "$mode" = "multi" ]; then
                 if [ "${marks[$j]}" = "1" ]; then box="${NIMO_C_CYAN}[x]${NIMO_C_RESET} "; else box="[ ] "; fi
             else
                 box=""
             fi
-            printf '  %s %s%s\033[K\n' "$pointer" "$box" "${labels[$j]}" >&2
+            printf '  %s %s%s%s%s\033[K\n' "$pointer" "$box" "$row_a" "${labels[$j]}" "$row_b" >&2
             j=$((j + 1))
         done
         drawn=1

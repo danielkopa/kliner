@@ -122,8 +122,8 @@ nimo_cmd_doctor() {
     battery=$(nimo_battery_line) && nimo_fact "Battery" "$battery"
 
     nimo_blank
-    nimo_fact "Desktop" "$(nimo_plural "$(nimo_count_dir_items "$HOME/Desktop")" item)"
-    nimo_fact "Downloads" "$(nimo_plural "$(nimo_count_dir_items "$HOME/Downloads")" item)"
+    nimo_fact "Desktop" "$(nimo_plural "$(nimo_count_dir_items "$(nimo_desktop_dir)")" item)"
+    nimo_fact "Downloads" "$(nimo_plural "$(nimo_count_dir_items "$(nimo_downloads_dir)")" item)"
     if nimo_is_macos; then
         nimo_fact "Trash" "$(nimo_plural "$(nimo_count_dir_items "$HOME/.Trash")" item)"
     else
@@ -151,8 +151,8 @@ nimo_cmd_doctor() {
     nimo_blank
     # the most useful thing doctor can say is what to do about it
     local n_desk n_down suggestion=""
-    n_desk=$(nimo_count_children "$HOME/Desktop")
-    n_down=$(nimo_count_children "$HOME/Downloads")
+    n_desk=$(nimo_count_children "$(nimo_desktop_dir)")
+    n_down=$(nimo_count_children "$(nimo_downloads_dir)")
     if [ "${n_desk:-0}" -ge 20 ]; then
         suggestion="min clear desktop"
     elif [ "${n_down:-0}" -ge 50 ]; then
@@ -288,27 +288,48 @@ nimo_cmd_clear() {
     if [ -z "$target" ]; then
         nimo_header
         nimo_panel_open "what should be clear?"
-        nimo_dim "nothing is deleted — everything here can be undone"
-        nimo_blank
+        nimo_dim "everything here can be undone"
 
         # counting is cheap here, and choosing is much easier when the menu
         # already tells you where the mess actually is
         nimo_progress "counting …"
-        local n_desk n_down n_shots n_trash
-        n_desk=$(nimo_count_sortable "$HOME/Desktop")
-        n_down=$(nimo_count_sortable "$HOME/Downloads")
+        local n_desk n_down n_shots n_trash kb_desk kb_down kb_trash trash
+        local desk down
+        desk=$(nimo_desktop_dir)
+        down=$(nimo_downloads_dir)
+        trash=$(nimo_trash_dir)
+        n_desk=$(nimo_count_sortable "$desk")
+        n_down=$(nimo_count_sortable "$down")
         n_shots=$(nimo_count_loose_screenshots)
-        n_trash=$(nimo_count_children "$(nimo_trash_dir)")
+        n_trash=0
+        kb_trash=0
+        if [ -n "$trash" ]; then
+            n_trash=$(nimo_count_children "$trash")
+            kb_trash=$(nimo_children_kb "$trash")
+        fi
+        kb_desk=$(nimo_children_kb "$desk")
+        kb_down=$(nimo_children_kb "$down")
         nimo_progress_done
 
+        # a bar apiece, drawn against whichever pile is biggest, so the menu
+        # shows you where the mess actually is before you have chosen anything
+        local most=1 total_kb
+        for n in "$n_desk" "$n_down" "$n_shots" "$n_trash"; do
+            [ "${n:-0}" -gt "$most" ] && most="$n"
+        done
+        total_kb=$((kb_desk + kb_down + kb_trash))
+
+        [ "$total_kb" -gt 0 ] && nimo_dim "$(nimo_human_kb "$total_kb") in all, and none of it is deleted"
+        nimo_blank
+
         local labels choice
-        labels="$(printf '%-14s %s' Desktop     "$(nimo_plural "$n_desk" item)")
-$(printf '%-14s %s' Downloads   "$(nimo_plural "$n_down" item)")
-$(printf '%-14s %s' Screenshots "$(nimo_plural "$n_shots" screenshot) loose")
-$(printf '%-14s %s' Dock        'the apps you never open')
-$(printf '%-14s %s' Trash       "$(nimo_plural "$n_trash" item)")
-$(printf '%-14s %s' Disk        'caches your apps rebuild by themselves')
-$(printf '%-14s %s' Everything  'all of it, one step at a time')"
+        labels="$(printf '%-13s %-11s %s' Desktop     "$(nimo_plural "$n_desk" item)"  "$(nimo_bar "$n_desk" "$most" 12)")
+$(printf '%-13s %-11s %s' Downloads   "$(nimo_plural "$n_down" item)"  "$(nimo_bar "$n_down" "$most" 12)")
+$(printf '%-13s %-11s %s' Screenshots "$n_shots loose" "$(nimo_bar "$n_shots" "$most" 12)")
+$(printf '%-13s %-11s %s' Trash       "$(nimo_plural "$n_trash" item)"  "$(nimo_bar "$n_trash" "$most" 12)")
+$(printf '%-13s %s' Dock        'the apps you never open')
+$(printf '%-13s %s' Disk        'caches your apps rebuild by themselves')
+$(printf '%-13s %s' Everything  'all of it, one step at a time')"
 
         if ! choice=$(nimo_pick single "↑↓ move   enter choose   q cancel" "$labels") || [ -z "$choice" ]; then
             nimo_panel_close
@@ -323,8 +344,8 @@ $(printf '%-14s %s' Everything  'all of it, one step at a time')"
             1) target=desktop ;;
             2) target=downloads ;;
             3) target=screenshots ;;
-            4) target=dock ;;
-            5) target=trash ;;
+            4) target=trash ;;
+            5) target=dock ;;
             6) target=disk ;;
             7) target=everything ;;
         esac
