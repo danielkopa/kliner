@@ -536,6 +536,7 @@ check "no step apologises for itself"     "! win tidy --dry-run -q --no-color | 
 check "and offers the taskbar to undo"    "win tidy --dry-run -q --no-color | grep -q 'undo the taskbar'"
 check "it still does the wallpaper"       "win tidy --dry-run -q --no-color | grep -q 'wallpapers on this pc'"
 check "and the settings, with a way back" "win tidy --dry-run -q --no-color | grep -q 'min setup --restore'"
+check "and it asks about what starts too" "win tidy --dry-run -q --no-color | grep -q 'what starts when you sign in'"
 
 wmenu_arrows() { printf 'q' | NIMO_PICK_FORCE=1 PATH="$FAKE:$PATH" HOME="$BOX" bash "$MIN" --menu --no-color 2>&1; }
 check "the arrow menu pins, not opens"    "wmenu_arrows | grep -q 'the apps you pin'"

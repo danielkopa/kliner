@@ -277,7 +277,11 @@ nimo_cmd_tidy() {
     # Running every step and letting the ones this machine cannot do print an
     # apology turned tidy into a list of things nimo would not be doing.
     case "$plat" in
-        macos|windows) nimo_cmd_dock; nimo_cmd_wallpaper; nimo_cmd_setup ;;
+        macos|windows)
+            nimo_cmd_dock
+            nimo_cmd_wallpaper
+            nimo_cmd_setup
+            nimo_cmd_startup ;;
     esac
 
     NIMO_QUIET="$was_quiet"
@@ -296,7 +300,8 @@ nimo_cmd_tidy() {
     case "$plat" in
         macos|windows)
             nimo_dim "undo the wallpaper   min wallpaper --restore"
-            nimo_dim "undo the settings    min setup --restore" ;;
+            nimo_dim "undo the settings    min setup --restore"
+            nimo_dim "start things again   min startup --undo" ;;
     esac
     nimo_blank
     nimo_dim "and when the disk fills up again   min clean"

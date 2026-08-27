@@ -13,6 +13,8 @@
   is, and `min dock --restore` puts the shortcut and the blob back at once
 - `min clear` offers the Taskbar, `min tidy` runs it, and no step on Windows
   apologises for itself any more — every one of them does something
+- `min tidy` asks about what starts when you sign in, which is the step that
+  actually makes a computer feel faster
 
 ## 0.30.0
 
