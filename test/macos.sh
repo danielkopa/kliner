@@ -659,6 +659,21 @@ printf '%s\n' "$PICS/Sonoma Horizon.heic" > "$STATE/wallpaper"
 OUT=$(wall set)
 check "no store means the old way, still"  "printf '%s' \"\$OUT\" | grep -q 'Wallpaper set'"
 
+# A store that is there but shaped differently — Apple changes it, and this is
+# the state a real macOS 26 turned up in. nimo has to say which of the two
+# problems it is, or the user goes looking in the wrong place.
+mkdir -p "$STORE_DIR"
+printf '<?xml version="1.0"?>\n<plist version="1.0"><dict><key>Something</key><string>else</string></dict></plist>\n' \
+    > "$STORE_DIR/Index.plist"
+# somewhere else to start from: setting the one already showing verifies
+# trivially, and would make this check pass for the wrong reason
+printf '%s\n' "$PICS/Sonoma Horizon.heic" > "$STATE/wallpaper"
+OUT=$(NIMO_OSA_LIES=1 wall set)
+check "a store it cannot read is said so" "printf '%s' \"\$OUT\" | grep -q 'does not recognise'"
+check "and it asks to be shown the file"  "printf '%s' \"\$OUT\" | grep -q 'wallstore.sh'"
+check "it did not write a file it cannot read" "grep -q 'Something' '$STORE_DIR/Index.plist'"
+rm -f "$STORE_DIR/Index.plist"
+
 # and put the world back the way the rest of this file expects to find it
 rm -rf "$BOX/.nimo/backups"
 printf '%s\n' "$PICS/Sonoma Horizon.heic" > "$STATE/wallpaper"

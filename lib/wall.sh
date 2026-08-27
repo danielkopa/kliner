@@ -294,42 +294,54 @@ nimo_wall_unsure_note() {
 
 # The sentence to print when it did not work, which depends on why.
 nimo_wall_complain() {
-    case "${1:-1}" in
-        2)
-            nimo_warn "nimo cannot read your wallpaper, so it cannot set one either"
+    local why="${NIMO_WALL_WHY:-}" store
+    store=$(nimo_wall_store)
+
+    if [ "${1:-1}" = "2" ]; then
+        nimo_warn "nimo cannot read your wallpaper, so it cannot set one either"
+        nimo_blank
+        nimo_dim "that is almost always one permission:"
+        nimo_dim "System Settings › Privacy & Security › Automation"
+        nimo_dim "find your terminal in the list and allow System Events and Finder"
+        return 0
+    fi
+
+    # -1743 is errAEEventNotPermitted: the Automation permission was refused
+    # once, and macOS remembers that answer for ever without ever asking
+    # again. The toggle is often not even in Settings, because a permission
+    # that was never granted has nothing to show.
+    case "$why" in
+        *-1743*|*"Not authorised"*|*"Not authorized"*)
+            nimo_warn "your Mac will not let this terminal control the desktop"
+            nimo_dim "it said: $why"
             nimo_blank
-            nimo_dim "that is almost always one permission:"
-            nimo_dim "System Settings › Privacy & Security › Automation"
-            nimo_dim "find your terminal in the list and allow System Events and Finder"
+            nimo_dim "macOS asks once and remembers the answer for ever. to be"
+            nimo_dim "asked again, run this and then try nimo once more:"
+            nimo_blank
+            nimo_dim "    tccutil reset AppleEvents"
+            nimo_blank
+            nimo_dim "say yes when the box appears. nothing else on your Mac loses"
+            nimo_dim "anything by it — it only forgets the answers."
             ;;
         *)
-            # -1743 is errAEEventNotPermitted: the Automation permission was
-            # refused once, and macOS remembers that answer for ever without
-            # ever asking again. The toggle is often not even in Settings,
-            # because a permission that was never granted has nothing to show.
-            case "${NIMO_WALL_WHY:-}" in
-                *-1743*|*"Not authorised"*|*"Not authorized"*)
-                    nimo_warn "your Mac will not let this terminal control the desktop"
-                    nimo_dim "it said: $NIMO_WALL_WHY"
-                    nimo_blank
-                    nimo_dim "macOS asks once and remembers the answer for ever. to be"
-                    nimo_dim "asked again, run this and then try nimo once more:"
-                    nimo_blank
-                    nimo_dim "    tccutil reset AppleEvents"
-                    nimo_blank
-                    nimo_dim "say yes when the box appears. nothing else on your Mac"
-                    nimo_dim "loses anything by it — it only forgets the answers."
-                    ;;
-                *)
-                    nimo_warn "nimo asked your Mac to change the wallpaper and it did not"
-                    [ -n "${NIMO_WALL_WHY:-}" ] && nimo_dim "it said: $NIMO_WALL_WHY"
-                    nimo_blank
-                    nimo_dim "run  bash tools/wallcheck.sh  in the nimo folder"
-                    nimo_dim "and send what it prints"
-                    ;;
-            esac
+            nimo_warn "nimo asked your Mac to change the wallpaper and it did not"
+            [ -n "$why" ] && nimo_dim "it said: $why"
+            nimo_blank
+            nimo_dim "run  bash tools/wallcheck.sh  in the nimo folder"
+            nimo_dim "and send what it prints"
             ;;
     esac
+
+    # The way that needs no permission would have covered this, if nimo knew
+    # the shape of the file. Apple changes it, and guessing at the shape of a
+    # file nimo is about to write is the one thing it must not do.
+    if [ -f "$store" ] && ! nimo_wall_store_read >/dev/null 2>&1; then
+        nimo_blank
+        nimo_dim "your Mac keeps the wallpaper in a file nimo does not recognise"
+        nimo_dim "the shape of. show it what is in there:"
+        nimo_dim "    bash tools/wallstore.sh"
+    fi
+    return 0
 }
 
 # nimo's own taste: the plainest thing available.
