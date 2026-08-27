@@ -513,6 +513,51 @@ check "and which bash it is running in"   "win doctor -q --no-color | grep -q 'G
 check "no MINGW64_NT anywhere in it"      "! win doctor -q --no-color | grep -q 'MINGW64_NT'"
 check "the bin is named, not counted"     "win doctor -q --no-color | grep -q 'Recycle Bin'"
 
+# ---- installing it, where symlinks do not work ---------------------------
+#
+# `ln -s` under Git Bash quietly copies the file instead of linking it unless
+# Windows developer mode is on. A copy of `min` is broken from the moment it
+# lands: min finds its lib/ folder beside itself, and beside the copy there is
+# nothing. This stands in an `ln` that copies, the way that shell's does.
+
+cat > "$FAKE/ln" <<'SHIM'
+#!/bin/sh
+# the ln Git Bash gives you: -s is a copy
+src=""; dst=""
+for a in "$@"; do
+    case "$a" in
+        -*) ;;
+        *) if [ -z "$src" ]; then src="$a"; else dst="$a"; fi ;;
+    esac
+done
+[ -n "$src" ] && [ -n "$dst" ] || exit 1
+cp "$src" "$dst"
+SHIM
+chmod +x "$FAKE/ln"
+
+INST="$BOX/install-here"
+install_here() { PATH="$FAKE:$PATH" HOME="$BOX" bash "$ROOT/install.sh" --prefix "$INST/bin" 2>&1; }
+
+check "installing says what it did"       "install_here | grep -q 'nimo installed'"
+check "it noticed the link did not take"  "install_here | grep -q 'launcher'"
+check "what it wrote is not a copy of min" "[ \"\$(wc -l < '$INST/bin/min' | tr -d ' ')\" -lt 5 ]"
+check "and it runs"                       "'$INST/bin/min' version | grep -q nimo"
+check "with all its libraries"            "'$INST/bin/min' help --no-color | grep -q 'min startup'"
+check "it says which file to edit"        "install_here | grep -q 'bashrc'"
+check "and not one that is not there"     "! install_here | grep -q 'zshrc'"
+
+check "uninstalling takes it away"        "PATH=\"$FAKE:\$PATH\" HOME=\"$BOX\" bash '$ROOT/uninstall.sh' >/dev/null 2>&1; install_here >/dev/null 2>&1; HOME=\"$INST\" bash '$ROOT/uninstall.sh' | grep -q removed"
+check "and the launcher is gone"          "[ ! -e '$INST/bin/min' ]"
+check "the repository is untouched"       "[ -f '$ROOT/min' ] && [ -d '$ROOT/lib' ]"
+
+# somebody else's `min` on the PATH is not ours to remove
+install_here >/dev/null 2>&1
+printf '#!/bin/sh\necho not nimo\n' > "$INST/bin/min"
+check "a min that is not ours is left"    "HOME=\"$INST\" bash '$ROOT/uninstall.sh' >/dev/null 2>&1; grep -q 'not nimo' '$INST/bin/min'"
+check "and installing over it refuses"    "install_here 2>&1 | grep -q 'not ours'"
+rm -f "$INST/bin/min"
+rm -f "$FAKE/ln"
+
 # ---- the parts that work everywhere --------------------------------------
 
 check "top works"                         "win top -q --no-color | grep -q '█'"

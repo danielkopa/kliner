@@ -74,6 +74,27 @@ jobs:
       - name: and the windows one, on real windows
         run: bash test/windows.sh -q
 
+  install-windows:
+    name: install and uninstall on windows
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: install
+        run: ./install.sh --prefix "$HOME/bin"
+      - name: it runs from the path
+        run: |
+          export PATH="$HOME/bin:$PATH"
+          min version
+          min help --no-color | grep -q "min startup"
+          min doctor --no-color -q | grep -q Windows
+      - name: uninstall
+        run: |
+          ./uninstall.sh
+          test ! -e "$HOME/bin/min"
+
   install:
     name: install and uninstall cleanly
     runs-on: macos-latest
