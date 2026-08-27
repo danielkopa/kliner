@@ -17,10 +17,11 @@ nimo_repl_list() {
     printf '%s%-13s %s%s%s\n' "$NIMO_PAD" "/setup"     "$NIMO_C_DIM" "a small, sane macOS setup" "$NIMO_C_RESET"
     printf '%s%-13s %s%s%s\n' "$NIMO_PAD" "/undo"      "$NIMO_C_DIM" "put anything back" "$NIMO_C_RESET"
     nimo_blank
-    printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "also  /tidy  /zen  /doctor  /top  /preview  /menu  /quit" "$NIMO_C_RESET"
+    printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "also  /tidy  /zen  /dark  /hide  /duplicates" "$NIMO_C_RESET"
+    printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "      /doctor  /top  /preview  /menu  /quit" "$NIMO_C_RESET"
     nimo_panel_close
     nimo_blank
-    nimo_dim "say it outright if you like:  /clear desktop   /cleardesktop"
+    nimo_dim "or say it outright:  /clear desktop"
     nimo_blank
 }
 
@@ -46,6 +47,14 @@ nimo_repl_command() {
             printf 'screenshots'; return 0 ;;
         zen|hideicons|hidedesktop|quietdesktop|focus)
             printf 'zen'; return 0 ;;
+        dark|darkmode|godark)
+            printf 'dark'; return 0 ;;
+        light|lightmode|golight)
+            printf 'light'; return 0 ;;
+        hide|hidemenubar|menubar|hidemenu)
+            printf 'hide'; return 0 ;;
+        duplicates|dupes|copies|samefile|findduplicates)
+            printf 'duplicates'; return 0 ;;
         cleardisk|cleandisk|freespace|clearspace|cleancache|clearcache|clearjunk|cleanjunk)
             printf 'clean'; return 0 ;;
         cleartrash|cleantrash|emptytrash)
@@ -65,6 +74,14 @@ nimo_repl_command() {
             printf 'screenshots' ;;
         zen|focus|"hide icons"|"hide desktop"|"quiet desktop"|calm)
             printf 'zen' ;;
+        dark|"dark mode"|"go dark")
+            printf 'dark' ;;
+        light|"light mode"|"go light")
+            printf 'light' ;;
+        hide|"hide menu bar"|"menu bar")
+            printf 'hide' ;;
+        duplicates|dupes|copies|"same file"|"find duplicates")
+            printf 'duplicates' ;;
         dock|"clean dock"|"clear dock"|"tidy dock"|"fix dock"|apps)
             printf 'dock' ;;
         wallpaper|wall|background|"change wallpaper"|"set wallpaper"|desktop-picture)
@@ -113,7 +130,7 @@ nimo_repl_guess() {
     local phrase="$1" word name shared best="" best_score=0
 
     for word in $phrase; do
-        for name in clear tidy desktop downloads screenshots dock wallpaper zen preview clean top doctor setup undo update menu; do
+        for name in clear tidy desktop downloads screenshots dock wallpaper zen dark light hide duplicates preview clean top doctor setup undo update menu; do
             shared=$(nimo_shared_prefix "$word" "$name")
             if [ "$shared" -gt "$best_score" ]; then
                 best_score="$shared"
@@ -139,7 +156,7 @@ nimo_repl_correct() {
     for word in $phrase; do
         best="$word"
         best_score=0
-        for name in clear tidy desktop downloads screenshots dock wallpaper zen preview clean top doctor setup undo update menu; do
+        for name in clear tidy desktop downloads screenshots dock wallpaper zen dark light hide duplicates preview clean top doctor setup undo update menu; do
             shared=$(nimo_shared_prefix "$word" "$name")
             if [ "$shared" -gt "$best_score" ]; then
                 best_score="$shared"
@@ -220,13 +237,10 @@ nimo_repl() {
     fi
     if [ "${NIMO_QUIET:-0}" != "1" ]; then
         nimo_face
-        printf '\n%s                       NIMO%s\n' "$NIMO_C_BOLD" "$NIMO_C_RESET"
-        printf '%s              make your computer%s\n' "$NIMO_C_DIM" "$NIMO_C_RESET"
-        printf '%s                   feel better.%s\n' "$NIMO_C_DIM" "$NIMO_C_RESET"
-        printf '%s                       v%s%s\n' "$NIMO_C_DIM" "$NIMO_VERSION" "$NIMO_C_RESET"
+        printf '\n%s                       nimo%s\n' "$NIMO_C_DIM" "$NIMO_C_RESET"
     fi
     nimo_blank
-    nimo_dim "type a command, or / to see them all. ctrl-d to leave."
+    nimo_dim "/ to see what it can do"
 
     local line prompt
     prompt=$(printf '  %snimo%s %s›%s ' "$NIMO_C_BOLD" "$NIMO_C_RESET" "$NIMO_C_CYAN" "$NIMO_C_RESET")
@@ -249,8 +263,6 @@ nimo_repl() {
         nimo_repl_do "$line" || break
     done
 
-    nimo_blank
-    nimo_dim "bye"
     nimo_blank
     return 0
 }
