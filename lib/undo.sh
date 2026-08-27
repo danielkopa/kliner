@@ -4,6 +4,22 @@
 # One list. Pick a line, and that change is reversed. This is the reason
 # nimo is allowed to touch anything at all.
 
+# How many lines are in this log.
+#
+# `grep -c .` prints 0 and exits 1 on an empty file, so the obvious
+# `$(grep -c . "$f" || echo 0)` produces "0" and then a second "0" — a count
+# with a newline in the middle of it. That went straight into the label, which
+# then took two rows in the list, and the numbers you were being asked to pick
+# from no longer lined up with the things they named.
+nimo_file_lines() {
+    local n
+    n=$(grep -c . "$1" 2>/dev/null)
+    case "${n:-}" in
+        ''|*[!0-9]*) printf '0' ;;
+        *)           printf '%s' "$n" ;;
+    esac
+}
+
 # 20260826-162929 -> 26 Aug 16:29
 nimo_undo_when() {
     printf '%s' "$1" | sed -n 's/^\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)-\([0-9]\{2\}\)\([0-9]\{2\}\).*/\3.\2.\1 \4:\5/p'
@@ -34,12 +50,20 @@ nimo_cmd_undo() {
             *) continue ;;
         esac
 
+        # A command that opened a log and then wrote nothing to it leaves an
+        # empty file behind, and offering that as something to reverse is
+        # offering to put nothing back.
+        case "$kind" in
+            desktop|setup|blank)
+                [ "$(nimo_file_lines "$f")" -gt 0 ] || continue ;;
+        esac
+
         stamp=$(printf '%s' "$name" | sed -e 's/^[a-z]*-//' -e 's/\.[a-z]*$//')
         when=$(nimo_undo_when "$stamp")
 
         case "$kind" in
-            desktop) lines="$(nimo_plural "$(grep -c . "$f" 2>/dev/null || echo 0)" file)" ;;
-            setup)   lines="$(nimo_plural "$(grep -c . "$f" 2>/dev/null || echo 0)" setting)" ;;
+            desktop) lines="$(nimo_plural "$(nimo_file_lines "$f")" file)" ;;
+            setup)   lines="$(nimo_plural "$(nimo_file_lines "$f")" setting)" ;;
             blank)   lines="$(basename "$(cut -f1 "$f" 2>/dev/null | head -1)")" ;;
             wallpaper) lines="back to $(nimo_wall_pretty "$(cat "$f" 2>/dev/null)")"; when="" ;;
             *)       lines="" ;;
