@@ -477,40 +477,58 @@ man min
 ## Tests
 
 ```bash
-bash test/run.sh      # 140 checks — everything that runs anywhere
-bash test/macos.sh    # 86 checks — the parts that only run on a Mac
+bash test/run.sh      # everything that runs anywhere
+bash test/macos.sh    # the parts that only run on a Mac
+bash test/windows.sh  # the parts that only run on Windows
 
 bash test/run.sh -q   # only what went wrong, and the verdict
 ```
 
-The dock, the wallpaper and the preferences only ever run on a Mac, which used
-to make them the parts nobody could test. `test/macos.sh` stands fake
-`defaults`, `osascript`, `killall`, `sw_vers`, `pmset`, `sqlite3` and `uname`
-in front of the real ones and runs the real nimo code against them — on any
-machine, without touching a real dock or a real wallpaper. It checks that the
-right apps leave the dock and the rest keep their order, that the backup is
-written *before* anything changes, that `--restore` brings all of it back, that
-`setup --dry-run` writes nothing at all, that no line anywhere reaches for
-sudo, and that the wallpaper falls through to its last resort when macOS
-refuses. It has found three real bugs so far. `pmset` says `discharging`, which
-contains `charging`, so a battery on its way down was reported as plugged in.
-The guard meant to spot a structured preference value used
-`"$(printf '\n')"`, which collapses to an empty string — so it matched every
-value and nothing was ever recorded. And two runs inside one second produced
-the same log name, where the second truncated the first and took the only
-record of how to undo it with it.
+The dock, the wallpaper, the preferences and the registry only ever run on one
+system each, which used to make them the parts nobody could test.
+`test/macos.sh` and `test/windows.sh` stand fake `defaults`, `osascript`,
+`plutil`, `launchctl`, `killall`, `sw_vers`, `pmset`, `sqlite3`, `reg`,
+`powershell` and `uname` in front of the real ones and run the real nimo code
+against them — on any machine, without touching a real dock, a real wallpaper
+or a real registry. They check that the right apps leave the dock and the rest
+keep their order, that the backup is written *before* anything changes, that
+`--restore` brings all of it back, that `setup --dry-run` writes nothing at
+all, that no line anywhere reaches for sudo, that a value nimo invented is
+unset again and not merely overwritten, and that the wallpaper can still be
+set on a Mac that refuses AppleScript outright.
+
+They keep finding real bugs, and these are the ones worth knowing about:
+
+- `pmset` says `discharging`, which contains `charging`, so a battery on its
+  way down was reported as plugged in
+- the guard meant to spot a structured preference value used
+  `"$(printf '\n')"`, which collapses to an empty string — so it matched every
+  value and nothing was ever recorded
+- two runs inside one second produced the same log name, and the second
+  truncated the first, taking the only record of how to undo it with it
+- Apple's own AppleScript returns success on some systems while changing
+  nothing at all, and nimo printed a tick on "it did not error". The suite can
+  now be told to lie in exactly that way
+- a registry key is full of backslashes, so `grep` reads `\S` and `\W` as
+  patterns of its own — and `awk -v` expands the escapes on the way in, so the
+  key has to arrive through `ENVIRON`
 
 Every push runs everything on GitHub Actions: ShellCheck, a parse on both bash
-3.2 and bash 5, both suites on Linux, **both suites on macOS under
-`/bin/bash` — the actual 3.2 that ships with macOS** — and an
-install-then-uninstall round trip. The bash 3.2 claim in this README is not a
-claim; it is a job that fails if it stops being true.
+3.2 and bash 5, all three suites on Linux, **all three on macOS under
+`/bin/bash` — the actual 3.2 that ships with macOS** — the Linux and Windows
+suites on a real Windows machine in the bash Git ships, and an
+install-then-uninstall round trip on both macOS and Windows. The bash 3.2
+claim in this README is not a claim; it is a job that fails if it stops being
+true.
 
-A hundred and seventy-six checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
-command and flag, the safety guard, the arrow-key picker driven by simulated
-keystrokes, the menu, the undo history, the config file, the desktop sorted and then
-fully undone, and a complete clean where the promised number is compared
-against the freed number. Your real files are never read, never measured, never touched.
+`test/run.sh` runs against a fake computer in `/tmp` with its own fake `HOME`:
+every command and flag, the safety guard — and every spelling of your own home
+folder that might get around it — the arrow-key picker driven by simulated
+keystrokes, the menu, the undo history, the config file, seventeen file names
+with quotes and globs and command substitutions in them, the desktop sorted and
+then fully undone, and a complete clean where the promised number is compared
+against the freed number. Your real files are never read, never measured, never
+touched.
 
 ## Scripting
 

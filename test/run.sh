@@ -558,6 +558,11 @@ check "the version agrees with itself"    "[ \"\$(tr -d ' \n' < '$ROOT/VERSION')
 check "the changelog knows this version"  "grep -q \"^## \$(tr -d ' \n' < '$ROOT/VERSION')\" '$ROOT/CHANGELOG.md'"
 check "the formula points at this tag"    "grep -q \"v\$(tr -d ' \n' < '$ROOT/VERSION')\.tar\.gz\" '$ROOT/Formula/nimo.rb'"
 
+# The website is documentation too. It drifted eighteen versions once while
+# nobody was looking at it, and a page that names a version it has never seen
+# is worse than a page with no version on it at all.
+check "the website knows this version"    "grep -q \"v\$(tr -d ' \n' < '$ROOT/VERSION')\" '$ROOT/docs/index.html'"
+
 # ---- what starts when you sign in ---------------------------------------
 
 check "startup says where it works"       "min startup --no-color 2>&1 | grep -q 'macOS and Windows'"

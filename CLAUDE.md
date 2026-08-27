@@ -299,9 +299,10 @@ turn up in `min help`, `man/min.1` and the completions. That is the quiet half
 of drift — not a promise nimo breaks, a feature nobody can find. `--color` sat
 there unmentioned for eight versions.
 
-The website counts as documentation. It drifted eleven versions once; do not
-let that happen again — `docs/index.html` and the published artifact are the
-same file.
+The website counts as documentation. It drifted eleven versions once, and then
+eighteen — so the version on it is now a check like any other. Bump it in
+`docs/index.html` when you bump `VERSION`, and add a card when you add a
+command; the suite will tell you about the first and trust you on the second.
 
 ## The Windows side
 
