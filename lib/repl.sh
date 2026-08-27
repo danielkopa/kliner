@@ -19,7 +19,13 @@
 # opening rather than remembering: it says where the mess is before you have
 # chosen anything.
 
+# The description is the part a narrow window drops. The list is still a list
+# of what you can type without it, and a wrapped one is not.
 nimo_repl_row() {
+    if [ "${NIMO_COLS:-80}" -lt 62 ]; then
+        printf '%s%s %s\n' "$NIMO_PAD" "$1" "$2"
+        return 0
+    fi
     printf '%s%s %-14s %s%s%s\n' \
         "$NIMO_PAD" "$1" "$2" "$NIMO_C_DIM" "$3" "$NIMO_C_RESET"
 }
@@ -51,7 +57,7 @@ nimo_repl_list() {
         nimo_repl_row ▽ /downloads "nothing loose in your downloads"
     fi
     if [ "$n_shots" -gt 0 ]; then
-        nimo_repl_row ▣ /screenshots "$(nimo_plural "$n_shots" loose screenshot), into one folder"
+        nimo_repl_row ▣ /screenshots "$(nimo_plural "$n_shots" "loose screenshot"), into one folder"
     else
         nimo_repl_row ▣ /screenshots "no screenshots lying about"
     fi

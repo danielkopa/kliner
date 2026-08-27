@@ -618,6 +618,15 @@ check "a narrow one drops them"           "! COLUMNS=46 min preview --no-color |
 check "but never the number"              "COLUMNS=46 min preview --no-color | grep -q 'MB'"
 check "and the disk line shortens too"    "! COLUMNS=38 min doctor --no-color | grep -q 'free of'"
 
+# the prompt's list, and the plural that gave it "2 looses": nimo_plural takes
+# one word, and two words unquoted is two arguments
+list_at() { printf '/\n/quit\n' | COLUMNS="$1" NIMO_REPL_FORCE=1 NIMO_NO_CLEAR=1 HOME="$BOX" bash "$MIN" -q --no-color 2>&1; }
+
+check "the / list keeps its words wide"   "list_at 80 | grep -q 'desktop, downloads'"
+check "and drops them when narrow"        "! list_at 44 | grep -q 'desktop, downloads'"
+check "but never the commands"            "list_at 44 | grep -q '/screenshots'"
+check "loose screenshots, not looses"     "! list_at 80 | grep -q 'looses'"
+
 # two functions with one name is a bug waiting for the day somebody calls the
 # wrong one — this found exactly that, between lib/ui.sh and lib/scan.sh
 check "no function is defined twice"      "[ -z \"\$(cat '$ROOT'/lib/*.sh | sed -n 's/^\(nimo_[a-z_]*\)() {.*/\1/p' | sort | uniq -d)\" ]"

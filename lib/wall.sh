@@ -536,12 +536,20 @@ nimo_wall_browse() {
     nimo_wall_draw() {
         [ "$drawn" -eq 1 ] && printf '\033[%dA' "$rows" >&2
         printf '\n' >&2
-        printf '  %s%-34s%s %s%s of %s%s\033[K\n' \
+        printf "  %s%-$((NIMO_PANEL_WIDTH - 18))s%s %s%s of %s%s\033[K\n" \
             "$NIMO_C_BOLD" "$(nimo_wall_pretty "$here")" "$NIMO_C_RESET" \
             "$NIMO_C_DIM" "$at" "$count" "$NIMO_C_RESET" >&2
         printf '\n' >&2
-        printf '  %s↑↓ or n p  flip     r  random     enter  keep it     q  put it back%s\033[K\n' \
-            "$NIMO_C_DIM" "$NIMO_C_RESET" >&2
+        if [ "${NIMO_COLS:-80}" -lt 52 ]; then
+            printf '  %sn p  flip   enter  keep   q  back%s\033[K\n' \
+                "$NIMO_C_DIM" "$NIMO_C_RESET" >&2
+        elif [ "${NIMO_COLS:-80}" -lt 72 ]; then
+            printf '  %sn p  flip    r  random    enter  keep    q  back%s\033[K\n' \
+                "$NIMO_C_DIM" "$NIMO_C_RESET" >&2
+        else
+            printf '  %s↑↓ or n p  flip     r  random     enter  keep it     q  put it back%s\033[K\n' \
+                "$NIMO_C_DIM" "$NIMO_C_RESET" >&2
+        fi
         printf '  %sit changes on your screen as you move%s\033[K\n' \
             "$NIMO_C_DIM" "$NIMO_C_RESET" >&2
         drawn=1
