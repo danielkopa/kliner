@@ -17,7 +17,18 @@ set -u
 say()  { printf '  %s\n' "$*"; }
 step() { printf '\n  \033[1m%s\033[0m\n' "$*"; }
 
+ROOT=$(cd -P "$(dirname "$0")/.." && pwd)
+STORE="$HOME/Library/Application Support/com.apple.wallpaper/Store/Index.plist"
+
+# nimo's own reader and writer, so this checks the thing that will actually
+# run rather than an imitation of it
+. "$ROOT/lib/ui.sh"
+. "$ROOT/lib/core.sh"
+. "$ROOT/lib/win.sh"
+. "$ROOT/lib/wall.sh"
+
 current() {
+    nimo_wall_store_read 2>/dev/null && return 0
     osascript -e 'tell application "Finder" to get POSIX path of (get desktop picture as alias)' 2>/dev/null
 }
 
@@ -61,6 +72,22 @@ took() {
 
 WORKED=""
 
+step "0. the store in your own Library — needs no permission"
+if [ -f "$STORE" ]; then
+    say "    found: $STORE"
+    say "    it says: $(nimo_wall_store_read 2>/dev/null || echo 'could not read it')"
+    if nimo_wall_store_write "$TRY" 2>/dev/null; then
+        say "    written, and WallpaperAgent restarted"
+        took && WORKED="${WORKED}0 "
+    else
+        say "    nimo could not write it — the shape of the file is not what it expects"
+    fi
+else
+    say "    no such file on this macOS"
+    say "    what is there:"
+    ls -la "$HOME/Library/Application Support/com.apple.wallpaper" 2>/dev/null | sed 's/^/      /' || say "      nothing at all"
+fi
+
 step "1. System Events, every desktop"
 ERR=$(osascript -e "tell application \"System Events\" to tell every desktop to set picture to POSIX file \"$TRY\"" 2>&1)
 [ -n "$ERR" ] && say "    said: $ERR"
@@ -89,18 +116,33 @@ fi
 step "what nimo should use here"
 if [ -n "$WORKED" ]; then
     printf '  \033[32mmethods that worked: %s\033[0m\n' "$WORKED"
+    case "$WORKED" in
+        *0*) say "0 is the good one — no permission, no dialog, works headless" ;;
+    esac
 else
     printf '  \033[31mnone of them changed the wallpaper\033[0m\n'
     say ""
-    say "if step 1 said nothing at all and still did not take, the setting is"
-    say "being written and the screen is not being refreshed — send this output"
-    say "and the output of:   ls ~/Library/Application\\ Support/com.apple.wallpaper"
+    case "$ERR" in
+        *-1743*|*"Not authorised"*|*"Not authorized"*)
+            say "every AppleScript route said -1743, which means this terminal was"
+            say "refused Automation permission once and macOS has remembered it."
+            say "to be asked again:"
+            say ""
+            say "    tccutil reset AppleEvents"
+            say ""
+            say "then run this again and say yes to the box." ;;
+        *)
+            say "send this whole output, and:" 
+            say "    ls -la ~/Library/Application\\ Support/com.apple.wallpaper/Store" ;;
+    esac
 fi
 
 if [ -n "$BEFORE" ]; then
     printf '\n'
     say "putting yours back …"
+    nimo_wall_store_write "$BEFORE" >/dev/null 2>&1
     osascript -e "tell application \"System Events\" to tell every desktop to set picture to POSIX file \"$BEFORE\"" >/dev/null 2>&1
     killall WallpaperAgent >/dev/null 2>&1
+    say "now: $(current)"
 fi
 printf '\n'

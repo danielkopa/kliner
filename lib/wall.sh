@@ -42,6 +42,10 @@ nimo_wall_pretty() {
 }
 
 nimo_wall_current() {
+    if [ "$(nimo_platform)" = "macos" ]; then
+        # the store first: no Automation permission, no dialog, no -1743
+        nimo_wall_store_read && return 0
+    fi
     if [ "$(nimo_platform)" = "windows" ]; then
         local raw
         raw=$(nimo_reg_read "$NIMO_WIN_DESKTOP" WallPaper 2>/dev/null) || return 1
@@ -66,6 +70,124 @@ nimo_wall_current() {
 # own eyes.
 #
 # It reads the wallpaper back now. If it did not move, nimo says so.
+
+# ---- the store, which needs nobody's permission -------------------------
+#
+# Since Sonoma the wallpaper lives in a plist in your own home folder, and
+# WallpaperAgent reads it when it starts. That matters more than it sounds:
+# every AppleScript route needs Automation permission, and a Mac that has once
+# been told "Don't Allow" answers -1743 for ever and never asks again. Your own
+# file in your own Library needs no permission at all.
+#
+# nimo edits it the careful way — read what is there, swap the image out, put
+# it back — rather than writing a plist from scratch, because the shape of
+# this file is Apple's and it changes.
+
+nimo_wall_store() {
+    printf '%s' "$HOME/Library/Application Support/com.apple.wallpaper/Store/Index.plist"
+}
+
+# file:///System/Library/Desktop%20Pictures/Sky.heic
+# Byte by byte under LC_ALL=C, so an accented name survives the trip.
+nimo_url_encode() {
+    LC_ALL=C awk -v s="$1" 'BEGIN {
+        for (i = 0; i < 256; i++) ord[sprintf("%c", i)] = i
+        n = length(s); out = ""
+        for (i = 1; i <= n; i++) {
+            c = substr(s, i, 1)
+            if (c ~ /[A-Za-z0-9._~\/-]/) out = out c
+            else out = out sprintf("%%%02X", ord[c])
+        }
+        printf "%s", out
+    }'
+}
+
+# No strtonum here: that is a gawk extension, and the awk macOS ships is the
+# one Kernighan wrote. Sixteen digits in a table is the portable answer.
+nimo_url_decode() {
+    LC_ALL=C awk -v s="$1" 'BEGIN {
+        split("0 1 2 3 4 5 6 7 8 9", d, " ")
+        for (i = 0; i <= 9; i++) hex[i "" ] = i
+        hex["a"] = 10; hex["A"] = 10; hex["b"] = 11; hex["B"] = 11
+        hex["c"] = 12; hex["C"] = 12; hex["d"] = 13; hex["D"] = 13
+        hex["e"] = 14; hex["E"] = 14; hex["f"] = 15; hex["F"] = 15
+        n = length(s); out = ""
+        for (i = 1; i <= n; i++) {
+            c = substr(s, i, 1)
+            if (c == "%" && i + 2 <= n) {
+                hi = substr(s, i + 1, 1); lo = substr(s, i + 2, 1)
+                if (hi in hex && lo in hex) {
+                    out = out sprintf("%c", hex[hi] * 16 + hex[lo])
+                    i = i + 2
+                    continue
+                }
+            }
+            out = out c
+        }
+        printf "%s", out
+    }'
+}
+
+# What the store says is showing, as a plain path.
+nimo_wall_store_read() {
+    local store url
+    store=$(nimo_wall_store)
+    [ -f "$store" ] || return 1
+    nimo_have plutil || return 1
+    url=$(plutil -convert xml1 -o - "$store" 2>/dev/null \
+        | awk '/<key>relative<\/key>/ { want = 1; next }
+               want && /<string>/ {
+                   line = $0
+                   sub(/.*<string>/, "", line); sub(/<\/string>.*/, "", line)
+                   print line; exit
+               }')
+    [ -n "$url" ] || return 1
+    case "$url" in
+        file://*) ;;
+        *) return 1 ;;
+    esac
+    nimo_url_decode "${url#file://}"
+}
+
+# Swap the image, keeping every other thing the file says about your desktop.
+nimo_wall_store_write() {
+    local pic="$1" store xml url tmp
+    store=$(nimo_wall_store)
+    [ -f "$store" ] || return 1
+    nimo_have plutil || return 1
+
+    url="file://$(nimo_url_encode "$pic")"
+    tmp="${TMPDIR:-/tmp}/nimo-wall.$$"
+    plutil -convert xml1 -o "$tmp.xml" "$store" 2>/dev/null || { rm -f "$tmp.xml"; return 1; }
+
+    # Only the strings that follow a <key>relative</key>. Nothing else in this
+    # file is a path, and nimo is not going to find out the hard way.
+    awk -v url="$url" '
+        prev ~ /<key>relative<\/key>/ && /<string>/ {
+            i = index($0, "<string>")
+            j = index($0, "</string>")
+            if (i > 0 && j > i) {
+                $0 = substr($0, 1, i + 7) url substr($0, j)
+            }
+        }
+        { print; prev = $0 }
+    ' "$tmp.xml" > "$tmp.new" 2>/dev/null || { rm -f "$tmp.xml" "$tmp.new"; return 1; }
+
+    grep -q -- "$url" "$tmp.new" || { rm -f "$tmp.xml" "$tmp.new"; return 1; }
+
+    # The one it had before nimo ever touched the file, kept whole.
+    mkdir -p "$NIMO_BACKUP_DIR" 2>/dev/null
+    [ -f "$NIMO_BACKUP_DIR/wallpaper-store.plist" ] || \
+        cp "$store" "$NIMO_BACKUP_DIR/wallpaper-store.plist" 2>/dev/null
+
+    plutil -convert binary1 -o "$store" "$tmp.new" 2>/dev/null || {
+        rm -f "$tmp.xml" "$tmp.new"; return 1; }
+    rm -f "$tmp.xml" "$tmp.new"
+
+    # It reads the store when it starts, and comes straight back by itself.
+    killall WallpaperAgent >/dev/null 2>&1
+    return 0
+}
 
 NIMO_WALL_METHOD=""   # the one that worked here, once we know
 NIMO_WALL_WHY=""      # what the system said, when nothing worked
@@ -102,6 +224,7 @@ nimo_wall_apply() {
     # session uses it directly — flipping through forty wallpapers should not
     # re-run the whole audition each time.
     case "$NIMO_WALL_METHOD" in
+        store)  nimo_wall_store_write "$pic"; return 0 ;;
         events) nimo_wall_osa "tell application \"System Events\" to tell every desktop to set picture to POSIX file \"$pic\""; return 0 ;;
         finder) nimo_wall_osa "tell application \"Finder\" to set desktop picture to POSIX file \"$pic\""; return 0 ;;
         agent)
@@ -114,6 +237,11 @@ nimo_wall_apply() {
             killall Dock >/dev/null 2>&1
             return 0 ;;
     esac
+
+    # The store first. It is the only way that asks nobody for anything.
+    if nimo_wall_store_write "$pic"; then
+        if nimo_wall_took "$pic"; then NIMO_WALL_METHOD=store; return 0; fi
+    fi
 
     nimo_wall_osa "tell application \"System Events\" to tell every desktop to set picture to POSIX file \"$pic\""
     nimo_wall_took "$pic"; verdict=$?
@@ -175,11 +303,31 @@ nimo_wall_complain() {
             nimo_dim "find your terminal in the list and allow System Events and Finder"
             ;;
         *)
-            nimo_warn "nimo asked your Mac to change the wallpaper and it did not"
-            [ -n "${NIMO_WALL_WHY:-}" ] && nimo_dim "it said: $NIMO_WALL_WHY"
-            nimo_blank
-            nimo_dim "this one is Apple's, not yours — run  bash tools/wallcheck.sh"
-            nimo_dim "in the nimo folder and send what it prints"
+            # -1743 is errAEEventNotPermitted: the Automation permission was
+            # refused once, and macOS remembers that answer for ever without
+            # ever asking again. The toggle is often not even in Settings,
+            # because a permission that was never granted has nothing to show.
+            case "${NIMO_WALL_WHY:-}" in
+                *-1743*|*"Not authorised"*|*"Not authorized"*)
+                    nimo_warn "your Mac will not let this terminal control the desktop"
+                    nimo_dim "it said: $NIMO_WALL_WHY"
+                    nimo_blank
+                    nimo_dim "macOS asks once and remembers the answer for ever. to be"
+                    nimo_dim "asked again, run this and then try nimo once more:"
+                    nimo_blank
+                    nimo_dim "    tccutil reset AppleEvents"
+                    nimo_blank
+                    nimo_dim "say yes when the box appears. nothing else on your Mac"
+                    nimo_dim "loses anything by it — it only forgets the answers."
+                    ;;
+                *)
+                    nimo_warn "nimo asked your Mac to change the wallpaper and it did not"
+                    [ -n "${NIMO_WALL_WHY:-}" ] && nimo_dim "it said: $NIMO_WALL_WHY"
+                    nimo_blank
+                    nimo_dim "run  bash tools/wallcheck.sh  in the nimo folder"
+                    nimo_dim "and send what it prints"
+                    ;;
+            esac
             ;;
     esac
 }

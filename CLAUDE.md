@@ -170,6 +170,30 @@ own face. `tools/screen.py` renders a raw stream the way a terminal would, so
 the suite can check what is on screen and not only which bytes were sent — a
 grep sees a perfectly good face either way.
 
+## The wallpaper store
+
+`~/Library/Application Support/com.apple.wallpaper/Store/Index.plist`, read by
+`WallpaperAgent` when it starts. It is tried **first**, and it is the only
+route that asks nobody for anything: every AppleScript path needs Automation
+permission, and a Mac told "Don't Allow" once answers -1743 for ever without
+ever asking again. A real machine turned up in exactly that state.
+
+The file is edited, never generated: read it, swap the image, put it back.
+Only the strings that follow a `<key>relative</key>` are touched — nothing
+else in that file is a path, and nimo is not going to find out the hard way.
+The original is copied to `backups/wallpaper-store.plist` before the first
+write.
+
+`plutil` for the conversion, `awk` for the swap. **No `strtonum`** in the URL
+decoder: that is a gawk extension and the awk macOS ships is the one Kernighan
+wrote. Paths are percent-encoded byte by byte under `LC_ALL=C`, so an accented
+name survives.
+
+`test/macos.sh` shims `plutil` as a copy and keeps its fake store as XML, so
+the awk that does the real work runs for real. The store is then moved aside
+for the rest of the file, because the AppleScript routes still have to work on
+the Macs that only have them.
+
 ## A tick you can stand behind
 
 Apple has moved the wallpaper three times, and the AppleScript that used to

@@ -89,6 +89,24 @@ cat > "$FAKE/killall" <<'SHIM'
 exit 0
 SHIM
 
+# plutil, for a store this suite keeps as XML the whole way through: the
+# conversion is a copy, and the part worth testing — the awk that swaps one
+# string and leaves everything else alone — runs for real.
+cat > "$FAKE/plutil" <<'SHIM'
+#!/bin/sh
+out=""; in=""
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        -convert) shift 2 ;;
+        -o) out="$2"; shift 2 ;;
+        *) in="$1"; shift ;;
+    esac
+done
+[ -n "$in" ] && [ -f "$in" ] || exit 1
+if [ "$out" = "-" ]; then cat "$in"; else cat "$in" > "$out"; fi
+exit 0
+SHIM
+
 cat > "$FAKE/launchctl" <<SHIM
 #!/bin/sh
 echo "\$*" >> "$STATE/launchctl"
@@ -561,6 +579,90 @@ check "--restore names the old wallpaper"  "printf '%s' \"\$OUT\" | grep -q 'Son
 OUT=$(NIMO_OSA_FAIL=1 wall set)
 check "falls back when macOS says no"      "[ -s '$SQL' ]"
 check "the fallback nudges the Dock"       "grep -q 'desktoppicture' '$SQL' || grep -q 'update data set value' '$SQL'"
+
+# ---- the store, which needs nobody's permission --------------------------
+#
+# Since Sonoma the wallpaper lives in a plist in your own home folder. That
+# matters more than it sounds: every AppleScript route needs Automation
+# permission, and a Mac that has once been told "Don't Allow" answers -1743
+# for ever and never asks again. This is the state a real machine turned up
+# in, so it is the state the suite runs.
+
+STORE_DIR="$BOX/Library/Application Support/com.apple.wallpaper/Store"
+mkdir -p "$STORE_DIR"
+make_store() {
+    cat > "$STORE_DIR/Index.plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0">
+<dict>
+  <key>AllSpacesAndDisplays</key>
+  <dict>
+    <key>Desktop</key>
+    <dict>
+      <key>Files</key>
+      <array>
+        <dict>
+          <key>relative</key>
+          <string>file://$1</string>
+        </dict>
+      </array>
+      <key>Provider</key>
+      <string>com.apple.wallpaper.choice.image</string>
+    </dict>
+  </dict>
+  <key>SystemDefault</key>
+  <dict>
+    <key>Provider</key>
+    <string>com.apple.wallpaper.choice.image</string>
+  </dict>
+</dict>
+</plist>
+PLIST
+}
+make_store "/System/Library/Desktop%20Pictures/Radial%20Sky%20Blue.heic"
+
+store_says() {
+    PATH="$FAKE:$PATH" HOME="$BOX" bash -c '
+        for m in ui core win wall; do . "'"$ROOT"'/lib/$m.sh"; done
+        nimo_wall_store_read' 2>/dev/null
+}
+store_set() {
+    PATH="$FAKE:$PATH" HOME="$BOX" bash -c '
+        for m in ui core win wall; do . "'"$ROOT"'/lib/$m.sh"; done
+        nimo_wall_store_write "$1"' _ "$1" 2>/dev/null
+}
+
+check "it reads the store, not the Mac"    "[ \"\$(store_says)\" = '/System/Library/Desktop Pictures/Radial Sky Blue.heic' ]"
+check "and decodes the escaped spaces"     "store_says | grep -q 'Radial Sky Blue'"
+check "writing swaps the image"            "store_set '$PICS/Ventura Graphic.heic'; [ \"\$(store_says)\" = '$PICS/Ventura Graphic.heic' ]"
+check "and escapes the spaces going in"    "grep -q 'Ventura%20Graphic' '$STORE_DIR/Index.plist'"
+check "everything else in the file stays"  "grep -q 'com.apple.wallpaper.choice.image' '$STORE_DIR/Index.plist'"
+check "and it kept the original file"      "[ -f '$BOX/.nimo/backups/wallpaper-store.plist' ]"
+check "the agent is asked to reread it"    "grep -q 'WallpaperAgent' '$ROOT/lib/wall.sh'"
+
+# The real machine this came from: Automation refused, -1743 for ever, and
+# nothing at all in Settings to switch on. The store still works.
+make_store "/System/Library/Desktop%20Pictures/Radial%20Sky%20Blue.heic"
+: > "$SCRIPTED"
+OUT=$(NIMO_OSA_FAIL=1 wall set)
+check "it works with AppleScript refused"  "printf '%s' \"\$OUT\" | grep -q 'Wallpaper set'"
+check "and it never had to ask permission" "[ ! -s '$SCRIPTED' ]"
+check "the store is what changed"          "store_says | grep -q 'Black'"
+
+# And when the store is not there at all — a Mac older than Sonoma, or one
+# where Apple has moved it again — it falls back rather than stopping.
+#
+# It stays moved away: everything below this line is about the AppleScript
+# routes, and those still have to work on the Macs that only have them.
+mv "$STORE_DIR/Index.plist" "$STORE_DIR/away.plist"
+printf '%s\n' "$PICS/Sonoma Horizon.heic" > "$STATE/wallpaper"
+OUT=$(wall set)
+check "no store means the old way, still"  "printf '%s' \"\$OUT\" | grep -q 'Wallpaper set'"
+
+# and put the world back the way the rest of this file expects to find it
+rm -rf "$BOX/.nimo/backups"
+printf '%s\n' "$PICS/Sonoma Horizon.heic" > "$STATE/wallpaper"
+: > "$SCRIPTED"
 
 # ---- a tick nimo can stand behind ----------------------------------------
 #
