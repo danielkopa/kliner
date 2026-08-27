@@ -57,7 +57,7 @@ nimo_logo() {
    ╚═╝  ╚═══╝╚═╝╚═╝     ╚═╝ ╚═════╝
 ART
     printf '%s' "$NIMO_C_RESET"
-    printf '\n   %smake your computer feel better%s\n' "$NIMO_C_DIM" "$NIMO_C_RESET"
+    printf '\n   %smake your workspace clean%s\n' "$NIMO_C_DIM" "$NIMO_C_RESET"
     printf '   %sv%s%s\n' "$NIMO_C_DIM" "$NIMO_VERSION" "$NIMO_C_RESET"
 }
 

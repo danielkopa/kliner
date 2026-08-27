@@ -62,6 +62,21 @@ nimo_human_kb() {
     }'
 }
 
+# human_bytes <bytes> -> "29 B" / "1.2 MB"
+#
+# The kilobyte version rounds a small file down to "0 B", which reads as
+# "there is nothing here" for a file that plainly has something in it.
+nimo_human_bytes() {
+    awk -v b="${1:-0}" 'BEGIN {
+        if (b < 1024) { printf "%d B", b; exit }
+        split("B KB MB GB TB", u, " ")
+        i = 1
+        while (b >= 1024 && i < 5) { b /= 1024; i++ }
+        if (b >= 100) printf "%.0f %s", b, u[i]
+        else          printf "%.1f %s", b, u[i]
+    }'
+}
+
 # size of a path in KB (0 if missing/unreadable)
 nimo_path_kb() {
     [ -e "$1" ] || { echo 0; return 0; }

@@ -323,13 +323,15 @@ nimo_cmd_clear() {
         nimo_blank
 
         local labels choice
-        labels="$(printf '%-13s %-11s %s' Desktop     "$(nimo_plural "$n_desk" item)"  "$(nimo_bar "$n_desk" "$most" 12)")
-$(printf '%-13s %-11s %s' Downloads   "$(nimo_plural "$n_down" item)"  "$(nimo_bar "$n_down" "$most" 12)")
-$(printf '%-13s %-11s %s' Screenshots "$n_shots loose" "$(nimo_bar "$n_shots" "$most" 12)")
-$(printf '%-13s %-11s %s' Trash       "$(nimo_plural "$n_trash" item)"  "$(nimo_bar "$n_trash" "$most" 12)")
-$(printf '%-13s %s' Dock        'the apps you never open')
-$(printf '%-13s %s' Disk        'caches your apps rebuild by themselves')
-$(printf '%-13s %s' Everything  'all of it, one step at a time')"
+        # a mark apiece, drawn from the box-drawing block every terminal has,
+        # rather than an icon set fetched from somewhere with a licence
+        labels="$(printf '%s %-11s %-11s %s' ▤ Desktop     "$(nimo_plural "$n_desk" item)"  "$(nimo_bar "$n_desk" "$most" 12)")
+$(printf '%s %-11s %-11s %s' ▼ Downloads   "$(nimo_plural "$n_down" item)"  "$(nimo_bar "$n_down" "$most" 12)")
+$(printf '%s %-11s %-11s %s' ▣ Screenshots "$n_shots loose" "$(nimo_bar "$n_shots" "$most" 12)")
+$(printf '%s %-11s %-11s %s' ○ Trash       "$(nimo_plural "$n_trash" item)"  "$(nimo_bar "$n_trash" "$most" 12)")
+$(printf '%s %-11s %s' ■ Dock        'the apps you never open')
+$(printf '%s %-11s %s' ◍ Disk        'caches your apps rebuild by themselves')
+$(printf '%s %-11s %s' ◆ Everything  'all of it, one step at a time')"
 
         if ! choice=$(nimo_pick single "↑↓ move   enter choose   q cancel" "$labels") || [ -z "$choice" ]; then
             nimo_panel_close
