@@ -29,6 +29,7 @@ jobs:
         run: |
           /bin/bash test/run.sh -q
           /bin/bash test/macos.sh -q
+          /bin/bash test/windows.sh -q
 
       - name: take the notes out of the changelog
         id: notes

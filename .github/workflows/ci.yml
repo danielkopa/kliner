@@ -42,6 +42,8 @@ jobs:
       - run: bash test/run.sh
       - name: the macOS parts, against a fake macOS
         run: bash test/macos.sh
+      - name: the windows parts, against a fake Git Bash
+        run: bash test/windows.sh
 
   test-macos:
     name: tests on macos, with the bash macos ships
@@ -54,6 +56,23 @@ jobs:
         run: /bin/bash test/run.sh
       - name: the macOS parts, on bash 3.2
         run: /bin/bash test/macos.sh
+      - name: the windows parts, on bash 3.2
+        run: /bin/bash test/windows.sh
+
+  test-windows:
+    name: tests on windows, in the bash git ships
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: which bash is this
+        run: bash --version | head -1
+      - name: the suite that runs anywhere
+        run: bash test/run.sh -q
+      - name: and the windows one, on real windows
+        run: bash test/windows.sh -q
 
   install:
     name: install and uninstall cleanly

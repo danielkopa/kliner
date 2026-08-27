@@ -221,6 +221,8 @@ crosstalk() {
 
 check "each undo takes its own log"       "[ \"\$(crosstalk)\" = ok ]"
 
+check "the platform is one of three"      "[ -n \"\$(bash -c '. $ROOT/lib/core.sh; nimo_platform')\" ]"
+check "wsl is not treated as windows"     "[ \"\$(bash -c '. $ROOT/lib/core.sh; nimo_platform')\" != windows ] || [ \"\$(uname -s)\" != Linux ]"
 check "zen says no away from macOS"        "[ \"\$(uname -s)\" = Darwin ] || min zen -q --no-color | grep -q 'macOS'"
 
 # ---- what is still arriving stays put ------------------------------------
