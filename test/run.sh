@@ -60,7 +60,11 @@ touch -t 202001010000 "$BOX/Downloads/old one.dmg"
 mkdir -p "$BOX/Desktop"
 touch "$BOX/Desktop/a" "$BOX/Desktop/b"
 
-min() { HOME="$BOX" bash "$MIN" "$@"; }
+# Every call gets an empty stdin. `min` with no command opens a prompt when
+# there is a terminal on the other end, and a suite run from a real terminal
+# would otherwise stop dead on the first such check, waiting to be typed at.
+# Tests that need to type something pipe their own input instead.
+min() { HOME="$BOX" bash "$MIN" "$@" </dev/null; }
 
 printf '\n  %snimo test suite%s\n' "$B" "$Z"
 printf '  %sbash %s on %s · fake home in %s%s\n\n' \
@@ -232,9 +236,9 @@ two_in_a_second() {
     box=$(mktemp -d "${TMPDIR:-/tmp}/nimo-collide.XXXXXX") || return 1
     mkdir -p "$box/Desktop"
     touch "$box/Desktop/first.pdf"
-    HOME="$box" bash "$MIN" desktop -y -q --no-color >/dev/null 2>&1
+    HOME="$box" bash "$MIN" desktop -y -q --no-color >/dev/null 2>&1 </dev/null
     touch "$box/Desktop/second.pdf"
-    HOME="$box" bash "$MIN" desktop -y -q --no-color >/dev/null 2>&1
+    HOME="$box" bash "$MIN" desktop -y -q --no-color >/dev/null 2>&1 </dev/null
     local logs newest
     logs=$(ls -1 "$box"/.nimo/undo/desktop-*.tsv 2>/dev/null | wc -l | tr -d ' ')
     newest=$(ls -1 "$box"/.nimo/undo/desktop-*.tsv 2>/dev/null | tail -1)

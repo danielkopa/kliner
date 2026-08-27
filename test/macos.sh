@@ -227,7 +227,8 @@ printf '%s\n' \
     "file:///Applications/Google%20Chrome.app/" \
     "file:///System/Applications/Utilities/Terminal.app/" > "$DOCK"
 
-mac() { PATH="$FAKE:$PATH" HOME="$BOX" bash "$MIN" "$@"; }
+# empty stdin, for the same reason as in test/run.sh
+mac() { PATH="$FAKE:$PATH" HOME="$BOX" bash "$MIN" "$@" </dev/null; }
 
 printf '\n  %snimo macOS suite%s\n' "$B" "$Z"
 printf '  %sreal nimo code, fake macOS underneath · %s%s\n\n' "$D" "$BOX" "$Z"
