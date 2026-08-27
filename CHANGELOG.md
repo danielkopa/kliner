@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.12.2
+
+- **Fixed: `min desktop --undo` reversed the wrong run.** The three sorters
+  keep their logs in one folder, named by kind and then by time, and the newest
+  was taken from the end of a glob across all of them — so `screenshots-…`
+  always came out last, because s sorts after d, and the desktop's own log was
+  never the one replayed. Each command now undoes its own kind, with a test
+  that runs all three sorters and checks the other two are left alone
+- Both suites take `-q`: only what went wrong, and the verdict
+
 ## 0.12.1
 
 - **Fixed: sourcing the completion file in zsh printed an error on every new

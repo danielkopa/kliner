@@ -82,18 +82,32 @@ nimo_folder_items() {
     done
 }
 
-# shellcheck disable=SC2120  # the file to undo is optional
-nimo_desktop_undo() {
+# Undo one sorting run.
+#
+#   $1  which sorter: desktop, downloads, screenshots — or any
+#   $2  an exact log to replay, when the caller already picked one
+#
+# The tag matters. The logs are named by kind and then by the second they were
+# made in, and the newest is taken from the end of a sorted glob — so a single
+# glob across every kind quietly hands "screenshots-…" to `min desktop --undo`,
+# because s sorts after d. Each command undoes its own kind.
+nimo_sort_undo() {
+    local tag="${1:-any}" latest="${2:-}"
+
     [ "${NIMO_UNDO_QUIET:-0}" = "1" ] || nimo_header
     nimo_panel_open "put it back"
 
-    local latest="${1:-}"
-    [ -n "$latest" ] || latest=$(ls -1 "$NIMO_UNDO_DIR"/desktop-*.tsv \
-                                      "$NIMO_UNDO_DIR"/downloads-*.tsv \
-                                      "$NIMO_UNDO_DIR"/screenshots-*.tsv 2>/dev/null | tail -1)
+    if [ -z "$latest" ]; then
+        case "$tag" in
+            any) latest=$(ls -1 "$NIMO_UNDO_DIR"/desktop-*.tsv \
+                                "$NIMO_UNDO_DIR"/downloads-*.tsv \
+                                "$NIMO_UNDO_DIR"/screenshots-*.tsv 2>/dev/null | tail -1) ;;
+            *)   latest=$(ls -1 "$NIMO_UNDO_DIR/$tag"-*.tsv 2>/dev/null | tail -1) ;;
+        esac
+    fi
 
     if [ -z "$latest" ] || [ ! -f "$latest" ]; then
-        nimo_dim "nimo has not moved anything yet — nothing to undo"
+        nimo_dim "nimo has not moved anything here yet — nothing to undo"
         nimo_panel_close
         nimo_blank
         return 0
@@ -113,9 +127,11 @@ nimo_desktop_undo() {
         fi
     done < "$latest"
 
-    # tidy up the folders we emptied, but never anything with content left
+    # take away the folders we emptied, never one with anything left in it
     local room
-    for room in "$HOME/Desktop/$NIMO_TIDY_DIR_NAME" "$HOME/Downloads/$NIMO_TIDY_DIR_NAME"; do
+    for room in "$HOME/Desktop/$NIMO_TIDY_DIR_NAME" \
+                "$HOME/Downloads/$NIMO_TIDY_DIR_NAME" \
+                "$HOME/Pictures/Screenshots"; do
         [ -d "$room" ] || continue
         find "$room" -type d -depth 2>/dev/null \
             | while IFS= read -r d; do rmdir "$d" 2>/dev/null || true; done
@@ -126,6 +142,12 @@ nimo_desktop_undo() {
     nimo_panel_close
     nimo_blank
     return 0
+}
+
+# `min undo` hands over an exact log; the kind is already decided by then.
+# shellcheck disable=SC2120  # the log to replay is optional
+nimo_desktop_undo() {
+    nimo_sort_undo any "${1:-}"
 }
 
 # The one sorter behind /desktop, /downloads and /screenshots.
@@ -227,7 +249,7 @@ EOF
 
 nimo_cmd_desktop() {
     if [ "${NIMO_UNDO:-0}" = "1" ]; then
-        nimo_desktop_undo
+        nimo_sort_undo desktop
         return 0
     fi
     nimo_header
@@ -237,7 +259,7 @@ nimo_cmd_desktop() {
 
 nimo_cmd_downloads() {
     if [ "${NIMO_UNDO:-0}" = "1" ]; then
-        nimo_desktop_undo
+        nimo_sort_undo downloads
         return 0
     fi
     nimo_header
@@ -249,7 +271,7 @@ nimo_cmd_downloads() {
 # usual scattering grounds into one folder, and nowhere else.
 nimo_cmd_screenshots() {
     if [ "${NIMO_UNDO:-0}" = "1" ]; then
-        nimo_desktop_undo
+        nimo_sort_undo screenshots
         return 0
     fi
 

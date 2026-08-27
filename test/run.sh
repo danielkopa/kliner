@@ -185,6 +185,32 @@ rm -f "$BOX/Desktop/Screenshot A.png" "$BOX/Documents/Screenshot C.png" "$DL/Scr
 rm -rf "$DL/Tidy" "$BOX/Pictures/Screenshots"
 
 check "nothing loose is a calm answer"     "min screenshots -q --no-color | grep -q 'No loose screenshots'"
+# Three sorters, three logs, all named by kind and then by time. A single
+# glob across all of them handed "screenshots-…" to `min desktop --undo`,
+# because s sorts after d — so the wrong run was reversed, every time.
+crosstalk() {
+    local box
+    box=$(mktemp -d "${TMPDIR:-/tmp}/nimo-cross.XXXXXX") || return 1
+    mkdir -p "$box/Desktop" "$box/Downloads"
+    touch "$box/Downloads/paper.pdf"
+    HOME="$box" bash "$MIN" downloads -y -q --no-color >/dev/null 2>&1 </dev/null
+    touch "$box/Desktop/Screenshot Z.png"
+    HOME="$box" bash "$MIN" screenshots -y -q --no-color >/dev/null 2>&1 </dev/null
+    touch "$box/Desktop/notes.md"
+    HOME="$box" bash "$MIN" desktop -y -q --no-color >/dev/null 2>&1 </dev/null
+    HOME="$box" bash "$MIN" desktop --undo -q --no-color >/dev/null 2>&1 </dev/null
+
+    local verdict=ok
+    [ -f "$box/Desktop/notes.md" ] || verdict=desktop-not-restored
+    [ -d "$box/Desktop/Tidy" ] && verdict=tidy-left-behind
+    [ -f "$box/Pictures/Screenshots/Screenshot Z.png" ] || verdict=screenshots-disturbed
+    [ -f "$box/Downloads/Tidy/Documents/paper.pdf" ] || verdict=downloads-disturbed
+    printf '%s' "$verdict"
+    rm -rf "$box"
+}
+
+check "each undo takes its own log"       "[ \"\$(crosstalk)\" = ok ]"
+
 check "zen says no away from macOS"        "[ \"\$(uname -s)\" = Darwin ] || min zen -q --no-color | grep -q 'macOS'"
 
 # ---- the way in ---------------------------------------------------------
