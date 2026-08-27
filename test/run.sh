@@ -570,6 +570,87 @@ check "and changes nothing on linux"      "min startup -y --no-color >/dev/null 
 check "it never uninstalls anything"      "! grep -q 'msiexec\|rm -rf\|Uninstall-Package' '$ROOT/lib/startup.sh'"
 check "and never touches HKLM"            "! grep -q 'reg_erase .*RUN_MACHINE\|reg_write .*RUN_MACHINE' '$ROOT/lib/startup.sh'"
 
+# ---- it fits the window it is in ------------------------------------------
+#
+# 52 columns was a constant. That is fine on a full-width terminal and wrong
+# on every other one — and half-width is exactly where this tool gets used,
+# next to the desktop it is tidying. A panel wider than the window wraps every
+# rule and every row, and a wrapped box reads as a broken one.
+#
+# Prose is allowed to wrap: prose reads fine wrapped, a table does not. So
+# what is measured here is the frame and the rows — the parts where a wrapped
+# line stops looking like a column of numbers.
+#
+# Counted in characters, by python. A box-drawing character is three bytes,
+# and awk under the wrong locale will tell you a 55-column rule is 160 wide.
+
+fits() {
+    COLUMNS="$1" HOME="$BOX" bash "$MIN" "$2" -q --no-color </dev/null 2>&1 \
+        | python3 -c '
+import sys, re
+cols = int(sys.argv[1])
+worst = 0
+for line in sys.stdin.read().splitlines():
+    # the frame, and any row that ends in a measurement
+    if re.match(r"^\s*[╭╰]", line) or re.search(r"\d\s*(B|KB|MB|GB|items?|files?)\s*$", line):
+        worst = max(worst, len(line))
+print(worst)
+' "$1"
+}
+
+check "the frame fits 80 columns"         "[ \"\$(fits 80 preview)\" -le 80 ]"
+check "and 60"                            "[ \"\$(fits 60 preview)\" -le 60 ]"
+check "and 46"                            "[ \"\$(fits 46 preview)\" -le 46 ]"
+check "and 38"                            "[ \"\$(fits 38 preview)\" -le 38 ]"
+check "doctor fits a narrow window too"   "[ \"\$(fits 40 doctor)\" -le 40 ]"
+check "and top"                           "[ \"\$(fits 40 top)\" -le 40 ]"
+check "a wide one does not sprawl"        "[ \"\$(fits 200 preview)\" -le 56 ]"
+
+# The note on the end of a row is the part a narrow window loses: the label
+# and the number are the data, and a wrapped note turns a column of numbers
+# into a paragraph. The question is how wide the window is, not the panel — a
+# 52-column panel still writes a 68-column line once a note is on the end.
+mkdir -p "$BOX/.cache/something"
+dd if=/dev/zero of="$BOX/.cache/something/blob" bs=1024 count=2048 2>/dev/null
+
+check "a wide window keeps the notes"     "COLUMNS=80 min preview --no-color | grep -q 'rebuilt'"
+check "a narrow one drops them"           "! COLUMNS=46 min preview --no-color | grep -q 'rebuilt'"
+check "but never the number"              "COLUMNS=46 min preview --no-color | grep -q 'MB'"
+check "and the disk line shortens too"    "! COLUMNS=38 min doctor --no-color | grep -q 'free of'"
+
+# two functions with one name is a bug waiting for the day somebody calls the
+# wrong one — this found exactly that, between lib/ui.sh and lib/scan.sh
+check "no function is defined twice"      "[ -z \"\$(cat '$ROOT'/lib/*.sh | sed -n 's/^\(nimo_[a-z_]*\)() {.*/\1/p' | sort | uniq -d)\" ]"
+
+# ---- machine readable, and readable by a machine -------------------------
+#
+# --json is the one output nimo makes that nobody reads with their eyes, which
+# is exactly why it needs checking: a stray comma or an unquoted label is
+# invisible to everybody until a script falls over on it. So a parser reads
+# it, not a grep.
+
+valid_json() {
+    min "$@" --json 2>/dev/null | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+for k in ("nimo", "disk", "targets", "safe_bytes", "review_bytes"):
+    assert k in d, k
+assert isinstance(d["targets"], list) and d["targets"], "no targets"
+for t in d["targets"]:
+    for k in ("id", "label", "safety", "bytes", "items"):
+        assert k in t, k
+    assert isinstance(t["bytes"], int)
+    assert isinstance(t["items"], int)
+    assert t["safety"] in ("safe", "review"), t["safety"]
+assert isinstance(d["disk"]["free_bytes"], int)
+'
+}
+
+check "preview --json parses"             "valid_json preview"
+check "clean --json parses too"           "valid_json clean -n"
+check "the version in it is the version"  "min preview --json | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"nimo\"])' | grep -qx \"\$(tr -d ' \n' < '$ROOT/VERSION')\""
+check "and it says nothing else at all"   "[ \"\$(min preview --json | head -1)\" = '{' ]"
+
 # ---- the way in ---------------------------------------------------------
 
 check "bare min prints help off a tty"    "min --no-color | grep -q 'Commands'"

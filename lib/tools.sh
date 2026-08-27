@@ -30,7 +30,7 @@ nimo_cmd_top() {
         printf '%s%-22s %s%10s%s  %s\n' \
             "$NIMO_PAD" "$(basename "$path")" \
             "$(nimo_size_color "$kb")" "$(nimo_human_kb "$kb")" "$NIMO_C_RESET" \
-            "$(nimo_meter "$kb" "$max" 16)"
+            "$(nimo_meter "$kb" "$max" "$NIMO_BAR_WIDTH")"
     done
 
     nimo_blank
@@ -148,9 +148,17 @@ nimo_cmd_doctor() {
     total=$(nimo_disk_total_kb); total=${total:-0}
     used=$((total - free))
     if [ "$total" -gt 0 ]; then
-        nimo_fact "Disk" \
-            "$(printf '%s free of %s' "$(nimo_human_kb "$free")" "$(nimo_human_kb "$total")")" \
-            "$(nimo_bar "$used" "$total" 16)"
+        # "9.0 GB free of 9.7 GB" plus a bar is the widest thing doctor says.
+        # In a narrow window the second number goes: how much is left is the
+        # question, and how big the disk is was never the answer.
+        if [ "${NIMO_COLS:-80}" -lt 44 ]; then
+            nimo_fact "Disk" "$(nimo_human_kb "$free") free" \
+                "$(nimo_bar "$used" "$total" "$NIMO_BAR_WIDTH")"
+        else
+            nimo_fact "Disk" \
+                "$(printf '%s free of %s' "$(nimo_human_kb "$free")" "$(nimo_human_kb "$total")")" \
+                "$(nimo_bar "$used" "$total" "$NIMO_BAR_WIDTH")"
+        fi
     fi
 
     local mem battery
@@ -417,13 +425,13 @@ nimo_cmd_clear() {
 
         # a mark apiece, drawn from the box-drawing block every terminal has,
         # rather than an icon set fetched from somewhere with a licence
-        nimo_offer "$(printf '%s %-11s %-11s %s' ▤ Desktop     "$(nimo_plural "$n_desk" item)"  "$(nimo_bar "$n_desk" "$most" 12)")" desktop
-        nimo_offer "$(printf '%s %-11s %-11s %s' ▼ Downloads   "$(nimo_plural "$n_down" item)"  "$(nimo_bar "$n_down" "$most" 12)")" downloads
-        nimo_offer "$(printf '%s %-11s %-11s %s' ▣ Screenshots "$n_shots loose" "$(nimo_bar "$n_shots" "$most" 12)")" screenshots
+        nimo_offer "$(printf '%s %-11s %-11s %s' ▤ Desktop     "$(nimo_plural "$n_desk" item)"  "$(nimo_bar "$n_desk" "$most" "$NIMO_MENU_BAR_WIDTH")")" desktop
+        nimo_offer "$(printf '%s %-11s %-11s %s' ▼ Downloads   "$(nimo_plural "$n_down" item)"  "$(nimo_bar "$n_down" "$most" "$NIMO_MENU_BAR_WIDTH")")" downloads
+        nimo_offer "$(printf '%s %-11s %-11s %s' ▣ Screenshots "$n_shots loose" "$(nimo_bar "$n_shots" "$most" "$NIMO_MENU_BAR_WIDTH")")" screenshots
         if [ "$has_trash" = "1" ]; then
             local bin_label="Trash"
             [ "$(nimo_platform)" = "windows" ] && bin_label="Bin"
-            nimo_offer "$(printf '%s %-11s %-11s %s' ○ "$bin_label" "$(nimo_plural "$n_trash" item)"  "$(nimo_bar "$n_trash" "$most" 12)")" trash
+            nimo_offer "$(printf '%s %-11s %-11s %s' ○ "$bin_label" "$(nimo_plural "$n_trash" item)"  "$(nimo_bar "$n_trash" "$most" "$NIMO_MENU_BAR_WIDTH")")" trash
         fi
         case "$(nimo_platform)" in
             macos)

@@ -21,7 +21,7 @@
 #
 set -u
 
-NIMO_VERSION="0.40.0"
+NIMO_VERSION="0.41.0"
 
 # --- find our own directory, even when called through a symlink ---------
 nimo_root() {
@@ -264,6 +264,7 @@ case "$NIMO_LIMIT" in
 esac
 
 nimo_init_colors
+nimo_measure_width
 
 # What the prompt hands down to each command it launches. Without this, a
 # session started with --no-color or -y ran its children with neither, and a

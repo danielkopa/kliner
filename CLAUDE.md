@@ -264,6 +264,22 @@ exist, and `nimo_unnameable_count` counts the difference so the panel can say
 how many were left alone. Sorting fewer things than are in the folder and
 saying nothing is the failure mode worth avoiding.
 
+## It fits the window it is in
+
+`nimo_measure_width` runs once at startup and sets five numbers: the panel,
+the label column, the rule, and two bar widths. They move together, so a
+narrow window loses label room rather than alignment. Never hard-code a width
+in a `printf` again — 52 was a constant for thirty versions and it was wrong
+on every terminal that was not full width.
+
+Prose may wrap; tables may not. `nimo_room_for_note` decides on `NIMO_COLS` —
+the **window**, not the panel — because a 52-column panel still writes a
+68-column line once a note is on the end of it.
+
+Measuring this in a test needs python, not awk: a box-drawing character is
+three bytes, and awk under the wrong locale will tell you a 55-column rule is
+160 wide.
+
 ## Forks are the whole cost
 
 nimo is bash, so the only thing that ever makes it slow is starting processes.

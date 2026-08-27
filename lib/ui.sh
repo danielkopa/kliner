@@ -160,7 +160,56 @@ nimo_header() {
 # moment a bar or an accent shows up.
 
 NIMO_PAD="  "
+
+# How wide nimo draws.
+#
+# 52 was a constant, which is fine on a full-width terminal and wrong on every
+# other one — and half-width is exactly where this tool gets used, next to the
+# desktop it is tidying. A panel wider than the window wraps every rule and
+# every row, and a wrapped box reads as a broken one.
+#
+# Three numbers come out of it: the panel, the label column inside a row, and
+# the rule under the rows. They move together, so a narrow window loses label
+# room rather than alignment.
 NIMO_PANEL_WIDTH=52
+NIMO_LABEL_WIDTH=27
+NIMO_RULE_WIDTH=41
+NIMO_BAR_WIDTH=16
+NIMO_MENU_BAR_WIDTH=12
+NIMO_COLS=80
+
+# Not nimo_measure: lib/scan.sh already has one of those, it is sourced later,
+# and the second definition quietly wins. Two functions with the same name in
+# one program is a bug waiting for the day somebody calls the wrong one.
+nimo_measure_width() {
+    local cols="${COLUMNS:-}"
+    [ -n "$cols" ] || cols=$(tput cols 2>/dev/null) || cols=""
+    case "${cols:-}" in
+        ''|*[!0-9]*) cols=80 ;;
+    esac
+
+    NIMO_COLS="$cols"
+    NIMO_PANEL_WIDTH=$((cols - 6))
+    [ "$NIMO_PANEL_WIDTH" -gt 52 ] && NIMO_PANEL_WIDTH=52
+    [ "$NIMO_PANEL_WIDTH" -lt 26 ] && NIMO_PANEL_WIDTH=26
+
+    # the size column is 12 wide with two spaces either side; the label gets
+    # what is left, and never less than a name can live in
+    NIMO_LABEL_WIDTH=$((NIMO_PANEL_WIDTH - 25))
+    [ "$NIMO_LABEL_WIDTH" -lt 10 ] && NIMO_LABEL_WIDTH=10
+
+    NIMO_RULE_WIDTH=$((NIMO_PANEL_WIDTH - 11))
+    [ "$NIMO_RULE_WIDTH" -lt 12 ] && NIMO_RULE_WIDTH=12
+
+    # the bars go last, because they are the part a narrow window can lose
+    # without losing anything you needed to read
+    NIMO_BAR_WIDTH=$((NIMO_PANEL_WIDTH - 36))
+    [ "$NIMO_BAR_WIDTH" -gt 16 ] && NIMO_BAR_WIDTH=16
+    [ "$NIMO_BAR_WIDTH" -lt 6 ] && NIMO_BAR_WIDTH=6
+    NIMO_MENU_BAR_WIDTH=$((NIMO_PANEL_WIDTH - 40))
+    [ "$NIMO_MENU_BAR_WIDTH" -gt 12 ] && NIMO_MENU_BAR_WIDTH=12
+    [ "$NIMO_MENU_BAR_WIDTH" -lt 4 ] && NIMO_MENU_BAR_WIDTH=4
+}
 
 nimo_dashes() {
     awk -v n="${1:-0}" 'BEGIN { for (i = 0; i < n; i++) printf "─" }'
@@ -199,34 +248,53 @@ nimo_ok()    { printf '%s%s✓%s %s\n' "$NIMO_PAD" "$NIMO_C_GREEN" "$NIMO_C_RESE
 nimo_warn()  { printf '%s%s!%s %s\n' "$NIMO_PAD" "$NIMO_C_YELLOW" "$NIMO_C_RESET" "$1"; }
 nimo_err()   { printf '  %s✗%s %s\n' "$NIMO_C_RED" "$NIMO_C_RESET" "$1" >&2; }
 nimo_blank() { printf '\n'; }
-nimo_rule()  { printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "$(nimo_dashes 41)" "$NIMO_C_RESET"; }
+nimo_rule()  { printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "$(nimo_dashes "$NIMO_RULE_WIDTH")" "$NIMO_C_RESET"; }
+
+# Is there room for the note on the end of a row?
+#
+# A row is a label, a size and a note, and only the first two are the data.
+# In a narrow window the note is what goes: a wrapped note turns a column of
+# numbers into a paragraph, and the numbers were the point. Prose lines are
+# left to wrap — prose reads fine wrapped, a table does not.
+# The whole row is pad + label + size + note, so the question is how wide the
+# *window* is, not how wide the panel is: a 52-column panel still writes a
+# 68-column line once a note is on the end of it.
+nimo_room_for_note() { [ "$NIMO_COLS" -ge 72 ]; }
 
 # nimo_row <label> <size> [note]
 nimo_row() {
-    if [ -n "${3:-}" ]; then
-        printf '%s%-27s %12s  %s%s%s\n' "$NIMO_PAD" "$1" "$2" "$NIMO_C_DIM" "$3" "$NIMO_C_RESET"
+    if [ -n "${3:-}" ] && nimo_room_for_note; then
+        printf "%s%-${NIMO_LABEL_WIDTH}s %12s  %s%s%s\n" "$NIMO_PAD" "$1" "$2" "$NIMO_C_DIM" "$3" "$NIMO_C_RESET"
     else
-        printf '%s%-27s %12s\n' "$NIMO_PAD" "$1" "$2"
+        printf "%s%-${NIMO_LABEL_WIDTH}s %12s\n" "$NIMO_PAD" "$1" "$2"
     fi
 }
 
 # The same row, but the size colours itself by how big it is.
 nimo_row_kb() {
-    printf '%s%-27s %s%12s%s  %s%s%s\n' \
-        "$NIMO_PAD" "$1" \
-        "$(nimo_size_color "$2")" "$(nimo_human_kb "$2")" "$NIMO_C_RESET" \
-        "$NIMO_C_DIM" "${3:-}" "$NIMO_C_RESET"
+    local note="${3:-}"
+    nimo_room_for_note || note=""
+    if [ -n "$note" ]; then
+        printf "%s%-${NIMO_LABEL_WIDTH}s %s%12s%s  %s%s%s\n" \
+            "$NIMO_PAD" "$1" \
+            "$(nimo_size_color "$2")" "$(nimo_human_kb "$2")" "$NIMO_C_RESET" \
+            "$NIMO_C_DIM" "$note" "$NIMO_C_RESET"
+    else
+        printf "%s%-${NIMO_LABEL_WIDTH}s %s%12s%s\n" \
+            "$NIMO_PAD" "$1" \
+            "$(nimo_size_color "$2")" "$(nimo_human_kb "$2")" "$NIMO_C_RESET"
+    fi
 }
 
 nimo_total() {
-    printf '%s%s%-27s %12s%s\n' "$NIMO_PAD" "$NIMO_C_BOLD" "$1" "$2" "$NIMO_C_RESET"
+    printf "%s%s%-${NIMO_LABEL_WIDTH}s %12s%s\n" "$NIMO_PAD" "$NIMO_C_BOLD" "$1" "$2" "$NIMO_C_RESET"
 }
 
 # transient progress line (tty only)
 nimo_progress() {
     [ -t 1 ] || return 0
     [ "${NIMO_QUIET:-0}" = "1" ] && return 0
-    printf '\r  %s%-52s%s' "$NIMO_C_DIM" "$1" "$NIMO_C_RESET"
+    printf "\r  %s%-${NIMO_PANEL_WIDTH}s%s" "$NIMO_C_DIM" "$1" "$NIMO_C_RESET"
 }
 
 nimo_progress_done() {
@@ -254,7 +322,7 @@ nimo_meter() {
 
 # nimo_fact <label> <value> [extra]
 nimo_fact() {
-    if [ -n "${3:-}" ]; then
+    if [ -n "${3:-}" ] && nimo_room_for_note; then
         printf '%s%s%-12s%s %s  %s%s%s\n' "$NIMO_PAD" \
             "$NIMO_C_DIM" "$1" "$NIMO_C_RESET" "$2" "$NIMO_C_DIM" "$3" "$NIMO_C_RESET"
     else
