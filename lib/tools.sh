@@ -149,6 +149,19 @@ nimo_cmd_doctor() {
     fi
 
     nimo_blank
+    # the most useful thing doctor can say is what to do about it
+    local n_desk n_down suggestion=""
+    n_desk=$(nimo_count_children "$HOME/Desktop")
+    n_down=$(nimo_count_children "$HOME/Downloads")
+    if [ "${n_desk:-0}" -ge 20 ]; then
+        suggestion="min clear desktop"
+    elif [ "${n_down:-0}" -ge 50 ]; then
+        suggestion="min clear downloads"
+    elif [ "$safe_kb" -gt 2097152 ]; then
+        suggestion="min clean"
+    fi
+    [ -n "$suggestion" ] && nimo_fact "Next" "$suggestion"
+
     local where
     where=$(command -v min 2>/dev/null || true)
     if [ -n "$where" ]; then
@@ -204,14 +217,16 @@ nimo_cmd_update() {
 nimo_cmd_tidy() {
     nimo_logo
     nimo_blank
-    nimo_dim "four steps toward a minimal mac. each one asks before it does anything,"
-    nimo_dim "and each one can be undone."
+    nimo_dim "a few steps toward a minimal mac. each one asks before it does"
+    nimo_dim "anything, and each one can be undone."
     nimo_blank
 
     local was_quiet="${NIMO_QUIET:-0}"
     NIMO_QUIET=1
 
     nimo_cmd_desktop
+    nimo_cmd_downloads
+    nimo_cmd_screenshots
     nimo_cmd_dock
     nimo_cmd_wallpaper
     nimo_cmd_setup
@@ -222,6 +237,7 @@ nimo_cmd_tidy() {
     nimo_ok "That is a minimal mac."
     nimo_blank
     nimo_dim "undo the desktop     min desktop --undo"
+    nimo_dim "undo the downloads   min downloads --undo"
     nimo_dim "undo the dock        min dock --restore"
     nimo_dim "undo the wallpaper   min wallpaper --restore"
     nimo_blank
@@ -275,11 +291,22 @@ nimo_cmd_clear() {
         nimo_dim "nothing is deleted — everything here can be undone"
         nimo_blank
 
+        # counting is cheap here, and choosing is much easier when the menu
+        # already tells you where the mess actually is
+        nimo_progress "counting …"
+        local n_desk n_down n_shots n_trash
+        n_desk=$(nimo_count_sortable "$HOME/Desktop")
+        n_down=$(nimo_count_sortable "$HOME/Downloads")
+        n_shots=$(nimo_count_loose_screenshots)
+        n_trash=$(nimo_count_children "$(nimo_trash_dir)")
+        nimo_progress_done
+
         local labels choice
-        labels="$(printf '%-14s %s' Desktop     'file everything on it away')
-$(printf '%-14s %s' Downloads   'the same, for your downloads')
-$(printf '%-14s %s' Screenshots 'gather the loose ones into one folder')
-$(printf '%-14s %s' Dock        'keep only the apps you open')
+        labels="$(printf '%-14s %s' Desktop     "$(nimo_plural "$n_desk" item)")
+$(printf '%-14s %s' Downloads   "$(nimo_plural "$n_down" item)")
+$(printf '%-14s %s' Screenshots "$(nimo_plural "$n_shots" screenshot) loose")
+$(printf '%-14s %s' Dock        'the apps you never open')
+$(printf '%-14s %s' Trash       "$(nimo_plural "$n_trash" item)")
 $(printf '%-14s %s' Disk        'caches your apps rebuild by themselves')
 $(printf '%-14s %s' Everything  'all of it, one step at a time')"
 
@@ -297,8 +324,9 @@ $(printf '%-14s %s' Everything  'all of it, one step at a time')"
             2) target=downloads ;;
             3) target=screenshots ;;
             4) target=dock ;;
-            5) target=disk ;;
-            6) target=everything ;;
+            5) target=trash ;;
+            6) target=disk ;;
+            7) target=everything ;;
         esac
     fi
 
@@ -307,6 +335,7 @@ $(printf '%-14s %s' Everything  'all of it, one step at a time')"
         downloads|download)   nimo_cmd_downloads ;;
         screenshots|shots)    nimo_cmd_screenshots ;;
         dock|apps)            nimo_cmd_dock ;;
+        trash|bin)            nimo_cmd_empty ;;
         disk|cache|caches|junk|space) nimo_cmd_clean ;;
         everything|all)       nimo_cmd_tidy ;;
         *)
