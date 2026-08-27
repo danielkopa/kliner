@@ -631,6 +631,34 @@ check "loose screenshots, not looses"     "! list_at 80 | grep -q 'looses'"
 # wrong one — this found exactly that, between lib/ui.sh and lib/scan.sh
 check "no function is defined twice"      "[ -z \"\$(cat '$ROOT'/lib/*.sh | sed -n 's/^\(nimo_[a-z_]*\)() {.*/\1/p' | sort | uniq -d)\" ]"
 
+# ---- putting a whole session back -----------------------------------------
+#
+# `min tidy` is six commands, so putting it back was six commands, in the
+# right order, and knowing which. Newest first, because a later change can sit
+# on top of an earlier one — undo the earlier one first and the later one is
+# put straight back on top of it.
+
+ALLBOX="$BOX/undo-all"
+mkdir -p "$ALLBOX/Desktop" "$ALLBOX/Documents"
+touch "$ALLBOX/Desktop/one.txt" "$ALLBOX/Desktop/two.txt" "$ALLBOX/Desktop/three.txt"
+printf 'words in here\n' > "$ALLBOX/Documents/notes.txt"
+
+allmin() { HOME="$ALLBOX" bash "$MIN" "$@" -q --no-color </dev/null 2>&1; }
+allmin desktop -y >/dev/null 2>&1
+allmin blank "$ALLBOX/Documents/notes.txt" -y >/dev/null 2>&1
+
+check "two things happened"               "[ -d \"$ALLBOX/Desktop/Tidy\" ] && [ ! -s \"$ALLBOX/Documents/notes.txt\" ]"
+check "--all --dry-run lists them"        "[ \$(allmin undo --all -n | grep -c 'emptied a file\|cleared your desktop') = 2 ]"
+check "and a dry run puts nothing back"   "[ -d \"$ALLBOX/Desktop/Tidy\" ]"
+check "--all needs a yes off a terminal"  "allmin undo --all | grep -q 'not a terminal'"
+
+check "--all puts everything back"        "allmin undo --all -y | grep -q '2 things put back'"
+check "the desktop is as it was"          "[ -f \"$ALLBOX/Desktop/one.txt\" ] && [ -f \"$ALLBOX/Desktop/three.txt\" ]"
+check "and the file has its words again"  "grep -q 'words in here' \"$ALLBOX/Documents/notes.txt\""
+check "and there is nothing left to undo" "allmin undo --list | grep -q 'not changed anything'"
+check "the record of it is kept, not lost" "ls \"$ALLBOX/.nimo/undo/done\"/*.tsv >/dev/null 2>&1"
+rm -rf "$ALLBOX"
+
 # ---- min top steps into things --------------------------------------------
 #
 # "Where did my disk go" is a question about a tree, and a flat list of your

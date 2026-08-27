@@ -87,7 +87,7 @@ nimo_repl_list() {
     nimo_blank
 
     nimo_repl_head "and back again"
-    nimo_repl_row ↺ /undo        "anything nimo has done, one line at a time"
+    nimo_repl_row ↺ /undo        "anything nimo has done — /undo --all for the lot"
     if [ "$NIMO_AUTO" = "1" ]; then
         nimo_repl_row ● /auto    "on — /auto off puts the questions back"
     else

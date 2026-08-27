@@ -179,6 +179,11 @@ Machine readable output for \fBclean\fR and \fBpreview\fR. Sizes in bytes.
 .B \-\-list
 List what a command would offer, without asking anything.
 .TP
+.B \-\-all
+With \fBmin undo\fR: reverse everything nimo has done, newest first. A later
+change can sit on top of an earlier one, which is why the order is not the
+other way round. \fB\-\-dry\-run\fR lists what it would put back.
+.TP
 .B \-\-menu
 Pick from a list with the arrow keys. Where the arrows cannot work \- a pipe,
 a script, \fBTERM=dumb\fR \- the same list is numbered and typed instead.

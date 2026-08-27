@@ -404,6 +404,7 @@ anything.
 | `--menu` | pick from a list with the arrow keys |
 | `--fast` | with `min dock`: no wait, and a quicker slide |
 | `--list` | list what a command offers, without asking anything |
+| `--all` | with `min undo`: reverse everything, newest first |
 | `--only a,b` | limit to certain items or setup groups |
 | `--days N` | what counts as an old download (default 30) |
 | `--limit N` | how many rows `min top` shows (default 15) |

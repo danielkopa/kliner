@@ -20,6 +20,18 @@ nimo_file_lines() {
     esac
 }
 
+# A log that has been replayed is not a thing nimo can still put back, and
+# offering it again is offering to undo something twice. It is moved aside
+# rather than deleted — nimo does not delete — so the record of what happened
+# is still there in ~/.nimo/undo/done.
+nimo_undo_spend() {
+    local log="$1" dest
+    [ -f "$log" ] || return 0
+    mkdir -p "$NIMO_UNDO_DIR/done" 2>/dev/null || return 0
+    dest=$(nimo_free_name "$NIMO_UNDO_DIR/done" "$(basename "$log")")
+    mv "$log" "$dest" 2>/dev/null || true
+}
+
 # 20260826-162929 -> 26 Aug 16:29
 nimo_undo_when() {
     printf '%s' "$1" | sed -n 's/^\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)-\([0-9]\{2\}\)\([0-9]\{2\}\).*/\3.\2.\1 \4:\5/p'
@@ -90,6 +102,70 @@ EOF
         return 0
     fi
 
+    # Everything, in one go.
+    #
+    # `min tidy` is six commands, so putting it back was six commands, in the
+    # right order, and knowing which. Newest first, because a later change can
+    # sit on top of an earlier one and undoing the earlier one first would put
+    # the later one back on top of it.
+    if [ "${NIMO_ALL:-0}" = "1" ]; then
+        nimo_dim "$(nimo_plural "$count" thing) to put back, newest first"
+        nimo_panel_close
+        nimo_blank
+
+        if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
+            local i=1
+            while IFS= read -r label; do
+                [ -n "$label" ] || continue
+                printf '%s%s%2d%s  %s\n' "$NIMO_PAD" "$NIMO_C_DIM" "$i" "$NIMO_C_RESET" "$label"
+                i=$((i + 1))
+            done <<EOF
+$labels
+EOF
+            nimo_blank
+            nimo_dim "preview only — nothing was put back"
+            nimo_blank
+            return 0
+        fi
+
+        if ! nimo_confirm "Reverse $(nimo_plural "$count" thing)?"; then
+            nimo_blank
+            nimo_dim "nothing was changed"
+            nimo_blank
+            return 0
+        fi
+
+        local done_n=0 action kind file
+        NIMO_UNDO_QUIET=1
+        while IFS= read -r action; do
+            [ -n "$action" ] || continue
+            kind="${action%%	*}"
+            file="${action#*	}"
+            [ -n "$kind" ] && [ -n "$file" ] || continue
+            case "$kind" in
+                desktop)   nimo_sort_undo any "$file" >/dev/null 2>&1 ;;
+                dock)      nimo_dock_restore "$file" >/dev/null 2>&1 ;;
+                setup)     nimo_setup_restore "$file" >/dev/null 2>&1 ;;
+                blank)     nimo_blank_undo "$file" >/dev/null 2>&1 ;;
+                startup)   nimo_startup_undo "$file" >/dev/null 2>&1 ;;
+                wallpaper) nimo_wall_restore >/dev/null 2>&1 ;;
+            esac
+            [ "$kind" = "wallpaper" ] || nimo_undo_spend "$file"
+            done_n=$((done_n + 1))
+        done <<EOF
+$actions
+EOF
+        NIMO_UNDO_QUIET=0
+        # a nested panel put NIMO_PAD back to the outer two spaces
+        NIMO_PAD="  "
+
+        nimo_blank
+        nimo_ok "$(nimo_plural "$done_n" thing) put back"
+        nimo_dim "your computer is where it was before nimo started"
+        nimo_blank
+        return 0
+    fi
+
     if [ "${NIMO_LIST:-0}" = "1" ] || [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
         local i=1 label
         while IFS= read -r label; do
@@ -142,5 +218,6 @@ EOF
         wallpaper) nimo_wall_restore ;;
     esac
     NIMO_UNDO_QUIET=0
+    [ "$kind" = "wallpaper" ] || nimo_undo_spend "$file"
     return 0
 }
