@@ -477,6 +477,13 @@ check "the version agrees with itself"    "[ \"\$(tr -d ' \n' < '$ROOT/VERSION')
 check "the changelog knows this version"  "grep -q \"^## \$(tr -d ' \n' < '$ROOT/VERSION')\" '$ROOT/CHANGELOG.md'"
 check "the formula points at this tag"    "grep -q \"v\$(tr -d ' \n' < '$ROOT/VERSION')\.tar\.gz\" '$ROOT/Formula/nimo.rb'"
 
+# ---- what starts when you sign in ---------------------------------------
+
+check "startup says where it works"       "min startup --no-color 2>&1 | grep -q 'macOS and Windows'"
+check "and changes nothing on linux"      "min startup -y --no-color >/dev/null 2>&1; [ ! -d \"$BOX/.nimo/backups/startup\" ]"
+check "it never uninstalls anything"      "! grep -q 'msiexec\|rm -rf\|Uninstall-Package' '$ROOT/lib/startup.sh'"
+check "and never touches HKLM"            "! grep -q 'reg_erase .*RUN_MACHINE\|reg_write .*RUN_MACHINE' '$ROOT/lib/startup.sh'"
+
 # ---- the way in ---------------------------------------------------------
 
 check "bare min prints help off a tty"    "min --no-color | grep -q 'Commands'"
@@ -558,6 +565,7 @@ slash_in() { printf '/\n/quit\n' | NIMO_REPL_FORCE=1 NIMO_NO_CLEAR=1 HOME="$1" b
 check "it counts your desktop for you"    "touch \"$EMPTY/Desktop/a.txt\" \"$EMPTY/Desktop/b.txt\"; slash_in \"$EMPTY\" | grep -q '2 items on your desktop'"
 check "and says so when it is clear"      "rm -f \"$EMPTY/Desktop/a.txt\" \"$EMPTY/Desktop/b.txt\"; slash_in \"$EMPTY\" | grep -q 'already clear'"
 check "no zero-loose-screenshots line"    "! slash | grep -q '0 loose'"
+check "the list offers /startup"           "slash | grep -q '/startup'"
 check "every group has rows under it"     "[ \$(slash | grep -c '^ *[▤▼▽▣◐◑◇■▸◍◆⧉▢↺○●] /') -ge 12 ]"
 
 check "the prompt shows it is on"         "printf '/quit\\n' | NIMO_AUTO=1 NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -q --no-color 2>&1 | grep -q 'nimo auto'"

@@ -232,6 +232,27 @@ is full of backslashes, so `grep` reads `\S` and `\W` as patterns of its own —
 and awk's `-v k="HKCU\S…"` expands the escapes on the way in, so the value has
 to arrive through `ENVIRON`.
 
+## What starts when you sign in
+
+`lib/startup.sh` is one command over four sources: the HKCU `Run` key and the
+Startup folder on Windows, login items and `~/Library/LaunchAgents` on macOS.
+Both lists are **named** — the ones nimo can turn off, and the ones it will
+only report, with the reason beside each. A count of things you cannot see is
+not a report.
+
+Nothing is uninstalled and nothing is deleted. A registry value is written
+down and removed; a shortcut is moved into `~/.nimo/backups/startup/`; a login
+item is deleted through System Events and its path kept. HKLM is listed and
+never written — that needs an administrator, and nimo does not ask for one.
+
+One undo covers both halves: the startup log names the preferences log it
+opened, on a `prefs` line, so `min startup --undo` replays the registry values
+and the moved files together. Without that the user has to know to run two
+commands, in order.
+
+`nimo_setup_restore` opens a panel of its own, and closing a panel resets
+`NIMO_PAD` — so a nested call has to save and restore it. Panels do not nest.
+
 ## Two platforms, one menu
 
 Nothing is offered that this computer cannot do. `min clear` builds its rows

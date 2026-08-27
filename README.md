@@ -379,6 +379,7 @@ anything.
 | `min blank FILE` | empty a file, keeping what was in it — `min undo` puts it back |
 | `min dock --fast` | no wait before the dock slides, and a quick slide |
 | `min dock` | pick what stays — `--restore` puts it back |
+| `min startup` | what launches when you sign in, and stop the ones you tick |
 | `min wallpaper` | pick one macOS already has — `--restore` puts it back |
 | `min undo` | everything nimo has done, and a way back |
 | `min clean` | free up the caches, after asking |
@@ -593,7 +594,7 @@ What runs where, exactly:
 | --- | --- | --- | --- |
 | `desktop` `downloads` `screenshots` `blank` `undo` | yes | yes | yes |
 | `clean` `preview` `top` `doctor` `duplicates` `empty` | yes | yes | yes |
-| `wallpaper` `dark` `light` `zen` `setup` `hide` `apps` | yes | yes | — |
+| `wallpaper` `dark` `light` `zen` `setup` `hide` `apps` `startup` | yes | yes | — |
 | `dock` | yes | — | — |
 
 On Windows everything nimo changes is HKCU: the signed-in user's own settings,
@@ -614,6 +615,15 @@ separately before doing it, and nothing is lost by it: no files, no desktop
 icon positions, no window with unsaved work. Signing out does the same thing.
 Nothing else in nimo restarts Explorer — the rest use the documented refresh
 and say so if a sign-out is still needed.
+
+`min startup` reads four places: the `Run` key and the Startup folder on
+Windows, login items and `~/Library/LaunchAgents` on macOS. It names all of
+them — the ones it can turn off and the ones it will only report, with the
+reason beside each. Nothing is uninstalled and nothing is deleted: a registry
+value is written down and removed, a shortcut is moved aside, a login item is
+deleted through System Events and its path kept. A program you stop still
+starts when you open it yourself. Anything set for everyone on the machine
+needs an administrator, so nimo lists it and leaves it alone.
 
 `min apps` is read-only on both. On Windows it lists what has been installed
 longest, because Windows records no equivalent of "last opened" — and it says

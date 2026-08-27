@@ -192,11 +192,38 @@ SHIM
 cat > "$FAKE/osascript" <<SHIM
 #!/bin/sh
 SCRIPTED="$SCRIPTED"
+LOGIN="$STATE/login-items"
 NIMO_FAKE_CURRENT_WALL="$BOX/pics/Sonoma Horizon.heic"
 SHIM
 cat >> "$FAKE/osascript" <<'SHIM'
 shift 2>/dev/null || true
 printf '%s\n' "$*" >> "$SCRIPTED"
+
+# The login items, kept one per line as  name<TAB>path , and answered the way
+# AppleScript answers a list: "a, b, c" on one line.
+case "$*" in
+    *"name of every login item"*)
+        [ -s "$LOGIN" ] || exit 0
+        cut -f1 "$LOGIN" | paste -sd, - | sed 's/,/, /g'
+        exit 0 ;;
+    *"path of every login item"*)
+        [ -s "$LOGIN" ] || exit 0
+        cut -f2 "$LOGIN" | paste -sd, - | sed 's/,/, /g'
+        exit 0 ;;
+    *"delete login item"*)
+        want=$(printf '%s' "$*" | sed -n 's/.*delete login item "\([^"]*\)".*/\1/p')
+        [ -n "$want" ] || exit 1
+        w="$want" awk -F'\t' '$1 != ENVIRON["w"]' "$LOGIN" > "$LOGIN.new"
+        mv "$LOGIN.new" "$LOGIN"
+        exit 0 ;;
+    *"make login item"*)
+        p=$(printf '%s' "$*" | sed -n 's/.*path:"\([^"]*\)".*/\1/p')
+        [ -n "$p" ] || exit 1
+        n=$(basename "$p"); n="${n%.app}"
+        printf '%s\t%s\n' "$n" "$p" >> "$LOGIN"
+        exit 0 ;;
+esac
+
 case "$*" in
     *"get desktop picture"*)
         [ "${NIMO_OSA_FAIL:-0}" = "1" ] && exit 1
@@ -543,6 +570,33 @@ check "tidy calls it a mac"               "PATH=\"$FAKE:\$PATH\" HOME=\"$BOX\" b
 check "the mac list offers the dock"      "mslash | grep -q '/fastdock'"
 check "and the menu bar and the apps"     "mslash | grep -q '/hide' && mslash | grep -q '/apps'"
 check "and the finder setup, not windows" "mslash | grep -q 'finder, dock and keyboard'"
+
+# ---- what starts when you sign in ----------------------------------------
+#
+# System Events knows the login items; the LaunchAgents in your own Library
+# are files, and nimo only reports those. Nothing here is uninstalled: a
+# program you stop still starts when you open it yourself.
+
+printf 'Dropbox\t/Applications/Dropbox.app\nSpotify\t/Applications/Spotify.app\n' > "$STATE/login-items"
+mkdir -p "$BOX/Library/LaunchAgents"
+: > "$BOX/Library/LaunchAgents/com.example.updater.plist"
+
+check "it reads your login items"         "mac startup --list -q --no-color | grep -q 'Dropbox'"
+check "and the agents in your Library"    "mac startup --list -q --no-color | grep -q 'com.example.updater'"
+check "an agent is reported, not touched" "mac startup --list -q --no-color | grep -q 'background agent'"
+check "and it says why it is left alone" "mac startup --list -q --no-color | grep -q 'only reports these'"
+check "it counts all of them"             "mac startup --list -q --no-color | grep -q '3 things'"
+check "it promises to delete nothing"     "mac startup --list -q --no-color | grep -q 'uninstalled or deleted'"
+check "a list changes nothing"            "grep -q Dropbox '$STATE/login-items'"
+
+mstop() { printf '%s\n' "$1" | PATH="$FAKE:$PATH" HOME="$BOX" bash "$MIN" startup -y -q --no-color 2>&1; }
+
+check "stopping one removes it"           "mstop '1' >/dev/null 2>&1; ! grep -q Dropbox '$STATE/login-items'"
+check "and leaves the other alone"        "grep -q Spotify '$STATE/login-items'"
+check "the agent file is still there"     "[ -f '$BOX/Library/LaunchAgents/com.example.updater.plist' ]"
+check "--undo makes the login item again" "mac startup --undo -q --no-color >/dev/null 2>&1; grep -q Dropbox '$STATE/login-items'"
+check "with the path it had before"       "grep -q '/Applications/Dropbox.app' '$STATE/login-items'"
+check "and it shows up in min undo"       "mac undo --list -q --no-color | grep -q 'stopped things starting'"
 
 # ---- all of it at once ---------------------------------------------------
 

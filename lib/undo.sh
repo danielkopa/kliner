@@ -44,6 +44,7 @@ nimo_cmd_undo() {
             downloads-*)   kind=desktop; label="sorted your downloads" ;;
             screenshots-*) kind=desktop; label="gathered screenshots" ;;
             blank-*)       kind=blank;   label="emptied a file" ;;
+            startup-*)     kind=startup; label="stopped things starting" ;;
             dock-*)        kind=dock;    label="rebuilt your dock" ;;
             setup-*)       kind=setup;   label="changed preferences" ;;
             wallpaper.txt) kind=wallpaper; label="changed your wallpaper" ;;
@@ -54,7 +55,7 @@ nimo_cmd_undo() {
         # empty file behind, and offering that as something to reverse is
         # offering to put nothing back.
         case "$kind" in
-            desktop|setup|blank)
+            desktop|setup|blank|startup)
                 [ "$(nimo_file_lines "$f")" -gt 0 ] || continue ;;
         esac
 
@@ -65,6 +66,7 @@ nimo_cmd_undo() {
             desktop) lines="$(nimo_plural "$(nimo_file_lines "$f")" file)" ;;
             setup)   lines="$(nimo_plural "$(nimo_file_lines "$f")" setting)" ;;
             blank)   lines="$(basename "$(cut -f1 "$f" 2>/dev/null | head -1)")" ;;
+            startup) lines="$(nimo_plural "$(($(nimo_file_lines "$f") - 1))" thing)" ;;
             wallpaper) lines="back to $(nimo_wall_pretty "$(cat "$f" 2>/dev/null)")"; when="" ;;
             *)       lines="" ;;
         esac
@@ -136,6 +138,7 @@ EOF
         dock)      nimo_dock_restore "$file" ;;
         setup)     nimo_setup_restore "$file" ;;
         blank)     nimo_blank_undo "$file" ;;
+        startup)   nimo_startup_undo "$file" ;;
         wallpaper) nimo_wall_restore ;;
     esac
     NIMO_UNDO_QUIET=0

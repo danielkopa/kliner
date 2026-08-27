@@ -83,6 +83,19 @@ done
 
 case "$verb" in
     query)
+        # `reg query KEY` with no /v lists every value under the key, which is
+        # how nimo reads the Run key without knowing the names in advance.
+        if [ -z "$name" ]; then
+            k="$key" awk -F'	' '$1 == ENVIRON["k"]' "$REG" > "$REG.hit"
+            [ -s "$REG.hit" ] || exit 1
+            echo
+            echo "$key"
+            while IFS=$(printf '\t') read -r _k n t d; do
+                printf '    %s    %s    %s\n' "$n" "$t" "$d"
+            done < "$REG.hit"
+            echo
+            exit 0
+        fi
         # awk on exact fields, not grep: a registry key is full of backslashes,
         # and grep reads \S and \W as patterns of its own. Through ENVIRON,
         # not -v, because an awk assignment expands escapes too — -v k="HKCU\S…"
@@ -243,6 +256,30 @@ check "it finds the npm cache there"      "win preview -q --no-color | grep -q '
 check "it adds them up"                   "win preview -q --no-color | grep -q '7.0 MB'"
 check "it does not look for ~/Library"    "! win preview -q --no-color | grep -q 'Xcode'"
 
+# The caches people on Windows actually have. Every one of these is a folder
+# its own tool refills on demand — none of them is a setting, a login, or
+# anything anybody typed.
+mkdir -p "$BOX/AppData/Local/Google/Chrome/User Data/Default/Code Cache" \
+         "$BOX/AppData/Roaming/Code/CachedData" \
+         "$BOX/.gradle/caches" \
+         "$BOX/AppData/Local/Microsoft/Windows/Explorer"
+dd if=/dev/zero of="$BOX/AppData/Local/Google/Chrome/User Data/Default/Code Cache/blob" bs=1024 count=1024 2>/dev/null
+dd if=/dev/zero of="$BOX/AppData/Roaming/Code/CachedData/blob" bs=1024 count=2048 2>/dev/null
+dd if=/dev/zero of="$BOX/.gradle/caches/blob" bs=1024 count=4096 2>/dev/null
+dd if=/dev/zero of="$BOX/AppData/Local/Microsoft/Windows/Explorer/thumbcache_256.db" bs=1024 count=512 2>/dev/null
+
+check "chrome's code cache counts"        "win preview -q --no-color | grep -q 'Browser caches'"
+check "so does the editor's"              "win preview -q --no-color | grep -q 'App caches'"
+check "and gradle's"                      "win preview -q --no-color | grep -q 'Build caches'"
+check "and the thumbnails"                "win preview -q --no-color | grep -q 'Thumbnail cache'"
+
+# These look exactly like junk and are not: Windows keeps them so Repair and
+# Uninstall still work. A list of what nimo deliberately leaves alone is worth
+# a test, because the next person to widen the list will read it.
+check "the package cache is left alone"   "! grep -q '\"\$HOME/AppData/Local/Package Cache\"' '$ROOT/lib/scan.sh'"
+check "so is the visual studio one"       "! grep -q 'VisualStudio/Packages\"' '$ROOT/lib/scan.sh'"
+check "and the reason is written down"    "grep -q 'Repair and' '$ROOT/lib/scan.sh'"
+
 # ---- what windows simply does not have -----------------------------------
 
 check "the dock is not a windows thing"   "win dock -q --no-color | grep -q 'macOS'"
@@ -319,6 +356,45 @@ replay() {
         nimo_setup_restore "$1"' _ "$1" >/dev/null 2>&1
 }
 check "a value nimo invented is unset"    "replay \"\$FIRST\"; ! reg_has 'AppsUseLightTheme'"
+
+# ---- what starts when you sign in ---------------------------------------
+#
+# Two registry keys and a folder. HKCU is yours; HKLM belongs to the machine
+# and needs an administrator, so nimo lists it and never touches it. Nothing
+# here is uninstalled and nothing is deleted: a program you stop still starts
+# when you open it yourself.
+
+RUN='HKCU\Software\Microsoft\Windows\CurrentVersion\Run'
+STARTUP_DIR="$BOX/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup"
+mkdir -p "$STARTUP_DIR"
+printf '%s\tOneDrive\tREG_SZ\tC:\\OneDrive.exe /background\n' "$RUN" >> "$REG"
+printf '%s\tSpotify\tREG_SZ\tC:\\Spotify.exe\n' "$RUN" >> "$REG"
+printf 'HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\tSecurityHealth\tREG_EXPAND_SZ\tsystray.exe\n' >> "$REG"
+: > "$STARTUP_DIR/Some Updater.lnk"
+
+check "it reads the Run key"              "win startup --list -q --no-color | grep -q 'OneDrive'"
+check "and the startup folder"            "win startup --list -q --no-color | grep -q 'Some Updater'"
+check "and counts all of it"              "win startup --list -q --no-color | grep -q '4 things'"
+check "the machine-wide one is named too"  "win startup --list -q --no-color | grep -q 'SecurityHealth'"
+check "with the reason beside it"         "win startup --list -q --no-color | grep -q 'needs an administrator'"
+check "and it is not one you can tick"    "win startup --list -q --no-color | grep -q 'only reports these'"
+check "it promises to delete nothing"     "win startup --list -q --no-color | grep -q 'uninstalled or deleted'"
+check "a list changes nothing"            "reg_has 'OneDrive' && [ -f \"$STARTUP_DIR/Some Updater.lnk\" ]"
+
+stop_them() { printf '%s\n' "$1" | PATH="$FAKE:$PATH" HOME="$BOX" bash "$MIN" startup -y -q --no-color 2>&1; }
+
+check "stopping one clears the value"     "stop_them '1' >/dev/null 2>&1; ! reg_has 'OneDrive'"
+check "and leaves the others alone"       "reg_has 'Spotify'"
+check "it wrote the old value down"       "grep -q 'OneDrive' \$(ls '$BOX/.nimo/backups'/setup-*.tsv | tail -1)"
+check "--undo puts it straight back"      "win startup --undo -q --no-color >/dev/null 2>&1; reg_has 'OneDrive'"
+
+check "stopping a shortcut moves it"      "stop_them '3' >/dev/null 2>&1; [ ! -f \"$STARTUP_DIR/Some Updater.lnk\" ]"
+check "it is moved, not deleted"          "ls '$BOX/.nimo/backups/startup'/*.lnk >/dev/null 2>&1"
+check "and --undo moves it back"          "win startup --undo -q --no-color >/dev/null 2>&1; [ -f \"$STARTUP_DIR/Some Updater.lnk\" ]"
+
+check "one undo covers both kinds"        "stop_them '1 3' >/dev/null 2>&1; win startup --undo -q --no-color >/dev/null 2>&1; reg_has 'OneDrive' && [ -f \"$STARTUP_DIR/Some Updater.lnk\" ]"
+check "and it shows up in min undo"       "win undo --list -q --no-color | grep -q 'stopped things starting'"
+check "the machine key is never written"  "! grep -q 'HKLM' \$(ls '$BOX/.nimo/backups'/setup-*.tsv | tail -1)"
 
 # ---- what is installed --------------------------------------------------
 #

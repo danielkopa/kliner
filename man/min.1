@@ -69,6 +69,14 @@ by it.
 .B min duplicates
 Report files kept in more than one place. Never deletes anything.
 .TP
+.B min startup
+List everything that launches when you sign in \- the registry's Run key and
+the Startup folder on Windows, the login items on macOS \- and stop the ones
+you tick. Nothing is uninstalled and nothing is deleted: a program you stop
+still starts when you open it yourself. Entries set for everyone on the
+machine need an administrator, so nimo lists those and leaves them alone.
+\fB\-\-undo\fR puts back what it moved.
+.TP
 .B min apps
 List apps not opened in six months, biggest first. On Windows there is no
 record of when a program was last opened, so it lists what has been installed

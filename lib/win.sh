@@ -287,3 +287,23 @@ nimo_win_battery() {
     esac
     printf '%s%%  ·  %s' "$pct" "$state"
 }
+
+# ---- what starts when you sign in ----------------------------------------
+#
+# Two registry keys and a folder. HKCU is yours; HKLM belongs to the machine
+# and needs an administrator, so nimo lists it and never touches it.
+NIMO_WIN_RUN='HKCU\Software\Microsoft\Windows\CurrentVersion\Run'
+NIMO_WIN_RUN_MACHINE='HKLM\Software\Microsoft\Windows\CurrentVersion\Run'
+
+# `reg query KEY` without /v lists every value under it:
+#     Name    REG_SZ    "C:\...\thing.exe"
+# One line out per value: name <TAB> command
+nimo_win_run_values() {
+    nimo_reg query "$1" 2>/dev/null \
+        | sed -n 's/^[[:space:]]\{4,\}\([^[:space:]].*\)$/\1/p' \
+        | awk -F'    +' 'NF >= 3 { name = $1; cmd = $3; for (i = 4; i <= NF; i++) cmd = cmd "    " $i; print name "\t" cmd }'
+}
+
+nimo_win_startup_folder() {
+    printf '%s' "$HOME/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup"
+}

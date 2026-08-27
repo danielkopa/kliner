@@ -14,12 +14,13 @@
 #   min top         the biggest folders in your home
 #   min doctor      how your computer is doing
 #   min setup       a small, sane setup for macOS or Windows
+#   min startup     what launches when you sign in
 #   min update      pull the newest nimo
 #   min help        this
 #
 set -u
 
-NIMO_VERSION="0.29.0"
+NIMO_VERSION="0.30.0"
 
 # --- find our own directory, even when called through a symlink ---------
 nimo_root() {
@@ -39,7 +40,7 @@ NIMO_ROOT=$(nimo_root)
 NIMO_LIB="$NIMO_ROOT/lib"
 NIMO_SELF="$NIMO_ROOT/min"
 
-for _nimo_mod in ui core win pick repl scan clean setup desktop dock wall look dupes apps blank undo tools; do
+for _nimo_mod in ui core win pick repl scan clean setup desktop dock wall look dupes apps blank startup undo tools; do
     if [ ! -r "$NIMO_LIB/$_nimo_mod.sh" ]; then
         echo "nimo: cannot find $NIMO_LIB/$_nimo_mod.sh" >&2
         echo "nimo: is the whole repository still in one piece?" >&2
@@ -91,6 +92,7 @@ nimo_usage() {
     min hide            let the menu bar — or the taskbar — slide away
     min duplicates      the same file, kept more than once
     min apps            what you installed once and never opened again
+    min startup         what launches when you sign in, and what stops
     min empty           take the trash out, or the recycle bin
     min blank FILE      empty a file, keeping what was in it
     min dock --fast     a dock that slides the moment you reach for it
@@ -158,7 +160,7 @@ nimo_read_config
 # --- argument parsing ----------------------------------------------------
 while [ $# -gt 0 ]; do
     case "$1" in
-        clear|clean|preview|setup|top|doctor|update|tidy|desktop|downloads|screenshots|zen|dark|light|hide|duplicates|apps|empty|blank|dock|wallpaper|undo|menu|help|version)
+        clear|clean|preview|setup|top|doctor|update|tidy|desktop|downloads|screenshots|zen|dark|light|hide|duplicates|apps|startup|empty|blank|dock|wallpaper|undo|menu|help|version)
             if [ -z "$NIMO_COMMAND" ]; then
                 NIMO_COMMAND="$1"
             elif [ -z "$NIMO_TARGET" ]; then
@@ -292,6 +294,7 @@ nimo_dispatch() {
         hide)      nimo_cmd_hide ;;
         duplicates) nimo_cmd_duplicates ;;
         apps)      nimo_cmd_apps ;;
+        startup)   nimo_cmd_startup ;;
         empty)     nimo_cmd_empty ;;
         blank)     nimo_cmd_blank ;;
         dock)      nimo_cmd_dock ;;
