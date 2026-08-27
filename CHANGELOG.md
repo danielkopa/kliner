@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.31.0
+
+`min dock` on Windows: the row of apps pinned to your taskbar.
+
+- A pin is two things at once — a shortcut in a folder, and a blob under
+  `Taskband` that Explorer keeps in step with it. Removing one without the
+  other leaves a pin that comes back, or a gap that does not fill. nimo moves
+  the shortcut aside, writes the blob down and clears it together, and lets
+  Explorer rebuild the blob from the folder
+- **Unpinning does not uninstall anything.** The app stays exactly where it
+  is, and `min dock --restore` puts the shortcut and the blob back at once
+- `min clear` offers the Taskbar, `min tidy` runs it, and no step on Windows
+  apologises for itself any more — every one of them does something
+
 ## 0.30.0
 
 ### min startup — what launches when you sign in
