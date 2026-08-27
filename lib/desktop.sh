@@ -7,6 +7,56 @@
 
 NIMO_TIDY_DIR_NAME="Tidy"
 
+# Which folder should this end up in?
+#
+#   kind    Images, Documents, Screenshots …  (what it is)
+#   letter  A, B, C … and # for the rest      (what it is called)
+#   date    2026-08, 2026-07 …                (when it was last touched)
+#
+# One sorter, three ways of deciding — because "by what it is" is the right
+# answer for a desktop and the wrong one for four hundred invoices.
+nimo_bucket_of() {
+    local path="$1" first stamp
+
+    case "${NIMO_BY:-kind}" in
+        letter)
+            first=$(basename "$path" | cut -c1 | tr '[:lower:]' '[:upper:]')
+            case "$first" in
+                [A-Z]) printf '%s' "$first" ;;
+                *)     printf '#' ;;
+            esac
+            return 0 ;;
+        date)
+            stamp=$(date -r "$path" +%Y-%m 2>/dev/null) || stamp=""
+            [ -n "$stamp" ] || stamp="undated"
+            printf '%s' "$stamp"
+            return 0 ;;
+        *)
+            nimo_kind_of "$path"
+            return 0 ;;
+    esac
+}
+
+# Which buckets exist, in the order they should be listed?
+nimo_buckets_for() {
+    local items="$1" seen bucket
+    case "${NIMO_BY:-kind}" in
+        kind)
+            printf '%s\n' Screenshots Images Documents Video Audio Archives Code Apps Folders Other
+            return 0 ;;
+    esac
+    # letters and dates are whatever turned up, in order
+    seen=""
+    while IFS= read -r bucket; do
+        [ -n "$bucket" ] || continue
+        seen="$seen$(nimo_bucket_of "$bucket")
+"
+    done <<EOF
+$items
+EOF
+    printf '%s' "$seen" | sort -u
+}
+
 # What kind of thing is this? -> Images | Screenshots | Documents | ...
 nimo_kind_of() {
     local path="$1" name ext lower
@@ -189,13 +239,13 @@ nimo_sort_folder() {
         return 0
     fi
 
-    local kinds="Screenshots Images Documents Video Audio Archives Code Apps Folders Other"
     local kind n item total=0
-    for kind in $kinds; do
+    while IFS= read -r kind; do
+        [ -n "$kind" ] || continue
         n=0
         while IFS= read -r item; do
             [ -n "$item" ] || continue
-            [ "$(nimo_kind_of "$item")" = "$kind" ] && n=$((n + 1))
+            [ "$(nimo_bucket_of "$item")" = "$kind" ] && n=$((n + 1))
         done <<EOF
 $items
 EOF
@@ -203,7 +253,9 @@ EOF
             nimo_row "$kind" "$(nimo_plural "$n" item)" ""
             total=$((total + n))
         fi
-    done
+    done <<EOF
+$(nimo_buckets_for "$items")
+EOF
 
     nimo_blank
     nimo_rule
@@ -211,7 +263,7 @@ EOF
     nimo_panel_close
 
     nimo_blank
-    nimo_dim "everything moves into  ${root#$HOME/}/<kind>/"
+    nimo_dim "everything moves into  ${root#$HOME/}/<${NIMO_BY:-kind}>/"
     nimo_dim "nothing is deleted, nothing is renamed, and  min $tag --undo  puts it all back"
     nimo_blank
 
@@ -238,7 +290,7 @@ EOF
         [ -n "$item" ] || continue
         done_so_far=$((done_so_far + 1))
         [ "$total" -gt 40 ] && nimo_progress "moving $done_so_far of $total …"
-        kind=$(nimo_kind_of "$item")
+        kind=$(nimo_bucket_of "$item")
         dest="$root/$kind"
         mkdir -p "$dest" 2>/dev/null
         target=$(nimo_free_name "$dest" "$(basename "$item")")
