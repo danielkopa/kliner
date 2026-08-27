@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.40.0
+
+Catching the documentation up with the tool, and making one bit of it a check
+rather than a good intention.
+
+- **The website is eighteen versions less wrong.** It knows about
+  `min startup`, `min next` and `min prev`, that `min empty` asks Windows to
+  empty the Recycle Bin rather than reaching into it, that `min setup` has two
+  groups there and five on a Mac, and that the wallpapers come from whatever
+  system you are on. The version on it is now a test: a page naming a version
+  it has never seen is worse than a page with no version at all
+- The README's test section no longer quotes counts from twenty versions ago,
+  and lists the five bugs the fake systems have actually caught — including
+  Apple's AppleScript returning success while changing nothing, and awk
+  eating the backslashes out of a registry key
+
 ## 0.39.0
 
 - **The wallpaper store is found by what it holds, not by what Apple calls
