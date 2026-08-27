@@ -305,6 +305,17 @@ check "the menu lists every command"      "printf 'q' | NIMO_PICK_FORCE=1 HOME=\
 check "the menu runs what you choose"     "printf '\\033[B\\033[B\\033[B\\033[B\\n' | NIMO_PICK_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" --menu --no-color 2>/dev/null | grep -q 'safe to clean'"
 check "q leaves the menu without doing"   "printf 'q' | NIMO_PICK_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" --menu --no-color >/dev/null 2>&1; [ \$? -eq 0 ]"
 
+# ---- the face ------------------------------------------------------------
+
+faces() { printf '/quit\n' | NIMO_REPL_FORCE=1 HOME="$BOX" bash "$MIN" "$@" --no-color 2>&1; }
+
+check "the face is drawn off a terminal"  "faces | grep -q '●'"
+check "--no-animation still draws it"     "faces --no-animation | grep -q '●'"
+check "the whole face, not part of it"    "[ \$(faces | grep -c '│\\|╭\\|╰') -ge 8 ]"
+check "animation = off is understood"     "mkdir -p \"$BOX/.nimo\"; printf 'animation = off\\n' > \"$BOX/.nimo/config\"; min --no-color >/dev/null 2>&1; rm -rf \"$BOX/.nimo\""
+check "the eyes have a closed row too"    "grep -q 'NIMO_FACE_EYES_SHUT' \"$ROOT/lib/ui.sh\""
+check "the demo is what the maker makes"  "python3 \"$ROOT/tools/make-demo.py\" | diff -q - \"$ROOT/assets/demo.svg\""
+
 # ---- yes to everything ---------------------------------------------------
 
 mkdir -p "$BOX/Desktop"
