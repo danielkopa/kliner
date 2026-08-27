@@ -26,7 +26,7 @@ _min_complete() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
     cmds="clear tidy dark light hide empty blank apps duplicates desktop downloads screenshots zen dock wallpaper undo menu clean preview top doctor setup update help version"
-    opts="--dry-run --yes --only --days --limit --json --undo --restore --random --menu --fast --list --no-color --quiet --help --version"
+    opts="--dry-run --yes --auto --only --days --by --limit --json --undo --restore --random --menu --fast --list --color --no-color --no-animation --quiet --help --version"
     ids="user-caches logs crash-reports trash quicklook mail-downloads xcode homebrew node python downloads ios-backups xcode-archives device-support node-modules big-files"
     groups="finder dock screenshots keyboard dialogs"
 
@@ -36,6 +36,10 @@ _min_complete() {
                 *" setup "*) COMPREPLY=( $(compgen -W "$groups" -- "$cur") ) ;;
                 *)           COMPREPLY=( $(compgen -W "$ids" -- "$cur") ) ;;
             esac
+            return 0
+            ;;
+        --by)
+            COMPREPLY=( $(compgen -W "kind letter date" -- "$cur") )
             return 0
             ;;
         --days|--limit)

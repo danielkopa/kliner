@@ -144,11 +144,37 @@ Machine readable output for \fBclean\fR and \fBpreview\fR. Sizes in bytes.
 .B \-\-list
 List what a command would offer, without asking anything.
 .TP
+.B \-\-menu
+Pick from a list with the arrow keys. Where the arrows cannot work \- a pipe,
+a script, \fBTERM=dumb\fR \- the same list is numbered and typed instead.
+.TP
+.B \-\-fast
+With \fBmin dock\fR: no wait before the dock slides, and a quicker slide.
+.TP
+.BI \-\-by " WHAT"
+Sort into folders by \fBkind\fR (the default), \fBletter\fR or \fBdate\fR.
+.TP
+.B \-\-auto
+Yes to everything, in one command and in the prompt. The flag spelling of
+\fB/auto\fR.
+.TP
+.B \-\-color
+Colour even when the output is piped.
+.TP
 .B \-\-no\-color
 Plain output. \fBNO_COLOR\fR in the environment does the same.
 .TP
+.B \-\-no\-animation
+Do not draw the face in, and do not blink.
+.TP
 .BR \-q ", " \-\-quiet
 No banner.
+.TP
+.BR \-h ", " \-\-help
+Show the help.
+.TP
+.BR \-v ", " \-\-version
+Show the version.
 .SH FILES
 .TP
 .I ~/.nimo/config
@@ -172,7 +198,7 @@ Something could not be done.
 The command line did not make sense.
 .SH TESTS
 .B bash test/run.sh
-runs 110 checks against a throwaway computer in \fI/tmp\fR.
+runs the whole suite against a throwaway computer in \fI/tmp\fR.
 .B bash test/macos.sh
 runs 86 more against a simulated macOS, so the dock, wallpaper and preference
 code can be tested without a Mac and without touching yours.

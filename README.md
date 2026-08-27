@@ -395,20 +395,28 @@ anything.
 | --- | --- |
 | `-n`, `--dry-run` | show what would happen, change nothing |
 | `-y`, `--yes` | skip the confirmation question |
+| `--auto` | yes to everything, including in the prompt |
 | `--undo` | put your desktop back the way it was |
 | `--restore` | put the dock or the wallpaper back |
 | `--random` | let nimo pick the wallpaper |
 | `--menu` | pick from a list with the arrow keys |
+| `--fast` | with `min dock`: no wait, and a quicker slide |
 | `--list` | list what a command offers, without asking anything |
 | `--only a,b` | limit to certain items or setup groups |
 | `--days N` | what counts as an old download (default 30) |
 | `--limit N` | how many rows `min top` shows (default 15) |
 | `--by WHAT` | sort by `kind` (default), `letter`, or `date` |
 | `--json` | machine readable output for `clean` and `preview` |
-| `--list` | list the setup groups |
+| `--color` | colour even when piped |
 | `--no-color` | plain output |
 | `--no-animation` | no drawing itself in, no blink |
 | `-q`, `--quiet` | no banner |
+| `-h`, `--help` | show the help |
+| `-v`, `--version` | show the version |
+
+Every menu falls back to typing a number where the arrow keys cannot work — a
+pipe, a script, ssh with no tty, `TERM=dumb`. The list is the same list; it is
+printed and numbered instead of drawn.
 
 ## Rules nimo follows
 
