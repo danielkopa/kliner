@@ -68,6 +68,18 @@ nimo_free_name() {
 }
 
 # Everything in a folder that nimo is willing to move.
+#
+# A browser writes "film.mp4.download" while it is still fetching, and moving
+# that out from under it breaks the download and leaves you with half a file
+# under a name you will never recognise. Anything still arriving is left alone.
+nimo_still_arriving() {
+    case "$1" in
+        *.download|*.crdownload|*.part|*.partial|*.opdownload|*.aria2|*.tmp|*.!ut)
+            return 0 ;;
+    esac
+    return 1
+}
+
 nimo_folder_items() {
     local dir="$1"
     [ -d "$dir" ] || return 0
@@ -75,6 +87,7 @@ nimo_folder_items() {
         case "$(basename "$item")" in
             .*|"$NIMO_TIDY_DIR_NAME") continue ;;
         esac
+        nimo_still_arriving "$item" && continue
         case "$item" in
             *"$(printf '\t')"*) continue ;;
         esac
@@ -220,9 +233,11 @@ EOF
     log=$(nimo_free_file "$NIMO_UNDO_DIR/$tag-$(date +%Y%m%d-%H%M%S)" .tsv)
     : > "$log"
 
-    local moved=0 failed=0 dest target
+    local moved=0 failed=0 dest target done_so_far=0
     while IFS= read -r item; do
         [ -n "$item" ] || continue
+        done_so_far=$((done_so_far + 1))
+        [ "$total" -gt 40 ] && nimo_progress "moving $done_so_far of $total …"
         kind=$(nimo_kind_of "$item")
         dest="$root/$kind"
         mkdir -p "$dest" 2>/dev/null
@@ -236,6 +251,7 @@ EOF
     done <<EOF
 $items
 EOF
+    nimo_progress_done
 
     nimo_blank
     nimo_ok "Sorted — $(nimo_plural "$moved" item) filed away"
@@ -361,4 +377,23 @@ EOF
     [ "$failed" -gt 0 ] && nimo_warn "$failed could not be moved"
     nimo_blank
     return 0
+}
+
+# What each of these would find, cheaply enough to show in a menu.
+nimo_count_loose_screenshots() {
+    local where item n=0
+    for where in "$HOME/Desktop" "$HOME/Downloads" "$HOME/Documents"; do
+        [ -d "$where" ] || continue
+        while IFS= read -r item; do
+            [ -n "$item" ] || continue
+            [ "$(nimo_kind_of "$item")" = "Screenshots" ] && n=$((n + 1))
+        done <<EOF
+$(nimo_folder_items "$where")
+EOF
+    done
+    printf '%s' "$n"
+}
+
+nimo_count_sortable() {
+    nimo_line_count "$(nimo_folder_items "$1")"
 }
