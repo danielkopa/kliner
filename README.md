@@ -45,6 +45,13 @@ Nothing in that demo is deleted. Files move into one folder, sorted by what they
 and every single move is written down — so `min undo` puts any of it back
 exactly where it was.
 
+### The face
+
+It draws itself in, a row at a time, and blinks once — four hundred
+milliseconds in all, only when there is a terminal to draw on and nobody has
+asked for quiet. `--no-animation`, or `animation = off` in `~/.nimo/config`,
+turns it off for good.
+
 ## Getting started
 
 ```bash
@@ -378,6 +385,7 @@ anything.
 | `--json` | machine readable output for `clean` and `preview` |
 | `--list` | list the setup groups |
 | `--no-color` | plain output |
+| `--no-animation` | no drawing itself in, no blink |
 | `-q`, `--quiet` | no banner |
 
 ## Rules nimo follows
@@ -458,7 +466,7 @@ Every push runs everything on GitHub Actions: ShellCheck, a parse on both bash
 install-then-uninstall round trip. The bash 3.2 claim in this README is not a
 claim; it is a job that fails if it stops being true.
 
-A hundred and sixty checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
+A hundred and sixty-six checks in `test/run.sh` against a fake computer in `/tmp` with its own fake `HOME`: every
 command and flag, the safety guard, the arrow-key picker driven by simulated
 keystrokes, the menu, the undo history, the config file, the desktop sorted and then
 fully undone, and a complete clean where the promised number is compared

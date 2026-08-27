@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.20.0
+
+- **The face is alive.** It draws itself in a row at a time and blinks once,
+  four hundred milliseconds in all — long enough to be a greeting, short enough
+  that nobody waiting on a command notices it. Only with a terminal to draw on,
+  a shell that can sleep in fractions, and nobody having asked for quiet
+- **It blinks in the README too**, inside the animated demo, on its own timer
+- `--no-animation` and `animation = off` in `~/.nimo/config` turn it off
+- The eyes are their own row in one place, so the blink redraws exactly that
+  line and nothing else — and a test checks `assets/demo.svg` is still what
+  `tools/make-demo.py` produces, so the demo cannot drift from its source
+
 ## 0.19.0
 
 - **The README plays.** An animated SVG of a real session — the prompt, the

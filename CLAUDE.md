@@ -136,7 +136,13 @@ the changelog entry, commit, tag, push the tag.
 cutting a release.
 
 `assets/demo.svg` is generated: `python3 tools/make-demo.py > assets/demo.svg`.
-Edit the frames in the generator, never the SVG.
+Edit the frames in the generator, never the SVG — a test diffs the two, so an
+edited SVG fails the suite.
+
+The face lives in `nimo_face_rows` with the eye row split out, because two
+things draw it: `nimo_face` plain, and `nimo_face_hello` which draws it in and
+blinks. Animation is gated on `nimo_can_animate` — a terminal, a shell that can
+`sleep 0.01`, and nobody asking for quiet — and never costs more than 400 ms.
 
 ## The website
 
