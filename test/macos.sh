@@ -532,6 +532,13 @@ check "and everything at once"            "mmenu | grep -q 'Everything'"
 check "seven rows, numbered"              "[ \"\$(mmenu | grep -c '^ *[0-9]  ')\" = 7 ]"
 check "and the prompt agrees there are 7" "mmenu | grep -q 'Which one? 1-7'"
 
+# and the "/" list, on the platform that has all of it
+mslash() { printf '/\n/quit\n' | NIMO_REPL_FORCE=1 NIMO_NO_CLEAR=1 PATH="$FAKE:$PATH" HOME="$BOX" bash "$MIN" -q --no-color 2>&1; }
+
+check "the mac list offers the dock"      "mslash | grep -q '/fastdock'"
+check "and the menu bar and the apps"     "mslash | grep -q '/hide' && mslash | grep -q '/apps'"
+check "and the finder setup, not windows" "mslash | grep -q 'finder, dock and keyboard'"
+
 # ---- all of it at once ---------------------------------------------------
 
 : > "$WROTE"

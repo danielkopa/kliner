@@ -10,22 +10,89 @@
 # with a dash is passed straight through as a flag.
 
 # Every command, with the words that reach it.
+#
+# Grouped by what you came here to do, not by what nimo happens to call them,
+# and only the ones this computer can actually carry out — a Windows machine
+# was being offered a dock and a menu bar it does not have.
+#
+# The two counts are one `find` apiece. They are the reason the list is worth
+# opening rather than remembering: it says where the mess is before you have
+# chosen anything.
+
+nimo_repl_row() {
+    printf '%s%s %-14s %s%s%s\n' \
+        "$NIMO_PAD" "$1" "$2" "$NIMO_C_DIM" "$3" "$NIMO_C_RESET"
+}
+
+nimo_repl_head() {
+    printf '%s%s%s%s\n\n' "$NIMO_PAD" "$NIMO_C_BOLD" "$1" "$NIMO_C_RESET"
+}
+
 nimo_repl_list() {
+    local plat n_desk n_down n_shots also
+    plat=$(nimo_platform)
+
+    n_desk=$(nimo_count_sortable "$(nimo_desktop_dir)")
+    n_down=$(nimo_count_sortable "$(nimo_downloads_dir)")
+    n_shots=$(nimo_count_loose_screenshots)
+
     nimo_panel_open "what you can type"
-    printf '%s%s %-13s %s%s%s\n' "$NIMO_PAD" "▤" "/clear"     "$NIMO_C_DIM" "desktop, downloads, screenshots, dock — you pick" "$NIMO_C_RESET"
-    printf '%s%s %-13s %s%s%s\n' "$NIMO_PAD" "◐" "/wallpaper" "$NIMO_C_DIM" "a calmer one, from what macOS ships" "$NIMO_C_RESET"
-    printf '%s%s %-13s %s%s%s\n' "$NIMO_PAD" "■" "/setup"     "$NIMO_C_DIM" "a small, sane macOS setup" "$NIMO_C_RESET"
-    printf '%s%s %-13s %s%s%s\n' "$NIMO_PAD" "↺" "/undo"      "$NIMO_C_DIM" "put anything back" "$NIMO_C_RESET"
+
+    nimo_repl_head "clear something"
+    nimo_repl_row ▤ /clear       "desktop, downloads, screenshots — you pick"
+    if [ "$n_desk" -gt 0 ]; then
+        nimo_repl_row ▼ /desktop "$(nimo_plural "$n_desk" item) on your desktop right now"
+    else
+        nimo_repl_row ▼ /desktop "your desktop is already clear"
+    fi
+    if [ "$n_down" -gt 0 ]; then
+        nimo_repl_row ▽ /downloads "$(nimo_plural "$n_down" item) in your downloads"
+    else
+        nimo_repl_row ▽ /downloads "nothing loose in your downloads"
+    fi
+    if [ "$n_shots" -gt 0 ]; then
+        nimo_repl_row ▣ /screenshots "$(nimo_plural "$n_shots" loose screenshot), into one folder"
+    else
+        nimo_repl_row ▣ /screenshots "no screenshots lying about"
+    fi
     nimo_blank
-    printf '%s%s %-13s %s%s%s\n' "$NIMO_PAD" "▸" "/fastdock"  "$NIMO_C_DIM" "no wait before the dock slides" "$NIMO_C_RESET"
-    printf '%s%s %-13s %s%s%s\n' "$NIMO_PAD" "▢" "/cleandoc"  "$NIMO_C_DIM" "empty a file, keeping what was in it" "$NIMO_C_RESET"
+
+    nimo_repl_head "make it yours"
+    nimo_repl_row ◐ /wallpaper   "a calmer one, from what you already have"
+    nimo_repl_row ◑ /dark        "switch appearance — /light switches back"
+    nimo_repl_row ◇ /zen         "stop drawing icons on the desktop at all"
+    if [ "$plat" = "windows" ]; then
+        nimo_repl_row ■ /setup   "explorer and the taskbar, tuned once"
+    else
+        nimo_repl_row ■ /setup   "finder, dock and keyboard, tuned once"
+        nimo_repl_row ▸ /fastdock "no wait before the dock slides"
+    fi
     nimo_blank
-    printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "sort by what it is, or --by letter, or --by date" "$NIMO_C_RESET"
+
+    nimo_repl_head "get the disk back"
+    nimo_repl_row ◍ /clean       "caches your apps rebuild by themselves"
+    nimo_repl_row ◆ /top         "the biggest folders in your home"
+    nimo_repl_row ⧉ /duplicates  "the same file, kept more than once"
+    nimo_repl_row ▢ /cleandoc    "empty a file, keeping what was in it"
     nimo_blank
-    printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "also  /tidy  /zen  /dark  /hide  /empty  /apps  /duplicates" "$NIMO_C_RESET"
-    printf '%s%s%s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "      /doctor  /top  /preview  /menu  /quit" "$NIMO_C_RESET"
+
+    nimo_repl_head "and back again"
+    nimo_repl_row ↺ /undo        "anything nimo has done, one line at a time"
+    if [ "$NIMO_AUTO" = "1" ]; then
+        nimo_repl_row ● /auto    "on — /auto off puts the questions back"
+    else
+        nimo_repl_row ○ /auto    "stop asking me — one yes for the session"
+    fi
     nimo_blank
-    printf '%s%-13s %s%s%s\n' "$NIMO_PAD" "/auto" "$NIMO_C_DIM" "stop asking me — one yes for the whole session" "$NIMO_C_RESET"
+
+    case "$plat" in
+        macos)   also="/tidy /doctor /preview /empty /dock /hide /apps /menu /quit" ;;
+        windows) also="/tidy /doctor /preview /empty /hide /apps /menu /quit" ;;
+        *)       also="/tidy /doctor /preview /empty /menu /quit" ;;
+    esac
+    printf '%s%s%-14s %s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "also" "$also" "$NIMO_C_RESET"
+    printf '%s%s%-14s %s%s\n' "$NIMO_PAD" "$NIMO_C_DIM" "sort with" "--by letter   or   --by date" "$NIMO_C_RESET"
+
     nimo_panel_close
     nimo_blank
     nimo_dim "or say it outright:  /clear desktop"

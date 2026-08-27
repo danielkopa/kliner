@@ -537,6 +537,22 @@ check "auto says what it covers"          "printf '/auto\\n/quit\\n' | NIMO_REPL
 check "auto explains itself first"        "printf '/auto\\n/quit\\n' | NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -y -q --no-color 2>&1 | grep -q 'this session only'"
 check "auto warns about the trash"        "printf '/auto\\n/quit\\n' | NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -y -q --no-color 2>&1 | grep -q 'no undo'"
 check "--auto is the flag for /auto"      "printf '/quit\\n' | NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" --auto -q --no-color 2>&1 | grep -q 'nimo auto'"
+# The list you get for "/" is built, not written out: it counts what is
+# actually lying about, and it only offers what this computer can do.
+slash() { printf '/\n/quit\n' | NIMO_REPL_FORCE=1 NIMO_NO_CLEAR=1 HOME="$BOX" bash "$MIN" -q --no-color 2>&1; }
+
+check "the list is grouped, not a wall"   "[ \$(slash | grep -c 'clear something\|make it yours\|get the disk back') = 3 ]"
+# a home of its own, so whatever the rest of the suite has left lying around
+# in $BOX cannot answer this question for it
+EMPTY="$BOX/empty-home"
+mkdir -p "$EMPTY/Desktop" "$EMPTY/Downloads"
+slash_in() { printf '/\n/quit\n' | NIMO_REPL_FORCE=1 NIMO_NO_CLEAR=1 HOME="$1" bash "$MIN" -q --no-color 2>&1; }
+
+check "it counts your desktop for you"    "touch \"$EMPTY/Desktop/a.txt\" \"$EMPTY/Desktop/b.txt\"; slash_in \"$EMPTY\" | grep -q '2 items on your desktop'"
+check "and says so when it is clear"      "rm -f \"$EMPTY/Desktop/a.txt\" \"$EMPTY/Desktop/b.txt\"; slash_in \"$EMPTY\" | grep -q 'already clear'"
+check "no zero-loose-screenshots line"    "! slash | grep -q '0 loose'"
+check "every group has rows under it"     "[ \$(slash | grep -c '^ *[▤▼▽▣◐◑◇■▸◍◆⧉▢↺○●] /') -ge 12 ]"
+
 check "the prompt shows it is on"         "printf '/quit\\n' | NIMO_AUTO=1 NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -q --no-color 2>&1 | grep -q 'nimo auto'"
 check "and off again on request"          "printf '/auto off\\n/quit\\n' | NIMO_AUTO=1 NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -q --no-color 2>&1 | grep -q 'asks again'"
 check "turning it on twice is calm"       "printf '/auto\\n/quit\\n' | NIMO_AUTO=1 NIMO_REPL_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" -q --no-color 2>&1 | grep -q 'already on'"
