@@ -116,6 +116,59 @@ check "refuses your home itself"          "HOME=$BOX bash -c '. $ROOT/lib/ui.sh;
 check "refuses the root of the disk"      "HOME=$BOX bash -c '. $ROOT/lib/ui.sh; . $ROOT/lib/core.sh; nimo_is_protected /'"
 check "refuses /System"                   "HOME=$BOX bash -c '. $ROOT/lib/ui.sh; . $ROOT/lib/core.sh; nimo_is_protected /System'"
 check "allows a cache inside your home"   "HOME=$BOX bash -c '. $ROOT/lib/ui.sh; . $ROOT/lib/core.sh; ! nimo_is_protected \"\$HOME/Library/Caches\"'"
+
+# ---- and the ways around it ---------------------------------------------
+#
+# The guard used to compare the path it was handed against $HOME as text. A
+# glob does not know that "$HOME/." is $HOME, so that spelling read as
+# "somewhere under your home" and passed — and what runs next deletes every
+# child of what it is given. That is the home folder, emptied, by the one
+# command whose whole promise is that it will not.
+#
+# Each of these is a spelling of the same folder. Every one of them has to be
+# refused, and the ordinary path underneath still has to be allowed, or the
+# guard has simply been turned off.
+
+guard() { HOME="$1" bash -c '. '"$ROOT"'/lib/ui.sh; . '"$ROOT"'/lib/core.sh; nimo_is_protected "$1"' _ "$2"; }
+
+check "a dot does not open your home"     "guard '$BOX' '$BOX/.'"
+check "nor a dot and a slash"             "guard '$BOX' '$BOX/./'"
+check "nor two slashes"                   "guard '$BOX' '$BOX//'"
+check "nor a trailing slash"              "guard '$BOX' '$BOX/'"
+check "nor a dot in the middle"           "guard '$BOX' '$BOX/./Library/../..'"
+check "the cache under it is still fine"  "! guard '$BOX' '$BOX/Library/Caches'"
+check "even spelled with a dot"           "! guard '$BOX' '$BOX/./Library/Caches'"
+
+# With HOME empty, "$HOME"/* is /* — which matches every absolute path there
+# is, and the guard said yes to all of them.
+check "an empty HOME protects everything" "guard '' /home/someone/Documents"
+check "so does a HOME of just a slash"    "guard / /home/someone/Documents"
+check "and one that is not a path at all" "guard nonsense /home/someone/Documents"
+
+# `find dir/ -mindepth 1` follows a link the moment the path ends in a slash,
+# and a cache folder moved to another disk is exactly that link.
+OUT="$BOX/../nimo-outside.$$"
+mkdir -p "$OUT" "$BOX/Library" && printf 'do not delete me\n' > "$OUT/important.txt"
+ln -s "$OUT" "$BOX/Library/linked-cache" 2>/dev/null
+
+purge() { HOME="$BOX" bash -c '. '"$ROOT"'/lib/ui.sh; . '"$ROOT"'/lib/core.sh; nimo_init_colors; nimo_purge_children "$1"' _ "$1" 2>&1; }
+
+check "it will not clean through a link"  "purge '$BOX/Library/linked-cache' | grep -q 'link'"
+check "and the file behind it survives"   "[ -f '$OUT/important.txt' ]"
+check "even asked with a trailing slash"  "purge '$BOX/Library/linked-cache/' >/dev/null 2>&1; [ -f '$OUT/important.txt' ]"
+
+printf 'mine\n' > "$BOX/precious.txt"
+check "and it will not empty your home"   "purge '$BOX/.' >/dev/null 2>&1; [ -f '$BOX/precious.txt' ]"
+check "nor with two slashes"              "purge '$BOX//' >/dev/null 2>&1; [ -f '$BOX/precious.txt' ]"
+check "nor by saying so plainly"          "purge '$BOX' >/dev/null 2>&1; [ -f '$BOX/precious.txt' ]"
+
+# min blank checks the name you typed and truncates what it points at
+ln -s "$OUT/important.txt" "$BOX/looks-like-a-file.txt" 2>/dev/null
+check "blank will not follow a link"      "HOME='$BOX' bash '$MIN' blank '$BOX/looks-like-a-file.txt' -y -q --no-color 2>&1 | grep -q 'link'"
+check "and what it pointed at is intact"  "[ -s '$OUT/important.txt' ]"
+
+rm -f "$BOX/looks-like-a-file.txt" "$BOX/Library/linked-cache"
+rm -rf "$OUT"
 check "will not purge outside your home"  "HOME=$BOX bash -c '. $ROOT/lib/ui.sh; . $ROOT/lib/core.sh; nimo_init_colors; ! nimo_purge_children /tmp' 2>/dev/null"
 
 # ---- setup --------------------------------------------------------------

@@ -39,8 +39,8 @@ nimo_cmd_blank() {
         "~/"*) target="$HOME/${target#\~/}" ;;
         *)   target="$PWD/$target" ;;
     esac
-    # tidy up the "./" a shell tab-completion leaves behind
-    target=$(printf '%s' "$target" | sed -e 's|/\./|/|g' -e 's|//*|/|g')
+    # one spelling, the same one the guard normalises to
+    target=$(nimo_norm_path "$target")
 
     if [ ! -e "$target" ]; then
         nimo_warn "there is no $target"
@@ -51,6 +51,16 @@ nimo_cmd_blank() {
     if [ -d "$target" ]; then
         nimo_warn "$target is a folder — nimo empties files, not folders"
         nimo_dim "for a folder full of things:  min clear"
+        nimo_blank
+        return 1
+    fi
+
+    # A link is checked as the name you typed and emptied as the file it
+    # points at. `~/notes.txt -> /etc/hosts` passes a guard that only reads
+    # the path, and then truncates something nimo has no business touching.
+    if [ -L "$target" ]; then
+        nimo_warn "$(basename "$target") is a link — nimo will not empty what it points at"
+        nimo_dim "name the file itself if that is what you meant"
         nimo_blank
         return 1
     fi

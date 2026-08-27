@@ -89,22 +89,67 @@ nimo_count_children() {
     find "$1" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' '
 }
 
+# One spelling per path, so the guard cannot be walked around with a dot.
+#
+#   $HOME/.   $HOME//   $HOME/./   ->   $HOME
+#
+# This is the whole reason the guard has teeth. `$HOME/.` is not `$HOME` to a
+# glob, so it used to pass as "somewhere under your home" — and the thing that
+# then ran on it deletes every child of what it is given. That is the home
+# folder, emptied, by a command whose entire promise is that it will not.
+#
+# Written with parameter expansion only: splitting on / with `for` would let a
+# path containing a `*` glob against the disk on the way through.
+nimo_norm_path() {
+    local p="$1" rest part out=""
+    case "$p" in
+        /*) ;;
+        *) printf '%s' "$p"; return 0 ;;
+    esac
+    rest="$p"
+    while [ -n "$rest" ]; do
+        while [ "${rest#/}" != "$rest" ]; do rest="${rest#/}"; done
+        [ -n "$rest" ] || break
+        part="${rest%%/*}"
+        rest="${rest#"$part"}"
+        case "$part" in
+            .)  continue ;;
+            ..) printf '%s' "$p"; return 0 ;;
+        esac
+        out="$out/$part"
+    done
+    [ -n "$out" ] || out="/"
+    printf '%s' "$out"
+}
+
 # Refuse to touch anything that is not clearly disposable.
 nimo_is_protected() {
-    local p="${1:-}"
+    local p="${1:-}" home
     [ -z "$p" ] && return 0
-    case "$p" in
-        */../*|*/..) return 0 ;;
+
+    # A home nimo cannot trust is a home nimo will not delete inside of.
+    # With HOME empty, "$HOME"/* is /* — which matches every absolute path on
+    # the machine, and the guard said yes to all of them.
+    case "${HOME:-}" in
+        /?*) ;;
+        *)   return 0 ;;
     esac
+
+    case "$p" in
+        */../*|*/..|../*|..) return 0 ;;
+    esac
+
+    p=$(nimo_norm_path "$p")
+    home=$(nimo_norm_path "$HOME")
+
     case "$p" in
         / | /Users | /Users/ | /home | /home/ | /System* | /Library | /Applications | /bin* | /usr | /usr/* | /etc* | /var | /private | /opt)
             return 0 ;;
     esac
-    [ "$p" = "$HOME" ] && return 0
-    [ "$p" = "$HOME/" ] && return 0
+    [ "$p" = "$home" ] && return 0
     # must live under $HOME — nimo never touches system-owned paths
     case "$p" in
-        "$HOME"/*) return 1 ;;
+        "$home"/*) return 1 ;;
         *) return 0 ;;
     esac
 }
@@ -127,8 +172,17 @@ nimo_confirm() {
 
 # delete every child of a directory, keeping the directory itself
 nimo_purge_children() {
-    local dir="$1"
+    local dir
+    dir=$(nimo_norm_path "$1")
     [ -d "$dir" ] || return 0
+    # A cache folder moved to another disk is a symlink, and `find` walks
+    # straight through one the moment the path it is given ends in a slash.
+    # nimo deletes what is in your home folder, never what a link in it
+    # points at.
+    if [ -L "$dir" ]; then
+        nimo_err "refusing to clean through a link: $dir"
+        return 1
+    fi
     if nimo_is_protected "$dir"; then
         nimo_err "refusing to clean protected path: $dir"
         return 1
@@ -140,12 +194,15 @@ nimo_purge_children() {
 
 # delete a whole path
 nimo_purge_path() {
-    local p="$1"
-    [ -e "$p" ] || return 0
+    local p
+    p=$(nimo_norm_path "$1")
+    [ -e "$p" ] || [ -L "$p" ] || return 0
     if nimo_is_protected "$p"; then
         nimo_err "refusing to remove protected path: $p"
         return 1
     fi
+    # `rm -rf` on a link removes the link and not what it points at, which is
+    # what we want — but only because the path has no trailing slash by now.
     rm -rf "$p" 2>/dev/null
     return 0
 }
