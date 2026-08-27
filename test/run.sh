@@ -223,6 +223,41 @@ check "each undo takes its own log"       "[ \"\$(crosstalk)\" = ok ]"
 
 check "zen says no away from macOS"        "[ \"\$(uname -s)\" = Darwin ] || min zen -q --no-color | grep -q 'macOS'"
 
+# ---- what is still arriving stays put ------------------------------------
+#
+# A browser writes film.mp4.download while it is still fetching. Moving that
+# out from under it breaks the download and leaves half a file under a name
+# nobody recognises.
+
+ARRIVING="$BOX/Downloads"
+mkdir -p "$ARRIVING"
+touch "$ARRIVING/finished.pdf" "$ARRIVING/film.mp4.download" \
+      "$ARRIVING/page.crdownload" "$ARRIVING/chunk.part" "$ARRIVING/half.partial"
+
+min downloads -y -q --no-color >/dev/null 2>&1
+
+check "a finished download is filed"      "[ -f '$ARRIVING/Tidy/Documents/finished.pdf' ]"
+check "a .download is left alone"         "[ -f '$ARRIVING/film.mp4.download' ]"
+check "so is a .crdownload"               "[ -f '$ARRIVING/page.crdownload' ]"
+check "so is a .part and a .partial"      "[ -f '$ARRIVING/chunk.part' ] && [ -f '$ARRIVING/half.partial' ]"
+min downloads --undo -q --no-color >/dev/null 2>&1
+rm -f "$ARRIVING"/*.download "$ARRIVING"/*.crdownload "$ARRIVING"/*.part "$ARRIVING"/*.partial "$ARRIVING/finished.pdf"
+
+# ---- the menu counts what it is offering ---------------------------------
+
+mkdir -p "$BOX/Desktop"
+i=1
+while [ "$i" -le 25 ]; do touch "$BOX/Desktop/heap-$i.txt"; i=$((i + 1)); done
+
+check "the clear menu counts the desktop" "printf 'q' | NIMO_PICK_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" clear -q --no-color 2>&1 | grep -q 'Desktop.*items'"
+check "and offers the trash as well"      "printf 'q' | NIMO_PICK_FORCE=1 HOME=\"$BOX\" bash \"$MIN\" clear -q --no-color 2>&1 | grep -q 'Trash'"
+check "min clear trash means the trash"   "min clear trash --dry-run -q --no-color | grep -q 'the trash'"
+
+# a desktop with 25 things on it is exactly what doctor should mention
+check "doctor says what to do next"       "min doctor -q --no-color | grep -q 'min clear desktop'"
+rm -f "$BOX/Desktop"/heap-*.txt
+check "and stays quiet when it is tidy"   "! min doctor -q --no-color | grep -q 'Next'"
+
 # ---- the same file, more than once --------------------------------------
 
 case "$(uname -s)" in
