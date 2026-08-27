@@ -62,21 +62,75 @@ ART
 }
 
 # nimo itself. The face from the very first sketch, kept.
-nimo_face() {
-    printf '%s' "$NIMO_C_CYAN"
-    cat <<'FACE'
+# nimo itself.
+#
+# The rows are kept in one place because two things draw them: the plain
+# version, and the one that draws itself in and blinks. The eyes are their own
+# row so the blink can redraw exactly that line and nothing else.
+NIMO_FACE_EYES_OPEN="           │     ●         ●     │"
+NIMO_FACE_EYES_SHUT="           │     ─         ─     │"
 
+nimo_face_rows() {
+    cat <<'FACE'
               ╭───────────────╮
             ╭─╯               ╰─╮
            ╭╯                   ╰╮
-           │     ●         ●     │
+FACE
+    printf '%s\n' "$NIMO_FACE_EYES_OPEN"
+    cat <<'FACE'
            │                     │
            │      ╰───────╯      │
            ╰╮                   ╭╯
             ╰─╮               ╭─╯
               ╰───────────────╯
 FACE
+}
+
+nimo_face() {
+    printf '\n%s' "$NIMO_C_CYAN"
+    nimo_face_rows
     printf '%s' "$NIMO_C_RESET"
+}
+
+# Can we afford to animate? Only with a terminal to draw on, a shell that can
+# sleep in fractions, and nobody having asked for quiet.
+nimo_can_animate() {
+    [ "${NIMO_ANIMATE:-auto}" = "never" ] && return 1
+    [ "${NIMO_QUIET:-0}" = "1" ] && return 1
+    [ -t 1 ] || return 1
+    case "${TERM:-}" in dumb|"") return 1 ;; esac
+    sleep 0.01 2>/dev/null || return 1
+    return 0
+}
+
+# The face, drawn a row at a time, and then one blink.
+#
+# Four hundred milliseconds in total. Long enough to be a greeting, short
+# enough that nobody waiting on `min doctor` ever notices it.
+nimo_face_hello() {
+    if ! nimo_can_animate; then
+        nimo_face
+        return 0
+    fi
+
+    printf '\n%s' "$NIMO_C_CYAN"
+
+    local row
+    while IFS= read -r row; do
+        printf '%s\n' "$row"
+        sleep 0.025
+    done <<EOF
+$(nimo_face_rows)
+EOF
+
+    # the eyes are six rows above where the cursor now sits
+    sleep 0.12
+    printf '\033[s\033[6A\r%s\033[u' "$NIMO_FACE_EYES_SHUT"
+    sleep 0.11
+    printf '\033[s\033[6A\r%s\033[u' "$NIMO_FACE_EYES_OPEN"
+
+    printf '%s' "$NIMO_C_RESET"
+    return 0
 }
 
 # One quiet line. Shown by every other command, so the output

@@ -312,7 +312,7 @@ nimo_repl() {
         clear
     fi
     if [ "${NIMO_QUIET:-0}" != "1" ]; then
-        nimo_face
+        nimo_face_hello
         printf '\n%s                       nimo%s\n' "$NIMO_C_DIM" "$NIMO_C_RESET"
     fi
     nimo_blank
