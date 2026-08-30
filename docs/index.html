@@ -304,19 +304,16 @@
     background: #0E1113;
     border-bottom: 1px solid var(--term-line);
   }
-  .shot-body { display: grid; grid-template-columns: 210px 1fr; }
+  .shot-body { display: grid; grid-template-columns: 216px 1fr; }
   @media (max-width: 44rem) { .shot-body { grid-template-columns: 1fr; } }
 
   .shot-side {
-    padding: 1rem 0.85rem 1.3rem;
-    background: #0E1113;
-    border-right: 1px solid var(--term-line);
+    padding: 1rem 0.8rem 1.4rem;
+    background: transparent;
     min-width: 0;
   }
-  @media (max-width: 44rem) {
-    .shot-side { border-right: 0; border-bottom: 1px solid var(--term-line); }
-  }
-  .shot-mark { color: var(--term-cyan); font-weight: 700; font-size: 0.92rem; }
+
+  .shot-mark { color: #EEEFF1; font-weight: 600; font-size: 0.9rem; }
   .shot-version { color: var(--term-mute); font-size: 0.7rem; margin-top: 0.15rem; }
   .shot-head {
     color: var(--term-mute);
@@ -333,12 +330,31 @@
     font-size: 0.82rem;
   }
   .shot-row.is-on {
-    background: var(--term-cyan);
-    color: #04211E;
-    font-weight: 600;
+    background: #212126;
+    color: #EEEFF1;
+    font-weight: 500;
+  }
+  .shot-row.is-on .shot-dot { background: var(--term-cyan); }
+  .shot-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #626770;
+    margin-right: 0.6rem;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
   }
 
-  .shot-main { padding: 1.5rem 1.5rem 1.5rem; min-width: 0; }
+  .shot-main {
+    margin: 0.6rem 0.6rem 0.6rem 0;
+    padding: 1.5rem 1.6rem 0;
+    background: #151518;
+    border: 1px solid #232327;
+    border-radius: 10px;
+    min-width: 0;
+    overflow: hidden;
+  }
   .shot-main h3 {
     margin: 0;
     font-size: 1.35rem;
@@ -354,7 +370,7 @@
   }
   .shot-btn {
     display: inline-block;
-    margin: 1rem 0 1.15rem;
+    margin: 1.05rem 0 1.4rem;
     padding: 0.45rem 0.95rem;
     border-radius: 8px;
     background: var(--term-cyan);
@@ -363,9 +379,11 @@
     font-weight: 600;
   }
   .shot-screen {
-    border: 1px solid var(--term-line);
-    border-radius: 11px;
-    background: #131719;
+    margin: 0 -1.6rem;
+    border: 0;
+    border-top: 1px solid #232327;
+    border-radius: 0;
+    background: transparent;
   }
 
   .facts {
@@ -725,22 +743,22 @@
             <div class="shot-version">version 0.45.0</div>
 
             <div class="shot-head">Your desk</div>
-            <div class="shot-row is-on">Desktop</div>
-            <div class="shot-row">Downloads</div>
-            <div class="shot-row">Screenshots</div>
+            <div class="shot-row is-on"><span class="shot-dot"></span>Desktop</div>
+            <div class="shot-row"><span class="shot-dot"></span>Downloads</div>
+            <div class="shot-row"><span class="shot-dot"></span>Screenshots</div>
 
             <div class="shot-head">Your screen</div>
-            <div class="shot-row">Wallpaper</div>
-            <div class="shot-row">Startup</div>
+            <div class="shot-row"><span class="shot-dot"></span>Wallpaper</div>
+            <div class="shot-row"><span class="shot-dot"></span>Startup</div>
 
             <div class="shot-head">Your disk</div>
-            <div class="shot-row">What is big</div>
-            <div class="shot-row">What could go</div>
-            <div class="shot-row">Free it up</div>
+            <div class="shot-row"><span class="shot-dot"></span>What is big</div>
+            <div class="shot-row"><span class="shot-dot"></span>What could go</div>
+            <div class="shot-row"><span class="shot-dot"></span>Free it up</div>
 
             <div class="shot-head">Your computer</div>
-            <div class="shot-row">How it is</div>
-            <div class="shot-row">Put it all back</div>
+            <div class="shot-row"><span class="shot-dot"></span>How it is</div>
+            <div class="shot-row"><span class="shot-dot"></span>Put it all back</div>
           </div>
 
           <div class="shot-main">

@@ -1077,6 +1077,11 @@ check "the installer falls back to ~/Applications" \
 check "opening at login is asked for properly" \
     "grep -q 'SMAppService' '$APP/Sources/main.swift'"
 check "and only where macOS has a way to"  "grep -q '#available(macOS 13.0' '$APP/Sources/main.swift'"
+check "a page fills itself in without changing anything" \
+    "grep -q 'preview: item.asks != nil' '$APP/Sources/main.swift'"
+check "and a preview can never be given --yes" \
+    "! grep -qE 'preview.*--yes|--yes.*preview' '$APP/Sources/main.swift'"
+check "every row has a picture"             "[ \$(grep -c 'symbol: ' '$APP/Sources/main.swift') -eq 11 ]"
 check "ci builds the app"                 "grep -q 'app/build.sh' '$ROOT/.github/workflows/ci.yml'"
 check "the release carries the app"       "grep -q 'Nimo.app.zip' '$ROOT/.github/workflows/release.yml'"
 check "the site points at the release"    "grep -q 'releases/latest/download/Nimo.app.zip' '$ROOT/docs/index.html'"

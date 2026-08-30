@@ -24,18 +24,23 @@ enum Paint {
                 blue: CGFloat(b) / 255, alpha: 1)
     }
 
-    static let ground    = rgb(11, 13, 14)
-    static let side      = rgb(14, 17, 19)
-    static let line      = rgb(29, 34, 37)
-    static let raised    = rgb(19, 23, 25)
-    static let ink       = rgb(236, 239, 241)
-    static let body      = rgb(212, 219, 222)
-    static let muted     = rgb(154, 164, 171)
-    static let faint     = rgb(106, 118, 121)
-    static let accent    = rgb(95, 211, 198)
-    static let onAccent  = rgb(4, 33, 30)
-    static let warm      = rgb(217, 186, 116)
-    static let hot       = rgb(224, 115, 106)
+    // Quiet greys with one colour in them. A tool you open every day should
+    // not shout; the only bright thing on screen is the button you came for.
+    static let ground   = rgb(12, 12, 14)     // the window
+    static let panel    = rgb(21, 21, 24)     // the card the work happens in
+    static let line     = rgb(35, 35, 39)     // hairlines, and the card's edge
+    static let hover    = rgb(26, 26, 30)
+    static let picked   = rgb(33, 33, 38)
+
+    static let ink      = rgb(238, 239, 241)  // what you read
+    static let body     = rgb(198, 202, 208)  // what nimo printed
+    static let muted    = rgb(138, 143, 152)  // labels, second lines
+    static let faint    = rgb(98, 103, 112)   // headings, dim text
+
+    static let accent   = rgb(95, 211, 198)
+    static let onAccent = rgb(6, 32, 30)
+    static let warm     = rgb(217, 186, 116)
+    static let hot      = rgb(224, 115, 106)
 }
 
 // MARK: - running nimo
@@ -119,6 +124,8 @@ struct Action {
     let arguments: [String]
     let asks: String?        // the question, or nil when it changes nothing
     let group: String        // the heading it sits under
+    let symbol: String       // the small picture beside it
+
 
     static let all: [Action] = [
         Action(title: "Desktop",
@@ -126,70 +133,80 @@ struct Action {
                verb: "Clear my desktop",
                arguments: ["desktop"],
                asks: "Move everything on your desktop into Desktop/Tidy, sorted by what it is?\n\nNothing is deleted, and nimo can put it all back.",
-               group: "Your desk"),
+               group: "Your desk",
+               symbol: "square.grid.2x2"),
 
         Action(title: "Downloads",
                blurb: "The same, for the folder everything lands in and nothing ever leaves.",
                verb: "Sort my downloads",
                arguments: ["downloads"],
                asks: "Sort your downloads into Downloads/Tidy?\n\nNothing is deleted, and nimo can put it all back.",
-               group: "Your desk"),
+               group: "Your desk",
+               symbol: "arrow.down.circle"),
 
         Action(title: "Screenshots",
                blurb: "Every loose screenshot gathered into Pictures/Screenshots, wherever it was dropped.",
                verb: "Gather them up",
                arguments: ["screenshots"],
                asks: "Gather every loose screenshot into Pictures/Screenshots?",
-               group: "Your desk"),
+               group: "Your desk",
+               symbol: "camera"),
 
         Action(title: "Wallpaper",
                blurb: "Step through the wallpapers your Mac already ships with. Nothing is downloaded.",
                verb: "Next wallpaper",
                arguments: ["next"],
                asks: nil,
-               group: "Your screen"),
+               group: "Your screen",
+               symbol: "photo"),
 
         Action(title: "Startup",
                blurb: "What launches itself when you sign in — and which of them nimo can turn off.",
                verb: "Look",
                arguments: ["startup", "--list"],
                asks: nil,
-               group: "Your screen"),
+               group: "Your screen",
+               symbol: "power"),
 
         Action(title: "What is big",
                blurb: "The folders in your home that are taking up the room, largest first.",
                verb: "Measure",
                arguments: ["top"],
                asks: nil,
-               group: "Your disk"),
+               group: "Your disk",
+               symbol: "chart.bar"),
 
         Action(title: "What could go",
                blurb: "Caches and temporary files your apps rebuild by themselves. This only looks — it cannot change anything at all.",
                verb: "Have a look",
                arguments: ["preview"],
                asks: nil,
-               group: "Your disk"),
+               group: "Your disk",
+               symbol: "magnifyingglass"),
 
         Action(title: "Free it up",
                blurb: "The same list, actually removed. Your own files are never touched.",
                verb: "Free it up",
                arguments: ["clean"],
                asks: "Delete the caches and temporary files nimo found?\n\nThis one frees real space. Your own files are never touched.",
-               group: "Your disk"),
+               group: "Your disk",
+               symbol: "sparkles"),
 
         Action(title: "How it is",
                blurb: "Disk, memory, uptime, battery — how your computer is doing right now.",
                verb: "Check",
                arguments: ["doctor"],
                asks: nil,
-               group: "Your computer"),
+               group: "Your computer",
+               symbol: "waveform.path.ecg"),
 
         Action(title: "Put it all back",
                blurb: "Everything nimo has done, reversed, newest first. This is why nothing here is frightening.",
                verb: "Put it all back",
                arguments: ["undo", "--all"],
                asks: "Reverse everything nimo has done, newest first?",
-               group: "Your computer"),
+               group: "Your computer",
+               symbol: "arrow.uturn.backward"),
     ]
 }
 
@@ -294,38 +311,93 @@ enum Login {
 
 // MARK: - a row down the side
 
-final class Row: NSButton {
+/// One line in the list: a small picture, a word, and a quiet fill when it is
+/// the one you are looking at. No borders — a list of boxes is a form, and
+/// this is a list.
+final class Row: NSView {
     let index: Int
+    var onClick: ((Int) -> Void)?
 
-    init(action item: Action, index: Int, target: AnyObject, selector: Selector) {
+    private let icon = NSImageView()
+    private let label = NSTextField(labelWithString: "")
+    private var chosen = false
+    private var hovering = false
+
+    init(_ item: Action, index: Int) {
         self.index = index
         super.init(frame: .zero)
 
-        self.title = item.title
-        self.target = target
-        self.action = selector
-        self.tag = index
-        self.isBordered = false
-        self.alignment = .left
-        self.wantsLayer = true
-        self.layer?.cornerRadius = 7
-        self.contentTintColor = Paint.muted
-        self.font = NSFont.systemFont(ofSize: 13, weight: .regular)
-        self.translatesAutoresizingMaskIntoConstraints = false
-        paint(selected: false)
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+        layer?.cornerRadius = 6
+
+        if let picture = NSImage(systemSymbolName: item.symbol, accessibilityDescription: nil) {
+            picture.isTemplate = true
+            icon.image = picture
+        }
+        icon.contentTintColor = Paint.muted
+        icon.imageScaling = .scaleProportionallyDown
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(icon)
+
+        label.stringValue = item.title
+        label.font = NSFont.systemFont(ofSize: 13, weight: .regular)
+        label.textColor = Paint.muted
+        label.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(label)
+
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 29),
+            icon.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 9),
+            icon.centerYAnchor.constraint(equalTo: centerYAnchor),
+            icon.widthAnchor.constraint(equalToConstant: 15),
+            icon.heightAnchor.constraint(equalToConstant: 15),
+            label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 9),
+            label.centerYAnchor.constraint(equalTo: centerYAnchor),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -8),
+        ])
     }
 
     required init?(coder: NSCoder) { fatalError("nimo has no nib") }
 
-    func paint(selected: Bool) {
-        let text = NSMutableAttributedString(string: title)
-        text.addAttributes([
-            .foregroundColor: selected ? Paint.onAccent : Paint.muted,
-            .font: NSFont.systemFont(ofSize: 13, weight: selected ? .semibold : .regular),
-        ], range: NSRange(location: 0, length: text.length))
-        self.attributedTitle = text
-        self.layer?.backgroundColor = selected ? Paint.accent.cgColor : NSColor.clear.cgColor
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        for area in trackingAreas { removeTrackingArea(area) }
+        addTrackingArea(NSTrackingArea(rect: .zero,
+                                       options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+                                       owner: self,
+                                       userInfo: nil))
     }
+
+    override func mouseEntered(with event: NSEvent) { hovering = true;  repaint() }
+    override func mouseExited(with event: NSEvent)  { hovering = false; repaint() }
+    override func mouseDown(with event: NSEvent)    { onClick?(index) }
+
+    func choose(_ yes: Bool) { chosen = yes; repaint() }
+
+    private func repaint() {
+        let colour = chosen ? Paint.ink : Paint.muted
+        label.textColor = colour
+        label.font = NSFont.systemFont(ofSize: 13, weight: chosen ? .medium : .regular)
+        icon.contentTintColor = chosen ? Paint.accent : Paint.faint
+        layer?.backgroundColor = chosen ? Paint.picked.cgColor
+                               : hovering ? Paint.hover.cgColor
+                               : NSColor.clear.cgColor
+    }
+}
+
+/// A heading over a handful of rows. Small, quiet, and spaced by kerning
+/// rather than by shouting in capitals alone.
+func heading(_ text: String) -> NSTextField {
+    let field = NSTextField(labelWithString: "")
+    let letters = NSMutableAttributedString(string: text.uppercased())
+    letters.addAttributes([
+        .foregroundColor: Paint.faint,
+        .font: NSFont.systemFont(ofSize: 10, weight: .semibold),
+        .kern: 0.7,
+    ], range: NSRange(location: 0, length: letters.length))
+    field.attributedStringValue = letters
+    return field
 }
 
 // MARK: - the window
@@ -344,7 +416,7 @@ final class Main: NSObject, NSWindowDelegate {
     private var seen: Set<Int> = []
 
     override init() {
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1000, height: 660),
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 980, height: 640),
                           styleMask: [.titled, .closable, .miniaturizable, .resizable,
                                       .fullSizeContentView],
                           backing: .buffered,
@@ -357,7 +429,7 @@ final class Main: NSObject, NSWindowDelegate {
         window.backgroundColor = Paint.ground
         window.appearance = NSAppearance(named: .darkAqua)
         window.isMovableByWindowBackground = true
-        window.minSize = NSSize(width: 820, height: 520)
+        window.minSize = NSSize(width: 800, height: 500)
         window.delegate = self
         _ = window.setFrameAutosaveName("nimo.main")
 
@@ -374,101 +446,102 @@ final class Main: NSObject, NSWindowDelegate {
         content.layer?.backgroundColor = Paint.ground.cgColor
 
         // ---- down the side ----------------------------------------------
-        let sidebar = NSView()
-        sidebar.wantsLayer = true
-        sidebar.layer?.backgroundColor = Paint.side.cgColor
-        sidebar.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(sidebar)
-
-        let edge = NSBox()
-        edge.boxType = .custom
-        edge.borderWidth = 0
-        edge.fillColor = Paint.line
-        edge.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(edge)
-
         let stack = NSStackView()
         stack.orientation = .vertical
         stack.alignment = .leading
-        stack.spacing = 2
+        stack.spacing = 1
         stack.translatesAutoresizingMaskIntoConstraints = false
-        sidebar.addSubview(stack)
+        content.addSubview(stack)
 
-        let mark = NSTextField(labelWithString: "◍  nimo")
-        mark.font = NSFont.systemFont(ofSize: 15, weight: .bold)
-        mark.textColor = Paint.accent
+        let mark = NSTextField(labelWithString: "nimo")
+        mark.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
+        mark.textColor = Paint.ink
         stack.addArrangedSubview(mark)
 
         let version = NSTextField(labelWithString: Nimo.version.isEmpty
                                   ? "make your workspace clean"
-                                  : "version " + Nimo.version)
+                                  : Nimo.version)
         version.font = NSFont.systemFont(ofSize: 11, weight: .regular)
         version.textColor = Paint.faint
         stack.addArrangedSubview(version)
-        stack.setCustomSpacing(20, after: version)
+        stack.setCustomSpacing(22, after: version)
 
         var lastGroup = ""
         for (i, item) in Action.all.enumerated() {
             if item.group != lastGroup {
                 lastGroup = item.group
-                let head = NSTextField(labelWithString: item.group.uppercased())
-                head.font = NSFont.systemFont(ofSize: 10, weight: .semibold)
-                head.textColor = Paint.faint
-                if i > 0 { stack.setCustomSpacing(18, after: stack.arrangedSubviews.last ?? head) }
+                if let above = stack.arrangedSubviews.last, i > 0 {
+                    stack.setCustomSpacing(20, after: above)
+                }
+                let head = heading(item.group)
                 stack.addArrangedSubview(head)
-                stack.setCustomSpacing(8, after: head)
+                stack.setCustomSpacing(7, after: head)
             }
 
-            let row = Row(action: item, index: i, target: self, selector: #selector(pick(_:)))
+            let row = Row(item, index: i)
+            row.onClick = { [weak self] which in self?.show(which) }
             stack.addArrangedSubview(row)
-            NSLayoutConstraint.activate([
-                row.widthAnchor.constraint(equalToConstant: 216),
-                row.heightAnchor.constraint(equalToConstant: 30),
-            ])
+            row.widthAnchor.constraint(equalToConstant: 198).isActive = true
             rows.append(row)
         }
 
-        // ---- the page ----------------------------------------------------
-        titleLabel.font = NSFont.systemFont(ofSize: 24, weight: .bold)
+        // ---- the card the work happens in --------------------------------
+        // Everything to the right lives on one raised surface with a hairline
+        // around it. That single edge is what makes a window look composed
+        // rather than assembled.
+        let card = NSView()
+        card.wantsLayer = true
+        card.layer?.backgroundColor = Paint.panel.cgColor
+        card.layer?.cornerRadius = 10
+        card.layer?.borderWidth = 1
+        card.layer?.borderColor = Paint.line.cgColor
+        card.layer?.masksToBounds = true
+        card.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(card)
+
+        titleLabel.font = NSFont.systemFont(ofSize: 19, weight: .semibold)
         titleLabel.textColor = Paint.ink
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(titleLabel)
+        card.addSubview(titleLabel)
 
-        blurbLabel.font = NSFont.systemFont(ofSize: 13, weight: .regular)
+        blurbLabel.font = NSFont.systemFont(ofSize: 12.5, weight: .regular)
         blurbLabel.textColor = Paint.muted
         blurbLabel.maximumNumberOfLines = 3
         blurbLabel.lineBreakMode = .byWordWrapping
         blurbLabel.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(blurbLabel)
+        card.addSubview(blurbLabel)
 
         runButton.bezelStyle = .rounded
-        runButton.controlSize = .large
-        runButton.bezelColor = Paint.accent
+        runButton.isBordered = false
+        runButton.wantsLayer = true
+        runButton.layer?.cornerRadius = 6
         runButton.target = self
         runButton.action = #selector(go)
         runButton.keyEquivalent = "\r"
         runButton.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(runButton)
+        card.addSubview(runButton)
+
+        let rule = NSBox()
+        rule.boxType = .custom
+        rule.borderWidth = 0
+        rule.fillColor = Paint.line
+        rule.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(rule)
 
         let scroll = NSScrollView()
         scroll.hasVerticalScroller = true
         scroll.hasHorizontalScroller = true
         scroll.autohidesScrollers = true
         scroll.borderType = .noBorder
-        scroll.drawsBackground = true
-        scroll.backgroundColor = Paint.raised
+        scroll.drawsBackground = false
         scroll.scrollerKnobStyle = .light
-        scroll.wantsLayer = true
-        scroll.layer?.cornerRadius = 11
-        scroll.layer?.borderWidth = 1
-        scroll.layer?.borderColor = Paint.line.cgColor
         scroll.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(scroll)
+        card.addSubview(scroll)
 
         console.isEditable = false
         console.isSelectable = true
         console.drawsBackground = false
-        console.textContainerInset = NSSize(width: 20, height: 18)
+        console.textContainerInset = NSSize(width: 24, height: 20)
         console.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
         console.textColor = Paint.body
         console.isHorizontallyResizable = true
@@ -484,51 +557,47 @@ final class Main: NSObject, NSWindowDelegate {
         scroll.documentView = console
 
         NSLayoutConstraint.activate([
-            sidebar.leadingAnchor.constraint(equalTo: content.leadingAnchor),
-            sidebar.topAnchor.constraint(equalTo: content.topAnchor),
-            sidebar.bottomAnchor.constraint(equalTo: content.bottomAnchor),
-            sidebar.widthAnchor.constraint(equalToConstant: 240),
+            stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 17),
+            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 46),
+            stack.widthAnchor.constraint(equalToConstant: 198),
 
-            edge.leadingAnchor.constraint(equalTo: sidebar.trailingAnchor),
-            edge.topAnchor.constraint(equalTo: content.topAnchor),
-            edge.bottomAnchor.constraint(equalTo: content.bottomAnchor),
-            edge.widthAnchor.constraint(equalToConstant: 1),
+            card.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 232),
+            card.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -10),
+            card.topAnchor.constraint(equalTo: content.topAnchor, constant: 10),
+            card.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -10),
 
-            stack.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 12),
-            stack.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: -12),
-            stack.topAnchor.constraint(equalTo: sidebar.topAnchor, constant: 44),
-
-            titleLabel.leadingAnchor.constraint(equalTo: edge.trailingAnchor, constant: 30),
-            titleLabel.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -30),
-            titleLabel.topAnchor.constraint(equalTo: content.topAnchor, constant: 44),
+            titleLabel.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 26),
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: card.trailingAnchor, constant: -26),
+            titleLabel.topAnchor.constraint(equalTo: card.topAnchor, constant: 34),
 
             blurbLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            blurbLabel.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -60),
-            blurbLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            blurbLabel.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -80),
+            blurbLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 7),
 
             runButton.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             runButton.topAnchor.constraint(equalTo: blurbLabel.bottomAnchor, constant: 18),
-            runButton.heightAnchor.constraint(equalToConstant: 34),
+            runButton.heightAnchor.constraint(equalToConstant: 30),
 
-            scroll.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -26),
-            scroll.topAnchor.constraint(equalTo: runButton.bottomAnchor, constant: 20),
-            scroll.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -26),
+            rule.leadingAnchor.constraint(equalTo: card.leadingAnchor),
+            rule.trailingAnchor.constraint(equalTo: card.trailingAnchor),
+            rule.topAnchor.constraint(equalTo: runButton.bottomAnchor, constant: 24),
+            rule.heightAnchor.constraint(equalToConstant: 1),
+
+            scroll.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 2),
+            scroll.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -2),
+            scroll.topAnchor.constraint(equalTo: rule.bottomAnchor),
+            scroll.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -2),
         ])
     }
 
     // MARK: using it
-
-    @objc private func pick(_ sender: NSButton) {
-        show(sender.tag)
-    }
 
     private func show(_ index: Int) {
         guard index >= 0, index < Action.all.count else { return }
         chosen = index
         let item = Action.all[index]
 
-        for (i, row) in rows.enumerated() { row.paint(selected: i == index) }
+        for (i, row) in rows.enumerated() { row.choose(i == index) }
 
         titleLabel.stringValue = item.title
         blurbLabel.stringValue = item.blurb
@@ -536,24 +605,22 @@ final class Main: NSObject, NSWindowDelegate {
 
         if seen.contains(index) { return }
 
-        // Anything that only looks can just look — you should not have to ask
-        // a program to tell you how much room you have left.
-        if item.asks == nil {
-            run(item)
-        } else {
-            put("\n  \u{1B}[2mnimo will show you exactly what it did, here.\u{1B}[0m\n")
-        }
+        // Open a page and it fills in by itself. The ones that only look just
+        // look; the ones that would change something show you what they would
+        // change and touch nothing — nimo's own --dry-run, which is the same
+        // measurement the real run uses.
+        run(item, preview: item.asks != nil)
     }
 
     private func setButton(title: String, enabled: Bool) {
-        let text = NSMutableAttributedString(string: title)
+        let text = NSMutableAttributedString(string: "  " + title + "  ")
         text.addAttributes([
             .foregroundColor: enabled ? Paint.onAccent : Paint.faint,
             .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
         ], range: NSRange(location: 0, length: text.length))
         runButton.attributedTitle = text
         runButton.isEnabled = enabled
-        runButton.bezelColor = enabled ? Paint.accent : Paint.raised
+        runButton.layer?.backgroundColor = enabled ? Paint.accent.cgColor : Paint.picked.cgColor
     }
 
     @objc private func go() {
@@ -573,15 +640,21 @@ final class Main: NSObject, NSWindowDelegate {
         run(item)
     }
 
-    private func run(_ item: Action) {
+    private func run(_ item: Action, preview: Bool = false) {
         guard !busy else { return }
         busy = true
         seen.insert(chosen)
         setButton(title: item.verb, enabled: false)
         put("\n  \u{1B}[2mworking …\u{1B}[0m\n")
 
-        // Only after somebody has said yes does --yes go anywhere near nimo.
-        let arguments = item.asks == nil ? item.arguments : item.arguments + ["--yes"]
+        // Only after somebody has said yes does --yes go anywhere near nimo,
+        // and a preview cannot be given it at all.
+        let arguments: [String]
+        if preview {
+            arguments = item.arguments + ["--dry-run"]
+        } else {
+            arguments = item.asks == nil ? item.arguments : item.arguments + ["--yes"]
+        }
 
         DispatchQueue.global(qos: .userInitiated).async {
             let result = Nimo.run(arguments)
