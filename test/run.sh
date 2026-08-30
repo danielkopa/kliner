@@ -1029,8 +1029,13 @@ check "it puts an icon in the Dock"       "grep -q 'setActivationPolicy(.regular
 check "it opens a window when it starts"  "grep -q 'makeKeyAndOrderFront' '$APP/Sources/main.swift'"
 check "it has a menu bar of its own"      "grep -q 'NSApp.mainMenu = buildMenu' '$APP/Sources/main.swift'"
 check "you can quit it"                   "grep -q 'NSApplication.terminate' '$APP/Sources/main.swift'"
-check "nimo's colours are read back, not thrown away" \
-    "grep -q 'enum Screen' '$APP/Sources/main.swift' && grep -q '\"--color\"' '$APP/Sources/main.swift'"
+check "nimo's panel is read back into real controls" \
+    "grep -q 'enum Report' '$APP/Sources/main.swift' && grep -q 'case heading' '$APP/Sources/main.swift'"
+check "there is no terminal left in the window" \
+    "! grep -q 'NSTextView' '$APP/Sources/main.swift'"
+check "a bar of blocks becomes a real bar"  "grep -q 'final class Line' '$APP/Sources/main.swift'"
+check "it spins while it thinks"            "grep -q 'NSProgressIndicator' '$APP/Sources/main.swift'"
+check "the panel fades in"                  "grep -q 'NSAnimationContext' '$APP/Sources/main.swift'"
 check "its version is filled in at build" "grep -q '__VERSION__' '$APP/Info.plist'"
 check "build.sh fills it in"              "grep -q 's/__VERSION__/' '$APP/build.sh'"
 check "the plist names the executable"    "grep -q '<string>Nimo</string>' '$APP/Info.plist'"
@@ -1081,7 +1086,9 @@ check "a page fills itself in without changing anything" \
     "grep -q 'preview: item.asks != nil' '$APP/Sources/main.swift'"
 check "and a preview can never be given --yes" \
     "! grep -qE 'preview.*--yes|--yes.*preview' '$APP/Sources/main.swift'"
-check "every row has a picture"             "[ \$(grep -c 'symbol: ' '$APP/Sources/main.swift') -eq 11 ]"
+ACTIONS=$(grep -c 'Action(title:' "$APP/Sources/main.swift")
+PICTURES=$(grep -c '^ *symbol: "[a-z]' "$APP/Sources/main.swift")
+check "every row down the side has a picture" "[ '$ACTIONS' = '$PICTURES' ] && [ '$ACTIONS' != '0' ]"
 check "ci builds the app"                 "grep -q 'app/build.sh' '$ROOT/.github/workflows/ci.yml'"
 check "the release carries the app"       "grep -q 'Nimo.app.zip' '$ROOT/.github/workflows/release.yml'"
 check "the site points at the release"    "grep -q 'releases/latest/download/Nimo.app.zip' '$ROOT/docs/index.html'"

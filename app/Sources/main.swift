@@ -212,69 +212,115 @@ struct Action {
 
 // MARK: - reading nimo back
 
-/// nimo says things in seven escape codes and nothing else — reset, bold,
-/// dim, green, yellow, red, cyan. This turns them into a drawn panel, so the
-/// window shows nimo's own colours rather than a log with the colour lost.
-enum Screen {
-    static func render(_ text: String, size: CGFloat) -> NSAttributedString {
-        let plain = NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
-        let heavy = NSFont.monospacedSystemFont(ofSize: size, weight: .semibold)
+/// A line of nimo's output, once somebody has worked out what it is.
+enum Piece {
+    case heading(String)                                     // ╭─ your desktop ──
+    case rule                                                // the line above a total
+    case row(String, String, String, Double?, Bool)          // label, value, note, bar, strong
+    case good(String)
+    case warn(String)
+    case note(String)                                        // the dim lines at the end
+    case text(String)
+}
 
-        let out = NSMutableAttributedString()
-        var colour = Paint.body
-        var bold = false
-        var piece = ""
+/// nimo draws a panel in a terminal, with box corners and columns held apart
+/// by spaces. In a window that is somebody else's furniture: this reads the
+/// panel back into what it always meant — a heading, some rows, a total, and
+/// a few notes — and the window builds those out of real controls.
+///
+/// It reads nimo's own output rather than a second machine-readable format,
+/// because a format that only the app uses is a format that goes stale.
+enum Report {
+    static let box = Set("─╭╮╰╯│")
 
-        func flush() {
-            if piece.isEmpty { return }
-            out.append(NSAttributedString(string: piece, attributes: [
-                .foregroundColor: colour,
-                .font: bold ? heavy : plain,
-            ]))
-            piece = ""
-        }
+    static func plain(_ line: String) -> String {
+        line.replacingOccurrences(of: "\u{1B}\\[[0-9;]*m", with: "", options: .regularExpression)
+    }
 
-        func apply(_ code: String) {
-            // "1;36" is two instructions, and an empty one means reset
-            let parts = code.isEmpty ? [""] : code.components(separatedBy: ";")
-            for part in parts {
-                switch part {
-                case "", "0":  colour = Paint.body;  bold = false
-                case "1":      colour = Paint.ink;   bold = true
-                case "2":      colour = Paint.faint
-                case "31":     colour = Paint.hot
-                case "32":     colour = Paint.accent   // nimo's yes is cyan
-                case "33":     colour = Paint.warm
-                case "36":     colour = Paint.accent
-                default:       break
+    /// Splits on two or more spaces, which is how nimo holds its columns apart.
+    static func columns(_ text: String) -> [String] {
+        text.replacingOccurrences(of: " {2,}", with: "\u{1}", options: .regularExpression)
+            .components(separatedBy: "\u{1}")
+            .filter { !$0.isEmpty }
+    }
+
+    static func parse(_ raw: String) -> [Piece] {
+        var pieces: [Piece] = []
+
+        for line in raw.components(separatedBy: "\n") {
+            let strong = line.contains("\u{1B}[1m")
+            let bare = plain(line)
+            let t = bare.trimmingCharacters(in: .whitespaces)
+
+            if t.isEmpty { continue }
+            if t.hasPrefix("◍") { continue }          // the wordmark; the window has a title
+            if t.hasPrefix("╰") { continue }          // the bottom of a panel is a shape, not a fact
+
+            if t.hasPrefix("╭") {
+                var title = t
+                while let c = title.first, box.contains(c) || c == " " { title.removeFirst() }
+                while let c = title.last,  box.contains(c) || c == " " { title.removeLast() }
+                if !title.isEmpty { pieces.append(.heading(title)) }
+                continue
+            }
+
+            if t.allSatisfy({ box.contains($0) }) {
+                pieces.append(.rule)
+                continue
+            }
+
+            if t.hasPrefix("✓") {
+                pieces.append(.good(String(t.dropFirst()).trimmingCharacters(in: .whitespaces)))
+                continue
+            }
+            if t.hasPrefix("✗") || t.hasPrefix("!") {
+                pieces.append(.warn(String(t.dropFirst()).trimmingCharacters(in: .whitespaces)))
+                continue
+            }
+
+            let indent = bare.count - bare.drop(while: { $0 == " " }).count
+            var parts = columns(t)
+
+            if indent >= 4 && parts.count >= 2 {
+                let label = parts.removeFirst()
+
+                // A run of blocks and dots is a picture of a proportion, and a
+                // window can draw that properly instead of spelling it.
+                var bar: Double?
+                if let last = parts.last, !last.isEmpty,
+                   last.allSatisfy({ $0 == "█" || $0 == "·" }) {
+                    bar = Double(last.filter { $0 == "█" }.count) / Double(last.count)
+                    parts.removeLast()
                 }
+
+                let value = parts.first ?? ""
+                let note = parts.count > 1 ? parts.dropFirst().joined(separator: "  ") : ""
+                pieces.append(.row(label, value, note, bar, strong))
+                continue
+            }
+
+            if indent <= 3 {
+                pieces.append(.note(t))
+            } else {
+                pieces.append(.text(t))
             }
         }
 
-        var i = text.startIndex
-        while i < text.endIndex {
-            if text[i] == "\u{1B}" {
-                let next = text.index(after: i)
-                if next < text.endIndex, text[next] == "[" {
-                    var j = text.index(after: next)
-                    var code = ""
-                    while j < text.endIndex, text[j] != "m", code.count < 16 {
-                        code.append(text[j])
-                        j = text.index(after: j)
-                    }
-                    if j < text.endIndex, text[j] == "m" {
-                        flush()
-                        apply(code)
-                        i = text.index(after: j)
-                        continue
-                    }
-                }
-            }
-            piece.append(text[i])
-            i = text.index(after: i)
+        return pieces
+    }
+}
+
+// MARK: - text that knows how wide it is
+
+/// An NSTextField will not work out its own height from a width unless it is
+/// told what the width turned out to be. This tells it.
+final class Wrapping: NSTextField {
+    override func layout() {
+        super.layout()
+        if abs(preferredMaxLayoutWidth - bounds.width) > 0.5 {
+            preferredMaxLayoutWidth = bounds.width
+            super.layout()
         }
-        flush()
-        return out
     }
 }
 
@@ -406,9 +452,11 @@ final class Main: NSObject, NSWindowDelegate {
     let window: NSWindow
 
     private let titleLabel = NSTextField(labelWithString: "")
-    private let blurbLabel = NSTextField(labelWithString: "")
+    private let blurbLabel = Wrapping(labelWithString: "")
     private let runButton  = NSButton(title: "", target: nil, action: nil)
-    private let console    = NSTextView()
+    private let spinner    = NSProgressIndicator()
+    private let scroll     = NSScrollView()
+    private let report     = NSStackView()
     private var rows: [Row] = []
 
     private var chosen = 0
@@ -486,9 +534,8 @@ final class Main: NSObject, NSWindowDelegate {
         }
 
         // ---- the card the work happens in --------------------------------
-        // Everything to the right lives on one raised surface with a hairline
-        // around it. That single edge is what makes a window look composed
-        // rather than assembled.
+        // One raised surface with a hairline round it. That single edge is
+        // what makes a window look composed rather than assembled.
         let card = NSView()
         card.wantsLayer = true
         card.layer?.backgroundColor = Paint.panel.cgColor
@@ -521,6 +568,12 @@ final class Main: NSObject, NSWindowDelegate {
         runButton.translatesAutoresizingMaskIntoConstraints = false
         card.addSubview(runButton)
 
+        spinner.style = .spinning
+        spinner.controlSize = .small
+        spinner.isDisplayedWhenStopped = false
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(spinner)
+
         let rule = NSBox()
         rule.boxType = .custom
         rule.borderWidth = 0
@@ -528,9 +581,7 @@ final class Main: NSObject, NSWindowDelegate {
         rule.translatesAutoresizingMaskIntoConstraints = false
         card.addSubview(rule)
 
-        let scroll = NSScrollView()
         scroll.hasVerticalScroller = true
-        scroll.hasHorizontalScroller = true
         scroll.autohidesScrollers = true
         scroll.borderType = .noBorder
         scroll.drawsBackground = false
@@ -538,23 +589,12 @@ final class Main: NSObject, NSWindowDelegate {
         scroll.translatesAutoresizingMaskIntoConstraints = false
         card.addSubview(scroll)
 
-        console.isEditable = false
-        console.isSelectable = true
-        console.drawsBackground = false
-        console.textContainerInset = NSSize(width: 24, height: 20)
-        console.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
-        console.textColor = Paint.body
-        console.isHorizontallyResizable = true
-        console.isVerticallyResizable = true
-        console.autoresizingMask = [.width, .height]
-        console.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude,
-                                 height: CGFloat.greatestFiniteMagnitude)
-        // nimo draws in a fixed-width panel. Reflowing it to the window puts
-        // every box corner in the wrong place, so it scrolls sideways instead.
-        console.textContainer?.widthTracksTextView = false
-        console.textContainer?.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude,
-                                                      height: CGFloat.greatestFiniteMagnitude)
-        scroll.documentView = console
+        report.orientation = .vertical
+        report.alignment = .leading
+        report.spacing = 0
+        report.edgeInsets = NSEdgeInsets(top: 20, left: 26, bottom: 28, right: 26)
+        report.translatesAutoresizingMaskIntoConstraints = false
+        scroll.documentView = report
 
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 17),
@@ -578,16 +618,116 @@ final class Main: NSObject, NSWindowDelegate {
             runButton.topAnchor.constraint(equalTo: blurbLabel.bottomAnchor, constant: 18),
             runButton.heightAnchor.constraint(equalToConstant: 30),
 
+            spinner.leadingAnchor.constraint(equalTo: runButton.trailingAnchor, constant: 12),
+            spinner.centerYAnchor.constraint(equalTo: runButton.centerYAnchor),
+            spinner.widthAnchor.constraint(equalToConstant: 16),
+            spinner.heightAnchor.constraint(equalToConstant: 16),
+
             rule.leadingAnchor.constraint(equalTo: card.leadingAnchor),
             rule.trailingAnchor.constraint(equalTo: card.trailingAnchor),
             rule.topAnchor.constraint(equalTo: runButton.bottomAnchor, constant: 24),
             rule.heightAnchor.constraint(equalToConstant: 1),
 
-            scroll.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 2),
-            scroll.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -2),
+            scroll.leadingAnchor.constraint(equalTo: card.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: card.trailingAnchor),
             scroll.topAnchor.constraint(equalTo: rule.bottomAnchor),
-            scroll.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -2),
+            scroll.bottomAnchor.constraint(equalTo: card.bottomAnchor),
+
+            report.leadingAnchor.constraint(equalTo: scroll.contentView.leadingAnchor),
+            report.trailingAnchor.constraint(equalTo: scroll.contentView.trailingAnchor),
+            report.topAnchor.constraint(equalTo: scroll.contentView.topAnchor),
         ])
+    }
+
+    // MARK: drawing what nimo said
+
+    private var reportWidth: NSLayoutDimension { report.widthAnchor }
+
+    private func line(_ view: NSView, inset: CGFloat = 52) {
+        view.translatesAutoresizingMaskIntoConstraints = false
+        report.addArrangedSubview(view)
+        view.widthAnchor.constraint(equalTo: reportWidth, constant: -inset).isActive = true
+    }
+
+    private func draw(_ pieces: [Piece]) {
+        for view in report.arrangedSubviews {
+            report.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
+
+        var first = true
+        for piece in pieces {
+            switch piece {
+            case .heading(let text):
+                let head = heading(text)
+                line(head)
+                report.setCustomSpacing(9, after: head)
+                if !first, report.arrangedSubviews.count > 1 {
+                    let index = report.arrangedSubviews.count - 2
+                    report.setCustomSpacing(20, after: report.arrangedSubviews[index])
+                }
+
+            case .rule:
+                let bar = NSBox()
+                bar.boxType = .custom
+                bar.borderWidth = 0
+                bar.fillColor = Paint.line
+                bar.heightAnchor.constraint(equalToConstant: 1).isActive = true
+                let holder = NSView()
+                holder.translatesAutoresizingMaskIntoConstraints = false
+                bar.translatesAutoresizingMaskIntoConstraints = false
+                holder.addSubview(bar)
+                NSLayoutConstraint.activate([
+                    holder.heightAnchor.constraint(equalToConstant: 19),
+                    bar.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
+                    bar.trailingAnchor.constraint(equalTo: holder.trailingAnchor),
+                    bar.centerYAnchor.constraint(equalTo: holder.centerYAnchor),
+                ])
+                line(holder)
+
+            case .row(let label, let value, let note, let bar, let strong):
+                line(Line(label: label, value: value, note: note, bar: bar, strong: strong))
+
+            case .good(let text):
+                line(Marked(text: text, symbol: "checkmark", colour: Paint.accent, ink: Paint.ink))
+
+            case .warn(let text):
+                line(Marked(text: text, symbol: "exclamationmark.triangle",
+                            colour: Paint.warm, ink: Paint.ink))
+
+            case .note(let text):
+                let field = Wrapping(labelWithString: text)
+                field.font = NSFont.systemFont(ofSize: 12, weight: .regular)
+                field.textColor = Paint.faint
+                field.maximumNumberOfLines = 0
+                field.lineBreakMode = .byWordWrapping
+                line(field)
+                report.setCustomSpacing(6, after: field)
+
+            case .text(let text):
+                let field = Wrapping(labelWithString: text)
+                field.font = NSFont.systemFont(ofSize: 13, weight: .regular)
+                field.textColor = Paint.body
+                field.maximumNumberOfLines = 0
+                field.lineBreakMode = .byWordWrapping
+                line(field)
+                report.setCustomSpacing(7, after: field)
+            }
+            first = false
+        }
+
+        // A panel that appears is easier to read than one that is swapped.
+        scroll.alphaValue = 0
+        report.layoutSubtreeIfNeeded()
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.2
+            context.allowsImplicitAnimation = true
+            scroll.animator().alphaValue = 1
+        }
+    }
+
+    private func say(_ text: String, dim: Bool = true) {
+        draw([dim ? .note(text) : .text(text)])
     }
 
     // MARK: using it
@@ -645,7 +785,8 @@ final class Main: NSObject, NSWindowDelegate {
         busy = true
         seen.insert(chosen)
         setButton(title: item.verb, enabled: false)
-        put("\n  \u{1B}[2mworking …\u{1B}[0m\n")
+        spinner.startAnimation(nil)
+        say("working …")
 
         // Only after somebody has said yes does --yes go anywhere near nimo,
         // and a preview cannot be given it at all.
@@ -659,24 +800,140 @@ final class Main: NSObject, NSWindowDelegate {
         DispatchQueue.global(qos: .userInitiated).async {
             let result = Nimo.run(arguments)
             DispatchQueue.main.async {
-                let body = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
-                self.put(body.isEmpty
-                         ? "\n  \u{1B}[2mnimo said nothing at all.\u{1B}[0m\n"
-                         : "\n" + body + "\n")
+                let pieces = Report.parse(result.text)
+                if pieces.isEmpty {
+                    self.say("nimo said nothing at all.")
+                } else {
+                    self.draw(pieces)
+                }
+                self.spinner.stopAnimation(nil)
                 self.busy = false
                 self.setButton(title: Action.all[self.chosen].verb, enabled: true)
             }
         }
     }
 
-    private func put(_ text: String) {
-        console.textStorage?.setAttributedString(Screen.render(text, size: 12))
-        console.scrollToBeginningOfDocument(nil)
-    }
-
     /// Closing the window puts nimo away; the Dock icon brings it back. It is
     /// not a document, so there is nothing to lose by closing it.
     func windowShouldClose(_ sender: NSWindow) -> Bool { true }
+}
+
+// MARK: - one line of a report
+
+/// A label on the left, a number on the right, and — when nimo drew a bar of
+/// blocks — a real bar rather than a spelled-out one.
+final class Line: NSView {
+    init(label: String, value: String, note: String, bar: Double?, strong: Bool) {
+        super.init(frame: .zero)
+
+        let left = NSTextField(labelWithString: label)
+        left.font = NSFont.systemFont(ofSize: 13, weight: strong ? .medium : .regular)
+        left.textColor = strong ? Paint.ink : Paint.muted
+        left.lineBreakMode = .byTruncatingTail
+        left.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(left)
+
+        let right = NSStackView()
+        right.orientation = .horizontal
+        right.alignment = .centerY
+        right.spacing = 10
+        right.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(right)
+
+        if !value.isEmpty {
+            let field = NSTextField(labelWithString: value)
+            field.font = NSFont.monospacedDigitSystemFont(ofSize: 13,
+                                                          weight: strong ? .semibold : .regular)
+            field.textColor = Paint.ink
+            right.addArrangedSubview(field)
+        }
+
+        if !note.isEmpty {
+            let field = NSTextField(labelWithString: note)
+            field.font = NSFont.systemFont(ofSize: 12, weight: .regular)
+            field.textColor = Paint.faint
+            right.addArrangedSubview(field)
+        }
+
+        if let filled = bar {
+            let track = NSView()
+            track.wantsLayer = true
+            track.layer?.backgroundColor = Paint.picked.cgColor
+            track.layer?.cornerRadius = 2.5
+            track.translatesAutoresizingMaskIntoConstraints = false
+
+            let fill = NSView()
+            fill.wantsLayer = true
+            fill.layer?.backgroundColor = Paint.accent.cgColor
+            fill.layer?.cornerRadius = 2.5
+            fill.translatesAutoresizingMaskIntoConstraints = false
+            track.addSubview(fill)
+
+            let width = max(0.04, min(1, filled))
+            NSLayoutConstraint.activate([
+                track.widthAnchor.constraint(equalToConstant: 76),
+                track.heightAnchor.constraint(equalToConstant: 5),
+                fill.leadingAnchor.constraint(equalTo: track.leadingAnchor),
+                fill.topAnchor.constraint(equalTo: track.topAnchor),
+                fill.bottomAnchor.constraint(equalTo: track.bottomAnchor),
+                fill.widthAnchor.constraint(equalTo: track.widthAnchor, multiplier: width),
+            ])
+            right.addArrangedSubview(track)
+        }
+
+        left.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        right.setContentHuggingPriority(.required, for: .horizontal)
+
+        translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 27),
+            left.leadingAnchor.constraint(equalTo: leadingAnchor),
+            left.centerYAnchor.constraint(equalTo: centerYAnchor),
+            right.leadingAnchor.constraint(greaterThanOrEqualTo: left.trailingAnchor, constant: 14),
+            right.trailingAnchor.constraint(equalTo: trailingAnchor),
+            right.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("nimo has no nib") }
+}
+
+/// A tick or a warning, and what it is about.
+final class Marked: NSView {
+    init(text: String, symbol: String, colour: NSColor, ink: NSColor) {
+        super.init(frame: .zero)
+
+        let icon = NSImageView()
+        if let picture = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) {
+            picture.isTemplate = true
+            icon.image = picture
+        }
+        icon.contentTintColor = colour
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(icon)
+
+        let field = Wrapping(labelWithString: text)
+        field.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        field.textColor = ink
+        field.maximumNumberOfLines = 0
+        field.lineBreakMode = .byWordWrapping
+        field.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(field)
+
+        translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            icon.leadingAnchor.constraint(equalTo: leadingAnchor),
+            icon.topAnchor.constraint(equalTo: topAnchor, constant: 8),
+            icon.widthAnchor.constraint(equalToConstant: 13),
+            icon.heightAnchor.constraint(equalToConstant: 13),
+            field.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 9),
+            field.trailingAnchor.constraint(equalTo: trailingAnchor),
+            field.topAnchor.constraint(equalTo: topAnchor, constant: 5),
+            field.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -5),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("nimo has no nib") }
 }
 
 // MARK: - the app
