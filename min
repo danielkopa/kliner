@@ -21,7 +21,7 @@
 #
 set -u
 
-NIMO_VERSION="0.44.0"
+NIMO_VERSION="0.45.0"
 
 # --- find our own directory, even when called through a symlink ---------
 nimo_root() {

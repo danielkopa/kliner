@@ -20,7 +20,7 @@ disk back. Every step asks first. Every step can be undone.
 [![ci](https://github.com/danielkopa/nimo/actions/workflows/ci.yml/badge.svg)](https://github.com/danielkopa/nimo/actions/workflows/ci.yml)
 [![release](https://img.shields.io/github/v/tag/danielkopa/nimo?label=release&color=0e7a72)](https://github.com/danielkopa/nimo/releases)
 ![bash 3.2](https://img.shields.io/badge/bash-3.2-1d2225)
-![tests](https://img.shields.io/badge/tests-289-0e7a72)
+![tests](https://img.shields.io/badge/tests-652-0e7a72)
 ![dependencies](https://img.shields.io/badge/dependencies-0-0e7a72)
 [![license](https://img.shields.io/badge/license-MIT-1d2225)](LICENSE)
 
@@ -54,6 +54,41 @@ turns it off for good.
 
 ## Getting started
 
+### As an app, from the menu bar
+
+[**Download Nimo.app**](https://github.com/danielkopa/nimo/releases/latest/download/Nimo.app.zip)
+— unzip it, drag it into Applications, then **right-click it and choose Open**
+the first time. macOS says it cannot check the app because nimo is not signed
+with Apple's $99-a-year certificate; that is a statement about a receipt, not
+about the code. The app is built from this repository by GitHub's own runners,
+with [`app/build.sh`](app/build.sh), on the tag you can see.
+
+A small face appears beside your clock. The menu is the whole tool:
+
+```
+   Clear my desktop
+   Sort my downloads
+   Gather loose screenshots
+   ──────────────────────────
+   Next wallpaper
+   Previous wallpaper
+   ──────────────────────────
+   What starts when I sign in
+   What is taking up room
+   How is my computer
+   What could be freed
+   ──────────────────────────
+   Free it up
+   ──────────────────────────
+   Put it all back
+```
+
+Anything that changes something asks in a dialog first — the app is a window
+on the same `min`, carried inside it, and `--yes` only ever goes to nimo after
+a person has clicked *Do it*. macOS 12 and newer, Apple silicon and Intel.
+
+### In a terminal
+
 ```bash
 brew install danielkopa/tap/nimo
 ```
@@ -65,6 +100,7 @@ git clone git@github.com:danielkopa/nimo.git ~/nimo && ~/nimo/install.sh
 ```
 
 Then type `min`. Or `min preview` first, which cannot change anything at all.
+This is the way that also works on Linux and on Windows.
 
 There is deliberately no `curl … | bash` line. nimo's whole argument is that
 you can read it before you run it, and that line is the opposite of that.

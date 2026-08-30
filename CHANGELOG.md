@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.45.0
+
+### nimo is an app you download
+
+Until now nimo was a thing you cloned. That is fine if you already live in a
+terminal, and a wall if you do not — and the people whose desktop has eighty-five
+things on it are mostly not in a terminal.
+
+So there is now **Nimo.app**: a menu bar app, the size of a small photo, that you
+download, drag into Applications, and forget about. A face sits beside your
+clock, and the menu is the whole tool in plain words — *Clear my desktop*,
+*Next wallpaper*, *What is taking up room*, *Put it all back*.
+
+- It is not a rewrite. The app carries `min` inside it and runs the same
+  program, so every rule nimo holds to still holds: nothing outside your home
+  folder, no sudo, no network, nothing deleted that was yours
+- Anything that changes something asks first, in a normal Mac dialog. `--yes`
+  reaches nimo only after somebody has clicked **Do it** — never as a constant
+- Its stdin is nothing at all, so nothing can sit waiting for an answer that
+  a GUI could never give
+- The work happens off the main thread, so a menu that is thinking is still a
+  menu you can close
+- Universal: Apple silicon and Intel, macOS 12 and newer
+
+Built by `app/build.sh` — forty lines, `swiftc`, no Xcode project — on GitHub's
+own runners, from the tag you can see. It is signed ad-hoc and not with Apple's
+$99-a-year certificate, so the first time you open it you right-click and choose
+**Open**. The site says so plainly rather than pretending otherwise.
+
+The terminal has not gone anywhere, and it is still the only way on Linux and
+Windows.
+
 ## 0.44.0
 
 ### `min undo --all`

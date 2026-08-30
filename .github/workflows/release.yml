@@ -31,6 +31,17 @@ jobs:
           /bin/bash test/macos.sh -q
           /bin/bash test/windows.sh -q
 
+      - name: build the app people download
+        run: bash app/build.sh
+
+      - name: and it must be a real app before it goes anywhere
+        run: |
+          test -x app/build/Nimo.app/Contents/MacOS/Nimo
+          test -f app/build/Nimo.app/Contents/Resources/nimo/min
+          test -f app/build/Nimo.app/Contents/Resources/AppIcon.icns
+          codesign --verify --deep --strict app/build/Nimo.app
+          lipo -archs app/build/Nimo.app/Contents/MacOS/Nimo
+
       - name: take the notes out of the changelog
         id: notes
         run: |
@@ -44,6 +55,14 @@ jobs:
             echo ""
             echo "---"
             echo ""
+            echo "### The app"
+            echo ""
+            echo "Download **Nimo.app.zip** below, unzip it, and drag Nimo into Applications."
+            echo "The first time, right-click it and choose Open — it is not signed with a"
+            echo "\$99-a-year Apple certificate, and macOS says so once."
+            echo ""
+            echo "### Or in a terminal"
+            echo ""
             echo '```bash'
             echo "git clone --branch $GITHUB_REF_NAME git@github.com:danielkopa/nimo.git ~/nimo && ~/nimo/install.sh"
             echo '```'
@@ -55,5 +74,6 @@ jobs:
         with:
           name: nimo ${{ github.ref_name }}
           body: ${{ steps.notes.outputs.notes }}
+          files: app/build/Nimo.app.zip
           draft: false
           prerelease: false

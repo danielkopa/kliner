@@ -1008,6 +1008,64 @@ check "your documents survived"           "[ -f '$BOX/Documents/thesis.pdf' ]"
 check "a second run finds nothing"        "min preview -q --no-color | grep -q 'nothing to clean here'"
 check "--json agrees there is nothing"    "min preview --json | grep -q '\"safe_bytes\": 0'"
 
+# ---- the app people download -------------------------------------------
+#
+# None of this compiles Swift — there is no Mac here. It checks the thing
+# that actually rots: the menu naming a command min no longer has, or the
+# bundle being assembled without a library min sources.
+
+APP="$ROOT/app"
+
+check "the app has a source, a plist and a build" \
+    "[ -f '$APP/Sources/main.swift' ] && [ -f '$APP/Info.plist' ] && [ -x '$APP/build.sh' ]"
+check "the build script parses"           "bash -n '$APP/build.sh'"
+check "the menu bar glyph is there twice" \
+    "[ -f '$APP/Resources/menubar.png' ] && [ -f '$APP/Resources/menubar@2x.png' ]"
+check "there is one icon to change"       "[ -f '$ROOT/assets/app/icon-1024.png' ]"
+
+check "the app is a menu bar app"         "grep -q 'LSUIElement' '$APP/Info.plist'"
+check "its version is filled in at build" "grep -q '__VERSION__' '$APP/Info.plist'"
+check "build.sh fills it in"              "grep -q 's/__VERSION__/' '$APP/build.sh'"
+check "the plist names the executable"    "grep -q '<string>Nimo</string>' '$APP/Info.plist'"
+
+# Every command the menu offers has to be a command min answers to. This is
+# the check that catches a renamed command months from now.
+APP_CMDS=$(sed -n 's/.*Action("[^"]*", \[\"\([a-z]*\)\".*/\1/p' "$APP/Sources/main.swift" | sort -u)
+check "the menu names commands"           "[ -n '$APP_CMDS' ]"
+# the one line in min that lists every word it will answer to
+KNOWN=$(grep -m1 -o '^ *[a-z]*|clean|preview|[a-z|]*)' "$MIN" | tr -d ' )')
+check "min's own list of commands is readable" "[ -n '$KNOWN' ]"
+UNKNOWN=""
+for c in $APP_CMDS; do
+    case "|$KNOWN|" in
+        *"|$c|"*) ;;
+        *) UNKNOWN="$UNKNOWN $c" ;;
+    esac
+done
+check "every command in the menu exists"  "[ -z '$UNKNOWN' ]"
+
+# --yes is the app's way of saying somebody clicked. It must never be a
+# constant.
+check "--yes is not hard-wired into the menu" \
+    "! grep -qE 'arguments: \[\"[a-z]+\", \"--yes\"' '$APP/Sources/main.swift'"
+check "--yes is added only after a dialog" \
+    "grep -q 'action.asks == nil' '$APP/Sources/main.swift'"
+check "the app never gets a terminal to answer with" \
+    "grep -q 'standardInput = FileHandle.nullDevice' '$APP/Sources/main.swift'"
+check "the app reads the pipe before it waits" \
+    "grep -B2 'waitUntilExit' '$APP/Sources/main.swift' | grep -q 'readDataToEndOfFile'"
+
+# The bundle has to carry every library min sources, or the app is a menu
+# over nothing.
+check "the build copies min itself"       "grep -q 'cp min VERSION' '$APP/build.sh'"
+check "the build copies the libraries"    "grep -q 'cp -R lib' '$APP/build.sh'"
+check "the build signs the app"           "grep -q 'codesign --force' '$APP/build.sh'"
+check "the build makes both architectures" "grep -q 'for arch in arm64 x86_64' '$APP/build.sh'"
+check "the build never ships the tests"   "! grep -q 'cp -R test' '$APP/build.sh'"
+check "ci builds the app"                 "grep -q 'app/build.sh' '$ROOT/.github/workflows/ci.yml'"
+check "the release carries the app"       "grep -q 'Nimo.app.zip' '$ROOT/.github/workflows/release.yml'"
+check "the site points at the release"    "grep -q 'releases/latest/download/Nimo.app.zip' '$ROOT/docs/index.html'"
+
 # ---- verdict ------------------------------------------------------------
 
 printf '\n'

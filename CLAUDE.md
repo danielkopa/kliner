@@ -10,9 +10,10 @@ side dish. When in doubt, make the desktop calmer.
 ```bash
 ./min                 # the prompt — this is the front door
 ./min clear desktop   # or say it outright
-bash test/run.sh -q   # 160 checks, anywhere
-bash test/macos.sh -q # 86 checks, the macOS-only parts, faked
-bash test/windows.sh -q # 27 checks, the Windows parts, faked
+bash test/run.sh -q   # 334 checks, anywhere
+bash test/macos.sh -q # 161 checks, the macOS-only parts, faked
+bash test/windows.sh -q # 180 checks, the Windows parts, faked
+bash app/build.sh     # Nimo.app — on a Mac only
 ```
 
 ## Invariants — break these and the project is pointless
@@ -58,8 +59,24 @@ lib/dupes.sh           the same file kept twice — report only
 lib/apps.sh            unused apps, and min empty
 lib/undo.sh            the history, and the way back
 lib/setup.sh           macOS preferences, min zen, and setup --restore
+lib/startup.sh         what launches when you sign in
+lib/win.sh             the Windows side: registry, PowerShell, recycle bin
+lib/blank.sh           the empty-desktop pass
 lib/tools.sh           clear, tidy, top, doctor, update, the menu
+
+app/Sources/main.swift the menu bar app — a window on min, not a rewrite
+app/Info.plist         __VERSION__ is filled in by build.sh
+app/build.sh           swiftc + sips + iconutil + codesign + ditto
+app/Resources/         the menu bar glyph, three scales
+assets/app/icon-1024.png  the one picture every icon size comes from
+docs/index.html        the site, and the Download button
 ```
+
+The app is not allowed to become a second implementation. It shells out to the
+bundled `min` and shows what came back — if a menu item needs new behaviour,
+the behaviour goes in a library and the menu names the command. `--yes` is
+appended in exactly one place, after a dialog returned yes, and `test/run.sh`
+checks that it is never written into an action.
 
 Adding a scan target is one `nimo_register` call in `lib/scan.sh`.
 Adding a prompt word is two lines in `lib/repl.sh` (a glued form and a spaced

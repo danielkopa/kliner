@@ -235,6 +235,137 @@
   }
   .copybar button:hover { color: var(--accent); background: var(--raised); }
 
+  .under-cta {
+    margin: 0.95rem 0 0;
+    font-size: 0.86rem;
+    color: var(--faint);
+  }
+  .under-cta b { color: var(--muted); font-weight: 500; }
+  .under-cta a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+  .under-cta a:hover { color: var(--accent); }
+
+  /* --- the menu bar, drawn rather than screenshotted ------------------ */
+  .macbar {
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background:
+      linear-gradient(180deg, rgba(95, 211, 198, 0.10), rgba(95, 211, 198, 0) 42%),
+      var(--raised);
+    padding: 0 0 1.1rem;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  .macbar-top {
+    display: flex;
+    align-items: center;
+    gap: 1.05rem;
+    padding: 0.42rem 0.85rem;
+    font-size: 0.76rem;
+    color: var(--muted);
+    background: color-mix(in srgb, var(--surface) 82%, transparent);
+    border-bottom: 1px solid var(--line-soft);
+    backdrop-filter: blur(8px);
+  }
+  .macbar-apple { color: var(--ink); flex: none; }
+  .macbar-app { font-weight: 650; color: var(--ink); }
+  .macbar-dim { color: var(--faint); }
+  .macbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+  }
+  .macbar-nimo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.55rem;
+    height: 1.3rem;
+    border-radius: 5px;
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  .macmenu {
+    /* in the flow, so the card is exactly as tall as the menu it holds —
+       an absolute one clipped itself the moment a line was added */
+    margin: 0.45rem 3.4rem 0 auto;
+    width: 15.5rem;
+    padding: 0.3rem;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 22px 50px -22px rgba(0, 0, 0, 0.75);
+    font-size: 0.8rem;
+  }
+  .macmenu-row {
+    padding: 0.27rem 0.55rem;
+    border-radius: 5px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .macmenu-row:first-child {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  .macmenu-quiet { color: var(--muted); }
+  .macmenu-rule {
+    height: 1px;
+    margin: 0.25rem 0.4rem;
+    background: var(--line-soft);
+  }
+
+  @media (max-width: 30rem) {
+    .macmenu { margin-right: 0.6rem; margin-left: 0.6rem; width: auto; }
+  }
+
+  /* --- the four steps ------------------------------------------------- */
+  .steps {
+    counter-reset: step;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.55rem;
+  }
+  .steps li {
+    counter-increment: step;
+    position: relative;
+    padding: 0.85rem 1rem 0.85rem 3rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+  .steps li b { color: var(--ink); font-weight: 600; }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0.95rem;
+    top: 0.82rem;
+    width: 1.45rem;
+    height: 1.45rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--raised);
+    border: 1px solid var(--line);
+    color: var(--accent);
+    font-size: 0.76rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fineprint {
+    margin: 1.1rem 0 0;
+    font-size: 0.84rem;
+    color: var(--faint);
+  }
+
   .facts {
     display: flex;
     flex-wrap: wrap;
@@ -408,6 +539,7 @@
   <div class="nav-in">
     <a class="brand" href="#top"><span class="mark">◍</span> nimo</a>
     <div class="nav-links">
+      <a class="hide-s" href="#app">the app</a>
       <a class="hide-s" href="#commands">commands</a>
       <a class="hide-s" href="#promises">promises</a>
       <a href="https://github.com/danielkopa/nimo">github</a>
@@ -422,28 +554,37 @@
 
   <header class="hero">
     <div class="hero-in">
-      <span class="pill"><b>v0.44.0</b> the whole of it on Windows too, without loosening a thing</span>
+      <span class="pill"><b>v0.45.0</b> new — nimo is an app now, and it lives in your menu bar</span>
 
       <h1>Make your Mac<br>feel minimal again.</h1>
 
       <p class="lede">
         A clear desktop. A dock with only what you open. A calmer wallpaper. And the
-        disk back. Every step asks first, and every step can be undone.
+        disk back. It lives in your menu bar. Every step asks first, and every step
+        can be undone.
       </p>
 
       <div class="cta">
-        <div class="copybar">
-          <code id="cmd">git clone git@github.com:danielkopa/nimo.git ~/nimo &amp;&amp; ~/nimo/install.sh</code>
-          <button type="button" id="copy">copy</button>
-        </div>
-        <a class="btn btn-quiet" href="https://github.com/danielkopa/nimo#readme">Read the docs →</a>
+        <a class="btn btn-primary" href="https://github.com/danielkopa/nimo/releases/latest/download/Nimo.app.zip" id="download">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 2v8m0 0 3.2-3.2M8 10 4.8 6.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2.6 11.4v1.2a1.2 1.2 0 0 0 1.2 1.2h8.4a1.2 1.2 0 0 0 1.2-1.2v-1.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          Download for Mac
+        </a>
+        <a class="btn btn-quiet" href="#install">How to open it →</a>
       </div>
+
+      <p class="under-cta">
+        Free, open source, <b>2&nbsp;MB</b>. macOS 12 and newer, Apple silicon and Intel.
+        <a href="#terminal">Prefer a terminal?</a>
+      </p>
 
       <div class="facts">
         <span><b>0</b> dependencies</span>
-        <span><b>289</b> tests</span>
+        <span><b>652</b> tests</span>
         <span>bash <b>3.2</b></span>
-        <span><b>~5000</b> lines you can read</span>
+        <span><b>~7000</b> lines you can read</span>
         <span><b>MIT</b></span>
       </div>
     </div>
@@ -555,6 +696,133 @@
       That is the real thing, playing. Not a video — twelve kilobytes of SVG,
       generated from a file of frames in the repository.
     </p>
+  </section>
+
+  <section id="app">
+    <div class="stack-l">
+      <div class="head">
+        <span class="eyebrow">the app</span>
+        <h2>It sits in your menu bar.</h2>
+        <p>
+          Download it, drag it into Applications, and nimo is a small face up beside
+          the clock. Click it and the whole tool is a menu — the same nimo, asked in
+          plain words instead of typed.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="stack">
+          <div class="macbar" role="img" aria-label="The nimo menu, open in the macOS menu bar">
+            <div class="macbar-top">
+              <svg class="macbar-apple" width="11" height="13" viewBox="0 0 14 17" fill="currentColor" aria-hidden="true">
+                <path d="M11.3 9c0-1.9 1.5-2.8 1.6-2.9-.9-1.3-2.2-1.5-2.7-1.5-1.2-.1-2.3.7-2.9.7-.6 0-1.5-.7-2.5-.7C3.5 4.6 2.3 5.4 1.6 6.6.2 9 1.2 12.6 2.6 14.6c.7 1 1.5 2 2.5 2 1 0 1.4-.6 2.6-.6s1.5.6 2.6.6 1.7-1 2.4-2c.7-1.1 1-2.2 1-2.3-.1 0-2-.8-2-3.3zM9.4 3.3c.5-.7.9-1.6.8-2.6-.8 0-1.8.5-2.4 1.2-.5.6-1 1.6-.8 2.5.9.1 1.8-.4 2.4-1.1z"/>
+              </svg>
+              <span class="macbar-app">Finder</span>
+              <span class="macbar-dim">File</span>
+              <span class="macbar-dim">Edit</span>
+              <span class="macbar-dim">View</span>
+              <span class="macbar-right">
+                <span class="macbar-nimo" aria-hidden="true">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                    <rect x="2.4" y="2.4" width="19.2" height="19.2" rx="7"
+                          stroke="currentColor" stroke-width="1.9"/>
+                    <circle cx="8.8" cy="10" r="1.5" fill="currentColor"/>
+                    <circle cx="15.2" cy="10" r="1.5" fill="currentColor"/>
+                    <path d="M8 14.2c1 1.5 2.4 2.2 4 2.2s3-.7 4-2.2"
+                          stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+                  </svg>
+                </span>
+                <span class="macbar-dim">100%</span>
+                <span class="macbar-dim">Wed 21:04</span>
+              </span>
+            </div>
+
+            <div class="macmenu">
+              <div class="macmenu-row">Clear my desktop</div>
+              <div class="macmenu-row">Sort my downloads</div>
+              <div class="macmenu-row">Gather loose screenshots</div>
+              <div class="macmenu-rule"></div>
+              <div class="macmenu-row">Next wallpaper</div>
+              <div class="macmenu-row">Previous wallpaper</div>
+              <div class="macmenu-rule"></div>
+              <div class="macmenu-row">What starts when I sign in</div>
+              <div class="macmenu-row">What is taking up room</div>
+              <div class="macmenu-row">How is my computer</div>
+              <div class="macmenu-row">What could be freed</div>
+              <div class="macmenu-rule"></div>
+              <div class="macmenu-row">Free it up</div>
+              <div class="macmenu-rule"></div>
+              <div class="macmenu-row">Put it all back</div>
+              <div class="macmenu-rule"></div>
+              <div class="macmenu-row macmenu-quiet">Open nimo in Terminal…</div>
+              <div class="macmenu-row macmenu-quiet">About nimo</div>
+              <div class="macmenu-row macmenu-quiet">Quit nimo</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="cap">
+            <span class="mono">it asks, then it tells you</span>
+            <p>
+              Anything that changes something stops and asks first, in a normal Mac
+              dialog. Then it shows you exactly what nimo said, word for word — the
+              same panel the terminal prints.
+            </p>
+          </div>
+          <div class="term">
+            <pre class="screen">  <i>╭─ your desktop ──────────────────</i>
+
+  <b>✓</b> Sorted — 41 items filed away
+
+     Screenshots            <s>23 items</s>
+     Images                  <s>9 items</s>
+     Documents               <s>6 items</s>
+     Other                   <s>3 items</s>
+
+  <i>  Desktop/Tidy/</i>
+
+  <i>  changed your mind?  Put it all back</i>
+</pre>
+          </div>
+          <div class="cap">
+            <span class="mono">nothing is deleted</span>
+            <p>
+              The app is a window on the same program: it moves and writes down,
+              never removes. <b>Put it all back</b> reverses the lot, newest first.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="stack-l">
+      <div class="head">
+        <span class="eyebrow">the first time</span>
+        <h2>macOS will stop you once. Here is why.</h2>
+        <p>
+          nimo is not signed with Apple's $99-a-year certificate, so the first time you
+          open it macOS says it cannot check it. That is a statement about a receipt,
+          not about the app — every line of it is on GitHub, and the copy you download
+          is built there, in the open, by a script you can read.
+        </p>
+      </div>
+
+      <ol class="steps">
+        <li><b>Download</b> Nimo.app.zip and double-click it to unzip.</li>
+        <li><b>Drag Nimo</b> into your Applications folder.</li>
+        <li><b>Right-click it</b> (or Control-click) and choose <b>Open</b>. Not double-click — right-click. Then <b>Open</b> again in the dialog.</li>
+        <li>That is once, for ever. A face appears in your menu bar.</li>
+      </ol>
+
+      <p class="fineprint">
+        If you would rather not take anyone's word for it: <code>app/build.sh</code> in the
+        repository is the whole build, forty lines of it, and the release is put together
+        by GitHub's own machines from the tag you can see.
+      </p>
+    </div>
   </section>
 
   <section>
@@ -1043,10 +1311,10 @@
     </div>
   </section>
 
-  <section>
+  <section id="terminal">
     <div class="band">
-      <h2>One clone, one install.</h2>
-      <p>Then <code>min tidy</code>. Or <code>min preview</code> first — it cannot change anything at all.</p>
+      <h2>Or keep it in the terminal.</h2>
+      <p>Then <code>min tidy</code>. Or <code>min preview</code> first — it cannot change anything at all. Works on macOS, Linux and Windows.</p>
       <div class="copybar">
         <code id="cmd2">git clone git@github.com:danielkopa/nimo.git ~/nimo &amp;&amp; ~/nimo/install.sh</code>
         <button type="button" id="copy2">copy</button>
