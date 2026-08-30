@@ -12,6 +12,7 @@
 
 import AppKit
 import Foundation
+import ServiceManagement
 
 // MARK: - running nimo
 
@@ -122,6 +123,42 @@ struct Action {
         Action("Put it all back", ["undo", "--all"],
                asks: "Reverse everything nimo has done, newest first?", rule: true),
     ]
+}
+
+// MARK: - starting itself
+
+/// A menu bar app that has to be started by hand every morning is a menu bar
+/// app you stop using. macOS 13 has one honest way to ask; older ones do not,
+/// and nimo says so rather than writing a plist behind your back.
+enum Login {
+    static var possible: Bool {
+        if #available(macOS 13.0, *) { return true }
+        return false
+    }
+
+    static var on: Bool {
+        if #available(macOS 13.0, *) {
+            return SMAppService.mainApp.status == .enabled
+        }
+        return false
+    }
+
+    /// Returns what went wrong, or nil when it worked.
+    static func set(_ wanted: Bool) -> String? {
+        guard #available(macOS 13.0, *) else {
+            return "Opening at login needs macOS 13 or newer."
+        }
+        do {
+            if wanted {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
+    }
 }
 
 // MARK: - the window that shows what happened
@@ -248,6 +285,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
 
+        let login = NSMenuItem(title: "Open nimo at login",
+                               action: #selector(toggleLogin),
+                               keyEquivalent: "")
+        login.target = self
+        login.state = Login.on ? .on : .off
+        login.isEnabled = Login.possible
+        menu.addItem(login)
+
         let terminal = NSMenuItem(title: "Open nimo in Terminal…",
                                   action: #selector(openInTerminal),
                                   keyEquivalent: "")
@@ -308,6 +353,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.busy = false
             }
         }
+    }
+
+    @objc private func toggleLogin(_ sender: NSMenuItem) {
+        let wanted = (sender.state != .on)
+        if let trouble = Login.set(wanted) {
+            let alert = NSAlert()
+            alert.messageText = "nimo could not change that"
+            alert.informativeText = trouble
+            alert.addButton(withTitle: "OK")
+            NSApp.activate(ignoringOtherApps: true)
+            alert.runModal()
+        }
+        // Ask macOS what it actually is now, rather than assuming it worked.
+        sender.state = Login.on ? .on : .off
     }
 
     @objc private func openInTerminal() {

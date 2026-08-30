@@ -87,6 +87,19 @@ Anything that changes something asks in a dialog first — the app is a window
 on the same `min`, carried inside it, and `--yes` only ever goes to nimo after
 a person has clicked *Do it*. macOS 12 and newer, Apple silicon and Intel.
 
+### Or build it yourself, on your own Mac
+
+If you have the repository already, this builds the app here and puts it in
+Applications. Nothing is downloaded, so macOS has nothing to warn you about —
+it just opens.
+
+```bash
+bash ~/nimo/app/install-app.sh
+```
+
+It needs Apple's command line tools (`xcode-select --install`), which you
+already have if `git` works. It never uses `sudo`.
+
 ### In a terminal
 
 ```bash

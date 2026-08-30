@@ -24,6 +24,13 @@ clock, and the menu is the whole tool in plain words — *Clear my desktop*,
   menu you can close
 - Universal: Apple silicon and Intel, macOS 12 and newer
 
+It can start itself when you sign in — one item in the menu, asked of macOS
+through `SMAppService` rather than by writing a plist behind your back.
+
+If you have the repository, `bash ~/nimo/app/install-app.sh` builds the app on
+your own Mac and puts it in Applications. Nothing is downloaded, so there is no
+warning to click through at all. It never uses `sudo`.
+
 Built by `app/build.sh` — forty lines, `swiftc`, no Xcode project — on GitHub's
 own runners, from the tag you can see. It is signed ad-hoc and not with Apple's
 $99-a-year certificate, so the first time you open it you right-click and choose
