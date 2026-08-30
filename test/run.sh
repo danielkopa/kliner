@@ -1023,14 +1023,21 @@ check "the menu bar glyph is there twice" \
     "[ -f '$APP/Resources/menubar.png' ] && [ -f '$APP/Resources/menubar@2x.png' ]"
 check "there is one icon to change"       "[ -f '$ROOT/assets/app/icon-1024.png' ]"
 
-check "the app is a menu bar app"         "grep -q 'LSUIElement' '$APP/Info.plist'"
+check "the app is a normal app, not a menu bar one" \
+    "! grep -q 'LSUIElement' '$APP/Info.plist'"
+check "it puts an icon in the Dock"       "grep -q 'setActivationPolicy(.regular)' '$APP/Sources/main.swift'"
+check "it opens a window when it starts"  "grep -q 'makeKeyAndOrderFront' '$APP/Sources/main.swift'"
+check "it has a menu bar of its own"      "grep -q 'NSApp.mainMenu = buildMenu' '$APP/Sources/main.swift'"
+check "you can quit it"                   "grep -q 'NSApplication.terminate' '$APP/Sources/main.swift'"
+check "nimo's colours are read back, not thrown away" \
+    "grep -q 'enum Screen' '$APP/Sources/main.swift' && grep -q '\"--color\"' '$APP/Sources/main.swift'"
 check "its version is filled in at build" "grep -q '__VERSION__' '$APP/Info.plist'"
 check "build.sh fills it in"              "grep -q 's/__VERSION__/' '$APP/build.sh'"
 check "the plist names the executable"    "grep -q '<string>Nimo</string>' '$APP/Info.plist'"
 
 # Every command the menu offers has to be a command min answers to. This is
 # the check that catches a renamed command months from now.
-APP_CMDS=$(sed -n 's/.*Action("[^"]*", \[\"\([a-z]*\)\".*/\1/p' "$APP/Sources/main.swift" | sort -u)
+APP_CMDS=$(sed -n 's/.*arguments: \[\"\([a-z]*\)\".*/\1/p' "$APP/Sources/main.swift" | sort -u)
 check "the menu names commands"           "[ -n '$APP_CMDS' ]"
 # the one line in min that lists every word it will answer to
 KNOWN=$(grep -m1 -o '^ *[a-z]*|clean|preview|[a-z|]*)' "$MIN" | tr -d ' )')
@@ -1049,7 +1056,7 @@ check "every command in the menu exists"  "[ -z '$UNKNOWN' ]"
 check "--yes is not hard-wired into the menu" \
     "! grep -qE 'arguments: \[\"[a-z]+\", \"--yes\"' '$APP/Sources/main.swift'"
 check "--yes is added only after a dialog" \
-    "grep -q 'action.asks == nil' '$APP/Sources/main.swift'"
+    "grep -q 'item.asks == nil ? item.arguments : item.arguments' '$APP/Sources/main.swift'"
 check "the app never gets a terminal to answer with" \
     "grep -q 'standardInput = FileHandle.nullDevice' '$APP/Sources/main.swift'"
 check "the app reads the pipe before it waits" \

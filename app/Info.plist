@@ -20,8 +20,9 @@
 	<string>__VERSION__</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>12.0</string>
-	<!-- A menu bar app: no Dock icon, no window until you ask for one. -->
-	<key>LSUIElement</key>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>MIT licensed. https://github.com/danielkopa/nimo</string>
@@ -30,6 +31,8 @@
 	     out loud before it will let it happen. -->
 	<key>NSAppleEventsUsageDescription</key>
 	<string>nimo opens a Terminal window when you ask it to, and sets your wallpaper.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>nimo gathers loose screenshots into your Pictures folder.</string>
 	<key>NSDesktopFolderUsageDescription</key>
 	<string>nimo sorts your desktop into folders. It never deletes your files.</string>
 	<key>NSDownloadsFolderUsageDescription</key>

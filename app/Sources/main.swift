@@ -1,11 +1,13 @@
 //
-//  nimo — a clean workspace, from the menu bar.
+//  nimo — make your workspace clean.
+//
+//  A normal Mac application: an icon in the Dock, a window you open, a list
+//  of the things nimo does down the side, and what nimo said in the middle.
 //
 //  The whole of nimo is a bash program that has been argued with for a long
 //  time: it asks before it changes anything, it writes down what it did, and
-//  min undo puts it back. None of that is reimplemented here. This is the
-//  window on it — a menu bar item that runs the same `min`, bundled inside
-//  the app, and shows you what it said.
+//  "Put it all back" reverses it. None of that is reimplemented here. This is
+//  the window on it — it runs the same `min`, carried inside the app.
 //
 //  Built with swiftc from the command line tools; there is no Xcode project,
 //  because a project file is one more thing to drift.
@@ -13,6 +15,28 @@
 import AppKit
 import Foundation
 import ServiceManagement
+
+// MARK: - nimo's colours
+
+enum Paint {
+    static func rgb(_ r: Int, _ g: Int, _ b: Int) -> NSColor {
+        NSColor(srgbRed: CGFloat(r) / 255, green: CGFloat(g) / 255,
+                blue: CGFloat(b) / 255, alpha: 1)
+    }
+
+    static let ground    = rgb(11, 13, 14)
+    static let side      = rgb(14, 17, 19)
+    static let line      = rgb(29, 34, 37)
+    static let raised    = rgb(19, 23, 25)
+    static let ink       = rgb(236, 239, 241)
+    static let body      = rgb(212, 219, 222)
+    static let muted     = rgb(154, 164, 171)
+    static let faint     = rgb(106, 118, 121)
+    static let accent    = rgb(95, 211, 198)
+    static let onAccent  = rgb(4, 33, 30)
+    static let warm      = rgb(217, 186, 116)
+    static let hot       = rgb(224, 115, 106)
+}
 
 // MARK: - running nimo
 
@@ -31,31 +55,37 @@ enum Nimo {
             .appendingPathComponent("min")
     }
 
-    /// Runs `min` and waits. Call it off the main thread — some of these
-    /// walk your whole home folder, and a menu that freezes is a broken one.
+    static var version: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+    }
+
+    /// Runs `min` and waits. Call it off the main thread — some of these walk
+    /// your whole home folder, and a window that freezes is a broken one.
     static func run(_ arguments: [String]) -> Outcome {
         guard let min = executable,
               FileManager.default.fileExists(atPath: min.path) else {
             return Outcome(ok: false, text: """
-            nimo could not find its own copy of min.
+              nimo could not find its own copy of min.
 
-            The app was unpacked incompletely. Download it again, and move
-            the whole Nimo app — not a piece of it — into Applications.
+              The app was unpacked incompletely. Move the whole Nimo app —
+              not a piece of it — into Applications.
             """)
         }
 
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/bash")
-        task.arguments = [min.path] + arguments + ["--no-color", "--no-animation"]
+        // --color, not --no-color: nimo draws in colour, and throwing that
+        // away is what makes a window look like a dumped log.
+        task.arguments = [min.path] + arguments + ["--color", "--no-animation"]
         task.currentDirectoryURL = FileManager.default.homeDirectoryForCurrentUser
 
-        // A GUI has no terminal, and nimo refuses to change anything without
-        // one unless it is told yes — which is exactly what the dialog before
-        // this was for. Its stdin is nothing at all, so nothing can sit there
-        // waiting for an answer that will never come.
+        // nimo refuses to change anything without a terminal unless it is
+        // told yes — which is what the dialog before this is for. Its stdin
+        // is nothing at all, so nothing can wait for an answer a window
+        // could never give.
         var env = ProcessInfo.processInfo.environment
-        env["NO_COLOR"] = "1"
-        env["COLUMNS"] = "72"
+        env.removeValue(forKey: "NO_COLOR")
+        env["COLUMNS"] = "76"
         env["NIMO_FROM_APP"] = "1"
         task.environment = env
 
@@ -75,61 +105,167 @@ enum Nimo {
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         task.waitUntilExit()
 
-        let text = String(data: data, encoding: .utf8) ?? ""
-        return Outcome(ok: task.terminationStatus == 0, text: text)
+        return Outcome(ok: task.terminationStatus == 0,
+                       text: String(data: data, encoding: .utf8) ?? "")
     }
 }
 
-// MARK: - the actions in the menu
+// MARK: - what the app can do
 
-/// A thing the menu can do.
-///
-/// `asks` is the difference between "look at this" and "change this": nimo
-/// itself asks in a terminal, and there is no terminal here, so the app has
-/// to ask in its own voice before it passes --yes on.
 struct Action {
-    let title: String
+    let title: String        // what it is called down the side
+    let blurb: String        // one line, at the top of its page
+    let verb: String         // what the button says
     let arguments: [String]
-    let asks: String?      // the question, or nil when it changes nothing
-    let separatorBefore: Bool
-
-    init(_ title: String, _ arguments: [String], asks: String? = nil, rule: Bool = false) {
-        self.title = title
-        self.arguments = arguments
-        self.asks = asks
-        self.separatorBefore = rule
-    }
+    let asks: String?        // the question, or nil when it changes nothing
+    let group: String        // the heading it sits under
 
     static let all: [Action] = [
-        Action("Clear my desktop", ["desktop"],
-               asks: "Move everything on your desktop into Desktop/Tidy, sorted by what it is?\n\nNothing is deleted, and nimo can put it all back."),
-        Action("Sort my downloads", ["downloads"],
-               asks: "Sort your downloads into Downloads/Tidy?\n\nNothing is deleted, and nimo can put it all back."),
-        Action("Gather loose screenshots", ["screenshots"],
-               asks: "Gather every loose screenshot into Pictures/Screenshots?"),
+        Action(title: "Desktop",
+               blurb: "Everything on your desktop, sorted into Desktop/Tidy by what it is. Nothing is deleted, and nothing is renamed.",
+               verb: "Clear my desktop",
+               arguments: ["desktop"],
+               asks: "Move everything on your desktop into Desktop/Tidy, sorted by what it is?\n\nNothing is deleted, and nimo can put it all back.",
+               group: "Your desk"),
 
-        Action("Next wallpaper", ["next"], rule: true),
-        Action("Previous wallpaper", ["prev"]),
+        Action(title: "Downloads",
+               blurb: "The same, for the folder everything lands in and nothing ever leaves.",
+               verb: "Sort my downloads",
+               arguments: ["downloads"],
+               asks: "Sort your downloads into Downloads/Tidy?\n\nNothing is deleted, and nimo can put it all back.",
+               group: "Your desk"),
 
-        Action("What starts when I sign in", ["startup", "--list"], rule: true),
-        Action("What is taking up room", ["top"]),
-        Action("How is my computer", ["doctor"]),
-        Action("What could be freed", ["preview"]),
+        Action(title: "Screenshots",
+               blurb: "Every loose screenshot gathered into Pictures/Screenshots, wherever it was dropped.",
+               verb: "Gather them up",
+               arguments: ["screenshots"],
+               asks: "Gather every loose screenshot into Pictures/Screenshots?",
+               group: "Your desk"),
 
-        Action("Free it up", ["clean"], asks:
-               "Delete the caches and temporary files nimo found?\n\nThis one frees real space. Your own files are never touched.",
-               rule: true),
+        Action(title: "Wallpaper",
+               blurb: "Step through the wallpapers your Mac already ships with. Nothing is downloaded.",
+               verb: "Next wallpaper",
+               arguments: ["next"],
+               asks: nil,
+               group: "Your screen"),
 
-        Action("Put it all back", ["undo", "--all"],
-               asks: "Reverse everything nimo has done, newest first?", rule: true),
+        Action(title: "Startup",
+               blurb: "What launches itself when you sign in — and which of them nimo can turn off.",
+               verb: "Look",
+               arguments: ["startup", "--list"],
+               asks: nil,
+               group: "Your screen"),
+
+        Action(title: "What is big",
+               blurb: "The folders in your home that are taking up the room, largest first.",
+               verb: "Measure",
+               arguments: ["top"],
+               asks: nil,
+               group: "Your disk"),
+
+        Action(title: "What could go",
+               blurb: "Caches and temporary files your apps rebuild by themselves. This only looks — it cannot change anything at all.",
+               verb: "Have a look",
+               arguments: ["preview"],
+               asks: nil,
+               group: "Your disk"),
+
+        Action(title: "Free it up",
+               blurb: "The same list, actually removed. Your own files are never touched.",
+               verb: "Free it up",
+               arguments: ["clean"],
+               asks: "Delete the caches and temporary files nimo found?\n\nThis one frees real space. Your own files are never touched.",
+               group: "Your disk"),
+
+        Action(title: "How it is",
+               blurb: "Disk, memory, uptime, battery — how your computer is doing right now.",
+               verb: "Check",
+               arguments: ["doctor"],
+               asks: nil,
+               group: "Your computer"),
+
+        Action(title: "Put it all back",
+               blurb: "Everything nimo has done, reversed, newest first. This is why nothing here is frightening.",
+               verb: "Put it all back",
+               arguments: ["undo", "--all"],
+               asks: "Reverse everything nimo has done, newest first?",
+               group: "Your computer"),
     ]
+}
+
+// MARK: - reading nimo back
+
+/// nimo says things in seven escape codes and nothing else — reset, bold,
+/// dim, green, yellow, red, cyan. This turns them into a drawn panel, so the
+/// window shows nimo's own colours rather than a log with the colour lost.
+enum Screen {
+    static func render(_ text: String, size: CGFloat) -> NSAttributedString {
+        let plain = NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
+        let heavy = NSFont.monospacedSystemFont(ofSize: size, weight: .semibold)
+
+        let out = NSMutableAttributedString()
+        var colour = Paint.body
+        var bold = false
+        var piece = ""
+
+        func flush() {
+            if piece.isEmpty { return }
+            out.append(NSAttributedString(string: piece, attributes: [
+                .foregroundColor: colour,
+                .font: bold ? heavy : plain,
+            ]))
+            piece = ""
+        }
+
+        func apply(_ code: String) {
+            // "1;36" is two instructions, and an empty one means reset
+            let parts = code.isEmpty ? [""] : code.components(separatedBy: ";")
+            for part in parts {
+                switch part {
+                case "", "0":  colour = Paint.body;  bold = false
+                case "1":      colour = Paint.ink;   bold = true
+                case "2":      colour = Paint.faint
+                case "31":     colour = Paint.hot
+                case "32":     colour = Paint.accent   // nimo's yes is cyan
+                case "33":     colour = Paint.warm
+                case "36":     colour = Paint.accent
+                default:       break
+                }
+            }
+        }
+
+        var i = text.startIndex
+        while i < text.endIndex {
+            if text[i] == "\u{1B}" {
+                let next = text.index(after: i)
+                if next < text.endIndex, text[next] == "[" {
+                    var j = text.index(after: next)
+                    var code = ""
+                    while j < text.endIndex, text[j] != "m", code.count < 16 {
+                        code.append(text[j])
+                        j = text.index(after: j)
+                    }
+                    if j < text.endIndex, text[j] == "m" {
+                        flush()
+                        apply(code)
+                        i = text.index(after: j)
+                        continue
+                    }
+                }
+            }
+            piece.append(text[i])
+            i = text.index(after: i)
+        }
+        flush()
+        return out
+    }
 }
 
 // MARK: - starting itself
 
-/// A menu bar app that has to be started by hand every morning is a menu bar
-/// app you stop using. macOS 13 has one honest way to ask; older ones do not,
-/// and nimo says so rather than writing a plist behind your back.
+/// An app you have to open by hand every morning is an app you stop using.
+/// macOS 13 has one honest way to ask; older ones do not, and nimo says so
+/// rather than writing a plist behind your back.
 enum Login {
     static var possible: Bool {
         if #available(macOS 13.0, *) { return true }
@@ -137,9 +273,7 @@ enum Login {
     }
 
     static var on: Bool {
-        if #available(macOS 13.0, *) {
-            return SMAppService.mainApp.status == .enabled
-        }
+        if #available(macOS 13.0, *) { return SMAppService.mainApp.status == .enabled }
         return false
     }
 
@@ -149,11 +283,8 @@ enum Login {
             return "Opening at login needs macOS 13 or newer."
         }
         do {
-            if wanted {
-                try SMAppService.mainApp.register()
-            } else {
-                try SMAppService.mainApp.unregister()
-            }
+            if wanted { try SMAppService.mainApp.register() }
+            else      { try SMAppService.mainApp.unregister() }
             return nil
         } catch {
             return error.localizedDescription
@@ -161,208 +292,406 @@ enum Login {
     }
 }
 
-// MARK: - the window that shows what happened
+// MARK: - a row down the side
 
-/// nimo talks in a fixed-width panel, so this reads it back in one.
-///
-/// One window per action, reused: ask twice and you get the same window with
-/// the new answer in it, not a pile of them.
-final class OutputWindow {
-    private static var windows: [String: OutputWindow] = [:]
+final class Row: NSButton {
+    let index: Int
 
-    private let window: NSWindow
-    private let view: NSTextView
+    init(action item: Action, index: Int, target: AnyObject, selector: Selector) {
+        self.index = index
+        super.init(frame: .zero)
 
-    private init(title: String) {
-        let frame = NSRect(x: 0, y: 0, width: 640, height: 470)
+        self.title = item.title
+        self.target = target
+        self.action = selector
+        self.tag = index
+        self.isBordered = false
+        self.alignment = .left
+        self.wantsLayer = true
+        self.layer?.cornerRadius = 7
+        self.contentTintColor = Paint.muted
+        self.font = NSFont.systemFont(ofSize: 13, weight: .regular)
+        self.translatesAutoresizingMaskIntoConstraints = false
+        paint(selected: false)
+    }
 
-        let scroll = NSScrollView(frame: frame)
+    required init?(coder: NSCoder) { fatalError("nimo has no nib") }
+
+    func paint(selected: Bool) {
+        let text = NSMutableAttributedString(string: title)
+        text.addAttributes([
+            .foregroundColor: selected ? Paint.onAccent : Paint.muted,
+            .font: NSFont.systemFont(ofSize: 13, weight: selected ? .semibold : .regular),
+        ], range: NSRange(location: 0, length: text.length))
+        self.attributedTitle = text
+        self.layer?.backgroundColor = selected ? Paint.accent.cgColor : NSColor.clear.cgColor
+    }
+}
+
+// MARK: - the window
+
+final class Main: NSObject, NSWindowDelegate {
+    let window: NSWindow
+
+    private let titleLabel = NSTextField(labelWithString: "")
+    private let blurbLabel = NSTextField(labelWithString: "")
+    private let runButton  = NSButton(title: "", target: nil, action: nil)
+    private let console    = NSTextView()
+    private var rows: [Row] = []
+
+    private var chosen = 0
+    private var busy = false
+    private var seen: Set<Int> = []
+
+    override init() {
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1000, height: 660),
+                          styleMask: [.titled, .closable, .miniaturizable, .resizable,
+                                      .fullSizeContentView],
+                          backing: .buffered,
+                          defer: false)
+        super.init()
+
+        window.title = "nimo"
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.backgroundColor = Paint.ground
+        window.appearance = NSAppearance(named: .darkAqua)
+        window.isMovableByWindowBackground = true
+        window.minSize = NSSize(width: 820, height: 520)
+        window.delegate = self
+        _ = window.setFrameAutosaveName("nimo.main")
+
+        build()
+        show(0)
+        window.center()
+    }
+
+    // MARK: building it
+
+    private func build() {
+        guard let content = window.contentView else { return }
+        content.wantsLayer = true
+        content.layer?.backgroundColor = Paint.ground.cgColor
+
+        // ---- down the side ----------------------------------------------
+        let sidebar = NSView()
+        sidebar.wantsLayer = true
+        sidebar.layer?.backgroundColor = Paint.side.cgColor
+        sidebar.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(sidebar)
+
+        let edge = NSBox()
+        edge.boxType = .custom
+        edge.borderWidth = 0
+        edge.fillColor = Paint.line
+        edge.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(edge)
+
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 2
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        sidebar.addSubview(stack)
+
+        let mark = NSTextField(labelWithString: "◍  nimo")
+        mark.font = NSFont.systemFont(ofSize: 15, weight: .bold)
+        mark.textColor = Paint.accent
+        stack.addArrangedSubview(mark)
+
+        let version = NSTextField(labelWithString: Nimo.version.isEmpty
+                                  ? "make your workspace clean"
+                                  : "version " + Nimo.version)
+        version.font = NSFont.systemFont(ofSize: 11, weight: .regular)
+        version.textColor = Paint.faint
+        stack.addArrangedSubview(version)
+        stack.setCustomSpacing(20, after: version)
+
+        var lastGroup = ""
+        for (i, item) in Action.all.enumerated() {
+            if item.group != lastGroup {
+                lastGroup = item.group
+                let head = NSTextField(labelWithString: item.group.uppercased())
+                head.font = NSFont.systemFont(ofSize: 10, weight: .semibold)
+                head.textColor = Paint.faint
+                if i > 0 { stack.setCustomSpacing(18, after: stack.arrangedSubviews.last ?? head) }
+                stack.addArrangedSubview(head)
+                stack.setCustomSpacing(8, after: head)
+            }
+
+            let row = Row(action: item, index: i, target: self, selector: #selector(pick(_:)))
+            stack.addArrangedSubview(row)
+            NSLayoutConstraint.activate([
+                row.widthAnchor.constraint(equalToConstant: 216),
+                row.heightAnchor.constraint(equalToConstant: 30),
+            ])
+            rows.append(row)
+        }
+
+        // ---- the page ----------------------------------------------------
+        titleLabel.font = NSFont.systemFont(ofSize: 24, weight: .bold)
+        titleLabel.textColor = Paint.ink
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(titleLabel)
+
+        blurbLabel.font = NSFont.systemFont(ofSize: 13, weight: .regular)
+        blurbLabel.textColor = Paint.muted
+        blurbLabel.maximumNumberOfLines = 3
+        blurbLabel.lineBreakMode = .byWordWrapping
+        blurbLabel.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(blurbLabel)
+
+        runButton.bezelStyle = .rounded
+        runButton.controlSize = .large
+        runButton.bezelColor = Paint.accent
+        runButton.target = self
+        runButton.action = #selector(go)
+        runButton.keyEquivalent = "\r"
+        runButton.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(runButton)
+
+        let scroll = NSScrollView()
         scroll.hasVerticalScroller = true
+        scroll.hasHorizontalScroller = true
         scroll.autohidesScrollers = true
         scroll.borderType = .noBorder
-        scroll.drawsBackground = false
+        scroll.drawsBackground = true
+        scroll.backgroundColor = Paint.raised
+        scroll.scrollerKnobStyle = .light
+        scroll.wantsLayer = true
+        scroll.layer?.cornerRadius = 11
+        scroll.layer?.borderWidth = 1
+        scroll.layer?.borderColor = Paint.line.cgColor
+        scroll.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(scroll)
 
-        let text = NSTextView(frame: frame)
-        text.isEditable = false
-        text.isSelectable = true
-        text.drawsBackground = false
-        text.textContainerInset = NSSize(width: 20, height: 18)
-        text.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        console.isEditable = false
+        console.isSelectable = true
+        console.drawsBackground = false
+        console.textContainerInset = NSSize(width: 20, height: 18)
+        console.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        console.textColor = Paint.body
+        console.isHorizontallyResizable = true
+        console.isVerticallyResizable = true
+        console.autoresizingMask = [.width, .height]
+        console.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude,
+                                 height: CGFloat.greatestFiniteMagnitude)
+        // nimo draws in a fixed-width panel. Reflowing it to the window puts
+        // every box corner in the wrong place, so it scrolls sideways instead.
+        console.textContainer?.widthTracksTextView = false
+        console.textContainer?.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude,
+                                                      height: CGFloat.greatestFiniteMagnitude)
+        scroll.documentView = console
 
-        // nimo draws in a fixed-width panel, so the text must not be reflowed
-        // to the window — it scrolls sideways instead, and the panel stays a
-        // panel. Without this the corners of every box end up in the wrong
-        // place the moment somebody drags the window narrower.
-        text.isHorizontallyResizable = true
-        text.isVerticallyResizable = true
-        text.autoresizingMask = [.width, .height]
-        text.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude,
-                              height: CGFloat.greatestFiniteMagnitude)
-        text.textContainer?.widthTracksTextView = false
-        text.textContainer?.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude,
-                                                   height: CGFloat.greatestFiniteMagnitude)
-        scroll.hasHorizontalScroller = true
-        scroll.documentView = text
+        NSLayoutConstraint.activate([
+            sidebar.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            sidebar.topAnchor.constraint(equalTo: content.topAnchor),
+            sidebar.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            sidebar.widthAnchor.constraint(equalToConstant: 240),
 
-        let w = NSWindow(contentRect: frame,
-                         styleMask: [.titled, .closable, .resizable],
-                         backing: .buffered,
-                         defer: false)
-        w.title = title
-        w.contentView = scroll
-        w.isReleasedWhenClosed = false
-        w.setFrameAutosaveName("nimo.\(title)")
-        w.center()
+            edge.leadingAnchor.constraint(equalTo: sidebar.trailingAnchor),
+            edge.topAnchor.constraint(equalTo: content.topAnchor),
+            edge.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            edge.widthAnchor.constraint(equalToConstant: 1),
 
-        self.window = w
-        self.view = text
+            stack.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 12),
+            stack.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: -12),
+            stack.topAnchor.constraint(equalTo: sidebar.topAnchor, constant: 44),
+
+            titleLabel.leadingAnchor.constraint(equalTo: edge.trailingAnchor, constant: 30),
+            titleLabel.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -30),
+            titleLabel.topAnchor.constraint(equalTo: content.topAnchor, constant: 44),
+
+            blurbLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            blurbLabel.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -60),
+            blurbLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+
+            runButton.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            runButton.topAnchor.constraint(equalTo: blurbLabel.bottomAnchor, constant: 18),
+            runButton.heightAnchor.constraint(equalToConstant: 34),
+
+            scroll.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -26),
+            scroll.topAnchor.constraint(equalTo: runButton.bottomAnchor, constant: 20),
+            scroll.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -26),
+        ])
     }
 
-    private static func window(for title: String) -> OutputWindow {
-        if let existing = windows[title] { return existing }
-        let made = OutputWindow(title: title)
-        windows[title] = made
-        return made
+    // MARK: using it
+
+    @objc private func pick(_ sender: NSButton) {
+        show(sender.tag)
     }
 
-    /// Puts a window on screen straight away, so the click has an answer
-    /// before nimo has finished thinking.
-    static func waiting(title: String) -> OutputWindow {
-        let panel = window(for: title)
-        panel.view.string = "\n  working …\n"
-        NSApp.activate(ignoringOtherApps: true)
-        panel.window.makeKeyAndOrderFront(nil)
-        return panel
+    private func show(_ index: Int) {
+        guard index >= 0, index < Action.all.count else { return }
+        chosen = index
+        let item = Action.all[index]
+
+        for (i, row) in rows.enumerated() { row.paint(selected: i == index) }
+
+        titleLabel.stringValue = item.title
+        blurbLabel.stringValue = item.blurb
+        setButton(title: item.verb, enabled: !busy)
+
+        if seen.contains(index) { return }
+
+        // Anything that only looks can just look — you should not have to ask
+        // a program to tell you how much room you have left.
+        if item.asks == nil {
+            run(item)
+        } else {
+            put("\n  \u{1B}[2mnimo will show you exactly what it did, here.\u{1B}[0m\n")
+        }
     }
 
-    func finish(with text: String) {
-        let body = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        view.string = body.isEmpty ? "\n  nimo said nothing at all.\n" : body
-        view.scrollToBeginningOfDocument(nil)
+    private func setButton(title: String, enabled: Bool) {
+        let text = NSMutableAttributedString(string: title)
+        text.addAttributes([
+            .foregroundColor: enabled ? Paint.onAccent : Paint.faint,
+            .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
+        ], range: NSRange(location: 0, length: text.length))
+        runButton.attributedTitle = text
+        runButton.isEnabled = enabled
+        runButton.bezelColor = enabled ? Paint.accent : Paint.raised
     }
+
+    @objc private func go() {
+        let item = Action.all[chosen]
+
+        if let question = item.asks {
+            let alert = NSAlert()
+            alert.messageText = item.verb
+            alert.informativeText = question
+            alert.alertStyle = .informational
+            alert.addButton(withTitle: "Do it")
+            alert.addButton(withTitle: "Cancel")
+            alert.window.appearance = NSAppearance(named: .darkAqua)
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
+        }
+
+        run(item)
+    }
+
+    private func run(_ item: Action) {
+        guard !busy else { return }
+        busy = true
+        seen.insert(chosen)
+        setButton(title: item.verb, enabled: false)
+        put("\n  \u{1B}[2mworking …\u{1B}[0m\n")
+
+        // Only after somebody has said yes does --yes go anywhere near nimo.
+        let arguments = item.asks == nil ? item.arguments : item.arguments + ["--yes"]
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let result = Nimo.run(arguments)
+            DispatchQueue.main.async {
+                let body = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                self.put(body.isEmpty
+                         ? "\n  \u{1B}[2mnimo said nothing at all.\u{1B}[0m\n"
+                         : "\n" + body + "\n")
+                self.busy = false
+                self.setButton(title: Action.all[self.chosen].verb, enabled: true)
+            }
+        }
+    }
+
+    private func put(_ text: String) {
+        console.textStorage?.setAttributedString(Screen.render(text, size: 12))
+        console.scrollToBeginningOfDocument(nil)
+    }
+
+    /// Closing the window puts nimo away; the Dock icon brings it back. It is
+    /// not a document, so there is nothing to lose by closing it.
+    func windowShouldClose(_ sender: NSWindow) -> Bool { true }
 }
 
 // MARK: - the app
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var item: NSStatusItem!
-    private var busy = false
+    private var main: Main!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-
-        if let button = item.button {
-            // A template image is drawn in one colour, so it follows a light
-            // or a dark menu bar without being told.
-            if let icon = NSImage(named: "menubar") {
-                icon.isTemplate = true
-                icon.size = NSSize(width: 18, height: 18)
-                button.image = icon
-            } else {
-                button.title = "◍"
-            }
-            button.toolTip = "nimo — make your workspace clean"
-        }
-
-        item.menu = buildMenu()
+        NSApp.mainMenu = buildMenu()
+        main = Main()
+        main.window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ app: NSApplication) -> Bool { true }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool { true }
 
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { main?.window.makeKeyAndOrderFront(nil) }
+        return true
+    }
+
+    // MARK: the menu bar along the top
+
     private func buildMenu() -> NSMenu {
-        let menu = NSMenu()
+        let bar = NSMenu()
 
-        for (i, action) in Action.all.enumerated() {
-            if action.separatorBefore { menu.addItem(.separator()) }
+        let appHolder = NSMenuItem()
+        bar.addItem(appHolder)
+        let app = NSMenu()
+        let about = NSMenuItem(title: "About nimo",
+                               action: #selector(showAbout), keyEquivalent: "")
+        about.target = self
+        app.addItem(about)
 
-            let entry = NSMenuItem(title: action.title,
-                                   action: #selector(runAction(_:)),
-                                   keyEquivalent: "")
-            entry.target = self
-            entry.tag = i
-            menu.addItem(entry)
-        }
-
-        menu.addItem(.separator())
-
+        app.addItem(.separator())
         let login = NSMenuItem(title: "Open nimo at login",
                                action: #selector(toggleLogin(_:)),
                                keyEquivalent: "")
         login.target = self
         login.state = Login.on ? .on : .off
         login.isEnabled = Login.possible
-        menu.addItem(login)
+        app.addItem(login)
 
+        app.addItem(.separator())
         let terminal = NSMenuItem(title: "Open nimo in Terminal…",
-                                  action: #selector(openInTerminal),
-                                  keyEquivalent: "")
+                                  action: #selector(openInTerminal), keyEquivalent: "")
         terminal.target = self
-        menu.addItem(terminal)
+        app.addItem(terminal)
 
-        let about = NSMenuItem(title: "About nimo",
-                               action: #selector(showAbout),
-                               keyEquivalent: "")
-        about.target = self
-        menu.addItem(about)
+        app.addItem(.separator())
+        app.addItem(NSMenuItem(title: "Hide nimo",
+                               action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
+        app.addItem(NSMenuItem(title: "Quit nimo",
+                               action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        appHolder.submenu = app
 
-        menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit nimo",
-                                action: #selector(NSApplication.terminate(_:)),
-                                keyEquivalent: "q"))
+        let editHolder = NSMenuItem()
+        bar.addItem(editHolder)
+        let edit = NSMenu(title: "Edit")
+        edit.addItem(NSMenuItem(title: "Copy",
+                                action: #selector(NSText.copy(_:)), keyEquivalent: "c"))
+        edit.addItem(NSMenuItem(title: "Select All",
+                                action: #selector(NSText.selectAll(_:)), keyEquivalent: "a"))
+        editHolder.submenu = edit
 
-        return menu
-    }
+        let windowHolder = NSMenuItem()
+        bar.addItem(windowHolder)
+        let window = NSMenu(title: "Window")
+        window.addItem(NSMenuItem(title: "Minimise",
+                                  action: #selector(NSWindow.performMiniaturize(_:)),
+                                  keyEquivalent: "m"))
+        window.addItem(NSMenuItem(title: "Close",
+                                  action: #selector(NSWindow.performClose(_:)),
+                                  keyEquivalent: "w"))
+        windowHolder.submenu = window
+        NSApp.windowsMenu = window
 
-    @objc private func runAction(_ sender: NSMenuItem) {
-        guard sender.tag >= 0, sender.tag < Action.all.count else { return }
-        let action = Action.all[sender.tag]
-
-        if busy {
-            let alert = NSAlert()
-            alert.messageText = "nimo is still busy"
-            alert.informativeText = "One thing at a time. Wait for the window that is open to fill in."
-            alert.addButton(withTitle: "OK")
-            NSApp.activate(ignoringOtherApps: true)
-            alert.runModal()
-            return
-        }
-
-        if let question = action.asks {
-            let alert = NSAlert()
-            alert.messageText = action.title
-            alert.informativeText = question
-            alert.alertStyle = .informational
-            alert.addButton(withTitle: "Do it")
-            alert.addButton(withTitle: "Cancel")
-            NSApp.activate(ignoringOtherApps: true)
-            guard alert.runModal() == .alertFirstButtonReturn else { return }
-        }
-
-        // Only after somebody has said yes does --yes go anywhere near nimo.
-        let arguments = action.asks == nil
-            ? action.arguments
-            : action.arguments + ["--yes"]
-
-        let panel = OutputWindow.waiting(title: action.title)
-        busy = true
-
-        DispatchQueue.global(qos: .userInitiated).async {
-            let result = Nimo.run(arguments)
-            DispatchQueue.main.async {
-                panel.finish(with: result.text)
-                self.busy = false
-            }
-        }
+        return bar
     }
 
     @objc private func toggleLogin(_ sender: NSMenuItem) {
-        let wanted = (sender.state != .on)
-        if let trouble = Login.set(wanted) {
+        if let trouble = Login.set(sender.state != .on) {
             let alert = NSAlert()
             alert.messageText = "nimo could not change that"
             alert.informativeText = trouble
             alert.addButton(withTitle: "OK")
-            NSApp.activate(ignoringOtherApps: true)
             alert.runModal()
         }
         // Ask macOS what it actually is now, rather than assuming it worked.
@@ -381,18 +710,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         end tell
         """
         if let apple = NSAppleScript(source: script) {
-            var error: NSDictionary?
-            apple.executeAndReturnError(&error)
+            var trouble: NSDictionary?
+            apple.executeAndReturnError(&trouble)
         }
     }
 
     @objc private func showAbout() {
         let alert = NSAlert()
-        alert.messageText = "nimo \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")"
+        alert.messageText = "nimo \(Nimo.version)"
         alert.informativeText = """
         make your workspace clean
 
-        Everything in this menu is the same nimo you can run in a terminal, \
+        Everything in this window is the same nimo you can run in a terminal, \
         and everything it changes it writes down first — "Put it all back" \
         reverses the lot.
 
@@ -401,18 +730,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         """
         alert.addButton(withTitle: "OK")
         alert.addButton(withTitle: "Open the website")
-        NSApp.activate(ignoringOtherApps: true)
         if alert.runModal() == .alertSecondButtonReturn,
            let url = URL(string: "https://danielkopa.github.io/nimo/") {
-            NSWorkspace.shared.open(url)
+            _ = NSWorkspace.shared.open(url)
         }
     }
 }
 
-// A menu bar app and nothing else: no Dock icon, no window until you ask for
-// one. The same shape as every other small Mac tool that lives up there.
-let app = NSApplication.shared
+let application = NSApplication.shared
 let delegate = AppDelegate()
-app.delegate = delegate
-app.setActivationPolicy(.accessory)
-app.run()
+application.delegate = delegate
+// A normal app: an icon in the Dock, and a window when you open it.
+_ = application.setActivationPolicy(.regular)
+application.run()
