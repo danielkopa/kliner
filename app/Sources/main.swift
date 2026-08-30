@@ -151,6 +151,20 @@ final class OutputWindow {
         text.drawsBackground = false
         text.textContainerInset = NSSize(width: 20, height: 18)
         text.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+
+        // nimo draws in a fixed-width panel, so the text must not be reflowed
+        // to the window — it scrolls sideways instead, and the panel stays a
+        // panel. Without this the corners of every box end up in the wrong
+        // place the moment somebody drags the window narrower.
+        text.isHorizontallyResizable = true
+        text.isVerticallyResizable = true
+        text.autoresizingMask = [.width, .height]
+        text.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude,
+                              height: CGFloat.greatestFiniteMagnitude)
+        text.textContainer?.widthTracksTextView = false
+        text.textContainer?.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude,
+                                                   height: CGFloat.greatestFiniteMagnitude)
+        scroll.hasHorizontalScroller = true
         scroll.documentView = text
 
         let w = NSWindow(contentRect: frame,

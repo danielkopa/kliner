@@ -261,6 +261,8 @@
     display: flex;
     align-items: center;
     gap: 1.05rem;
+    overflow: hidden;
+    white-space: nowrap;
     padding: 0.42rem 0.85rem;
     font-size: 0.76rem;
     color: var(--muted);
@@ -318,6 +320,13 @@
     background: var(--line-soft);
   }
 
+  /* a narrow phone has no room for a whole menu bar; the parts that are not
+     nimo are the parts that go */
+  @media (max-width: 34rem) {
+    .macbar-top { gap: 0.7rem; }
+    .macbar-top .macbar-dim { display: none; }
+    .macbar-right .macbar-dim:last-child { display: inline; }
+  }
   @media (max-width: 30rem) {
     .macmenu { margin-right: 0.6rem; margin-left: 0.6rem; width: auto; }
   }
@@ -432,7 +441,10 @@
   .head    { display: flex; flex-direction: column; gap: 0.7rem; max-width: 52ch; }
   .head p  { color: var(--muted); }
 
+  /* min-width: 0 or a grid column grows to fit the widest line inside a
+     terminal, and the whole page scrolls sideways on a phone */
   .two-up { display: grid; grid-template-columns: 1fr; gap: 1.1rem; }
+  .two-up > * { min-width: 0; }
   @media (min-width: 56rem) { .two-up { grid-template-columns: 1fr 1fr; } }
 
   .cap { display: flex; flex-direction: column; gap: 0.3rem; }

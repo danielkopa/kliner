@@ -7,3 +7,6 @@
 # local scratch
 tmp/
 .nimo-test/
+
+# a built app is not source
+app/build/
