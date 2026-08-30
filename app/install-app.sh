@@ -35,11 +35,30 @@ fi
 # swiftc comes with Apple's command line tools. If git works on this Mac
 # they are almost certainly here already.
 if ! command -v swiftc >/dev/null 2>&1; then
-    bad "Apple's command line tools are not installed."
+    say "Apple's command line tools are missing. Asking macOS for them now —"
+    say "a window will open. Click Install, and wait for it to finish."
     printf '\n'
-    say "Run this, click Install, wait for it to finish, then run me again:"
-    printf '\n      %sxcode-select --install%s\n\n' "$cyan" "$off"
-    exit 1
+    xcode-select --install >/dev/null 2>&1 || true
+
+    # Wait for them rather than sending you away to type a second command.
+    # Twenty minutes is longer than the download has ever taken.
+    waited=0
+    while ! command -v swiftc >/dev/null 2>&1; do
+        [ "$waited" -ge 1200 ] && break
+        sleep 5
+        waited=$((waited + 5))
+        [ $((waited % 60)) -eq 0 ] && printf '  %sstill waiting … %d min%s\n' \
+            "$dim" "$((waited / 60))" "$off"
+    done
+    printf '\n'
+
+    if ! command -v swiftc >/dev/null 2>&1; then
+        bad "They still are not here."
+        say "Finish the Install window, then run this same line again."
+        exit 1
+    fi
+    good "Got them."
+    printf '\n'
 fi
 
 # --- build it -----------------------------------------------------------

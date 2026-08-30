@@ -276,7 +276,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if action.separatorBefore { menu.addItem(.separator()) }
 
             let entry = NSMenuItem(title: action.title,
-                                   action: #selector(perform(_:)),
+                                   action: #selector(runAction(_:)),
                                    keyEquivalent: "")
             entry.target = self
             entry.tag = i
@@ -286,7 +286,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
 
         let login = NSMenuItem(title: "Open nimo at login",
-                               action: #selector(toggleLogin),
+                               action: #selector(toggleLogin(_:)),
                                keyEquivalent: "")
         login.target = self
         login.state = Login.on ? .on : .off
@@ -313,7 +313,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return menu
     }
 
-    @objc private func perform(_ sender: NSMenuItem) {
+    @objc private func runAction(_ sender: NSMenuItem) {
         guard sender.tag >= 0, sender.tag < Action.all.count else { return }
         let action = Action.all[sender.tag]
 
