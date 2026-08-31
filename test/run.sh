@@ -1077,6 +1077,17 @@ check "and it never claims to grant itself access" \
 check "settings are the same file nimo reads" \
     "grep -q '.nimo\\\", isDirectory' '$APP/Sources/main.swift' && grep -q 'enum Config' '$APP/Sources/main.swift'"
 check "it spins while it thinks"            "grep -q 'NSProgressIndicator' '$APP/Sources/main.swift'"
+check "the eyes in the wordmark blink"      \
+    "grep -q 'final class Wordmark' '$APP/Sources/main.swift' && [ -f '$APP/Resources/wordmark-blink.png' ]"
+check "the list folds down to its pictures"  \
+    "grep -q 'func foldSide' '$APP/Sources/main.swift' && grep -q 'func narrow' '$APP/Sources/main.swift'"
+check "and a folded row keeps its name"     "grep -q 'toolTip = yes ? name.stringValue' '$APP/Sources/main.swift'"
+check "home draws the disk, now and after"  \
+    "grep -q 'final class Bar' '$APP/Sources/main.swift' && grep -q 'After freeing it up' '$APP/Sources/main.swift'"
+check "sizes are read back into numbers"    "grep -q 'func bytes' '$APP/Sources/main.swift'"
+check "no paragraph under every title"      "! grep -q 'blurbLabel' '$APP/Sources/main.swift'"
+check "the window is one sheet of glass"    \
+    "[ \$(grep -c 'NSVisualEffectView()' '$APP/Sources/main.swift') = 1 ]"
 check "the page arrives a line at a time"   \
     "grep -q 'CAAnimationGroup' '$APP/Sources/main.swift' && grep -q 'arriving' '$APP/Sources/main.swift'"
 check "and a colour is eased, never snapped" \
