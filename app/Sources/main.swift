@@ -127,7 +127,6 @@ struct Action {
     let asks: String?        // the question, or nil when it changes nothing
     let group: String        // the heading it sits under
     let symbol: String       // the small picture beside it
-    let hint: String         // the quiet second line under it
 
 
     static let all: [Action] = [
@@ -137,8 +136,7 @@ struct Action {
                arguments: ["desktop"],
                asks: "Move everything on your desktop into Desktop/Tidy, sorted by what it is?\n\nNothing is deleted, and nimo can put it all back.",
                group: "Your desk",
-               symbol: "square.grid.2x2",
-               hint: "sorted into Tidy"),
+               symbol: "square.grid.2x2"),
 
         Action(title: "Downloads",
                blurb: "The same, for the folder everything lands in and nothing ever leaves.",
@@ -146,8 +144,7 @@ struct Action {
                arguments: ["downloads"],
                asks: "Sort your downloads into Downloads/Tidy?\n\nNothing is deleted, and nimo can put it all back.",
                group: "Your desk",
-               symbol: "arrow.down.circle",
-               hint: "sorted into Tidy"),
+               symbol: "arrow.down.circle"),
 
         Action(title: "Screenshots",
                blurb: "Every loose screenshot gathered into Pictures/Screenshots, wherever it was dropped.",
@@ -155,8 +152,7 @@ struct Action {
                arguments: ["screenshots"],
                asks: "Gather every loose screenshot into Pictures/Screenshots?",
                group: "Your desk",
-               symbol: "camera",
-               hint: "into Pictures"),
+               symbol: "camera"),
 
         Action(title: "Wallpaper",
                blurb: "Step through the wallpapers your Mac already ships with. Nothing is downloaded.",
@@ -164,8 +160,7 @@ struct Action {
                arguments: ["next"],
                asks: nil,
                group: "Your screen",
-               symbol: "photo",
-               hint: "the ones your Mac ships"),
+               symbol: "photo"),
 
         Action(title: "Startup",
                blurb: "What launches itself when you sign in — and which of them nimo can turn off.",
@@ -173,8 +168,7 @@ struct Action {
                arguments: ["startup", "--list"],
                asks: nil,
                group: "Your screen",
-               symbol: "power",
-               hint: "what opens itself"),
+               symbol: "power"),
 
         Action(title: "What is big",
                blurb: "The folders in your home that are taking up the room, largest first.",
@@ -182,26 +176,15 @@ struct Action {
                arguments: ["top"],
                asks: nil,
                group: "Your disk",
-               symbol: "chart.bar",
-               hint: "the biggest folders"),
+               symbol: "chart.bar"),
 
-        Action(title: "What could go",
-               blurb: "Caches and temporary files your apps rebuild by themselves. This only looks — it cannot change anything at all.",
-               verb: "Have a look",
-               arguments: ["preview"],
-               asks: nil,
-               group: "Your disk",
-               symbol: "magnifyingglass",
-               hint: "caches, safely"),
-
-        Action(title: "Free it up",
-               blurb: "The same list, actually removed. Your own files are never touched.",
+        Action(title: "Free up space",
+               blurb: "Caches and temporary files your apps rebuild by themselves. Your own files are never touched.",
                verb: "Free it up",
                arguments: ["clean"],
                asks: "Delete the caches and temporary files nimo found?\n\nThis one frees real space. Your own files are never touched.",
                group: "Your disk",
-               symbol: "sparkles",
-               hint: "frees real space"),
+               symbol: "sparkles"),
 
         Action(title: "How it is",
                blurb: "Disk, memory, uptime, battery — how your computer is doing right now.",
@@ -209,8 +192,7 @@ struct Action {
                arguments: ["doctor"],
                asks: nil,
                group: "Your computer",
-               symbol: "waveform.path.ecg",
-               hint: "disk, memory, uptime"),
+               symbol: "waveform.path.ecg"),
 
         Action(title: "Put it all back",
                blurb: "Everything nimo has done, reversed, newest first. This is why nothing here is frightening.",
@@ -218,8 +200,7 @@ struct Action {
                arguments: ["undo", "--all"],
                asks: "Reverse everything nimo has done, newest first?",
                group: "Your computer",
-               symbol: "arrow.uturn.backward",
-               hint: "reverses everything"),
+               symbol: "arrow.uturn.backward"),
     ]
 }
 
@@ -377,7 +358,6 @@ final class Row: NSView {
     var onClick: ((Int) -> Void)?
 
     private let name = NSTextField(labelWithString: "")
-    private let hint = NSTextField(labelWithString: "")
     private var chosen = false
     private var hovering = false
 
@@ -387,29 +367,18 @@ final class Row: NSView {
 
         translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
-        layer?.cornerRadius = 9
+        layer?.cornerRadius = 8
 
         name.stringValue = item.title
-        name.font = NSFont.systemFont(ofSize: 13.5, weight: .regular)
         name.lineBreakMode = .byTruncatingTail
         name.translatesAutoresizingMaskIntoConstraints = false
         addSubview(name)
 
-        hint.stringValue = item.hint
-        hint.font = NSFont.systemFont(ofSize: 11.5, weight: .regular)
-        hint.textColor = Paint.faint
-        hint.lineBreakMode = .byTruncatingTail
-        hint.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(hint)
-
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 46),
+            heightAnchor.constraint(equalToConstant: 34),
             name.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
             name.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -10),
-            name.topAnchor.constraint(equalTo: topAnchor, constant: 7),
-            hint.leadingAnchor.constraint(equalTo: name.leadingAnchor),
-            hint.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -10),
-            hint.topAnchor.constraint(equalTo: name.bottomAnchor, constant: 2),
+            name.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
 
         repaint()
@@ -552,22 +521,11 @@ final class Main: NSObject, NSWindowDelegate {
         stack.addArrangedSubview(mark)
         stack.setCustomSpacing(26, after: mark)
 
-        var lastGroup = ""
         for (i, item) in Action.all.enumerated() {
-            if item.group != lastGroup {
-                lastGroup = item.group
-                if let above = stack.arrangedSubviews.last, i > 0 {
-                    stack.setCustomSpacing(20, after: above)
-                }
-                let head = heading(item.group)
-                stack.addArrangedSubview(head)
-                stack.setCustomSpacing(8, after: head)
-            }
-
             let row = Row(item, index: i)
             row.onClick = { [weak self] which in self?.show(which) }
             stack.addArrangedSubview(row)
-            row.widthAnchor.constraint(equalToConstant: 214).isActive = true
+            row.widthAnchor.constraint(equalToConstant: 190).isActive = true
             rows.append(row)
         }
 
@@ -701,10 +659,10 @@ final class Main: NSObject, NSWindowDelegate {
                 air.heightAnchor.constraint(equalToConstant: 14).isActive = true
                 line(air)
 
-            case .row(let label, let value, let note, _, let strong):
-                var right = value
-                if !note.isEmpty { right += right.isEmpty ? note : "   " + note }
-                line(Said(label: label, value: right, strong: strong))
+            case .row(let label, let value, _, _, let strong):
+                // The trailing half of a row is nimo telling a terminal what
+                // to type next. There is a button here instead.
+                line(Said(label: label, value: value, strong: strong))
 
             case .good(let text):
                 words(text, size: 14, weight: .semibold, colour: Paint.ink, top: 8, bottom: 6)
@@ -712,8 +670,10 @@ final class Main: NSObject, NSWindowDelegate {
             case .warn(let text):
                 words(text, size: 14, weight: .medium, colour: Paint.body, top: 8, bottom: 6)
 
-            case .note(let text):
-                words(text, size: 12.5, weight: .regular, colour: Paint.faint, top: 4, bottom: 4)
+            case .note:
+                // nimo's last lines tell a terminal what to type next. There
+                // is nothing to type here, so they are not shown.
+                break
 
             case .text(let text):
                 words(text, size: 13.5, weight: .regular, colour: Paint.body, top: 5, bottom: 5)
@@ -731,7 +691,7 @@ final class Main: NSObject, NSWindowDelegate {
     }
 
     private func say(_ text: String) {
-        draw([.note(text)])
+        draw([.text(text)])
     }
 
     // MARK: using it
