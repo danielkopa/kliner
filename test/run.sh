@@ -1077,7 +1077,10 @@ check "and it never claims to grant itself access" \
 check "settings are the same file nimo reads" \
     "grep -q '.nimo\\\", isDirectory' '$APP/Sources/main.swift' && grep -q 'enum Config' '$APP/Sources/main.swift'"
 check "it spins while it thinks"            "grep -q 'NSProgressIndicator' '$APP/Sources/main.swift'"
-check "the panel fades in"                  "grep -q 'NSAnimationContext' '$APP/Sources/main.swift'"
+check "the page arrives a line at a time"   \
+    "grep -q 'CAAnimationGroup' '$APP/Sources/main.swift' && grep -q 'arriving' '$APP/Sources/main.swift'"
+check "and a colour is eased, never snapped" \
+    "grep -q 'func ease' '$APP/Sources/main.swift' && ! grep -q 'layer?.backgroundColor = background.cgColor' '$APP/Sources/main.swift'"
 check "its version is filled in at build" "grep -q '__VERSION__' '$APP/Info.plist'"
 check "build.sh fills it in"              "grep -q 's/__VERSION__/' '$APP/build.sh'"
 check "the plist names the executable"    "grep -q '<string>Nimo</string>' '$APP/Info.plist'"

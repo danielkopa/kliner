@@ -14,6 +14,7 @@
 
 import AppKit
 import Foundation
+import QuartzCore
 import ServiceManagement
 
 // MARK: - nimo's colours
@@ -488,6 +489,25 @@ enum Login {
     }
 }
 
+// MARK: - easing
+
+/// A layer-backed view in AppKit has implicit animation switched off, so a
+/// colour set on it snaps. This eases it instead — which is the whole
+/// difference between a window that feels made and one that flickers.
+func ease(_ layer: CALayer?, to colour: NSColor, over seconds: Double = 0.13) {
+    guard let layer = layer else { return }
+    let target = colour.cgColor
+    if let from = layer.backgroundColor, from != target {
+        let fade = CABasicAnimation(keyPath: "backgroundColor")
+        fade.fromValue = from
+        fade.toValue = target
+        fade.duration = seconds
+        fade.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        layer.add(fade, forKey: "backgroundColor")
+    }
+    layer.backgroundColor = target
+}
+
 // MARK: - a row down the side
 
 /// A name, and under it three quiet words saying what it is. No box, no
@@ -568,7 +588,7 @@ final class Row: NSView {
         // .cgColor answers for whichever appearance is current, so ask under
         // this view's own.
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            self.layer?.backgroundColor = background.cgColor
+            ease(self.layer, to: background)
         }
     }
 }
@@ -660,8 +680,8 @@ final class Chip: NSView {
             label.textColor = Paint.ink
         }
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            self.layer?.backgroundColor = background.cgColor
-            self.layer?.opacity = self.hovering && self.live ? 0.86 : 1
+            ease(self.layer, to: background)
+            self.layer?.opacity = self.hovering && self.live ? 0.85 : 1
         }
     }
 }
@@ -1151,14 +1171,33 @@ final class Main: NSObject, NSWindowDelegate {
         settle()
     }
 
-    /// A panel that appears is easier to read than one swapped underneath you.
+    /// A page that arrives a line at a time reads better than one swapped
+    /// underneath you. Eighteen milliseconds between lines is enough to feel
+    /// like settling and not enough to feel like waiting; after fourteen lines
+    /// the rest come in together, because nobody wants to watch a list deal
+    /// itself out.
     private func settle() {
-        scroll.alphaValue = 0
         report.layoutSubtreeIfNeeded()
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.2
-            context.allowsImplicitAnimation = true
-            scroll.animator().alphaValue = 1
+        let start = CACurrentMediaTime()
+
+        for (i, view) in report.arrangedSubviews.enumerated() {
+            view.wantsLayer = true
+
+            let rise = CABasicAnimation(keyPath: "transform.translation.y")
+            rise.fromValue = -7          // AppKit's y grows upward, so this falls
+            rise.toValue = 0
+
+            let fade = CABasicAnimation(keyPath: "opacity")
+            fade.fromValue = 0
+            fade.toValue = 1
+
+            let both = CAAnimationGroup()
+            both.animations = [rise, fade]
+            both.duration = 0.28
+            both.beginTime = start + Double(min(i, 14)) * 0.018
+            both.fillMode = .backwards
+            both.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            view.layer?.add(both, forKey: "arriving")
         }
     }
 
@@ -1705,10 +1744,12 @@ final class Said: NSView {
     }
 
     private func repaint() {
-        arrow.animator().alphaValue = hovering ? 1 : 0
-        let background = hovering ? Paint.hover : NSColor.clear
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.13
+            arrow.animator().alphaValue = hovering ? 1 : 0
+        }
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            self.layer?.backgroundColor = background.cgColor
+            ease(self.layer, to: hovering ? Paint.hover : NSColor.clear)
         }
     }
 }
