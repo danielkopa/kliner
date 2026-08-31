@@ -96,6 +96,7 @@ nimo_usage() {
     min duplicates      the same file, kept more than once
     min apps            what you installed once and never opened again
     min startup         what launches when you sign in, and what stops
+                        --only <name> stops exactly one, without the picker
     min empty           take the trash out, or the recycle bin
     min blank FILE      empty a file, keeping what was in it
     min dock --fast     a dock that slides the moment you reach for it

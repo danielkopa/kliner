@@ -232,6 +232,70 @@ nimo_startup_undo() {
     return 0
 }
 
+# Stop one named thing, for a caller that already knows which. The name is
+# matched whole and without regard to case, because a name typed by a person
+# and a name read out of a plist are rarely spelled the same way.
+nimo_startup_stop_one() {
+    local targets="$1" line where name what found=""
+
+    while IFS=$'\t' read -r where name what; do
+        [ -n "${where:-}" ] || continue
+        if nimo_same_word "$name" "$NIMO_ONLY"; then
+            found="$where	$name	$what"
+            break
+        fi
+    done <<INNER
+$targets
+INNER
+
+    if [ -z "$found" ]; then
+        nimo_warn "nimo cannot stop \"$NIMO_ONLY\" — it is not one of the ones it can change"
+        nimo_blank
+        return 1
+    fi
+
+    if ! nimo_confirm "Stop $name from starting?"; then
+        nimo_blank
+        nimo_dim "left as it was"
+        nimo_blank
+        return 0
+    fi
+
+    mkdir -p "$NIMO_UNDO_DIR" "$NIMO_BACKUP_DIR" 2>/dev/null
+    NIMO_STARTUP_STORE=$(nimo_free_file "$NIMO_UNDO_DIR/startup-$(date +%Y%m%d-%H%M%S)" .tsv)
+    : > "$NIMO_STARTUP_STORE"
+    nimo_look_log
+    printf 'prefs\t%s\t\n' "$NIMO_SETUP_LOG" >> "$NIMO_STARTUP_STORE"
+
+    where="${found%%	*}"
+    name=$(printf '%s' "$found" | cut -f2)
+    what=$(printf '%s' "$found" | cut -f3-)
+
+    nimo_blank
+    if nimo_startup_stop "$where" "$name" "$what"; then
+        nimo_ok "$name will not start itself again"
+        nimo_blank
+        nimo_dim "changed your mind?  min startup --undo"
+    else
+        nimo_warn "$name could not be changed and was left alone"
+    fi
+    nimo_blank
+    return 0
+}
+
+# Two names are the same word if they differ only by case or by edge spaces.
+nimo_same_word() {
+    local a="$1" b="$2"
+    a="${a#"${a%%[![:space:]]*}"}"; a="${a%"${a##*[![:space:]]}"}"
+    b="${b#"${b%%[![:space:]]*}"}"; b="${b%"${b##*[![:space:]]}"}"
+    shopt -s nocasematch 2>/dev/null
+    case "$a" in
+        "$b") shopt -u nocasematch 2>/dev/null; return 0 ;;
+    esac
+    shopt -u nocasematch 2>/dev/null
+    return 1
+}
+
 nimo_cmd_startup() {
     if [ "${NIMO_UNDO:-0}" = "1" ] || [ "${NIMO_RESTORE:-0}" = "1" ]; then
         nimo_startup_undo
@@ -319,6 +383,14 @@ INNER
         nimo_dim "none of these are yours to change"
         nimo_blank
         return 0
+    fi
+
+    # --only names one of them outright, so something without a terminal — the
+    # app, a script — can stop exactly one thing without a picker. It still
+    # will not act without a yes.
+    if [ -n "${NIMO_ONLY:-}" ]; then
+        nimo_startup_stop_one "$targets"
+        return $?
     fi
 
     if [ "${NIMO_LIST:-0}" = "1" ] || [ "${NIMO_DRY_RUN:-0}" = "1" ]; then

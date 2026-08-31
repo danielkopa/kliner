@@ -150,15 +150,27 @@ struct Action {
                                  group: "",
                                  symbol: "gearshape")
 
+    /// Where the window opens. Not a thing nimo does — a look at what there
+    /// is to do, so arriving somewhere calm is the first thing that happens.
+    static let home = Action(title: "Home",
+                             blurb: "What your Mac looks like right now. Nothing here has been changed.",
+                             verb: "Look again",
+                             arguments: ["doctor"],
+                             asks: nil,
+                             group: "",
+                             symbol: "house")
+
     static let putBack = "Move everything back where it was?\n\nnimo wrote down every move it made, so this is exact."
 
     static let all: [Action] = [
+        home,
+
         Action(title: "Desktop",
                blurb: "Everything on your desktop, sorted into Desktop/Tidy by what it is. Nothing is deleted, and nothing is renamed.",
                verb: "Clear my desktop",
                arguments: ["desktop"],
                asks: "Move everything on your desktop into Desktop/Tidy, sorted by what it is?\n\nNothing is deleted, and nimo can put it all back.",
-               group: "desk",
+               group: "Your desk",
                symbol: "square.grid.2x2",
                extras: [Extra(title: "Put this back", arguments: ["desktop", "--undo"], asks: putBack)],
                reveal: "Desktop"),
@@ -168,7 +180,7 @@ struct Action {
                verb: "Sort my downloads",
                arguments: ["downloads"],
                asks: "Sort your downloads into Downloads/Tidy?\n\nNothing is deleted, and nimo can put it all back.",
-               group: "desk",
+               group: "Your desk",
                symbol: "arrow.down.circle",
                extras: [Extra(title: "Put this back", arguments: ["downloads", "--undo"], asks: putBack)],
                reveal: "Downloads"),
@@ -178,7 +190,7 @@ struct Action {
                verb: "Gather them up",
                arguments: ["screenshots"],
                asks: "Gather every loose screenshot into Pictures/Screenshots?",
-               group: "desk",
+               group: "Your desk",
                symbol: "camera",
                extras: [Extra(title: "Put this back", arguments: ["screenshots", "--undo"], asks: putBack)],
                reveal: "Pictures"),
@@ -188,7 +200,7 @@ struct Action {
                verb: "Next",
                arguments: ["next"],
                asks: nil,
-               group: "screen",
+               group: "Your screen",
                symbol: "photo",
                extras: [Extra(title: "Previous", arguments: ["prev"], asks: nil),
                         Extra(title: "The one I had", arguments: ["wallpaper", "--restore"], asks: nil)]),
@@ -198,7 +210,7 @@ struct Action {
                verb: "Look again",
                arguments: ["startup", "--list"],
                asks: nil,
-               group: "screen",
+               group: "Your screen",
                symbol: "power"),
 
         Action(title: "What is big",
@@ -206,7 +218,7 @@ struct Action {
                verb: "Measure",
                arguments: ["top"],
                asks: nil,
-               group: "disk",
+               group: "Your disk",
                symbol: "chart.bar",
                walks: true),
 
@@ -215,7 +227,7 @@ struct Action {
                verb: "Free it up",
                arguments: ["clean"],
                asks: "Delete the caches and temporary files nimo found?\n\nThis one frees real space. Your own files are never touched.",
-               group: "disk",
+               group: "Your disk",
                symbol: "sparkles",
                extras: [Extra(title: "Only look", arguments: ["preview"], asks: nil)]),
 
@@ -224,7 +236,7 @@ struct Action {
                verb: "Check",
                arguments: ["doctor"],
                asks: nil,
-               group: "computer",
+               group: "Your computer",
                symbol: "waveform.path.ecg"),
 
         Action(title: "Put it all back",
@@ -232,7 +244,7 @@ struct Action {
                verb: "Put it all back",
                arguments: ["undo", "--all"],
                asks: "Reverse everything nimo has done, newest first?",
-               group: "computer",
+               group: "Your computer",
                symbol: "arrow.uturn.backward",
                extras: [Extra(title: "Only look", arguments: ["undo", "--all", "--dry-run"], asks: nil)]),
     ]
@@ -736,44 +748,25 @@ final class Main: NSObject, NSWindowDelegate {
 
         var lastGroup = ""
         for (i, item) in Action.all.enumerated() {
-            // A line between groups, and no words over them. The list says
-            // what each thing is; a heading would only say it again.
-            if item.group != lastGroup, i > 0 {
-                let gap = NSBox()
-                gap.boxType = .custom
-                gap.borderWidth = 0
-                gap.fillColor = Paint.line
-                gap.translatesAutoresizingMaskIntoConstraints = false
-
-                let holder = NSView()
-                holder.translatesAutoresizingMaskIntoConstraints = false
-                holder.addSubview(gap)
-                NSLayoutConstraint.activate([
-                    holder.heightAnchor.constraint(equalToConstant: 17),
-                    holder.widthAnchor.constraint(equalToConstant: 190),
-                    gap.leadingAnchor.constraint(equalTo: holder.leadingAnchor, constant: 11),
-                    gap.trailingAnchor.constraint(equalTo: holder.trailingAnchor, constant: -11),
-                    gap.centerYAnchor.constraint(equalTo: holder.centerYAnchor),
-                    gap.heightAnchor.constraint(equalToConstant: 1),
-                ])
-                stack.addArrangedSubview(holder)
+            if item.group != lastGroup, !item.group.isEmpty {
+                lastGroup = item.group
+                if let above = stack.arrangedSubviews.last, i > 0 {
+                    stack.setCustomSpacing(18, after: above)
+                }
+                let head = NSTextField(labelWithString: "  " + item.group)
+                head.font = NSFont.systemFont(ofSize: 11.5, weight: .regular)
+                head.textColor = Paint.faint
+                stack.addArrangedSubview(head)
+                stack.setCustomSpacing(6, after: head)
             }
-            lastGroup = item.group
 
             let row = Row(item, index: i)
             row.onClick = { [weak self] which in self?.show(which) }
             stack.addArrangedSubview(row)
             row.widthAnchor.constraint(equalToConstant: 190).isActive = true
             rows.append(row)
+            if i == 0 { stack.setCustomSpacing(20, after: row) }
         }
-
-        // Settings is not one of the things nimo does, so it does not stand in
-        // the same list. It waits at the bottom, where every Mac keeps it.
-        settingsRow = Row(Action.settings, index: Action.all.count)
-        settingsRow.onClick = { [weak self] _ in self?.show(Action.all.count) }
-        settingsRow.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(settingsRow)
-        rows.append(settingsRow)
 
         // ---- the page ----------------------------------------------------
         // No card, no second surface, no border round anything. One hairline
@@ -901,13 +894,140 @@ final class Main: NSObject, NSWindowDelegate {
         line(holder)
     }
 
+    /// Home is doctor's own reading, laid out as four figures and a short
+    /// list of what is worth doing about them. Nothing new is measured for
+    /// it — it is the same numbers, arranged for a person arriving.
+    private func drawHome(_ pieces: [Piece]) {
+        var figures: [String: String] = [:]
+        for piece in pieces {
+            if case .row(let label, let value, _, _, _) = piece { figures[label] = value }
+        }
+
+        let wanted = [("Desktop", "on your desktop"), ("Downloads", "in downloads"),
+                      ("Junk", "worth freeing"), ("Disk", "free")]
+        let row = NSStackView()
+        row.orientation = .horizontal
+        row.distribution = .fillEqually
+        row.alignment = .top
+        row.spacing = 16
+        var any = false
+        for (key, caption) in wanted {
+            var figure = figures[key] ?? "—"
+            if key == "Disk", let space = figure.components(separatedBy: " free").first {
+                figure = space
+            }
+            if figures[key] != nil { any = true }
+            row.addArrangedSubview(Stat(figure, caption))
+        }
+        if any {
+            let holder = NSView()
+            holder.translatesAutoresizingMaskIntoConstraints = false
+            row.translatesAutoresizingMaskIntoConstraints = false
+            holder.addSubview(row)
+            NSLayoutConstraint.activate([
+                row.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
+                row.trailingAnchor.constraint(equalTo: holder.trailingAnchor),
+                row.topAnchor.constraint(equalTo: holder.topAnchor, constant: 6),
+                row.bottomAnchor.constraint(equalTo: holder.bottomAnchor, constant: -8),
+            ])
+            line(holder)
+        }
+
+        // ---- what is worth doing about it ------------------------------
+        words("Worth doing", size: 12, weight: .regular, colour: Paint.faint,
+              top: 26, bottom: 6)
+
+        var said = false
+
+        if !Access.may(Access.desktop) || !Access.may(Access.downloads) {
+            line(Suggest("nimo cannot see your files yet",
+                         "macOS asks once per folder. It only ever reads inside your home.",
+                         verb: "Ask for everything", strong: true,
+                         target: self, action: #selector(askFromHome), tag: 0))
+            said = true
+        }
+
+        if let count = figures["Desktop"], !count.hasPrefix("0") {
+            line(Suggest("\(count) on your desktop",
+                         "Sorted into Desktop/Tidy by what they are. Nothing is deleted.",
+                         verb: "Clear it", strong: true,
+                         target: self, action: #selector(goToPage(_:)), tag: 1))
+            said = true
+        }
+
+        if let count = figures["Downloads"], !count.hasPrefix("0") {
+            line(Suggest("\(count) in Downloads",
+                         "The folder everything lands in and nothing ever leaves.",
+                         verb: "Sort it", strong: false,
+                         target: self, action: #selector(goToPage(_:)), tag: 2))
+            said = true
+        }
+
+        if let junk = figures["Junk"], !junk.hasPrefix("0") {
+            line(Suggest("\(junk) of caches",
+                         "Your apps rebuild these by themselves. Your own files are never touched.",
+                         verb: "Free it", strong: false,
+                         target: self, action: #selector(goToPage(_:)), tag: 7))
+            said = true
+        }
+
+        if !said {
+            words("Nothing needs doing. Your Mac is clear.",
+                  size: 14, weight: .medium, colour: Paint.ink, top: 6, bottom: 6)
+        }
+    }
+
+    @objc private func goToPage(_ sender: NSButton) {
+        show(sender.tag)
+    }
+
+    /// Stopping one thing by name, which is what --only is for. nimo still
+    /// asks; the dialog here is that question.
+    @objc private func stopThis(_ sender: NSButton) {
+        let name = sender.identifier?.rawValue ?? ""
+        guard !name.isEmpty else { return }
+
+        let alert = NSAlert()
+        alert.messageText = "Stop \(name) from starting?"
+        alert.informativeText = "It is not uninstalled and nothing is deleted — it just stops launching itself when you sign in. Put it all back reverses this."
+        alert.addButton(withTitle: "Stop it")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        launch(["startup", "--only", name, "--yes"])
+    }
+
+    @objc private func askFromHome() {
+        Access.may(Access.desktop)
+        Access.may(Access.downloads)
+        Access.may(FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Pictures"))
+        Access.may(FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Documents"))
+        seen.remove(0)
+        show(0)
+    }
+
     private func draw(_ pieces: [Piece]) {
         for view in report.arrangedSubviews {
             report.removeArrangedSubview(view)
             view.removeFromSuperview()
         }
 
+        if chosen == 0 && !isSettings {
+            drawHome(pieces)
+            settle()
+            return
+        }
+
+        // nimo lists what it can turn off, then says "nimo only reports
+        // these:" and lists the rest. Everything after that sentence belongs
+        // to somebody else, so nothing after it gets a button.
+        var stoppable = !isSettings && Action.all[chosen].arguments.first == "startup"
+
         for piece in pieces {
+            if case .note(let text) = piece, text.contains("only reports") {
+                stoppable = false
+            }
+
             switch piece {
             case .heading(let text):
                 words(text, size: 12, weight: .medium, colour: Paint.faint, top: 26, bottom: 8)
@@ -926,6 +1046,13 @@ final class Main: NSObject, NSWindowDelegate {
                 let walkable = !isSettings
                     && Action.all[chosen].walks
                     && label.hasSuffix("/")
+                if stoppable, !label.isEmpty {
+                    line(Suggest(label, value.isEmpty ? "starts when you sign in" : value,
+                                 verb: "Stop", strong: false,
+                                 target: self, action: #selector(stopThis(_:)), tag: 0,
+                                 name: label))
+                    break
+                }
                 let said = Said(label: label, value: value, strong: strong, walkable: walkable)
                 if walkable {
                     let name = String(label.dropLast())
@@ -949,7 +1076,11 @@ final class Main: NSObject, NSWindowDelegate {
             }
         }
 
-        // A panel that appears is easier to read than one swapped underneath you.
+        settle()
+    }
+
+    /// A panel that appears is easier to read than one swapped underneath you.
+    private func settle() {
         scroll.alphaValue = 0
         report.layoutSubtreeIfNeeded()
         NSAnimationContext.runAnimationGroup { context in
@@ -975,7 +1106,7 @@ final class Main: NSObject, NSWindowDelegate {
         for (i, row) in rows.enumerated() { row.choose(i == index) }
 
         let item = index == Action.all.count ? Action.settings : Action.all[index]
-        titleLabel.stringValue = item.title
+        titleLabel.stringValue = index == 0 ? "Your Mac, right now" : item.title
         blurbLabel.stringValue = item.blurb
         fitButtons()
 
@@ -1152,13 +1283,7 @@ final class Main: NSObject, NSWindowDelegate {
         words("nimo \(Nimo.version) · MIT · github.com/danielkopa/nimo",
               size: 12, weight: .regular, colour: Paint.faint, top: 26, bottom: 4)
 
-        scroll.alphaValue = 0
-        report.layoutSubtreeIfNeeded()
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.2
-            context.allowsImplicitAnimation = true
-            scroll.animator().alphaValue = 1
-        }
+        settle()
     }
 
     /// The same hairline the list down the side uses, across the page.
@@ -1318,6 +1443,121 @@ final class Main: NSObject, NSWindowDelegate {
     /// Closing the window puts nimo away; the Dock icon brings it back. It is
     /// not a document, so there is nothing to lose by closing it.
     func windowShouldClose(_ sender: NSWindow) -> Bool { true }
+}
+
+// MARK: - a number worth looking at
+
+/// One figure, large, with what it is underneath. Four of these across the
+/// top of Home is the whole state of your Mac in one glance.
+final class Stat: NSView {
+    init(_ figure: String, _ caption: String) {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+
+        let rule = NSBox()
+        rule.boxType = .custom
+        rule.borderWidth = 0
+        rule.fillColor = Paint.line
+        rule.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(rule)
+
+        let big = NSTextField(labelWithString: figure)
+        big.font = NSFont.systemFont(ofSize: 25, weight: .semibold)
+        big.textColor = Paint.ink
+        big.lineBreakMode = .byTruncatingTail
+        big.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(big)
+
+        let small = NSTextField(labelWithString: caption)
+        small.font = NSFont.systemFont(ofSize: 12, weight: .regular)
+        small.textColor = Paint.faint
+        small.lineBreakMode = .byTruncatingTail
+        small.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(small)
+
+        NSLayoutConstraint.activate([
+            rule.leadingAnchor.constraint(equalTo: leadingAnchor),
+            rule.trailingAnchor.constraint(equalTo: trailingAnchor),
+            rule.topAnchor.constraint(equalTo: topAnchor),
+            rule.heightAnchor.constraint(equalToConstant: 1),
+            big.leadingAnchor.constraint(equalTo: leadingAnchor),
+            big.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
+            big.topAnchor.constraint(equalTo: rule.bottomAnchor, constant: 15),
+            small.leadingAnchor.constraint(equalTo: leadingAnchor),
+            small.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
+            small.topAnchor.constraint(equalTo: big.bottomAnchor, constant: 4),
+            small.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("nimo has no nib") }
+}
+
+/// Something nimo noticed, and the one button that deals with it.
+final class Suggest: NSView {
+    /// What this row is about, for a button that needs to name it.
+    private(set) var name = ""
+
+    init(_ headline: String, _ note: String, verb: String, strong: Bool,
+         target: AnyObject, action: Selector, tag: Int, name: String = "") {
+        super.init(frame: .zero)
+        self.name = name
+        translatesAutoresizingMaskIntoConstraints = false
+
+        let top = NSTextField(labelWithString: headline)
+        top.font = NSFont.systemFont(ofSize: 13.5, weight: .regular)
+        top.textColor = Paint.ink
+        top.lineBreakMode = .byTruncatingTail
+        top.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(top)
+
+        let under = NSTextField(labelWithString: note)
+        under.font = NSFont.systemFont(ofSize: 12, weight: .regular)
+        under.textColor = Paint.faint
+        under.lineBreakMode = .byTruncatingTail
+        under.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(under)
+
+        let button: NSButton
+        if strong {
+            let pill = Pill(target: target, action: action)
+            pill.set(verb, live: true)
+            button = pill
+        } else {
+            button = NSButton(title: verb, target: target, action: action)
+            button.bezelStyle = .rounded
+            button.controlSize = .large
+            button.translatesAutoresizingMaskIntoConstraints = false
+        }
+        button.tag = tag
+        button.identifier = NSUserInterfaceItemIdentifier(name)
+        addSubview(button)
+
+        let rule = NSBox()
+        rule.boxType = .custom
+        rule.borderWidth = 0
+        rule.fillColor = Paint.line
+        rule.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(rule)
+
+        NSLayoutConstraint.activate([
+            top.leadingAnchor.constraint(equalTo: leadingAnchor),
+            top.topAnchor.constraint(equalTo: topAnchor, constant: 15),
+            top.trailingAnchor.constraint(lessThanOrEqualTo: button.leadingAnchor, constant: -20),
+            under.leadingAnchor.constraint(equalTo: leadingAnchor),
+            under.topAnchor.constraint(equalTo: top.bottomAnchor, constant: 3),
+            under.trailingAnchor.constraint(lessThanOrEqualTo: button.leadingAnchor, constant: -20),
+            under.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -16),
+            button.trailingAnchor.constraint(equalTo: trailingAnchor),
+            button.centerYAnchor.constraint(equalTo: centerYAnchor),
+            rule.leadingAnchor.constraint(equalTo: leadingAnchor),
+            rule.trailingAnchor.constraint(equalTo: trailingAnchor),
+            rule.bottomAnchor.constraint(equalTo: bottomAnchor),
+            rule.heightAnchor.constraint(equalToConstant: 1),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("nimo has no nib") }
 }
 
 // MARK: - one thing nimo said

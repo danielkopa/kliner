@@ -427,6 +427,22 @@ check "it is moved, not deleted"          "ls '$BOX/.nimo/backups/startup'/*.lnk
 check "and --undo moves it back"          "win startup --undo -q --no-color >/dev/null 2>&1; [ -f \"$STARTUP_DIR/Some Updater.lnk\" ]"
 
 check "one undo covers both kinds"        "stop_them '1 3' >/dev/null 2>&1; win startup --undo -q --no-color >/dev/null 2>&1; reg_has 'OneDrive' && [ -f \"$STARTUP_DIR/Some Updater.lnk\" ]"
+
+# --only is how something without a terminal stops one named thing: the app,
+# or a script. It still will not act without a yes.
+check "--only refuses a name it does not have" \
+    "win startup --only 'Nothing At All' -y -q --no-color 2>&1 | grep -q 'cannot stop'"
+check "--only will not act without a yes" \
+    "win startup --only OneDrive -q --no-color </dev/null >/dev/null 2>&1; reg_has 'OneDrive'"
+check "--only stops exactly the one named" \
+    "win startup --only OneDrive -y -q --no-color >/dev/null 2>&1; ! reg_has 'OneDrive'"
+check "and leaves the others where they were" \
+    "[ -f \"$STARTUP_DIR/Some Updater.lnk\" ]"
+check "--only writes an undo like the picker does" \
+    "win startup --undo -q --no-color >/dev/null 2>&1; reg_has 'OneDrive'"
+check "--only does not care about case"      \
+    "win startup --only onedrive -y -q --no-color >/dev/null 2>&1; ! reg_has 'OneDrive'"
+win startup --undo -q --no-color >/dev/null 2>&1
 check "and it shows up in min undo"       "win undo --list -q --no-color | grep -q 'stopped things starting'"
 check "the machine key is never written"  "! grep -q 'HKLM' '$BOX/.nimo/backups'/setup-*.tsv"
 

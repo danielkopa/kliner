@@ -1042,6 +1042,12 @@ check "the window follows the system, light or dark" \
     "grep -q 'NSColor.labelColor' '$APP/Sources/main.swift' && ! grep -q 'window.appearance' '$APP/Sources/main.swift'"
 check "the window is glass"                 "grep -q 'NSVisualEffectView' '$APP/Sources/main.swift'"
 check "and it lets the desktop through"     "grep -q 'window.isOpaque = false' '$APP/Sources/main.swift'"
+check "the window opens on a look, not a job" \
+    "grep -q 'static let home = Action' '$APP/Sources/main.swift' && grep -q 'func drawHome' '$APP/Sources/main.swift'"
+check "home is doctor's own reading, not a second measurement" \
+    "grep -q 'home = Action(title: \\\"Home\\\"' '$APP/Sources/main.swift'"
+check "home offers access when something is shut" \
+    "grep -q 'askFromHome' '$APP/Sources/main.swift'"
 check "there is a settings page"            "grep -q 'func drawSettings' '$APP/Sources/main.swift'"
 check "every page can undo itself"          "[ \$(grep -c 'Put this back' '$APP/Sources/main.swift') -ge 3 ]"
 check "you can step into a folder"          "grep -q 'func walkInto' '$APP/Sources/main.swift' && grep -q 'walks: true' '$APP/Sources/main.swift'"
