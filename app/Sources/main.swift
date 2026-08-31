@@ -170,7 +170,7 @@ struct Action {
                blurb: "Everything on your desktop, sorted into Desktop/Tidy by what it is. Nothing is deleted, and nothing is renamed.",
                verb: "Clear my desktop",
                arguments: ["desktop"],
-               asks: "Move everything on your desktop into Desktop/Tidy, sorted by what it is?\n\nNothing is deleted, and nimo can put it all back.",
+               asks: "Move everything on your desktop into Desktop/Tidy, sorted by what it is?\n\nNothing is deleted. Put this back reverses it.",
                group: "Your desk",
                symbol: "square.grid.2x2",
                extras: [Extra(title: "Put this back", arguments: ["desktop", "--undo"], asks: putBack)],
@@ -180,21 +180,11 @@ struct Action {
                blurb: "The same, for the folder everything lands in and nothing ever leaves.",
                verb: "Sort my downloads",
                arguments: ["downloads"],
-               asks: "Sort your downloads into Downloads/Tidy?\n\nNothing is deleted, and nimo can put it all back.",
+               asks: "Sort your downloads into Downloads/Tidy?\n\nNothing is deleted. Put this back reverses it.",
                group: "Your desk",
                symbol: "arrow.down.circle",
                extras: [Extra(title: "Put this back", arguments: ["downloads", "--undo"], asks: putBack)],
                reveal: "Downloads"),
-
-        Action(title: "Screenshots",
-               blurb: "Every loose screenshot gathered into Pictures/Screenshots, wherever it was dropped.",
-               verb: "Gather them up",
-               arguments: ["screenshots"],
-               asks: "Gather every loose screenshot into Pictures/Screenshots?",
-               group: "Your desk",
-               symbol: "camera",
-               extras: [Extra(title: "Put this back", arguments: ["screenshots", "--undo"], asks: putBack)],
-               reveal: "Pictures"),
 
         Action(title: "Wallpaper",
                blurb: "Step through the wallpapers your Mac already ships with. Nothing is downloaded.",
@@ -227,7 +217,7 @@ struct Action {
                blurb: "Caches and temporary files your apps rebuild by themselves. Your own files are never touched.",
                verb: "Free it up",
                arguments: ["clean"],
-               asks: "Delete the caches and temporary files nimo found?\n\nThis one frees real space. Your own files are never touched.",
+               asks: "Delete the caches and temporary files nimo found?\n\nYour own files are never touched.",
                group: "Your disk",
                symbol: "sparkles",
                extras: [Extra(title: "Only look", arguments: ["preview"], asks: nil)]),
@@ -584,18 +574,21 @@ final class Ghost: NSView {
 /// blinks is alive, and a thing that blinks twice a minute is not a
 /// distraction.
 final class Wordmark: NSImageView {
-    private let open = NSImage(named: "wordmark")
-    private let shut = NSImage(named: "wordmark-blink")
+    private let open  = NSImage(named: "wordmark")
+    private let shut  = NSImage(named: "wordmark-blink")
+    private let small = NSImage(named: "mascot")
+    private let smallShut = NSImage(named: "mascot-blink")
     private var pending: Timer?
+    private var folded = false
+    private var closed = false
 
     init() {
         super.init(frame: .zero)
-        open?.isTemplate = true
-        shut?.isTemplate = true
-        image = open
+        for picture in [open, shut] { picture?.isTemplate = true }
         imageScaling = .scaleProportionallyUpOrDown
         imageAlignment = .alignLeft
         translatesAutoresizingMaskIntoConstraints = false
+        wake()
         later()
     }
 
@@ -603,29 +596,60 @@ final class Wordmark: NSImageView {
 
     deinit { pending?.invalidate() }
 
+    /// Folded down to a rail there is no room for a word, so the face goes
+    /// there instead — and it blinks the same way.
+    func fold(_ yes: Bool) {
+        folded = yes
+        imageAlignment = yes ? .alignCenter : .alignLeft
+        wake()
+    }
+
+    private func wake() {
+        if folded { image = closed ? smallShut : small }
+        else      { image = closed ? shut : open }
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        for area in trackingAreas { removeTrackingArea(area) }
+        addTrackingArea(NSTrackingArea(rect: .zero,
+                                       options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+                                       owner: self, userInfo: nil))
+    }
+
+    /// Look at it and it looks back.
+    override func mouseEntered(with event: NSEvent) { blink() }
+
     private func later() {
         pending?.invalidate()
-        pending = Timer.scheduledTimer(withTimeInterval: Double.random(in: 4.5...9),
+        pending = Timer.scheduledTimer(withTimeInterval: Double.random(in: 4...8),
                                        repeats: false) { [weak self] _ in
             self?.blink()
         }
     }
 
     private func blink() {
-        guard window != nil else { later(); return }
-        image = shut
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.11) { [weak self] in
-            self?.image = self?.open
+        guard window != nil, !closed else { later(); return }
+        shutEyes(for: 0.12) { [weak self] in
             // now and then, twice — the way a real blink sometimes doubles
+            guard let self = self else { return }
             if Bool.random() && Bool.random() {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.13) { [weak self] in
-                    self?.image = self?.shut
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                        self?.image = self?.open
-                    }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                    self.shutEyes(for: 0.1) { self.later() }
                 }
+            } else {
+                self.later()
             }
-            self?.later()
+        }
+    }
+
+    private func shutEyes(for seconds: Double, then: @escaping () -> Void) {
+        closed = true
+        wake()
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds) { [weak self] in
+            self?.closed = false
+            self?.wake()
+            then()
         }
     }
 }
@@ -811,20 +835,24 @@ final class Chip: NSView {
         // The strong one is a filled pill. The quiet ones are words, and only
         // become a shape when the pointer is on them — three slabs in a row is
         // three things shouting.
+        // Busy is not broken. The strong button keeps its fill and dims;
+        // turning it into a grey slab made it look like it had stopped
+        // working rather than like it was working.
         let background: NSColor
-        if !live {
-            background = kind == .strong ? Paint.picked : NSColor.clear
-            label.textColor = Paint.faint
-        } else if kind == .strong {
+        if kind == .strong {
             background = Paint.strong
             label.textColor = Paint.onStrong
         } else {
-            background = hovering ? Paint.picked : NSColor.clear
-            label.textColor = hovering ? Paint.ink : Paint.muted
+            background = hovering && live ? Paint.picked : NSColor.clear
+            label.textColor = !live ? Paint.faint : (hovering ? Paint.ink : Paint.muted)
         }
+
+        var strength: Float = 1
+        if !live { strength = 0.4 } else if hovering && kind == .strong { strength = 0.86 }
+
         effectiveAppearance.performAsCurrentDrawingAppearance {
             ease(self.layer, to: background)
-            self.layer?.opacity = self.hovering && self.live && self.kind == .strong ? 0.85 : 1
+            self.layer?.opacity = strength
         }
     }
 }
@@ -866,7 +894,6 @@ final class Main: NSObject, NSWindowDelegate {
 
     private let titleLabel = NSTextField(labelWithString: "")
     private var runButton: Chip!
-    private let spinner    = NSProgressIndicator()
     private let scroll     = NSScrollView()
     private let report     = NSStackView()
     private var rows: [Row] = []
@@ -949,12 +976,14 @@ final class Main: NSObject, NSWindowDelegate {
         // macOS draws it in whatever colour the text around it is: light,
         // dark, or over a wallpaper showing through the glass.
         let mark = Wordmark()
+        // A template image takes its colour from here; the folded face is not
+        // one, so this simply does not reach it.
         mark.contentTintColor = Paint.ink
         wordmark = mark
         stack.addArrangedSubview(mark)
         markWidth = mark.widthAnchor.constraint(equalToConstant: 190)
         NSLayoutConstraint.activate([
-            mark.heightAnchor.constraint(equalToConstant: 16),
+            mark.heightAnchor.constraint(equalToConstant: 21),
             markWidth,
         ])
         stack.setCustomSpacing(26, after: mark)
@@ -1051,12 +1080,7 @@ final class Main: NSObject, NSWindowDelegate {
         buttons.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(buttons)
 
-        spinner.style = .spinning
-        spinner.controlSize = .small
-        spinner.isDisplayedWhenStopped = false
-        spinner.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(spinner)
-
+        scroll.contentView = TopClip()
         scroll.hasVerticalScroller = true
         scroll.autohidesScrollers = true
         scroll.borderType = .noBorder
@@ -1079,7 +1103,7 @@ final class Main: NSObject, NSWindowDelegate {
 
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 16),
-            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 56),
+            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 52),
             stackWidth,
 
             settingsRow.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
@@ -1096,20 +1120,15 @@ final class Main: NSObject, NSWindowDelegate {
             edge.widthAnchor.constraint(equalToConstant: 1),
 
             chromeLeading,
-            chrome.topAnchor.constraint(equalTo: content.topAnchor, constant: 14),
+            chrome.topAnchor.constraint(equalTo: content.topAnchor, constant: 7),
 
             titleLabel.leadingAnchor.constraint(equalTo: edge.trailingAnchor, constant: 46),
             titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: content.trailingAnchor, constant: -46),
-            titleLabel.topAnchor.constraint(equalTo: content.topAnchor, constant: 66),
+            titleLabel.topAnchor.constraint(equalTo: content.topAnchor, constant: 62),
 
             buttons.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             buttons.trailingAnchor.constraint(lessThanOrEqualTo: content.trailingAnchor, constant: -44),
             buttons.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 22),
-
-            spinner.leadingAnchor.constraint(equalTo: buttons.trailingAnchor, constant: 14),
-            spinner.centerYAnchor.constraint(equalTo: buttons.centerYAnchor),
-            spinner.widthAnchor.constraint(equalToConstant: 16),
-            spinner.heightAnchor.constraint(equalToConstant: 16),
 
             scroll.leadingAnchor.constraint(equalTo: edge.trailingAnchor),
             scroll.trailingAnchor.constraint(equalTo: content.trailingAnchor),
@@ -1159,7 +1178,34 @@ final class Main: NSObject, NSWindowDelegate {
             if case .row(let label, let value, _, _, _) = piece { figures[label] = value }
         }
 
-        // The four figures first, because they are the answer to "how is it".
+        // The disk first, because it is the picture. The figures under it,
+        // because they are the caption.
+        var total = 0.0, free = 0.0
+        if let disk = figures["Disk"] {
+            let parts = disk.components(separatedBy: " of ")
+            free = bytes(parts.first?.replacingOccurrences(of: " free", with: "") ?? "") ?? 0
+            total = parts.count > 1 ? (bytes(parts[1]) ?? 0) : 0
+        }
+        let junk = bytes(figures["Junk"] ?? "") ?? 0
+
+        if total > 0 {
+            let used = max(0, total - free)
+            let holder = NSView()
+            holder.translatesAutoresizingMaskIntoConstraints = false
+            let disk = Disk(used: used - junk, freeable: junk, total: total,
+                            freeNow: (figures["Disk"] ?? "").replacingOccurrences(of: " of ", with: " free of "),
+                            freeAfter: junk > 0 ? "\(size(free + junk)) after freeing it up" : "")
+            disk.translatesAutoresizingMaskIntoConstraints = false
+            holder.addSubview(disk)
+            NSLayoutConstraint.activate([
+                disk.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
+                disk.trailingAnchor.constraint(equalTo: holder.trailingAnchor),
+                disk.topAnchor.constraint(equalTo: holder.topAnchor, constant: 4),
+                disk.bottomAnchor.constraint(equalTo: holder.bottomAnchor, constant: -8),
+            ])
+            line(holder)
+        }
+
         let wanted = [("Desktop", "on your desktop"), ("Downloads", "in downloads"),
                       ("Junk", "worth freeing"), ("Disk", "free")]
         let figuresRow = NSStackView()
@@ -1184,56 +1230,14 @@ final class Main: NSObject, NSWindowDelegate {
             NSLayoutConstraint.activate([
                 figuresRow.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
                 figuresRow.trailingAnchor.constraint(equalTo: holder.trailingAnchor),
-                figuresRow.topAnchor.constraint(equalTo: holder.topAnchor, constant: 2),
+                figuresRow.topAnchor.constraint(equalTo: holder.topAnchor, constant: 20),
                 figuresRow.bottomAnchor.constraint(equalTo: holder.bottomAnchor, constant: -4),
             ])
             line(holder)
         }
 
-        // Then the disk twice — as it is, and as it would be. Two bars answer
-        // "what would this actually do" better than a sentence claiming it.
-        var total = 0.0, free = 0.0
-        if let disk = figures["Disk"] {
-            let parts = disk.components(separatedBy: " of ")
-            free = bytes(parts.first?.replacingOccurrences(of: " free", with: "") ?? "") ?? 0
-            total = parts.count > 1 ? (bytes(parts[1]) ?? 0) : 0
-        }
-        let junk = bytes(figures["Junk"] ?? "") ?? 0
-
-        if total > 0 {
-            let used = max(0, total - free)
-            let both = NSStackView()
-            both.orientation = .vertical
-            both.alignment = .leading
-            both.spacing = 16
-            both.translatesAutoresizingMaskIntoConstraints = false
-
-            let now = Bar(caption: "Now",
-                          used: used - junk, freeable: junk, total: total, lit: true)
-            both.addArrangedSubview(now)
-
-            if junk > 0 {
-                let after = Bar(caption: "After freeing it up — \(figures["Junk"] ?? "") more free",
-                                used: used - junk, freeable: 0, total: total, lit: false)
-                both.addArrangedSubview(after)
-                after.widthAnchor.constraint(equalTo: both.widthAnchor).isActive = true
-            }
-            now.widthAnchor.constraint(equalTo: both.widthAnchor).isActive = true
-
-            let holder = NSView()
-            holder.translatesAutoresizingMaskIntoConstraints = false
-            holder.addSubview(both)
-            NSLayoutConstraint.activate([
-                both.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
-                both.trailingAnchor.constraint(equalTo: holder.trailingAnchor),
-                both.topAnchor.constraint(equalTo: holder.topAnchor, constant: 24),
-                both.bottomAnchor.constraint(equalTo: holder.bottomAnchor, constant: -6),
-            ])
-            line(holder)
-        }
-
         // ---- what is worth doing about it ------------------------------
-        words("Worth doing", size: 12, weight: .regular, colour: Paint.faint,
+        words("Worth doing", size: 12.5, weight: .regular, colour: Paint.faint,
               top: 26, bottom: 6)
 
         var said = false
@@ -1265,14 +1269,14 @@ final class Main: NSObject, NSWindowDelegate {
         if let junk = figures["Junk"], !junk.hasPrefix("0") {
             line(Suggest("\(junk) of caches",
                          verb: "Free it", strong: false) { [weak self] in
-                             self?.show(7)
+                             self?.show(6)
                          })
             said = true
         }
 
         if !said {
             words("Nothing needs doing. Your Mac is clear.",
-                  size: 14, weight: .medium, colour: Paint.ink, top: 6, bottom: 6)
+                  size: 13.5, weight: .medium, colour: Paint.ink, top: 6, bottom: 6)
         }
     }
 
@@ -1283,7 +1287,7 @@ final class Main: NSObject, NSWindowDelegate {
 
         let alert = NSAlert()
         alert.messageText = "Stop \(name) from starting?"
-        alert.informativeText = "It is not uninstalled and nothing is deleted — it just stops launching itself when you sign in. Put it all back reverses this."
+        alert.informativeText = "It is not uninstalled. It stops launching itself when you sign in, and Put it all back reverses that."
         alert.addButton(withTitle: "Stop it")
         alert.addButton(withTitle: "Cancel")
         guard alert.runModal() == .alertFirstButtonReturn else { return }
@@ -1324,7 +1328,8 @@ final class Main: NSObject, NSWindowDelegate {
 
             switch piece {
             case .heading(let text):
-                words(text, size: 12, weight: .medium, colour: Paint.faint, top: 26, bottom: 8)
+                words(text, size: 12.5, weight: .regular, colour: Paint.faint,
+                      top: 26, bottom: 8)
 
             case .rule:
                 // A rule was a way of drawing a gap on a terminal. Here a gap
@@ -1354,11 +1359,14 @@ final class Main: NSObject, NSWindowDelegate {
                 }
                 line(said)
 
+            // One size for everything nimo says. Weight and colour carry the
+            // difference; a second size only makes the page look assembled
+            // out of two pages.
             case .good(let text):
-                words(text, size: 14, weight: .semibold, colour: Paint.ink, top: 8, bottom: 6)
+                words(text, size: 13.5, weight: .medium, colour: Paint.ink, top: 7, bottom: 6)
 
             case .warn(let text):
-                words(text, size: 14, weight: .medium, colour: Paint.body, top: 8, bottom: 6)
+                words(text, size: 13.5, weight: .medium, colour: Paint.body, top: 7, bottom: 6)
 
             case .note:
                 // nimo's last lines tell a terminal what to type next. There
@@ -1366,7 +1374,7 @@ final class Main: NSObject, NSWindowDelegate {
                 break
 
             case .text(let text):
-                words(text, size: 13.5, weight: .regular, colour: Paint.body, top: 5, bottom: 5)
+                words(text, size: 13.5, weight: .regular, colour: Paint.body, top: 6, bottom: 6)
             }
         }
 
@@ -1405,6 +1413,16 @@ final class Main: NSObject, NSWindowDelegate {
 
     private func say(_ text: String) {
         draw([.text(text)])
+    }
+
+    /// While nimo is off doing the thing, the page holds its face.
+    private func waiting() {
+        for view in report.arrangedSubviews {
+            report.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
+        line(Thinking())
+        settle()
     }
 
     // MARK: using it
@@ -1508,6 +1526,18 @@ final class Main: NSObject, NSWindowDelegate {
         launch(extra.asks == nil ? extra.arguments : extra.arguments + ["--yes"])
     }
 
+    /// Desktop/Tidy/Images if nimo has already made it, the folder itself if
+    /// it has not. Either way you end up looking at the thing the row named.
+    private func openKind(_ folder: String, _ kind: String) {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let tidy = home.appendingPathComponent(folder)
+            .appendingPathComponent("Tidy")
+            .appendingPathComponent(kind)
+        let target = FileManager.default.fileExists(atPath: tidy.path)
+            ? tidy : home.appendingPathComponent(folder)
+        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: target.path)
+    }
+
     private func revealFolder() {
         guard let folder = Action.all[chosen].reveal else { return }
         let url = FileManager.default.homeDirectoryForCurrentUser
@@ -1577,7 +1607,7 @@ final class Main: NSObject, NSWindowDelegate {
 
         line(Setting(Access.everything
                         ? "Full Disk Access is on"
-                        : "Full Disk Access is off — some caches stay put",
+                        : "Full Disk Access is off",
                      control: quiet(Access.everything ? "Settings" : "Turn on…") {
                          Access.settings("Privacy_AllFiles")
                      }))
@@ -1587,9 +1617,42 @@ final class Main: NSObject, NSWindowDelegate {
 
         divider()
         words("nimo \(Nimo.version) · MIT · github.com/danielkopa/nimo",
-              size: 12, weight: .regular, colour: Paint.faint, top: 2, bottom: 4)
+              size: 12.5, weight: .regular, colour: Paint.faint, top: 2, bottom: 4)
 
         settle()
+    }
+
+    /// The same hairline the list down the side uses, across the page.
+    private func divider() {
+        let rule = NSBox()
+        rule.boxType = .custom
+        rule.borderWidth = 0
+        rule.fillColor = Paint.line
+        rule.translatesAutoresizingMaskIntoConstraints = false
+
+        let holder = NSView()
+        holder.translatesAutoresizingMaskIntoConstraints = false
+        holder.addSubview(rule)
+        NSLayoutConstraint.activate([
+            holder.heightAnchor.constraint(equalToConstant: 30),
+            rule.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
+            rule.trailingAnchor.constraint(equalTo: holder.trailingAnchor),
+            rule.centerYAnchor.constraint(equalTo: holder.centerYAnchor),
+            rule.heightAnchor.constraint(equalToConstant: 1),
+        ])
+        line(holder)
+    }
+
+    /// Reading a folder is what raises the prompt, so asking and checking are
+    /// the same act. Then the page is drawn again from whatever you answered.
+    private func askForEverything() {
+        Access.may(Access.desktop)
+        Access.may(Access.downloads)
+        Access.may(FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Pictures"))
+        Access.may(FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Documents"))
+        drawSettings()
     }
 
     @objc private func loginChanged(_ sender: NSSwitch) {
@@ -1645,8 +1708,7 @@ final class Main: NSObject, NSWindowDelegate {
         busy = true
         seen.insert(chosen)
         runButton.set(item.verb, live: false)
-        spinner.startAnimation(nil)
-        say("working …")
+        waiting()
 
         // Only after somebody has said yes does --yes go anywhere near nimo,
         // and a preview cannot be given it at all.
@@ -1664,8 +1726,7 @@ final class Main: NSObject, NSWindowDelegate {
         busy = true
         seen.insert(chosen)
         runButton.set(Action.all[chosen].verb, live: false)
-        spinner.startAnimation(nil)
-        say("working …")
+        waiting()
         spin(arguments)
     }
 
@@ -1676,7 +1737,6 @@ final class Main: NSObject, NSWindowDelegate {
                 let pieces = Report.parse(result.text)
                 if pieces.isEmpty { self.say("nimo said nothing at all.") }
                 else { self.draw(pieces) }
-                self.spinner.stopAnimation(nil)
                 self.busy = false
                 self.fitButtons()
             }
@@ -1691,7 +1751,7 @@ final class Main: NSObject, NSWindowDelegate {
 
         for row in rows { row.narrow(narrow) }
         for head in groupLabels { head.isHidden = narrow }
-        wordmark.isHidden = narrow
+        wordmark.fold(narrow)
         markWidth.constant = narrow ? 38 : 190
         stackWidth.constant = narrow ? 38 : 214
         railWidth.constant = narrow ? 70 : 246
@@ -1723,6 +1783,16 @@ final class Main: NSObject, NSWindowDelegate {
 
 // MARK: - a disk, drawn
 
+/// And back again, in the units nimo would have used.
+func size(_ value: Double) -> String {
+    let units: [(Double, String)] = [(1_000_000_000_000, "TB"), (1_000_000_000, "GB"),
+                                     (1_000_000, "MB"), (1_000, "KB")]
+    for (scale, name) in units where value >= scale {
+        return String(format: value / scale >= 10 ? "%.0f %@" : "%.1f %@", value / scale, name)
+    }
+    return String(format: "%.0f B", value)
+}
+
 /// Sizes as nimo prints them, back into numbers, so they can be drawn.
 func bytes(_ text: String) -> Double? {
     let parts = text.split(separator: " ")
@@ -1737,28 +1807,22 @@ func bytes(_ text: String) -> Double? {
     }
 }
 
-/// One line of disk: what is taken, the part of it nimo could give back, and
-/// what is already free. Two of these — now, and after — is the honest way to
-/// answer "what would this actually do".
-final class Bar: NSView {
-    init(caption: String, used: Double, freeable: Double, total: Double, lit: Bool) {
+/// The disk as one bar: what is taken, the part nimo could give back, and
+/// what is already free — with the only two numbers that matter written under
+/// it. Two bars said the same thing twice; this says it once.
+final class Disk: NSView {
+    init(used: Double, freeable: Double, total: Double, freeNow: String, freeAfter: String) {
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
 
-        let title = NSTextField(labelWithString: caption)
-        title.font = NSFont.systemFont(ofSize: 12, weight: .regular)
-        title.textColor = Paint.faint
-        title.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(title)
-
         let track = NSView()
         track.wantsLayer = true
-        track.layer?.cornerRadius = 5
+        track.layer?.cornerRadius = 6
         track.layer?.masksToBounds = true
         track.translatesAutoresizingMaskIntoConstraints = false
         addSubview(track)
         track.effectiveAppearance.performAsCurrentDrawingAppearance {
-            track.layer?.backgroundColor = Paint.line.cgColor
+            track.layer?.backgroundColor = Paint.picked.cgColor
         }
 
         func slice(_ colour: NSColor) -> NSView {
@@ -1772,30 +1836,47 @@ final class Bar: NSView {
             return piece
         }
 
-        let safeTotal = max(total, 1)
+        let whole = max(total, 1)
         let taken = slice(Paint.muted)
-        let give  = slice(lit ? Paint.strong : Paint.line)
+        let give  = slice(Paint.strong)
+
+        let now = NSTextField(labelWithString: freeNow)
+        now.font = NSFont.systemFont(ofSize: 12.5, weight: .regular)
+        now.textColor = Paint.muted
+        now.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(now)
+
+        let after = NSTextField(labelWithString: freeAfter)
+        after.font = NSFont.systemFont(ofSize: 12.5, weight: .regular)
+        after.textColor = Paint.faint
+        after.alignment = .right
+        after.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(after)
 
         NSLayoutConstraint.activate([
-            title.leadingAnchor.constraint(equalTo: leadingAnchor),
-            title.topAnchor.constraint(equalTo: topAnchor),
             track.leadingAnchor.constraint(equalTo: leadingAnchor),
             track.trailingAnchor.constraint(equalTo: trailingAnchor),
-            track.topAnchor.constraint(equalTo: title.bottomAnchor, constant: 8),
-            track.heightAnchor.constraint(equalToConstant: 10),
-            track.bottomAnchor.constraint(equalTo: bottomAnchor),
+            track.topAnchor.constraint(equalTo: topAnchor),
+            track.heightAnchor.constraint(equalToConstant: 12),
 
             taken.leadingAnchor.constraint(equalTo: track.leadingAnchor),
             taken.topAnchor.constraint(equalTo: track.topAnchor),
             taken.bottomAnchor.constraint(equalTo: track.bottomAnchor),
             taken.widthAnchor.constraint(equalTo: track.widthAnchor,
-                                         multiplier: max(0.002, min(1, used / safeTotal))),
+                                         multiplier: max(0.004, min(1, used / whole))),
 
             give.leadingAnchor.constraint(equalTo: taken.trailingAnchor),
             give.topAnchor.constraint(equalTo: track.topAnchor),
             give.bottomAnchor.constraint(equalTo: track.bottomAnchor),
             give.widthAnchor.constraint(equalTo: track.widthAnchor,
-                                        multiplier: max(0.0, min(1, freeable / safeTotal))),
+                                        multiplier: max(0.0, min(1, freeable / whole))),
+
+            now.leadingAnchor.constraint(equalTo: leadingAnchor),
+            now.topAnchor.constraint(equalTo: track.bottomAnchor, constant: 11),
+            now.bottomAnchor.constraint(equalTo: bottomAnchor),
+            after.trailingAnchor.constraint(equalTo: trailingAnchor),
+            after.firstBaselineAnchor.constraint(equalTo: now.firstBaselineAnchor),
+            after.leadingAnchor.constraint(greaterThanOrEqualTo: now.trailingAnchor, constant: 16),
         ])
     }
 
@@ -1836,6 +1917,84 @@ final class Stat: NSView {
     }
 
     required init?(coder: NSCoder) { fatalError("nimo has no nib") }
+}
+
+// MARK: - a scroll view that starts at the top
+
+/// AppKit's clip view is not flipped, so a document view shorter than the
+/// scroll view sits at the *bottom* of it. That is why every page had a hole
+/// above it and its content pushed to the floor. One override fixes the lot.
+final class TopClip: NSClipView {
+    override var isFlipped: Bool { true }
+}
+
+// MARK: - thinking
+
+/// nimo, breathing, while it works. A spinner says a machine is busy; a face
+/// that blinks says somebody is looking at the thing you asked about.
+final class Thinking: NSView {
+    private let face = NSImageView()
+    private let word = NSTextField(labelWithString: "one moment")
+    private var pending: Timer?
+
+    init() {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+
+        face.image = NSImage(named: "mascot")
+        face.imageScaling = .scaleProportionallyUpOrDown
+        face.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(face)
+
+        word.font = NSFont.systemFont(ofSize: 13, weight: .regular)
+        word.textColor = Paint.faint
+        word.alignment = .center
+        word.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(word)
+
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(greaterThanOrEqualToConstant: 300),
+            face.centerXAnchor.constraint(equalTo: centerXAnchor),
+            face.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -18),
+            face.widthAnchor.constraint(equalToConstant: 84),
+            face.heightAnchor.constraint(equalToConstant: 84),
+            word.centerXAnchor.constraint(equalTo: centerXAnchor),
+            word.topAnchor.constraint(equalTo: face.bottomAnchor, constant: 18),
+        ])
+
+        breathe()
+        blinkLater()
+    }
+
+    required init?(coder: NSCoder) { fatalError("nimo has no nib") }
+
+    deinit { pending?.invalidate() }
+
+    /// Slower than a spinner on purpose: nimo is thinking, not straining.
+    private func breathe() {
+        face.wantsLayer = true
+        let pulse = CABasicAnimation(keyPath: "transform.scale")
+        pulse.fromValue = 1.0
+        pulse.toValue = 0.94
+        pulse.duration = 1.1
+        pulse.autoreverses = true
+        pulse.repeatCount = .infinity
+        pulse.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        face.layer?.add(pulse, forKey: "breathing")
+    }
+
+    private func blinkLater() {
+        pending?.invalidate()
+        pending = Timer.scheduledTimer(withTimeInterval: Double.random(in: 1...2.4),
+                                       repeats: false) { [weak self] _ in
+            guard let self = self, self.window != nil else { return }
+            self.face.image = NSImage(named: "mascot-blink")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.11) {
+                self.face.image = NSImage(named: "mascot")
+                self.blinkLater()
+            }
+        }
+    }
 }
 
 // MARK: - something worth doing

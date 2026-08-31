@@ -1032,6 +1032,27 @@ check "you can quit it"                   "grep -q 'NSApplication.terminate' '$A
 check "nimo's panel is read back into real controls" \
     "grep -q 'enum Report' '$APP/Sources/main.swift' && grep -q 'case heading' '$APP/Sources/main.swift'"
 DOUBLE=$(awk '/^final class /{c=$3} /required init\?\(coder/{print c}' "$APP/Sources/main.swift" | sort | uniq -d)
+# A Swift keyword used as a name is a compile error, and `let where = ...` is
+# the one that reads like ordinary English. `guard let self` is not that.
+KEYWORD=$(grep -nE "^ *(let|var) (where|case|default|in|is|as|for|if|else|func|class|struct|enum|return|switch|guard|try|throw|super|repeat|while|do|init|deinit|protocol|extension|import|operator|subscript|typealias|inout|nil|true|false) *=" "$APP/Sources/main.swift" | head -3)
+check "nothing is named after a Swift keyword" "[ -z '$KEYWORD' ]"
+
+# Slicing a class out and writing a new one back is how helpers go missing,
+# and the compiler only says so a build later. Every method called through
+# self, and every selector naming one of our own, has to exist here.
+MISSING=$(awk '
+    /func [a-zA-Z_]+\(/ { line = $0
+        sub(/.*func /, "", line); sub(/\(.*/, "", line); have[line] = 1 }
+    { s = $0
+      while (match(s, /self\??\.[a-zA-Z_]+\(/)) {
+        call = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
+        sub(/^self\??\./, "", call); sub(/\($/, "", call); want[call] = 1 }
+      t = $0
+      while (match(t, /#selector\(Main\.[a-zA-Z_]+/)) {
+        call = substr(t, RSTART, RLENGTH); t = substr(t, RSTART + RLENGTH)
+        sub(/.*Main\./, "", call); want[call] = 1 } }
+    END { for (n in want) if (!(n in have)) print n }' "$APP/Sources/main.swift")
+check "every method the file calls, the file defines" "[ -z '$MISSING' ]"
 check "no class overrides init(coder:) twice" "[ -z '$DOUBLE' ]"
 # A property declared with ! and never assigned is nil the moment something
 # reads it — which, in a window, is at launch. That is the shape of the bug
@@ -1076,14 +1097,21 @@ check "and it never claims to grant itself access" \
     "grep -q 'enum Access' '$APP/Sources/main.swift' && grep -q 'Privacy_AllFiles' '$APP/Sources/main.swift'"
 check "settings are the same file nimo reads" \
     "grep -q '.nimo\\\", isDirectory' '$APP/Sources/main.swift' && grep -q 'enum Config' '$APP/Sources/main.swift'"
-check "it spins while it thinks"            "grep -q 'NSProgressIndicator' '$APP/Sources/main.swift'"
+# A clip view that is not flipped puts a short page at the bottom of the
+# window, which is what left a hole above every one of them.
+check "the page starts at the top of the window" \
+    "grep -q 'final class TopClip' '$APP/Sources/main.swift' && grep -q 'scroll.contentView = TopClip' '$APP/Sources/main.swift'"
+check "nimo's own face waits, not a spinner"  \
+    "grep -q 'final class Thinking' '$APP/Sources/main.swift' && ! grep -q 'NSProgressIndicator' '$APP/Sources/main.swift'"
 check "the eyes in the wordmark blink"      \
     "grep -q 'final class Wordmark' '$APP/Sources/main.swift' && [ -f '$APP/Resources/wordmark-blink.png' ]"
 check "the list folds down to its pictures"  \
     "grep -q 'func foldSide' '$APP/Sources/main.swift' && grep -q 'func narrow' '$APP/Sources/main.swift'"
 check "and a folded row keeps its name"     "grep -q 'toolTip = yes ? name.stringValue' '$APP/Sources/main.swift'"
-check "home draws the disk, now and after"  \
-    "grep -q 'final class Bar' '$APP/Sources/main.swift' && grep -q 'After freeing it up' '$APP/Sources/main.swift'"
+check "home draws the disk, and what it would be" \
+    "grep -q 'final class Disk' '$APP/Sources/main.swift' && grep -q 'after freeing it up' '$APP/Sources/main.swift'"
+check "the figures sit under the picture"    \
+    "awk '/let disk = Disk\\(/{d=NR} /let figuresRow = NSStackView/{f=NR} END{exit !(d && f && d < f)}' '$APP/Sources/main.swift'"
 check "sizes are read back into numbers"    "grep -q 'func bytes' '$APP/Sources/main.swift'"
 check "no paragraph under every title"      "! grep -q 'blurbLabel' '$APP/Sources/main.swift'"
 check "the window is glass, in two weights"  \
@@ -1093,7 +1121,17 @@ check "back and forward remember where you were" \
 check "the chrome sits past the three lights" \
     "grep -q 'chromeLeading' '$APP/Sources/main.swift'"
 check "a quiet button is words until you point at it" \
-    "grep -q 'hovering ? Paint.picked : NSColor.clear' '$APP/Sources/main.swift'"
+    "grep -q 'hovering && live ? Paint.picked : NSColor.clear' '$APP/Sources/main.swift'"
+check "a busy button dims, it does not go grey" \
+    "grep -q 'if !live { strength = 0.4 }' '$APP/Sources/main.swift'"
+check "screenshots is not its own page any more" \
+    "! grep -q 'Action(title: \\\"Screenshots\\\"' '$APP/Sources/main.swift'"
+check "a row of files can be opened"        "grep -q 'func openKind' '$APP/Sources/main.swift'"
+check "the folded rail shows the face"      "grep -q 'func fold' '$APP/Sources/main.swift' && [ -f '$APP/Resources/mascot.png' ]"
+check "the wordmark blinks when you point at it" \
+    "grep -q 'override func mouseEntered' '$APP/Sources/main.swift' && grep -q 'Look at it and it looks back' '$APP/Sources/main.swift'"
+check "one size for everything nimo says"   \
+    "[ \$(grep -c 'words(text, size: 13.5' '$APP/Sources/main.swift') -ge 3 ]"
 check "the page arrives a line at a time"   \
     "grep -q 'CAAnimationGroup' '$APP/Sources/main.swift' && grep -q 'arriving' '$APP/Sources/main.swift'"
 check "and a colour is eased, never snapped" \
