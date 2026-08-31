@@ -768,6 +768,28 @@ final class Main: NSObject, NSWindowDelegate {
             if i == 0 { stack.setCustomSpacing(20, after: row) }
         }
 
+        // Settings is not one of the things nimo does, so it does not stand in
+        // the same list. It waits at the bottom, under a hairline, where every
+        // Mac keeps its gear.
+        settingsRow = Row(Action.settings, index: Action.all.count)
+        settingsRow.onClick = { [weak self] _ in self?.show(Action.all.count) }
+        settingsRow.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(settingsRow)
+        rows.append(settingsRow)
+
+        let foot = NSBox()
+        foot.boxType = .custom
+        foot.borderWidth = 0
+        foot.fillColor = Paint.line
+        foot.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(foot)
+        NSLayoutConstraint.activate([
+            foot.leadingAnchor.constraint(equalTo: settingsRow.leadingAnchor, constant: 11),
+            foot.trailingAnchor.constraint(equalTo: settingsRow.trailingAnchor, constant: -11),
+            foot.bottomAnchor.constraint(equalTo: settingsRow.topAnchor, constant: -9),
+            foot.heightAnchor.constraint(equalToConstant: 1),
+        ])
+
         // ---- the page ----------------------------------------------------
         // No card, no second surface, no border round anything. One hairline
         // between the list and the work, and paper either side of it.

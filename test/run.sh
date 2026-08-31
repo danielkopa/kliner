@@ -1033,6 +1033,16 @@ check "nimo's panel is read back into real controls" \
     "grep -q 'enum Report' '$APP/Sources/main.swift' && grep -q 'case heading' '$APP/Sources/main.swift'"
 DOUBLE=$(awk '/^final class /{c=$3} /required init\?\(coder/{print c}' "$APP/Sources/main.swift" | sort | uniq -d)
 check "no class overrides init(coder:) twice" "[ -z '$DOUBLE' ]"
+# A property declared with ! and never assigned is nil the moment something
+# reads it — which, in a window, is at launch. That is the shape of the bug
+# that shipped an app which would not open, so the suite reads for it.
+UNSET=$(awk '
+    /private var [A-Za-z_]+: [A-Za-z<>\[\], ]+!/ {
+        name = $3; sub(":", "", name); wanted[name] = 1
+    }
+    { for (n in wanted) if ($0 ~ ("^ *" n " = ")) delete wanted[n] }
+    END { for (n in wanted) print n }' "$APP/Sources/main.swift")
+check "nothing declared with ! is left unassigned" "[ -z '$UNSET' ]"
 check "there is no terminal left in the window" \
     "! grep -q 'NSTextView' '$APP/Sources/main.swift'"
 check "what nimo said is laid out as text"  "grep -q 'final class Said' '$APP/Sources/main.swift'"
