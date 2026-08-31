@@ -1031,6 +1031,8 @@ check "it has a menu bar of its own"      "grep -q 'NSApp.mainMenu = buildMenu' 
 check "you can quit it"                   "grep -q 'NSApplication.terminate' '$APP/Sources/main.swift'"
 check "nimo's panel is read back into real controls" \
     "grep -q 'enum Report' '$APP/Sources/main.swift' && grep -q 'case heading' '$APP/Sources/main.swift'"
+DOUBLE=$(awk '/^final class /{c=$3} /required init\?\(coder/{print c}' "$APP/Sources/main.swift" | sort | uniq -d)
+check "no class overrides init(coder:) twice" "[ -z '$DOUBLE' ]"
 check "there is no terminal left in the window" \
     "! grep -q 'NSTextView' '$APP/Sources/main.swift'"
 check "what nimo said is laid out as text"  "grep -q 'final class Said' '$APP/Sources/main.swift'"

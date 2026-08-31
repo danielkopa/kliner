@@ -51,9 +51,8 @@ done
 iconutil -c icns "$iconset" -o "$app/Contents/Resources/AppIcon.icns"
 rm -rf "$iconset"
 
-cp app/Resources/menubar.png     "$app/Contents/Resources/"
-cp app/Resources/menubar@2x.png  "$app/Contents/Resources/"
-cp app/Resources/menubar@3x.png  "$app/Contents/Resources/"
+# every picture the app draws itself with, at every scale a Mac may ask for
+cp app/Resources/*.png "$app/Contents/Resources/"
 
 # --- the plist ----------------------------------------------------------
 sed "s/__VERSION__/$version/g" app/Info.plist > "$app/Contents/Info.plist"

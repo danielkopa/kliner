@@ -715,10 +715,23 @@ final class Main: NSObject, NSWindowDelegate {
         stack.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(stack)
 
-        let mark = NSTextField(labelWithString: "nimo")
-        mark.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
-        mark.textColor = Paint.ink
+        // The wordmark, not the word. It is a template image, so macOS draws
+        // it in whatever colour the text around it is — light, dark, or over a
+        // wallpaper showing through the glass.
+        let mark = NSImageView()
+        if let picture = NSImage(named: "wordmark") {
+            picture.isTemplate = true
+            mark.image = picture
+        }
+        mark.contentTintColor = Paint.ink
+        mark.imageScaling = .scaleProportionallyUpOrDown
+        mark.imageAlignment = .alignLeft
+        mark.translatesAutoresizingMaskIntoConstraints = false
         stack.addArrangedSubview(mark)
+        NSLayoutConstraint.activate([
+            mark.heightAnchor.constraint(equalToConstant: 15),
+            mark.widthAnchor.constraint(equalToConstant: 190),
+        ])
         stack.setCustomSpacing(26, after: mark)
 
         var lastGroup = ""
@@ -1400,7 +1413,6 @@ final class Said: NSView {
             self.layer?.backgroundColor = background.cgColor
         }
     }
-    required init?(coder: NSCoder) { fatalError("nimo has no nib") }
 }
 
 // MARK: - the app
