@@ -1033,7 +1033,11 @@ check "nimo's panel is read back into real controls" \
     "grep -q 'enum Report' '$APP/Sources/main.swift' && grep -q 'case heading' '$APP/Sources/main.swift'"
 check "there is no terminal left in the window" \
     "! grep -q 'NSTextView' '$APP/Sources/main.swift'"
-check "a bar of blocks becomes a real bar"  "grep -q 'final class Line' '$APP/Sources/main.swift'"
+check "what nimo said is laid out as text"  "grep -q 'final class Said' '$APP/Sources/main.swift'"
+check "there is nothing shouting on the page" \
+    "! grep -q 'Paint.accent' '$APP/Sources/main.swift'"
+check "the window follows the system, light or dark" \
+    "grep -q 'bestMatch(from: \\[.aqua, .darkAqua\\])' '$APP/Sources/main.swift' && ! grep -q 'window.appearance' '$APP/Sources/main.swift'"
 check "it spins while it thinks"            "grep -q 'NSProgressIndicator' '$APP/Sources/main.swift'"
 check "the panel fades in"                  "grep -q 'NSAnimationContext' '$APP/Sources/main.swift'"
 check "its version is filled in at build" "grep -q '__VERSION__' '$APP/Info.plist'"

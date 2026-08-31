@@ -24,23 +24,25 @@ enum Paint {
                 blue: CGFloat(b) / 255, alpha: 1)
     }
 
-    // Quiet greys with one colour in them. A tool you open every day should
-    // not shout; the only bright thing on screen is the button you came for.
-    static let ground   = rgb(12, 12, 14)     // the window
-    static let panel    = rgb(21, 21, 24)     // the card the work happens in
-    static let line     = rgb(35, 35, 39)     // hairlines, and the card's edge
-    static let hover    = rgb(26, 26, 30)
-    static let picked   = rgb(33, 33, 38)
+    /// One colour that is two colours: macOS asks it which one when it draws,
+    /// so the window follows the system without the app watching for it.
+    static func pair(_ day: NSColor, _ night: NSColor) -> NSColor {
+        NSColor(name: nil) { look in
+            look.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? night : day
+        }
+    }
 
-    static let ink      = rgb(238, 239, 241)  // what you read
-    static let body     = rgb(198, 202, 208)  // what nimo printed
-    static let muted    = rgb(138, 143, 152)  // labels, second lines
-    static let faint    = rgb(98, 103, 112)   // headings, dim text
+    // Paper and ink, and three greys between them. No accent anywhere: the
+    // only strong thing in the window is one button, and it is ink.
+    static let ground = pair(rgb(250, 250, 250), rgb(13, 15, 15))
+    static let line   = pair(rgb(232, 232, 233), rgb(30, 33, 33))
+    static let hover  = pair(rgb(243, 243, 244), rgb(22, 25, 25))
+    static let picked = pair(rgb(236, 236, 238), rgb(29, 33, 33))
 
-    static let accent   = rgb(95, 211, 198)
-    static let onAccent = rgb(6, 32, 30)
-    static let warm     = rgb(217, 186, 116)
-    static let hot      = rgb(224, 115, 106)
+    static let ink    = pair(rgb(17, 17, 19),    rgb(238, 240, 240))
+    static let body   = pair(rgb(38, 38, 42),    rgb(206, 210, 210))
+    static let muted  = pair(rgb(112, 112, 120), rgb(136, 143, 143))
+    static let faint  = pair(rgb(156, 156, 164), rgb(104, 111, 111))
 }
 
 // MARK: - running nimo
@@ -125,6 +127,7 @@ struct Action {
     let asks: String?        // the question, or nil when it changes nothing
     let group: String        // the heading it sits under
     let symbol: String       // the small picture beside it
+    let hint: String         // the quiet second line under it
 
 
     static let all: [Action] = [
@@ -134,7 +137,8 @@ struct Action {
                arguments: ["desktop"],
                asks: "Move everything on your desktop into Desktop/Tidy, sorted by what it is?\n\nNothing is deleted, and nimo can put it all back.",
                group: "Your desk",
-               symbol: "square.grid.2x2"),
+               symbol: "square.grid.2x2",
+               hint: "sorted into Tidy"),
 
         Action(title: "Downloads",
                blurb: "The same, for the folder everything lands in and nothing ever leaves.",
@@ -142,7 +146,8 @@ struct Action {
                arguments: ["downloads"],
                asks: "Sort your downloads into Downloads/Tidy?\n\nNothing is deleted, and nimo can put it all back.",
                group: "Your desk",
-               symbol: "arrow.down.circle"),
+               symbol: "arrow.down.circle",
+               hint: "sorted into Tidy"),
 
         Action(title: "Screenshots",
                blurb: "Every loose screenshot gathered into Pictures/Screenshots, wherever it was dropped.",
@@ -150,7 +155,8 @@ struct Action {
                arguments: ["screenshots"],
                asks: "Gather every loose screenshot into Pictures/Screenshots?",
                group: "Your desk",
-               symbol: "camera"),
+               symbol: "camera",
+               hint: "into Pictures"),
 
         Action(title: "Wallpaper",
                blurb: "Step through the wallpapers your Mac already ships with. Nothing is downloaded.",
@@ -158,7 +164,8 @@ struct Action {
                arguments: ["next"],
                asks: nil,
                group: "Your screen",
-               symbol: "photo"),
+               symbol: "photo",
+               hint: "the ones your Mac ships"),
 
         Action(title: "Startup",
                blurb: "What launches itself when you sign in — and which of them nimo can turn off.",
@@ -166,7 +173,8 @@ struct Action {
                arguments: ["startup", "--list"],
                asks: nil,
                group: "Your screen",
-               symbol: "power"),
+               symbol: "power",
+               hint: "what opens itself"),
 
         Action(title: "What is big",
                blurb: "The folders in your home that are taking up the room, largest first.",
@@ -174,7 +182,8 @@ struct Action {
                arguments: ["top"],
                asks: nil,
                group: "Your disk",
-               symbol: "chart.bar"),
+               symbol: "chart.bar",
+               hint: "the biggest folders"),
 
         Action(title: "What could go",
                blurb: "Caches and temporary files your apps rebuild by themselves. This only looks — it cannot change anything at all.",
@@ -182,7 +191,8 @@ struct Action {
                arguments: ["preview"],
                asks: nil,
                group: "Your disk",
-               symbol: "magnifyingglass"),
+               symbol: "magnifyingglass",
+               hint: "caches, safely"),
 
         Action(title: "Free it up",
                blurb: "The same list, actually removed. Your own files are never touched.",
@@ -190,7 +200,8 @@ struct Action {
                arguments: ["clean"],
                asks: "Delete the caches and temporary files nimo found?\n\nThis one frees real space. Your own files are never touched.",
                group: "Your disk",
-               symbol: "sparkles"),
+               symbol: "sparkles",
+               hint: "frees real space"),
 
         Action(title: "How it is",
                blurb: "Disk, memory, uptime, battery — how your computer is doing right now.",
@@ -198,7 +209,8 @@ struct Action {
                arguments: ["doctor"],
                asks: nil,
                group: "Your computer",
-               symbol: "waveform.path.ecg"),
+               symbol: "waveform.path.ecg",
+               hint: "disk, memory, uptime"),
 
         Action(title: "Put it all back",
                blurb: "Everything nimo has done, reversed, newest first. This is why nothing here is frightening.",
@@ -206,7 +218,8 @@ struct Action {
                arguments: ["undo", "--all"],
                asks: "Reverse everything nimo has done, newest first?",
                group: "Your computer",
-               symbol: "arrow.uturn.backward"),
+               symbol: "arrow.uturn.backward",
+               hint: "reverses everything"),
     ]
 }
 
@@ -357,15 +370,14 @@ enum Login {
 
 // MARK: - a row down the side
 
-/// One line in the list: a small picture, a word, and a quiet fill when it is
-/// the one you are looking at. No borders — a list of boxes is a form, and
-/// this is a list.
+/// A name, and under it three quiet words saying what it is. No box, no
+/// border — just a soft fill when it is the one you are on.
 final class Row: NSView {
     let index: Int
     var onClick: ((Int) -> Void)?
 
-    private let icon = NSImageView()
-    private let label = NSTextField(labelWithString: "")
+    private let name = NSTextField(labelWithString: "")
+    private let hint = NSTextField(labelWithString: "")
     private var chosen = false
     private var hovering = false
 
@@ -375,33 +387,32 @@ final class Row: NSView {
 
         translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
-        layer?.cornerRadius = 6
+        layer?.cornerRadius = 9
 
-        if let picture = NSImage(systemSymbolName: item.symbol, accessibilityDescription: nil) {
-            picture.isTemplate = true
-            icon.image = picture
-        }
-        icon.contentTintColor = Paint.muted
-        icon.imageScaling = .scaleProportionallyDown
-        icon.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(icon)
+        name.stringValue = item.title
+        name.font = NSFont.systemFont(ofSize: 13.5, weight: .regular)
+        name.lineBreakMode = .byTruncatingTail
+        name.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(name)
 
-        label.stringValue = item.title
-        label.font = NSFont.systemFont(ofSize: 13, weight: .regular)
-        label.textColor = Paint.muted
-        label.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(label)
+        hint.stringValue = item.hint
+        hint.font = NSFont.systemFont(ofSize: 11.5, weight: .regular)
+        hint.textColor = Paint.faint
+        hint.lineBreakMode = .byTruncatingTail
+        hint.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hint)
 
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 29),
-            icon.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 9),
-            icon.centerYAnchor.constraint(equalTo: centerYAnchor),
-            icon.widthAnchor.constraint(equalToConstant: 15),
-            icon.heightAnchor.constraint(equalToConstant: 15),
-            label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 9),
-            label.centerYAnchor.constraint(equalTo: centerYAnchor),
-            label.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -8),
+            heightAnchor.constraint(equalToConstant: 46),
+            name.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            name.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -10),
+            name.topAnchor.constraint(equalTo: topAnchor, constant: 7),
+            hint.leadingAnchor.constraint(equalTo: name.leadingAnchor),
+            hint.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -10),
+            hint.topAnchor.constraint(equalTo: name.bottomAnchor, constant: 2),
         ])
+
+        repaint()
     }
 
     required init?(coder: NSCoder) { fatalError("nimo has no nib") }
@@ -415,6 +426,11 @@ final class Row: NSView {
                                        userInfo: nil))
     }
 
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        repaint()      // a layer colour does not follow the system by itself
+    }
+
     override func mouseEntered(with event: NSEvent) { hovering = true;  repaint() }
     override func mouseExited(with event: NSEvent)  { hovering = false; repaint() }
     override func mouseDown(with event: NSEvent)    { onClick?(index) }
@@ -422,28 +438,60 @@ final class Row: NSView {
     func choose(_ yes: Bool) { chosen = yes; repaint() }
 
     private func repaint() {
-        let colour = chosen ? Paint.ink : Paint.muted
-        label.textColor = colour
-        label.font = NSFont.systemFont(ofSize: 13, weight: chosen ? .medium : .regular)
-        icon.contentTintColor = chosen ? Paint.accent : Paint.faint
-        layer?.backgroundColor = chosen ? Paint.picked.cgColor
-                               : hovering ? Paint.hover.cgColor
-                               : NSColor.clear.cgColor
+        name.textColor = chosen ? Paint.ink : Paint.muted
+        name.font = NSFont.systemFont(ofSize: 13.5, weight: chosen ? .medium : .regular)
+
+        var background = NSColor.clear
+        if chosen { background = Paint.picked } else if hovering { background = Paint.hover }
+        // .cgColor answers for whichever appearance is current, so ask under
+        // this view's own.
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            self.layer?.backgroundColor = background.cgColor
+        }
     }
 }
 
-/// A heading over a handful of rows. Small, quiet, and spaced by kerning
-/// rather than by shouting in capitals alone.
-func heading(_ text: String) -> NSTextField {
-    let field = NSTextField(labelWithString: "")
-    let letters = NSMutableAttributedString(string: text.uppercased())
-    letters.addAttributes([
-        .foregroundColor: Paint.faint,
-        .font: NSFont.systemFont(ofSize: 10, weight: .semibold),
-        .kern: 0.7,
-    ], range: NSRange(location: 0, length: letters.length))
-    field.attributedStringValue = letters
-    return field
+/// The one button. Ink, a soft round end, and nothing else on the page
+/// competing with it.
+final class Pill: NSButton {
+    private var live = true
+
+    init(target: AnyObject, action: Selector) {
+        super.init(frame: .zero)
+        self.target = target
+        self.action = action
+        isBordered = false
+        wantsLayer = true
+        layer?.cornerRadius = 16
+        translatesAutoresizingMaskIntoConstraints = false
+        heightAnchor.constraint(equalToConstant: 32).isActive = true
+    }
+
+    required init?(coder: NSCoder) { fatalError("nimo has no nib") }
+
+    func set(_ words: String, live able: Bool) {
+        live = able
+        isEnabled = able
+        let text = NSMutableAttributedString(string: "  " + words + "  ")
+        text.addAttributes([
+            .foregroundColor: able ? Paint.ground : Paint.faint,
+            .font: NSFont.systemFont(ofSize: 13, weight: .medium),
+        ], range: NSRange(location: 0, length: text.length))
+        attributedTitle = text
+        repaint()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        repaint()
+    }
+
+    private func repaint() {
+        let colour = live ? Paint.ink : Paint.picked
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            self.layer?.backgroundColor = colour.cgColor
+        }
+    }
 }
 
 // MARK: - the window
@@ -453,7 +501,7 @@ final class Main: NSObject, NSWindowDelegate {
 
     private let titleLabel = NSTextField(labelWithString: "")
     private let blurbLabel = Wrapping(labelWithString: "")
-    private let runButton  = NSButton(title: "", target: nil, action: nil)
+    private var runButton: Pill!
     private let spinner    = NSProgressIndicator()
     private let scroll     = NSScrollView()
     private let report     = NSStackView()
@@ -464,7 +512,7 @@ final class Main: NSObject, NSWindowDelegate {
     private var seen: Set<Int> = []
 
     override init() {
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 980, height: 640),
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 940, height: 640),
                           styleMask: [.titled, .closable, .miniaturizable, .resizable,
                                       .fullSizeContentView],
                           backing: .buffered,
@@ -475,9 +523,8 @@ final class Main: NSObject, NSWindowDelegate {
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.backgroundColor = Paint.ground
-        window.appearance = NSAppearance(named: .darkAqua)
         window.isMovableByWindowBackground = true
-        window.minSize = NSSize(width: 800, height: 500)
+        window.minSize = NSSize(width: 760, height: 480)
         window.delegate = self
         _ = window.setFrameAutosaveName("nimo.main")
 
@@ -490,14 +537,12 @@ final class Main: NSObject, NSWindowDelegate {
 
     private func build() {
         guard let content = window.contentView else { return }
-        content.wantsLayer = true
-        content.layer?.backgroundColor = Paint.ground.cgColor
 
         // ---- down the side ----------------------------------------------
         let stack = NSStackView()
         stack.orientation = .vertical
         stack.alignment = .leading
-        stack.spacing = 1
+        stack.spacing = 2
         stack.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(stack)
 
@@ -505,14 +550,7 @@ final class Main: NSObject, NSWindowDelegate {
         mark.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
         mark.textColor = Paint.ink
         stack.addArrangedSubview(mark)
-
-        let version = NSTextField(labelWithString: Nimo.version.isEmpty
-                                  ? "make your workspace clean"
-                                  : Nimo.version)
-        version.font = NSFont.systemFont(ofSize: 11, weight: .regular)
-        version.textColor = Paint.faint
-        stack.addArrangedSubview(version)
-        stack.setCustomSpacing(22, after: version)
+        stack.setCustomSpacing(26, after: mark)
 
         var lastGroup = ""
         for (i, item) in Action.all.enumerated() {
@@ -523,115 +561,92 @@ final class Main: NSObject, NSWindowDelegate {
                 }
                 let head = heading(item.group)
                 stack.addArrangedSubview(head)
-                stack.setCustomSpacing(7, after: head)
+                stack.setCustomSpacing(8, after: head)
             }
 
             let row = Row(item, index: i)
             row.onClick = { [weak self] which in self?.show(which) }
             stack.addArrangedSubview(row)
-            row.widthAnchor.constraint(equalToConstant: 198).isActive = true
+            row.widthAnchor.constraint(equalToConstant: 214).isActive = true
             rows.append(row)
         }
 
-        // ---- the card the work happens in --------------------------------
-        // One raised surface with a hairline round it. That single edge is
-        // what makes a window look composed rather than assembled.
-        let card = NSView()
-        card.wantsLayer = true
-        card.layer?.backgroundColor = Paint.panel.cgColor
-        card.layer?.cornerRadius = 10
-        card.layer?.borderWidth = 1
-        card.layer?.borderColor = Paint.line.cgColor
-        card.layer?.masksToBounds = true
-        card.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(card)
+        // ---- the page ----------------------------------------------------
+        // No card, no second surface, no border round anything. One hairline
+        // between the list and the work, and paper either side of it.
+        let edge = NSBox()
+        edge.boxType = .custom
+        edge.borderWidth = 0
+        edge.fillColor = Paint.line
+        edge.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(edge)
 
-        titleLabel.font = NSFont.systemFont(ofSize: 19, weight: .semibold)
+        titleLabel.font = NSFont.systemFont(ofSize: 24, weight: .semibold)
         titleLabel.textColor = Paint.ink
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        card.addSubview(titleLabel)
+        content.addSubview(titleLabel)
 
-        blurbLabel.font = NSFont.systemFont(ofSize: 12.5, weight: .regular)
+        blurbLabel.font = NSFont.systemFont(ofSize: 13.5, weight: .regular)
         blurbLabel.textColor = Paint.muted
         blurbLabel.maximumNumberOfLines = 3
         blurbLabel.lineBreakMode = .byWordWrapping
+        blurbLabel.preferredMaxLayoutWidth = 460
         blurbLabel.translatesAutoresizingMaskIntoConstraints = false
-        card.addSubview(blurbLabel)
+        content.addSubview(blurbLabel)
 
-        runButton.bezelStyle = .rounded
-        runButton.isBordered = false
-        runButton.wantsLayer = true
-        runButton.layer?.cornerRadius = 6
-        runButton.target = self
-        runButton.action = #selector(go)
-        runButton.keyEquivalent = "\r"
-        runButton.translatesAutoresizingMaskIntoConstraints = false
-        card.addSubview(runButton)
+        runButton = Pill(target: self, action: #selector(go))
+        content.addSubview(runButton)
 
         spinner.style = .spinning
         spinner.controlSize = .small
         spinner.isDisplayedWhenStopped = false
         spinner.translatesAutoresizingMaskIntoConstraints = false
-        card.addSubview(spinner)
-
-        let rule = NSBox()
-        rule.boxType = .custom
-        rule.borderWidth = 0
-        rule.fillColor = Paint.line
-        rule.translatesAutoresizingMaskIntoConstraints = false
-        card.addSubview(rule)
+        content.addSubview(spinner)
 
         scroll.hasVerticalScroller = true
         scroll.autohidesScrollers = true
         scroll.borderType = .noBorder
         scroll.drawsBackground = false
-        scroll.scrollerKnobStyle = .light
         scroll.translatesAutoresizingMaskIntoConstraints = false
-        card.addSubview(scroll)
+        content.addSubview(scroll)
 
         report.orientation = .vertical
         report.alignment = .leading
         report.spacing = 0
-        report.edgeInsets = NSEdgeInsets(top: 20, left: 26, bottom: 28, right: 26)
+        report.edgeInsets = NSEdgeInsets(top: 4, left: 46, bottom: 40, right: 46)
         report.translatesAutoresizingMaskIntoConstraints = false
         scroll.documentView = report
 
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 17),
-            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 46),
-            stack.widthAnchor.constraint(equalToConstant: 198),
+            stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 16),
+            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 48),
+            stack.widthAnchor.constraint(equalToConstant: 214),
 
-            card.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 232),
-            card.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -10),
-            card.topAnchor.constraint(equalTo: content.topAnchor, constant: 10),
-            card.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -10),
+            edge.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 246),
+            edge.topAnchor.constraint(equalTo: content.topAnchor),
+            edge.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            edge.widthAnchor.constraint(equalToConstant: 1),
 
-            titleLabel.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 26),
-            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: card.trailingAnchor, constant: -26),
-            titleLabel.topAnchor.constraint(equalTo: card.topAnchor, constant: 34),
+            titleLabel.leadingAnchor.constraint(equalTo: edge.trailingAnchor, constant: 46),
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: content.trailingAnchor, constant: -46),
+            titleLabel.topAnchor.constraint(equalTo: content.topAnchor, constant: 52),
 
             blurbLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            blurbLabel.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -80),
-            blurbLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 7),
+            blurbLabel.trailingAnchor.constraint(lessThanOrEqualTo: content.trailingAnchor, constant: -60),
+            blurbLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 10),
 
             runButton.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            runButton.topAnchor.constraint(equalTo: blurbLabel.bottomAnchor, constant: 18),
-            runButton.heightAnchor.constraint(equalToConstant: 30),
+            runButton.topAnchor.constraint(equalTo: blurbLabel.bottomAnchor, constant: 24),
 
-            spinner.leadingAnchor.constraint(equalTo: runButton.trailingAnchor, constant: 12),
+            spinner.leadingAnchor.constraint(equalTo: runButton.trailingAnchor, constant: 14),
             spinner.centerYAnchor.constraint(equalTo: runButton.centerYAnchor),
             spinner.widthAnchor.constraint(equalToConstant: 16),
             spinner.heightAnchor.constraint(equalToConstant: 16),
 
-            rule.leadingAnchor.constraint(equalTo: card.leadingAnchor),
-            rule.trailingAnchor.constraint(equalTo: card.trailingAnchor),
-            rule.topAnchor.constraint(equalTo: runButton.bottomAnchor, constant: 24),
-            rule.heightAnchor.constraint(equalToConstant: 1),
-
-            scroll.leadingAnchor.constraint(equalTo: card.leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: card.trailingAnchor),
-            scroll.topAnchor.constraint(equalTo: rule.bottomAnchor),
-            scroll.bottomAnchor.constraint(equalTo: card.bottomAnchor),
+            scroll.leadingAnchor.constraint(equalTo: edge.trailingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            scroll.topAnchor.constraint(equalTo: runButton.bottomAnchor, constant: 34),
+            scroll.bottomAnchor.constraint(equalTo: content.bottomAnchor),
 
             report.leadingAnchor.constraint(equalTo: scroll.contentView.leadingAnchor),
             report.trailingAnchor.constraint(equalTo: scroll.contentView.trailingAnchor),
@@ -641,12 +656,30 @@ final class Main: NSObject, NSWindowDelegate {
 
     // MARK: drawing what nimo said
 
-    private var reportWidth: NSLayoutDimension { report.widthAnchor }
-
-    private func line(_ view: NSView, inset: CGFloat = 52) {
+    private func line(_ view: NSView, inset: CGFloat = 92) {
         view.translatesAutoresizingMaskIntoConstraints = false
         report.addArrangedSubview(view)
-        view.widthAnchor.constraint(equalTo: reportWidth, constant: -inset).isActive = true
+        view.widthAnchor.constraint(equalTo: report.widthAnchor, constant: -inset).isActive = true
+    }
+
+    private func words(_ text: String, size: CGFloat, weight: NSFont.Weight,
+                       colour: NSColor, top: CGFloat, bottom: CGFloat) {
+        let field = Wrapping(labelWithString: text)
+        field.font = NSFont.systemFont(ofSize: size, weight: weight)
+        field.textColor = colour
+        field.maximumNumberOfLines = 0
+        field.lineBreakMode = .byWordWrapping
+        let holder = NSView()
+        holder.translatesAutoresizingMaskIntoConstraints = false
+        field.translatesAutoresizingMaskIntoConstraints = false
+        holder.addSubview(field)
+        NSLayoutConstraint.activate([
+            field.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
+            field.trailingAnchor.constraint(equalTo: holder.trailingAnchor),
+            field.topAnchor.constraint(equalTo: holder.topAnchor, constant: top),
+            field.bottomAnchor.constraint(equalTo: holder.bottomAnchor, constant: -bottom),
+        ])
+        line(holder)
     }
 
     private func draw(_ pieces: [Piece]) {
@@ -655,68 +688,39 @@ final class Main: NSObject, NSWindowDelegate {
             view.removeFromSuperview()
         }
 
-        var first = true
         for piece in pieces {
             switch piece {
             case .heading(let text):
-                let head = heading(text)
-                line(head)
-                report.setCustomSpacing(9, after: head)
-                if !first, report.arrangedSubviews.count > 1 {
-                    let index = report.arrangedSubviews.count - 2
-                    report.setCustomSpacing(20, after: report.arrangedSubviews[index])
-                }
+                words(text, size: 12, weight: .medium, colour: Paint.faint, top: 26, bottom: 8)
 
             case .rule:
-                let bar = NSBox()
-                bar.boxType = .custom
-                bar.borderWidth = 0
-                bar.fillColor = Paint.line
-                bar.heightAnchor.constraint(equalToConstant: 1).isActive = true
-                let holder = NSView()
-                holder.translatesAutoresizingMaskIntoConstraints = false
-                bar.translatesAutoresizingMaskIntoConstraints = false
-                holder.addSubview(bar)
-                NSLayoutConstraint.activate([
-                    holder.heightAnchor.constraint(equalToConstant: 19),
-                    bar.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
-                    bar.trailingAnchor.constraint(equalTo: holder.trailingAnchor),
-                    bar.centerYAnchor.constraint(equalTo: holder.centerYAnchor),
-                ])
-                line(holder)
+                // A rule was a way of drawing a gap on a terminal. Here a gap
+                // is a gap.
+                let air = NSView()
+                air.translatesAutoresizingMaskIntoConstraints = false
+                air.heightAnchor.constraint(equalToConstant: 14).isActive = true
+                line(air)
 
-            case .row(let label, let value, let note, let bar, let strong):
-                line(Line(label: label, value: value, note: note, bar: bar, strong: strong))
+            case .row(let label, let value, let note, _, let strong):
+                var right = value
+                if !note.isEmpty { right += right.isEmpty ? note : "   " + note }
+                line(Said(label: label, value: right, strong: strong))
 
             case .good(let text):
-                line(Marked(text: text, symbol: "checkmark", colour: Paint.accent, ink: Paint.ink))
+                words(text, size: 14, weight: .semibold, colour: Paint.ink, top: 8, bottom: 6)
 
             case .warn(let text):
-                line(Marked(text: text, symbol: "exclamationmark.triangle",
-                            colour: Paint.warm, ink: Paint.ink))
+                words(text, size: 14, weight: .medium, colour: Paint.body, top: 8, bottom: 6)
 
             case .note(let text):
-                let field = Wrapping(labelWithString: text)
-                field.font = NSFont.systemFont(ofSize: 12, weight: .regular)
-                field.textColor = Paint.faint
-                field.maximumNumberOfLines = 0
-                field.lineBreakMode = .byWordWrapping
-                line(field)
-                report.setCustomSpacing(6, after: field)
+                words(text, size: 12.5, weight: .regular, colour: Paint.faint, top: 4, bottom: 4)
 
             case .text(let text):
-                let field = Wrapping(labelWithString: text)
-                field.font = NSFont.systemFont(ofSize: 13, weight: .regular)
-                field.textColor = Paint.body
-                field.maximumNumberOfLines = 0
-                field.lineBreakMode = .byWordWrapping
-                line(field)
-                report.setCustomSpacing(7, after: field)
+                words(text, size: 13.5, weight: .regular, colour: Paint.body, top: 5, bottom: 5)
             }
-            first = false
         }
 
-        // A panel that appears is easier to read than one that is swapped.
+        // A panel that appears is easier to read than one swapped underneath you.
         scroll.alphaValue = 0
         report.layoutSubtreeIfNeeded()
         NSAnimationContext.runAnimationGroup { context in
@@ -726,8 +730,8 @@ final class Main: NSObject, NSWindowDelegate {
         }
     }
 
-    private func say(_ text: String, dim: Bool = true) {
-        draw([dim ? .note(text) : .text(text)])
+    private func say(_ text: String) {
+        draw([.note(text)])
     }
 
     // MARK: using it
@@ -741,7 +745,7 @@ final class Main: NSObject, NSWindowDelegate {
 
         titleLabel.stringValue = item.title
         blurbLabel.stringValue = item.blurb
-        setButton(title: item.verb, enabled: !busy)
+        runButton.set(item.verb, live: !busy)
 
         if seen.contains(index) { return }
 
@@ -750,17 +754,6 @@ final class Main: NSObject, NSWindowDelegate {
         // change and touch nothing — nimo's own --dry-run, which is the same
         // measurement the real run uses.
         run(item, preview: item.asks != nil)
-    }
-
-    private func setButton(title: String, enabled: Bool) {
-        let text = NSMutableAttributedString(string: "  " + title + "  ")
-        text.addAttributes([
-            .foregroundColor: enabled ? Paint.onAccent : Paint.faint,
-            .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
-        ], range: NSRange(location: 0, length: text.length))
-        runButton.attributedTitle = text
-        runButton.isEnabled = enabled
-        runButton.layer?.backgroundColor = enabled ? Paint.accent.cgColor : Paint.picked.cgColor
     }
 
     @objc private func go() {
@@ -773,7 +766,6 @@ final class Main: NSObject, NSWindowDelegate {
             alert.alertStyle = .informational
             alert.addButton(withTitle: "Do it")
             alert.addButton(withTitle: "Cancel")
-            alert.window.appearance = NSAppearance(named: .darkAqua)
             guard alert.runModal() == .alertFirstButtonReturn else { return }
         }
 
@@ -784,7 +776,7 @@ final class Main: NSObject, NSWindowDelegate {
         guard !busy else { return }
         busy = true
         seen.insert(chosen)
-        setButton(title: item.verb, enabled: false)
+        runButton.set(item.verb, live: false)
         spinner.startAnimation(nil)
         say("working …")
 
@@ -801,14 +793,11 @@ final class Main: NSObject, NSWindowDelegate {
             let result = Nimo.run(arguments)
             DispatchQueue.main.async {
                 let pieces = Report.parse(result.text)
-                if pieces.isEmpty {
-                    self.say("nimo said nothing at all.")
-                } else {
-                    self.draw(pieces)
-                }
+                if pieces.isEmpty { self.say("nimo said nothing at all.") }
+                else { self.draw(pieces) }
                 self.spinner.stopAnimation(nil)
                 self.busy = false
-                self.setButton(title: Action.all[self.chosen].verb, enabled: true)
+                self.runButton.set(Action.all[self.chosen].verb, live: true)
             }
         }
     }
@@ -818,118 +807,43 @@ final class Main: NSObject, NSWindowDelegate {
     func windowShouldClose(_ sender: NSWindow) -> Bool { true }
 }
 
-// MARK: - one line of a report
+// MARK: - one thing nimo said
 
-/// A label on the left, a number on the right, and — when nimo drew a bar of
-/// blocks — a real bar rather than a spelled-out one.
-final class Line: NSView {
-    init(label: String, value: String, note: String, bar: Double?, strong: Bool) {
+/// A name, and what it came to. Two pieces of text on one line, the second one
+/// starting at the same place every time so the eye can run down them — no
+/// rules, no dots, no columns drawn round them.
+final class Said: NSView {
+    init(label: String, value: String, strong: Bool) {
         super.init(frame: .zero)
 
         let left = NSTextField(labelWithString: label)
-        left.font = NSFont.systemFont(ofSize: 13, weight: strong ? .medium : .regular)
-        left.textColor = strong ? Paint.ink : Paint.muted
+        left.font = NSFont.systemFont(ofSize: 13.5, weight: strong ? .medium : .regular)
+        left.textColor = Paint.muted
         left.lineBreakMode = .byTruncatingTail
         left.translatesAutoresizingMaskIntoConstraints = false
         addSubview(left)
 
-        let right = NSStackView()
-        right.orientation = .horizontal
-        right.alignment = .centerY
-        right.spacing = 10
+        let right = Wrapping(labelWithString: value)
+        right.font = NSFont.systemFont(ofSize: 13.5, weight: strong ? .semibold : .regular)
+        right.textColor = Paint.ink
+        right.maximumNumberOfLines = 0
+        right.lineBreakMode = .byWordWrapping
         right.translatesAutoresizingMaskIntoConstraints = false
         addSubview(right)
 
-        if !value.isEmpty {
-            let field = NSTextField(labelWithString: value)
-            field.font = NSFont.monospacedDigitSystemFont(ofSize: 13,
-                                                          weight: strong ? .semibold : .regular)
-            field.textColor = Paint.ink
-            right.addArrangedSubview(field)
-        }
-
-        if !note.isEmpty {
-            let field = NSTextField(labelWithString: note)
-            field.font = NSFont.systemFont(ofSize: 12, weight: .regular)
-            field.textColor = Paint.faint
-            right.addArrangedSubview(field)
-        }
-
-        if let filled = bar {
-            let track = NSView()
-            track.wantsLayer = true
-            track.layer?.backgroundColor = Paint.picked.cgColor
-            track.layer?.cornerRadius = 2.5
-            track.translatesAutoresizingMaskIntoConstraints = false
-
-            let fill = NSView()
-            fill.wantsLayer = true
-            fill.layer?.backgroundColor = Paint.accent.cgColor
-            fill.layer?.cornerRadius = 2.5
-            fill.translatesAutoresizingMaskIntoConstraints = false
-            track.addSubview(fill)
-
-            let width = max(0.04, min(1, filled))
-            NSLayoutConstraint.activate([
-                track.widthAnchor.constraint(equalToConstant: 76),
-                track.heightAnchor.constraint(equalToConstant: 5),
-                fill.leadingAnchor.constraint(equalTo: track.leadingAnchor),
-                fill.topAnchor.constraint(equalTo: track.topAnchor),
-                fill.bottomAnchor.constraint(equalTo: track.bottomAnchor),
-                fill.widthAnchor.constraint(equalTo: track.widthAnchor, multiplier: width),
-            ])
-            right.addArrangedSubview(track)
-        }
-
-        left.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        right.setContentHuggingPriority(.required, for: .horizontal)
-
         translatesAutoresizingMaskIntoConstraints = false
+        let column = left.widthAnchor.constraint(equalToConstant: 168)
+        column.priority = .defaultHigh
+
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 27),
             left.leadingAnchor.constraint(equalTo: leadingAnchor),
-            left.centerYAnchor.constraint(equalTo: centerYAnchor),
-            right.leadingAnchor.constraint(greaterThanOrEqualTo: left.trailingAnchor, constant: 14),
+            left.topAnchor.constraint(equalTo: topAnchor, constant: 7),
+            column,
+            right.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 180),
             right.trailingAnchor.constraint(equalTo: trailingAnchor),
-            right.centerYAnchor.constraint(equalTo: centerYAnchor),
-        ])
-    }
-
-    required init?(coder: NSCoder) { fatalError("nimo has no nib") }
-}
-
-/// A tick or a warning, and what it is about.
-final class Marked: NSView {
-    init(text: String, symbol: String, colour: NSColor, ink: NSColor) {
-        super.init(frame: .zero)
-
-        let icon = NSImageView()
-        if let picture = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) {
-            picture.isTemplate = true
-            icon.image = picture
-        }
-        icon.contentTintColor = colour
-        icon.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(icon)
-
-        let field = Wrapping(labelWithString: text)
-        field.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        field.textColor = ink
-        field.maximumNumberOfLines = 0
-        field.lineBreakMode = .byWordWrapping
-        field.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(field)
-
-        translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            icon.leadingAnchor.constraint(equalTo: leadingAnchor),
-            icon.topAnchor.constraint(equalTo: topAnchor, constant: 8),
-            icon.widthAnchor.constraint(equalToConstant: 13),
-            icon.heightAnchor.constraint(equalToConstant: 13),
-            field.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 9),
-            field.trailingAnchor.constraint(equalTo: trailingAnchor),
-            field.topAnchor.constraint(equalTo: topAnchor, constant: 5),
-            field.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -5),
+            right.topAnchor.constraint(equalTo: topAnchor, constant: 7),
+            right.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -7),
+            left.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -7),
         ])
     }
 
