@@ -514,6 +514,13 @@ func ease(_ layer: CALayer?, to colour: NSColor, over seconds: Double = 0.13) {
 /// a pill would be shouting.
 final class Ghost: NSView {
     var onClick: (() -> Void)?
+
+    /// A way out that is not there yet is drawn, not hidden — a row of
+    /// controls that moves about is harder to use than one that dims.
+    var isEnabled = true {
+        didSet { repaint() }
+    }
+
     private let icon = NSImageView()
     private var hovering = false
 
@@ -553,17 +560,19 @@ final class Ghost: NSView {
 
     override func mouseEntered(with event: NSEvent) { hovering = true;  repaint() }
     override func mouseExited(with event: NSEvent)  { hovering = false; repaint() }
-    override func mouseDown(with event: NSEvent)    { onClick?() }
-    override func resetCursorRects() { addCursorRect(bounds, cursor: .pointingHand) }
+    override func mouseDown(with event: NSEvent)    { if isEnabled { onClick?() } }
+    override func resetCursorRects() {
+        if isEnabled { addCursorRect(bounds, cursor: .pointingHand) }
+    }
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         repaint()
     }
 
     private func repaint() {
-        icon.contentTintColor = hovering ? Paint.ink : Paint.muted
+        icon.contentTintColor = !isEnabled ? Paint.faint : (hovering ? Paint.ink : Paint.muted)
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            ease(self.layer, to: hovering ? Paint.hover : NSColor.clear)
+            ease(self.layer, to: hovering && isEnabled ? Paint.hover : NSColor.clear)
         }
     }
 }
@@ -799,20 +808,23 @@ final class Chip: NSView {
     }
 
     private func repaint() {
+        // The strong one is a filled pill. The quiet ones are words, and only
+        // become a shape when the pointer is on them — three slabs in a row is
+        // three things shouting.
         let background: NSColor
         if !live {
-            background = Paint.picked
+            background = kind == .strong ? Paint.picked : NSColor.clear
             label.textColor = Paint.faint
         } else if kind == .strong {
             background = Paint.strong
             label.textColor = Paint.onStrong
         } else {
-            background = Paint.picked
-            label.textColor = Paint.ink
+            background = hovering ? Paint.picked : NSColor.clear
+            label.textColor = hovering ? Paint.ink : Paint.muted
         }
         effectiveAppearance.performAsCurrentDrawingAppearance {
             ease(self.layer, to: background)
-            self.layer?.opacity = self.hovering && self.live ? 0.85 : 1
+            self.layer?.opacity = self.hovering && self.live && self.kind == .strong ? 0.85 : 1
         }
     }
 }
@@ -820,7 +832,7 @@ final class Chip: NSView {
 // MARK: - one setting
 
 final class Setting: NSView {
-    init(_ label: String, _ ignored: String = "", control: NSView) {
+    init(_ label: String, control: NSView) {
         super.init(frame: .zero)
 
         let name = NSTextField(labelWithString: label)
@@ -868,6 +880,12 @@ final class Main: NSObject, NSWindowDelegate {
     private var groupLabels: [NSTextField] = []
     private var narrow = false
     private var foldButton: Ghost!
+    private var backButton: Ghost!
+    private var onButton: Ghost!
+    private var chrome: NSStackView!
+    private var chromeLeading: NSLayoutConstraint!
+    private var behind: [Int] = []          // pages you came from
+    private var ahead: [Int] = []           // pages you came back from
     private var walked: [String] = []       // how far into your home you have clicked
 
     private var chosen = 0
@@ -902,16 +920,21 @@ final class Main: NSObject, NSWindowDelegate {
     // MARK: building it
 
     private func build() {
-        // One surface, edge to edge. A second, denser pane behind the work
-        // made the window read as two windows taped together; a single sheet
-        // of glass with one hairline across it does the same job with nothing
-        // in it.
         let glass = NSVisualEffectView()
         glass.material = .sidebar
         glass.blendingMode = .behindWindow
         glass.state = .followsWindowActiveState
         window.contentView = glass
         let content: NSView = glass
+
+        // The work sits on a second, slightly denser pane. The two halves read
+        // apart without a box being drawn round either.
+        let pane = NSVisualEffectView()
+        pane.material = .contentBackground
+        pane.blendingMode = .withinWindow
+        pane.state = .followsWindowActiveState
+        pane.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(pane)
 
         // ---- down the side ----------------------------------------------
         let stack = NSStackView()
@@ -990,11 +1013,29 @@ final class Main: NSObject, NSWindowDelegate {
         edge.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(edge)
 
+        // The chrome, where a Mac puts it: along the top, just past the three
+        // lights, so the window has one row of controls and not three corners
+        // of them.
         let fold = Ghost("sidebar.left")
         fold.onClick = { [weak self] in self?.foldSide() }
         fold.toolTip = "Hide the list  ⌘B"
-        content.addSubview(fold)
         foldButton = fold
+
+        let back = Ghost("chevron.left")
+        back.onClick = { [weak self] in self?.goBack() }
+        back.toolTip = "Back  ⌘["
+        backButton = back
+
+        let on = Ghost("chevron.right")
+        on.onClick = { [weak self] in self?.goForward() }
+        on.toolTip = "Forward  ⌘]"
+        onButton = on
+
+        chrome = NSStackView(views: [fold, back, on])
+        chrome.orientation = .horizontal
+        chrome.spacing = 2
+        chrome.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(chrome)
 
         titleLabel.font = NSFont.systemFont(ofSize: 26, weight: .semibold)
         titleLabel.textColor = Paint.ink
@@ -1031,27 +1072,35 @@ final class Main: NSObject, NSWindowDelegate {
         scroll.documentView = report
 
         railWidth = edge.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 246)
+        // Past the three lights when the list is open; past the rail when it
+        // is shut, so nothing ever sits on top of anything.
+        chromeLeading = chrome.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 78)
         stackWidth = stack.widthAnchor.constraint(equalToConstant: 214)
 
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 16),
-            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 48),
+            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 56),
             stackWidth,
 
             settingsRow.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
                 settingsRow.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -16),
+
+            pane.leadingAnchor.constraint(equalTo: edge.trailingAnchor),
+            pane.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            pane.topAnchor.constraint(equalTo: content.topAnchor),
+            pane.bottomAnchor.constraint(equalTo: content.bottomAnchor),
 
             railWidth,
             edge.topAnchor.constraint(equalTo: content.topAnchor),
             edge.bottomAnchor.constraint(equalTo: content.bottomAnchor),
             edge.widthAnchor.constraint(equalToConstant: 1),
 
-            foldButton.leadingAnchor.constraint(equalTo: edge.trailingAnchor, constant: 42),
-            foldButton.topAnchor.constraint(equalTo: content.topAnchor, constant: 18),
+            chromeLeading,
+            chrome.topAnchor.constraint(equalTo: content.topAnchor, constant: 14),
 
             titleLabel.leadingAnchor.constraint(equalTo: edge.trailingAnchor, constant: 46),
             titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: content.trailingAnchor, constant: -46),
-            titleLabel.topAnchor.constraint(equalTo: content.topAnchor, constant: 52),
+            titleLabel.topAnchor.constraint(equalTo: content.topAnchor, constant: 66),
 
             buttons.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             buttons.trailingAnchor.constraint(lessThanOrEqualTo: content.trailingAnchor, constant: -44),
@@ -1110,8 +1159,39 @@ final class Main: NSObject, NSWindowDelegate {
             if case .row(let label, let value, _, _, _) = piece { figures[label] = value }
         }
 
-        // The disk, now and after. Two bars answer "what would this actually
-        // do" better than a sentence claiming it.
+        // The four figures first, because they are the answer to "how is it".
+        let wanted = [("Desktop", "on your desktop"), ("Downloads", "in downloads"),
+                      ("Junk", "worth freeing"), ("Disk", "free")]
+        let figuresRow = NSStackView()
+        figuresRow.orientation = .horizontal
+        figuresRow.distribution = .fillEqually
+        figuresRow.alignment = .top
+        figuresRow.spacing = 16
+        var any = false
+        for (key, caption) in wanted {
+            var figure = figures[key] ?? "—"
+            if key == "Disk", let space = figure.components(separatedBy: " free").first {
+                figure = space
+            }
+            if figures[key] != nil { any = true }
+            figuresRow.addArrangedSubview(Stat(figure, caption))
+        }
+        if any {
+            let holder = NSView()
+            holder.translatesAutoresizingMaskIntoConstraints = false
+            figuresRow.translatesAutoresizingMaskIntoConstraints = false
+            holder.addSubview(figuresRow)
+            NSLayoutConstraint.activate([
+                figuresRow.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
+                figuresRow.trailingAnchor.constraint(equalTo: holder.trailingAnchor),
+                figuresRow.topAnchor.constraint(equalTo: holder.topAnchor, constant: 2),
+                figuresRow.bottomAnchor.constraint(equalTo: holder.bottomAnchor, constant: -4),
+            ])
+            line(holder)
+        }
+
+        // Then the disk twice — as it is, and as it would be. Two bars answer
+        // "what would this actually do" better than a sentence claiming it.
         var total = 0.0, free = 0.0
         if let disk = figures["Disk"] {
             let parts = disk.components(separatedBy: " of ")
@@ -1125,15 +1205,15 @@ final class Main: NSObject, NSWindowDelegate {
             let both = NSStackView()
             both.orientation = .vertical
             both.alignment = .leading
-            both.spacing = 18
+            both.spacing = 16
             both.translatesAutoresizingMaskIntoConstraints = false
 
-            let now = Bar(caption: "Now — \(figures["Disk"] ?? "")",
+            let now = Bar(caption: "Now",
                           used: used - junk, freeable: junk, total: total, lit: true)
             both.addArrangedSubview(now)
 
             if junk > 0 {
-                let after = Bar(caption: "After freeing it up — \(figures["Junk"] ?? "") more",
+                let after = Bar(caption: "After freeing it up — \(figures["Junk"] ?? "") more free",
                                 used: used - junk, freeable: 0, total: total, lit: false)
                 both.addArrangedSubview(after)
                 after.widthAnchor.constraint(equalTo: both.widthAnchor).isActive = true
@@ -1146,7 +1226,7 @@ final class Main: NSObject, NSWindowDelegate {
             NSLayoutConstraint.activate([
                 both.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
                 both.trailingAnchor.constraint(equalTo: holder.trailingAnchor),
-                both.topAnchor.constraint(equalTo: holder.topAnchor, constant: 4),
+                both.topAnchor.constraint(equalTo: holder.topAnchor, constant: 24),
                 both.bottomAnchor.constraint(equalTo: holder.bottomAnchor, constant: -6),
             ])
             line(holder)
@@ -1160,7 +1240,6 @@ final class Main: NSObject, NSWindowDelegate {
 
         if !Access.may(Access.desktop) || !Access.may(Access.downloads) {
             line(Suggest("nimo cannot see your files yet",
-                         "macOS asks once per folder. It only ever reads inside your home.",
                          verb: "Ask for everything", strong: true) { [weak self] in
                              self?.askFromHome()
                          })
@@ -1169,7 +1248,6 @@ final class Main: NSObject, NSWindowDelegate {
 
         if let count = figures["Desktop"], !count.hasPrefix("0") {
             line(Suggest("\(count) on your desktop",
-                         "Sorted into Desktop/Tidy by what they are. Nothing is deleted.",
                          verb: "Clear it", strong: true) { [weak self] in
                              self?.show(1)
                          })
@@ -1178,7 +1256,6 @@ final class Main: NSObject, NSWindowDelegate {
 
         if let count = figures["Downloads"], !count.hasPrefix("0") {
             line(Suggest("\(count) in Downloads",
-                         "The folder everything lands in and nothing ever leaves.",
                          verb: "Sort it", strong: false) { [weak self] in
                              self?.show(2)
                          })
@@ -1187,7 +1264,6 @@ final class Main: NSObject, NSWindowDelegate {
 
         if let junk = figures["Junk"], !junk.hasPrefix("0") {
             line(Suggest("\(junk) of caches",
-                         "Your apps rebuild these by themselves. Your own files are never touched.",
                          verb: "Free it", strong: false) { [weak self] in
                              self?.show(7)
                          })
@@ -1265,7 +1341,7 @@ final class Main: NSObject, NSWindowDelegate {
                     && Action.all[chosen].walks
                     && label.hasSuffix("/")
                 if stoppable, !label.isEmpty {
-                    line(Suggest(label, value.isEmpty ? "starts when you sign in" : value,
+                    line(Suggest(label,
                                  verb: "Stop", strong: false, name: label) { [weak self] in
                                      self?.stopThis(label)
                                  })
@@ -1335,10 +1411,32 @@ final class Main: NSObject, NSWindowDelegate {
 
     private var isSettings: Bool { chosen == Action.all.count }
 
-    private func show(_ index: Int) {
+    @objc func goBack() {
+        guard let last = behind.popLast() else { return }
+        ahead.append(chosen)
+        show(last, remember: false)
+    }
+
+    @objc func goForward() {
+        guard let next = ahead.popLast() else { return }
+        behind.append(chosen)
+        show(next, remember: false)
+    }
+
+    private func showArrows() {
+        backButton.isEnabled = !behind.isEmpty
+        onButton.isEnabled = !ahead.isEmpty
+    }
+
+    private func show(_ index: Int, remember: Bool = true) {
         guard index >= 0, index <= Action.all.count else { return }
+        if remember, index != chosen {
+            behind.append(chosen)
+            ahead = []
+        }
         chosen = index
         walked = []
+        showArrows()
 
         for (i, row) in rows.enumerated() { row.choose(i == index) }
 
@@ -1449,120 +1547,49 @@ final class Main: NSObject, NSWindowDelegate {
         login.isEnabled = Login.possible
         login.target = self
         login.action = #selector(loginChanged(_:))
-        line(Setting("Open nimo when I sign in",
-                     Login.possible ? "It is here every morning without being asked."
-                                    : "This needs macOS 13 or newer.",
-                     control: login))
-
-        let animation = NSSwitch()
-        animation.state = (Config.value("animation").map { $0 == "never" || $0 == "off" || $0 == "no" } ?? false)
-            ? .off : .on
-        animation.target = self
-        animation.action = #selector(animationChanged(_:))
-        line(Setting("Draw the face in the terminal",
-                     "Only affects nimo run in a terminal. This window never animates.",
-                     control: animation))
+        line(Setting("Open nimo when I sign in", control: login))
 
         let days = NSPopUpButton()
         days.addItems(withTitles: ["7 days", "30 days", "90 days"])
-        let chosenDays = Config.value("days") ?? "30"
-        days.selectItem(withTitle: chosenDays + " days")
+        days.selectItem(withTitle: (Config.value("days") ?? "30") + " days")
         if days.indexOfSelectedItem < 0 { days.selectItem(withTitle: "30 days") }
         days.target = self
         days.action = #selector(daysChanged(_:))
-        line(Setting("Old means older than",
-                     "How long something sits in Downloads before nimo counts it as old.",
-                     control: days))
+        line(Setting("Old means older than", control: days))
 
-        let terminal = quiet("Open…") { [weak self] in self?.openTerminal() }
         line(Setting("nimo in a terminal",
-                     "The same program, typed instead of clicked. Works on Linux and Windows too.",
-                     control: terminal))
+                     control: quiet("Open…") { [weak self] in self?.openTerminal() }))
 
         // ---- what macOS will let it touch --------------------------------
+        // The row says what is true; the button does the only thing there is
+        // to do about it. Neither needs a sentence under it.
         divider()
-        words("What nimo may touch", size: 12, weight: .medium,
-              colour: Paint.faint, top: 4, bottom: 6)
 
-        let askAll = quiet("Ask for everything") { [weak self] in self?.askForEverything() }
-        line(Setting("Let nimo see your files",
-                     "macOS asks once per folder. nimo only ever reads inside your home.",
-                     control: askAll))
+        let shut = [("Desktop", Access.may(Access.desktop)),
+                    ("Downloads", Access.may(Access.downloads))].filter { !$0.1 }
+        let files = shut.isEmpty
+            ? "nimo can read your folders"
+            : "nimo has not been let into " + shut.map { $0.0 }.joined(separator: " or ")
+        line(Setting(files,
+                     control: quiet(shut.isEmpty ? "Check again" : "Ask for everything") {
+                         [weak self] in self?.askForEverything()
+                     }))
 
-        line(Setting("Desktop", state(Access.may(Access.desktop)),
-                     control: mark(Access.may(Access.desktop))))
-        line(Setting("Downloads", state(Access.may(Access.downloads)),
-                     control: mark(Access.may(Access.downloads))))
+        line(Setting(Access.everything
+                        ? "Full Disk Access is on"
+                        : "Full Disk Access is off — some caches stay put",
+                     control: quiet(Access.everything ? "Settings" : "Turn on…") {
+                         Access.settings("Privacy_AllFiles")
+                     }))
 
-        let disk = quiet(Access.everything ? "Open Settings" : "Turn on…") {
-            Access.settings("Privacy_AllFiles")
-        }
-        line(Setting("Everything else",
-                     Access.everything
-                        ? "Full Disk Access is on. nimo can clear the caches other apps hide."
-                        : "Without Full Disk Access some caches stay where they are. nimo works without it.",
-                     control: disk))
-
-        let events = quiet("Open Settings") { Access.settings("Privacy_Automation") }
         line(Setting("Changing your wallpaper",
-                     "macOS asks the first time. If you ever said no, it will not ask again — this is where you undo that.",
-                     control: events))
+                     control: quiet("Settings") { Access.settings("Privacy_Automation") }))
 
+        divider()
         words("nimo \(Nimo.version) · MIT · github.com/danielkopa/nimo",
-              size: 12, weight: .regular, colour: Paint.faint, top: 26, bottom: 4)
+              size: 12, weight: .regular, colour: Paint.faint, top: 2, bottom: 4)
 
         settle()
-    }
-
-    /// The same hairline the list down the side uses, across the page.
-    private func divider() {
-        let rule = NSBox()
-        rule.boxType = .custom
-        rule.borderWidth = 0
-        rule.fillColor = Paint.line
-        rule.translatesAutoresizingMaskIntoConstraints = false
-
-        let holder = NSView()
-        holder.translatesAutoresizingMaskIntoConstraints = false
-        holder.addSubview(rule)
-        NSLayoutConstraint.activate([
-            holder.heightAnchor.constraint(equalToConstant: 30),
-            rule.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
-            rule.trailingAnchor.constraint(equalTo: holder.trailingAnchor),
-            rule.centerYAnchor.constraint(equalTo: holder.centerYAnchor),
-            rule.heightAnchor.constraint(equalToConstant: 1),
-        ])
-        line(holder)
-    }
-
-    /// A word, not a tick in a box: the row already carries the tick.
-    private func state(_ open: Bool) -> String {
-        open ? "nimo can read this folder." : "nimo has not been let in here yet."
-    }
-
-    private func mark(_ open: Bool) -> NSView {
-        let icon = NSImageView()
-        let name = open ? "checkmark.circle.fill" : "circle.dashed"
-        if let picture = NSImage(systemSymbolName: name, accessibilityDescription: nil) {
-            picture.isTemplate = true
-            icon.image = picture
-        }
-        icon.contentTintColor = open ? Paint.ink : Paint.faint
-        icon.widthAnchor.constraint(equalToConstant: 16).isActive = true
-        icon.heightAnchor.constraint(equalToConstant: 16).isActive = true
-        return icon
-    }
-
-    /// Reading the folder is what raises the prompt, so this asks for each one
-    /// in turn and then draws the page again with whatever you answered.
-    private func askForEverything() {
-        Access.may(Access.desktop)
-        Access.may(Access.downloads)
-        Access.may(FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Pictures"))
-        Access.may(FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Documents"))
-        drawSettings()
     }
 
     @objc private func loginChanged(_ sender: NSSwitch) {
@@ -1575,10 +1602,6 @@ final class Main: NSObject, NSWindowDelegate {
         }
         // Ask macOS what it actually is now, rather than assuming it worked.
         sender.state = Login.on ? .on : .off
-    }
-
-    @objc private func animationChanged(_ sender: NSSwitch) {
-        Config.set("animation", sender.state == .on ? "auto" : "never")
     }
 
     @objc private func daysChanged(_ sender: NSPopUpButton) {
@@ -1672,6 +1695,7 @@ final class Main: NSObject, NSWindowDelegate {
         markWidth.constant = narrow ? 38 : 190
         stackWidth.constant = narrow ? 38 : 214
         railWidth.constant = narrow ? 70 : 246
+        chromeLeading.constant = narrow ? 92 : 78
         foldButton.toolTip = narrow ? "Show the list  ⌘B" : "Hide the list  ⌘B"
 
         NSAnimationContext.runAnimationGroup { context in
@@ -1778,6 +1802,42 @@ final class Bar: NSView {
     required init?(coder: NSCoder) { fatalError("nimo has no nib") }
 }
 
+// MARK: - a number worth looking at
+
+/// One figure, large, with what it is underneath.
+final class Stat: NSView {
+    init(_ figure: String, _ caption: String) {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+
+        let big = NSTextField(labelWithString: figure)
+        big.font = NSFont.systemFont(ofSize: 24, weight: .semibold)
+        big.textColor = Paint.ink
+        big.lineBreakMode = .byTruncatingTail
+        big.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(big)
+
+        let small = NSTextField(labelWithString: caption)
+        small.font = NSFont.systemFont(ofSize: 12, weight: .regular)
+        small.textColor = Paint.faint
+        small.lineBreakMode = .byTruncatingTail
+        small.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(small)
+
+        NSLayoutConstraint.activate([
+            big.leadingAnchor.constraint(equalTo: leadingAnchor),
+            big.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
+            big.topAnchor.constraint(equalTo: topAnchor),
+            small.leadingAnchor.constraint(equalTo: leadingAnchor),
+            small.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
+            small.topAnchor.constraint(equalTo: big.bottomAnchor, constant: 3),
+            small.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("nimo has no nib") }
+}
+
 // MARK: - something worth doing
 
 /// Something nimo noticed, and the one button that deals with it.
@@ -1785,8 +1845,8 @@ final class Suggest: NSView {
     /// What this row is about, for a button that needs to name it.
     private(set) var name = ""
 
-    init(_ headline: String, _ note: String, verb: String, strong: Bool,
-         tag: Int = 0, name: String = "", then: @escaping () -> Void) {
+    init(_ headline: String, verb: String, strong: Bool,
+         name: String = "", then: @escaping () -> Void) {
         super.init(frame: .zero)
         self.name = name
         translatesAutoresizingMaskIntoConstraints = false
@@ -1997,6 +2057,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                               action: #selector(Main.foldSide), keyEquivalent: "b")
         fold.target = main
         look.addItem(fold)
+        look.addItem(.separator())
+
+        let back = NSMenuItem(title: "Back", action: #selector(Main.goBack), keyEquivalent: "[")
+        back.target = main
+        look.addItem(back)
+        let on = NSMenuItem(title: "Forward", action: #selector(Main.goForward), keyEquivalent: "]")
+        on.target = main
+        look.addItem(on)
         view.submenu = look
 
         // Everything nimo does, by number.

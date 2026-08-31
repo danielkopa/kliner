@@ -1086,8 +1086,14 @@ check "home draws the disk, now and after"  \
     "grep -q 'final class Bar' '$APP/Sources/main.swift' && grep -q 'After freeing it up' '$APP/Sources/main.swift'"
 check "sizes are read back into numbers"    "grep -q 'func bytes' '$APP/Sources/main.swift'"
 check "no paragraph under every title"      "! grep -q 'blurbLabel' '$APP/Sources/main.swift'"
-check "the window is one sheet of glass"    \
-    "[ \$(grep -c 'NSVisualEffectView()' '$APP/Sources/main.swift') = 1 ]"
+check "the window is glass, in two weights"  \
+    "[ \$(grep -c 'NSVisualEffectView()' '$APP/Sources/main.swift') = 2 ]"
+check "back and forward remember where you were" \
+    "grep -q 'func goBack' '$APP/Sources/main.swift' && grep -q 'behind.append' '$APP/Sources/main.swift'"
+check "the chrome sits past the three lights" \
+    "grep -q 'chromeLeading' '$APP/Sources/main.swift'"
+check "a quiet button is words until you point at it" \
+    "grep -q 'hovering ? Paint.picked : NSColor.clear' '$APP/Sources/main.swift'"
 check "the page arrives a line at a time"   \
     "grep -q 'CAAnimationGroup' '$APP/Sources/main.swift' && grep -q 'arriving' '$APP/Sources/main.swift'"
 check "and a colour is eased, never snapped" \
