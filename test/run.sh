@@ -1041,6 +1041,12 @@ check "the window follows the system, light or dark" \
 check "the window is glass"                 "grep -q 'NSVisualEffectView' '$APP/Sources/main.swift'"
 check "and it lets the desktop through"     "grep -q 'window.isOpaque = false' '$APP/Sources/main.swift'"
 check "there is a settings page"            "grep -q 'func drawSettings' '$APP/Sources/main.swift'"
+check "every page can undo itself"          "[ \$(grep -c 'Put this back' '$APP/Sources/main.swift') -ge 3 ]"
+check "you can step into a folder"          "grep -q 'func walkInto' '$APP/Sources/main.swift' && grep -q 'walks: true' '$APP/Sources/main.swift'"
+check "and step back out of it"             "grep -q 'func walkUp' '$APP/Sources/main.swift'"
+check "a page can open its folder in Finder" "grep -q 'inFileViewerRootedAtPath' '$APP/Sources/main.swift'"
+check "the groups are told apart by a line, not a word" \
+    "grep -q 'item.group != lastGroup' '$APP/Sources/main.swift'"
 check "it can ask macOS for what it needs"  "grep -q 'askForEverything' '$APP/Sources/main.swift'"
 check "and it never claims to grant itself access" \
     "grep -q 'enum Access' '$APP/Sources/main.swift' && grep -q 'Privacy_AllFiles' '$APP/Sources/main.swift'"

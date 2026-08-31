@@ -112,25 +112,45 @@ enum Nimo {
 
 // MARK: - what the app can do
 
+/// A second thing a page can do, beside the one big button.
+struct Extra {
+    let title: String
+    let arguments: [String]
+    let asks: String?
+}
+
 struct Action {
     let title: String        // what it is called down the side
     let blurb: String        // one line, at the top of its page
-    let verb: String         // what the button says
+    let verb: String         // what the big button says
     let arguments: [String]
     let asks: String?        // the question, or nil when it changes nothing
-    let group: String        // the heading it sits under
+    let group: String        // rows of the same group sit together
     let symbol: String       // the small picture beside it
+    let extras: [Extra]      // the smaller buttons next to the big one
+    let reveal: String?      // a folder this page is about, to open in Finder
+    let walks: Bool          // rows on this page can be stepped into
 
+    init(title: String, blurb: String, verb: String, arguments: [String],
+         asks: String?, group: String, symbol: String,
+         extras: [Extra] = [], reveal: String? = nil, walks: Bool = false) {
+        self.title = title; self.blurb = blurb; self.verb = verb
+        self.arguments = arguments; self.asks = asks; self.group = group
+        self.symbol = symbol; self.extras = extras; self.reveal = reveal
+        self.walks = walks
+    }
 
     /// Not one of the things nimo does — the place where you say how it
     /// should do them.
     static let settings = Action(title: "Settings",
-                                 blurb: "How nimo behaves, and where it starts from.",
+                                 blurb: "How nimo behaves, what it may touch, and where it starts from.",
                                  verb: "",
                                  arguments: [],
                                  asks: nil,
                                  group: "",
                                  symbol: "gearshape")
+
+    static let putBack = "Move everything back where it was?\n\nnimo wrote down every move it made, so this is exact."
 
     static let all: [Action] = [
         Action(title: "Desktop",
@@ -138,63 +158,73 @@ struct Action {
                verb: "Clear my desktop",
                arguments: ["desktop"],
                asks: "Move everything on your desktop into Desktop/Tidy, sorted by what it is?\n\nNothing is deleted, and nimo can put it all back.",
-               group: "Your desk",
-               symbol: "square.grid.2x2"),
+               group: "desk",
+               symbol: "square.grid.2x2",
+               extras: [Extra(title: "Put this back", arguments: ["desktop", "--undo"], asks: putBack)],
+               reveal: "Desktop"),
 
         Action(title: "Downloads",
                blurb: "The same, for the folder everything lands in and nothing ever leaves.",
                verb: "Sort my downloads",
                arguments: ["downloads"],
                asks: "Sort your downloads into Downloads/Tidy?\n\nNothing is deleted, and nimo can put it all back.",
-               group: "Your desk",
-               symbol: "arrow.down.circle"),
+               group: "desk",
+               symbol: "arrow.down.circle",
+               extras: [Extra(title: "Put this back", arguments: ["downloads", "--undo"], asks: putBack)],
+               reveal: "Downloads"),
 
         Action(title: "Screenshots",
                blurb: "Every loose screenshot gathered into Pictures/Screenshots, wherever it was dropped.",
                verb: "Gather them up",
                arguments: ["screenshots"],
                asks: "Gather every loose screenshot into Pictures/Screenshots?",
-               group: "Your desk",
-               symbol: "camera"),
+               group: "desk",
+               symbol: "camera",
+               extras: [Extra(title: "Put this back", arguments: ["screenshots", "--undo"], asks: putBack)],
+               reveal: "Pictures"),
 
         Action(title: "Wallpaper",
                blurb: "Step through the wallpapers your Mac already ships with. Nothing is downloaded.",
-               verb: "Next wallpaper",
+               verb: "Next",
                arguments: ["next"],
                asks: nil,
-               group: "Your screen",
-               symbol: "photo"),
+               group: "screen",
+               symbol: "photo",
+               extras: [Extra(title: "Previous", arguments: ["prev"], asks: nil),
+                        Extra(title: "The one I had", arguments: ["wallpaper", "--restore"], asks: nil)]),
 
         Action(title: "Startup",
                blurb: "What launches itself when you sign in — and which of them nimo can turn off.",
-               verb: "Look",
+               verb: "Look again",
                arguments: ["startup", "--list"],
                asks: nil,
-               group: "Your screen",
+               group: "screen",
                symbol: "power"),
 
         Action(title: "What is big",
-               blurb: "The folders in your home that are taking up the room, largest first.",
+               blurb: "The folders in your home that are taking up the room. Click one to look inside it.",
                verb: "Measure",
                arguments: ["top"],
                asks: nil,
-               group: "Your disk",
-               symbol: "chart.bar"),
+               group: "disk",
+               symbol: "chart.bar",
+               walks: true),
 
         Action(title: "Free up space",
                blurb: "Caches and temporary files your apps rebuild by themselves. Your own files are never touched.",
                verb: "Free it up",
                arguments: ["clean"],
                asks: "Delete the caches and temporary files nimo found?\n\nThis one frees real space. Your own files are never touched.",
-               group: "Your disk",
-               symbol: "sparkles"),
+               group: "disk",
+               symbol: "sparkles",
+               extras: [Extra(title: "Only look", arguments: ["preview"], asks: nil)]),
 
         Action(title: "How it is",
                blurb: "Disk, memory, uptime, battery — how your computer is doing right now.",
                verb: "Check",
                arguments: ["doctor"],
                asks: nil,
-               group: "Your computer",
+               group: "computer",
                symbol: "waveform.path.ecg"),
 
         Action(title: "Put it all back",
@@ -202,8 +232,9 @@ struct Action {
                verb: "Put it all back",
                arguments: ["undo", "--all"],
                asks: "Reverse everything nimo has done, newest first?",
-               group: "Your computer",
-               symbol: "arrow.uturn.backward"),
+               group: "computer",
+               symbol: "arrow.uturn.backward",
+               extras: [Extra(title: "Only look", arguments: ["undo", "--all", "--dry-run"], asks: nil)]),
     ]
 }
 
@@ -625,6 +656,8 @@ final class Main: NSObject, NSWindowDelegate {
     private let report     = NSStackView()
     private var rows: [Row] = []
     private var settingsRow: Row!
+    private let buttons = NSStackView()
+    private var walked: [String] = []       // how far into your home you have clicked
 
     private var chosen = 0
     private var busy = false
@@ -688,7 +721,32 @@ final class Main: NSObject, NSWindowDelegate {
         stack.addArrangedSubview(mark)
         stack.setCustomSpacing(26, after: mark)
 
+        var lastGroup = ""
         for (i, item) in Action.all.enumerated() {
+            // A line between groups, and no words over them. The list says
+            // what each thing is; a heading would only say it again.
+            if item.group != lastGroup, i > 0 {
+                let gap = NSBox()
+                gap.boxType = .custom
+                gap.borderWidth = 0
+                gap.fillColor = Paint.line
+                gap.translatesAutoresizingMaskIntoConstraints = false
+
+                let holder = NSView()
+                holder.translatesAutoresizingMaskIntoConstraints = false
+                holder.addSubview(gap)
+                NSLayoutConstraint.activate([
+                    holder.heightAnchor.constraint(equalToConstant: 17),
+                    holder.widthAnchor.constraint(equalToConstant: 190),
+                    gap.leadingAnchor.constraint(equalTo: holder.leadingAnchor, constant: 11),
+                    gap.trailingAnchor.constraint(equalTo: holder.trailingAnchor, constant: -11),
+                    gap.centerYAnchor.constraint(equalTo: holder.centerYAnchor),
+                    gap.heightAnchor.constraint(equalToConstant: 1),
+                ])
+                stack.addArrangedSubview(holder)
+            }
+            lastGroup = item.group
+
             let row = Row(item, index: i)
             row.onClick = { [weak self] which in self?.show(which) }
             stack.addArrangedSubview(row)
@@ -728,7 +786,12 @@ final class Main: NSObject, NSWindowDelegate {
         content.addSubview(blurbLabel)
 
         runButton = Pill(target: self, action: #selector(go))
-        content.addSubview(runButton)
+
+        buttons.orientation = .horizontal
+        buttons.alignment = .centerY
+        buttons.spacing = 9
+        buttons.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(buttons)
 
         spinner.style = .spinning
         spinner.controlSize = .small
@@ -777,17 +840,18 @@ final class Main: NSObject, NSWindowDelegate {
             blurbLabel.trailingAnchor.constraint(lessThanOrEqualTo: content.trailingAnchor, constant: -60),
             blurbLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 10),
 
-            runButton.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            runButton.topAnchor.constraint(equalTo: blurbLabel.bottomAnchor, constant: 24),
+            buttons.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            buttons.trailingAnchor.constraint(lessThanOrEqualTo: content.trailingAnchor, constant: -44),
+            buttons.topAnchor.constraint(equalTo: blurbLabel.bottomAnchor, constant: 24),
 
-            spinner.leadingAnchor.constraint(equalTo: runButton.trailingAnchor, constant: 14),
-            spinner.centerYAnchor.constraint(equalTo: runButton.centerYAnchor),
+            spinner.leadingAnchor.constraint(equalTo: buttons.trailingAnchor, constant: 14),
+            spinner.centerYAnchor.constraint(equalTo: buttons.centerYAnchor),
             spinner.widthAnchor.constraint(equalToConstant: 16),
             spinner.heightAnchor.constraint(equalToConstant: 16),
 
             scroll.leadingAnchor.constraint(equalTo: edge.trailingAnchor),
             scroll.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            scroll.topAnchor.constraint(equalTo: runButton.bottomAnchor, constant: 34),
+            scroll.topAnchor.constraint(equalTo: buttons.bottomAnchor, constant: 34),
             scroll.bottomAnchor.constraint(equalTo: content.bottomAnchor),
 
             report.leadingAnchor.constraint(equalTo: scroll.contentView.leadingAnchor),
@@ -846,7 +910,15 @@ final class Main: NSObject, NSWindowDelegate {
             case .row(let label, let value, _, _, let strong):
                 // The trailing half of a row is nimo telling a terminal what
                 // to type next. There is a button here instead.
-                line(Said(label: label, value: value, strong: strong))
+                let walkable = !isSettings
+                    && Action.all[chosen].walks
+                    && label.hasSuffix("/")
+                let said = Said(label: label, value: value, strong: strong, walkable: walkable)
+                if walkable {
+                    let name = String(label.dropLast())
+                    said.onOpen = { [weak self] in self?.walkInto(name) }
+                }
+                line(said)
 
             case .good(let text):
                 words(text, size: 14, weight: .semibold, colour: Paint.ink, top: 8, bottom: 6)
@@ -885,21 +957,19 @@ final class Main: NSObject, NSWindowDelegate {
     private func show(_ index: Int) {
         guard index >= 0, index <= Action.all.count else { return }
         chosen = index
+        walked = []
 
         for (i, row) in rows.enumerated() { row.choose(i == index) }
 
         let item = index == Action.all.count ? Action.settings : Action.all[index]
         titleLabel.stringValue = item.title
         blurbLabel.stringValue = item.blurb
+        fitButtons()
 
         if isSettings {
-            runButton.isHidden = true
             drawSettings()
             return
         }
-
-        runButton.isHidden = false
-        runButton.set(item.verb, live: !busy)
 
         if seen.contains(index) { return }
 
@@ -908,6 +978,85 @@ final class Main: NSObject, NSWindowDelegate {
         // change and touch nothing — nimo's own --dry-run, which is the same
         // measurement the real run uses.
         run(item, preview: item.asks != nil)
+    }
+
+    /// The big button, then whatever else this page can do. Rebuilt whenever
+    /// the page changes, because what a page can do depends on where you are
+    /// standing in it.
+    private func fitButtons() {
+        for view in buttons.arrangedSubviews {
+            buttons.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
+        guard !isSettings else { return }
+
+        let item = Action.all[chosen]
+        runButton.set(item.verb, live: !busy)
+        buttons.addArrangedSubview(runButton)
+
+        if !walked.isEmpty {
+            buttons.addArrangedSubview(quiet("Back", #selector(walkUp)))
+        }
+
+        for (i, extra) in item.extras.enumerated() {
+            let button = quiet(extra.title, #selector(runExtra(_:)))
+            button.tag = i
+            buttons.addArrangedSubview(button)
+        }
+
+        if item.reveal != nil {
+            buttons.addArrangedSubview(quiet("Show in Finder", #selector(revealFolder)))
+        }
+    }
+
+    private func quiet(_ words: String, _ selector: Selector) -> NSButton {
+        let button = NSButton(title: words, target: self, action: selector)
+        button.bezelStyle = .rounded
+        button.controlSize = .large
+        button.isEnabled = !busy
+        return button
+    }
+
+    @objc private func runExtra(_ sender: NSButton) {
+        let item = Action.all[chosen]
+        guard sender.tag >= 0, sender.tag < item.extras.count else { return }
+        let extra = item.extras[sender.tag]
+
+        if let question = extra.asks {
+            let alert = NSAlert()
+            alert.messageText = extra.title
+            alert.informativeText = question
+            alert.addButton(withTitle: "Do it")
+            alert.addButton(withTitle: "Cancel")
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
+        }
+        launch(extra.asks == nil ? extra.arguments : extra.arguments + ["--yes"])
+    }
+
+    @objc private func revealFolder() {
+        guard let folder = Action.all[chosen].reveal else { return }
+        let url = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(folder)
+        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: url.path)
+    }
+
+    // MARK: walking into a folder
+
+    @objc private func walkUp() {
+        if !walked.isEmpty { walked.removeLast() }
+        walkHere()
+    }
+
+    private func walkInto(_ name: String) {
+        walked.append(name)
+        walkHere()
+    }
+
+    private func walkHere() {
+        fitButtons()
+        var arguments = ["top"]
+        if !walked.isEmpty { arguments.append(walked.joined(separator: "/")) }
+        launch(arguments)
     }
 
     // MARK: settings
@@ -955,7 +1104,9 @@ final class Main: NSObject, NSWindowDelegate {
                      control: terminal))
 
         // ---- what macOS will let it touch --------------------------------
-        words("Access", size: 12, weight: .medium, colour: Paint.faint, top: 30, bottom: 6)
+        divider()
+        words("What nimo may touch", size: 12, weight: .medium,
+              colour: Paint.faint, top: 4, bottom: 6)
 
         let askAll = NSButton(title: "Ask for everything",
                               target: self, action: #selector(askForEverything))
@@ -995,6 +1146,27 @@ final class Main: NSObject, NSWindowDelegate {
             context.allowsImplicitAnimation = true
             scroll.animator().alphaValue = 1
         }
+    }
+
+    /// The same hairline the list down the side uses, across the page.
+    private func divider() {
+        let rule = NSBox()
+        rule.boxType = .custom
+        rule.borderWidth = 0
+        rule.fillColor = Paint.line
+        rule.translatesAutoresizingMaskIntoConstraints = false
+
+        let holder = NSView()
+        holder.translatesAutoresizingMaskIntoConstraints = false
+        holder.addSubview(rule)
+        NSLayoutConstraint.activate([
+            holder.heightAnchor.constraint(equalToConstant: 30),
+            rule.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
+            rule.trailingAnchor.constraint(equalTo: holder.trailingAnchor),
+            rule.centerYAnchor.constraint(equalTo: holder.centerYAnchor),
+            rule.heightAnchor.constraint(equalToConstant: 1),
+        ])
+        line(holder)
     }
 
     /// A word, not a tick in a box: the row already carries the tick.
@@ -1103,7 +1275,20 @@ final class Main: NSObject, NSWindowDelegate {
         } else {
             arguments = item.asks == nil ? item.arguments : item.arguments + ["--yes"]
         }
+        spin(arguments)
+    }
 
+    private func launch(_ arguments: [String]) {
+        guard !busy else { return }
+        busy = true
+        seen.insert(chosen)
+        runButton.set(Action.all[chosen].verb, live: false)
+        spinner.startAnimation(nil)
+        say("working …")
+        spin(arguments)
+    }
+
+    private func spin(_ arguments: [String]) {
         DispatchQueue.global(qos: .userInitiated).async {
             let result = Nimo.run(arguments)
             DispatchQueue.main.async {
@@ -1112,7 +1297,7 @@ final class Main: NSObject, NSWindowDelegate {
                 else { self.draw(pieces) }
                 self.spinner.stopAnimation(nil)
                 self.busy = false
-                self.runButton.set(Action.all[self.chosen].verb, live: true)
+                self.fitButtons()
             }
         }
     }
@@ -1128,8 +1313,17 @@ final class Main: NSObject, NSWindowDelegate {
 /// starting at the same place every time so the eye can run down them — no
 /// rules, no dots, no columns drawn round them.
 final class Said: NSView {
-    init(label: String, value: String, strong: Bool) {
+    var onOpen: (() -> Void)?
+
+    private var hovering = false
+    private let arrow = NSImageView()
+
+    init(label: String, value: String, strong: Bool, walkable: Bool = false) {
         super.init(frame: .zero)
+
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+        layer?.cornerRadius = 6
 
         let left = NSTextField(labelWithString: label)
         left.font = NSFont.systemFont(ofSize: 13.5, weight: strong ? .medium : .regular)
@@ -1146,22 +1340,66 @@ final class Said: NSView {
         right.translatesAutoresizingMaskIntoConstraints = false
         addSubview(right)
 
-        translatesAutoresizingMaskIntoConstraints = false
+        if walkable, let picture = NSImage(systemSymbolName: "chevron.right",
+                                           accessibilityDescription: nil) {
+            picture.isTemplate = true
+            arrow.image = picture
+        }
+        arrow.contentTintColor = Paint.faint
+        arrow.alphaValue = 0
+        arrow.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(arrow)
+
         let column = left.widthAnchor.constraint(equalToConstant: 168)
         column.priority = .defaultHigh
 
         NSLayoutConstraint.activate([
-            left.leadingAnchor.constraint(equalTo: leadingAnchor),
+            left.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
             left.topAnchor.constraint(equalTo: topAnchor, constant: 7),
             column,
-            right.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 180),
-            right.trailingAnchor.constraint(equalTo: trailingAnchor),
+            right.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 188),
+            right.trailingAnchor.constraint(equalTo: arrow.leadingAnchor, constant: -8),
             right.topAnchor.constraint(equalTo: topAnchor, constant: 7),
             right.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -7),
             left.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -7),
+            arrow.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
+            arrow.centerYAnchor.constraint(equalTo: centerYAnchor),
+            arrow.widthAnchor.constraint(equalToConstant: 11),
+            arrow.heightAnchor.constraint(equalToConstant: 11),
         ])
     }
 
+    required init?(coder: NSCoder) { fatalError("nimo has no nib") }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        for area in trackingAreas { removeTrackingArea(area) }
+        guard onOpen != nil else { return }
+        addTrackingArea(NSTrackingArea(rect: .zero,
+                                       options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+                                       owner: self, userInfo: nil))
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        repaint()
+    }
+
+    override func mouseEntered(with event: NSEvent) { hovering = true;  repaint() }
+    override func mouseExited(with event: NSEvent)  { hovering = false; repaint() }
+    override func mouseDown(with event: NSEvent)    { onOpen?() }
+
+    override func resetCursorRects() {
+        if onOpen != nil { addCursorRect(bounds, cursor: .pointingHand) }
+    }
+
+    private func repaint() {
+        arrow.animator().alphaValue = hovering ? 1 : 0
+        let background = hovering ? Paint.hover : NSColor.clear
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            self.layer?.backgroundColor = background.cgColor
+        }
+    }
     required init?(coder: NSCoder) { fatalError("nimo has no nib") }
 }
 
