@@ -1037,7 +1037,15 @@ check "what nimo said is laid out as text"  "grep -q 'final class Said' '$APP/So
 check "there is nothing shouting on the page" \
     "! grep -q 'Paint.accent' '$APP/Sources/main.swift'"
 check "the window follows the system, light or dark" \
-    "grep -q 'bestMatch(from: \\[.aqua, .darkAqua\\])' '$APP/Sources/main.swift' && ! grep -q 'window.appearance' '$APP/Sources/main.swift'"
+    "grep -q 'NSColor.labelColor' '$APP/Sources/main.swift' && ! grep -q 'window.appearance' '$APP/Sources/main.swift'"
+check "the window is glass"                 "grep -q 'NSVisualEffectView' '$APP/Sources/main.swift'"
+check "and it lets the desktop through"     "grep -q 'window.isOpaque = false' '$APP/Sources/main.swift'"
+check "there is a settings page"            "grep -q 'func drawSettings' '$APP/Sources/main.swift'"
+check "it can ask macOS for what it needs"  "grep -q 'askForEverything' '$APP/Sources/main.swift'"
+check "and it never claims to grant itself access" \
+    "grep -q 'enum Access' '$APP/Sources/main.swift' && grep -q 'Privacy_AllFiles' '$APP/Sources/main.swift'"
+check "settings are the same file nimo reads" \
+    "grep -q '.nimo\\\", isDirectory' '$APP/Sources/main.swift' && grep -q 'enum Config' '$APP/Sources/main.swift'"
 check "it spins while it thinks"            "grep -q 'NSProgressIndicator' '$APP/Sources/main.swift'"
 check "the panel fades in"                  "grep -q 'NSAnimationContext' '$APP/Sources/main.swift'"
 check "its version is filled in at build" "grep -q '__VERSION__' '$APP/Info.plist'"

@@ -19,30 +19,23 @@ import ServiceManagement
 // MARK: - nimo's colours
 
 enum Paint {
-    static func rgb(_ r: Int, _ g: Int, _ b: Int) -> NSColor {
-        NSColor(srgbRed: CGFloat(r) / 255, green: CGFloat(g) / 255,
-                blue: CGFloat(b) / 255, alpha: 1)
-    }
+    // On glass a fixed grey is a mistake: the wallpaper is behind the text, so
+    // the text has to be told by macOS what it should be. These are the system
+    // colours every Mac app uses — they change with the appearance, and they
+    // stay legible over whatever happens to be on the desktop.
+    static let line   = NSColor.separatorColor
+    static let hover  = NSColor.quaternaryLabelColor
+    static let picked = NSColor.unemphasizedSelectedContentBackgroundColor
 
-    /// One colour that is two colours: macOS asks it which one when it draws,
-    /// so the window follows the system without the app watching for it.
-    static func pair(_ day: NSColor, _ night: NSColor) -> NSColor {
-        NSColor(name: nil) { look in
-            look.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? night : day
-        }
-    }
+    static let ink    = NSColor.labelColor
+    static let body   = NSColor.labelColor
+    static let muted  = NSColor.secondaryLabelColor
+    static let faint  = NSColor.tertiaryLabelColor
 
-    // Paper and ink, and three greys between them. No accent anywhere: the
-    // only strong thing in the window is one button, and it is ink.
-    static let ground = pair(rgb(250, 250, 250), rgb(13, 15, 15))
-    static let line   = pair(rgb(232, 232, 233), rgb(30, 33, 33))
-    static let hover  = pair(rgb(243, 243, 244), rgb(22, 25, 25))
-    static let picked = pair(rgb(236, 236, 238), rgb(29, 33, 33))
-
-    static let ink    = pair(rgb(17, 17, 19),    rgb(238, 240, 240))
-    static let body   = pair(rgb(38, 38, 42),    rgb(206, 210, 210))
-    static let muted  = pair(rgb(112, 112, 120), rgb(136, 143, 143))
-    static let faint  = pair(rgb(156, 156, 164), rgb(104, 111, 111))
+    /// The one button, and the words on it.
+    static let strong = NSColor.labelColor
+    static let onStrong = NSColor.textBackgroundColor
+    static let ground = NSColor.textBackgroundColor
 }
 
 // MARK: - running nimo
@@ -128,6 +121,16 @@ struct Action {
     let group: String        // the heading it sits under
     let symbol: String       // the small picture beside it
 
+
+    /// Not one of the things nimo does — the place where you say how it
+    /// should do them.
+    static let settings = Action(title: "Settings",
+                                 blurb: "How nimo behaves, and where it starts from.",
+                                 verb: "",
+                                 arguments: [],
+                                 asks: nil,
+                                 group: "",
+                                 symbol: "gearshape")
 
     static let all: [Action] = [
         Action(title: "Desktop",
@@ -318,6 +321,99 @@ final class Wrapping: NSTextField {
     }
 }
 
+// MARK: - what macOS will let nimo touch
+
+/// macOS does not let an app decide what it may read; it lets a person decide,
+/// once, in a prompt or in System Settings. So nimo cannot grant itself
+/// anything — what it can do is ask at a moment you were expecting to be
+/// asked, say plainly what is still shut, and take you to the switch.
+enum Access {
+    static var desktop: URL {
+        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop")
+    }
+    static var downloads: URL {
+        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")
+    }
+
+    /// Reading a protected folder is what raises the prompt the first time, so
+    /// asking and checking are the same act.
+    @discardableResult
+    static func may(_ folder: URL) -> Bool {
+        (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) != nil
+    }
+
+    /// Full Disk Access has no API to ask about. Every app finds out the same
+    /// way: try to read a file only that permission opens, and see.
+    static var everything: Bool {
+        let locked = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support/com.apple.TCC/TCC.db")
+        return FileManager.default.isReadableFile(atPath: locked.path)
+    }
+
+    /// System Settings moved its panes between macOS versions, so try the one
+    /// this machine is likely to have and fall back to the older name.
+    static func settings(_ pane: String) {
+        let tries = [
+            "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?\(pane)",
+            "x-apple.systempreferences:com.apple.preference.security?\(pane)",
+        ]
+        for spelling in tries {
+            if let url = URL(string: spelling), NSWorkspace.shared.open(url) { return }
+        }
+    }
+}
+
+// MARK: - what you have chosen
+
+/// nimo keeps its settings in ~/.nimo/config as `key = value`, one to a line,
+/// and reads that file rather than sourcing it. The app writes the same file,
+/// leaving every line it does not recognise exactly where it was — the two of
+/// them share one set of settings, not two.
+enum Config {
+    static var url: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".nimo", isDirectory: true)
+            .appendingPathComponent("config")
+    }
+
+    static func value(_ key: String) -> String? {
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        for line in text.components(separatedBy: "\n") {
+            let bare = line.trimmingCharacters(in: .whitespaces)
+            if bare.isEmpty || bare.hasPrefix("#") { continue }
+            guard let split = bare.firstIndex(of: "=") else { continue }
+            let name = bare[..<split].trimmingCharacters(in: .whitespaces)
+            if name == key {
+                return String(bare[bare.index(after: split)...])
+                    .trimmingCharacters(in: .whitespaces)
+            }
+        }
+        return nil
+    }
+
+    static func set(_ key: String, _ value: String) {
+        let folder = url.deletingLastPathComponent()
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+
+        var kept: [String] = []
+        if let text = try? String(contentsOf: url, encoding: .utf8) {
+            for line in text.components(separatedBy: "\n") {
+                let bare = line.trimmingCharacters(in: .whitespaces)
+                if let split = bare.firstIndex(of: "="), !bare.hasPrefix("#") {
+                    let name = bare[..<split].trimmingCharacters(in: .whitespaces)
+                    if name == key { continue }        // this one is being replaced
+                }
+                kept.append(line)
+            }
+        }
+        while let last = kept.last, last.trimmingCharacters(in: .whitespaces).isEmpty {
+            kept.removeLast()
+        }
+        kept.append("\(key) = \(value)")
+        try? (kept.joined(separator: "\n") + "\n").write(to: url, atomically: true, encoding: .utf8)
+    }
+}
+
 // MARK: - starting itself
 
 /// An app you have to open by hand every morning is an app you stop using.
@@ -358,6 +454,7 @@ final class Row: NSView {
     var onClick: ((Int) -> Void)?
 
     private let name = NSTextField(labelWithString: "")
+    private let icon = NSImageView()
     private var chosen = false
     private var hovering = false
 
@@ -367,7 +464,15 @@ final class Row: NSView {
 
         translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
-        layer?.cornerRadius = 8
+        layer?.cornerRadius = 7
+
+        if let picture = NSImage(systemSymbolName: item.symbol, accessibilityDescription: nil) {
+            picture.isTemplate = true
+            icon.image = picture
+        }
+        icon.imageScaling = .scaleProportionallyDown
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(icon)
 
         name.stringValue = item.title
         name.lineBreakMode = .byTruncatingTail
@@ -375,8 +480,12 @@ final class Row: NSView {
         addSubview(name)
 
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 34),
-            name.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            heightAnchor.constraint(equalToConstant: 32),
+            icon.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            icon.centerYAnchor.constraint(equalTo: centerYAnchor),
+            icon.widthAnchor.constraint(equalToConstant: 15),
+            icon.heightAnchor.constraint(equalToConstant: 15),
+            name.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 9),
             name.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -10),
             name.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
@@ -408,7 +517,8 @@ final class Row: NSView {
 
     private func repaint() {
         name.textColor = chosen ? Paint.ink : Paint.muted
-        name.font = NSFont.systemFont(ofSize: 13.5, weight: chosen ? .medium : .regular)
+        name.font = NSFont.systemFont(ofSize: 13, weight: chosen ? .medium : .regular)
+        icon.contentTintColor = chosen ? Paint.ink : Paint.faint
 
         var background = NSColor.clear
         if chosen { background = Paint.picked } else if hovering { background = Paint.hover }
@@ -443,7 +553,7 @@ final class Pill: NSButton {
         isEnabled = able
         let text = NSMutableAttributedString(string: "  " + words + "  ")
         text.addAttributes([
-            .foregroundColor: able ? Paint.ground : Paint.faint,
+            .foregroundColor: able ? Paint.onStrong : Paint.faint,
             .font: NSFont.systemFont(ofSize: 13, weight: .medium),
         ], range: NSRange(location: 0, length: text.length))
         attributedTitle = text
@@ -456,11 +566,50 @@ final class Pill: NSButton {
     }
 
     private func repaint() {
-        let colour = live ? Paint.ink : Paint.picked
+        let colour = live ? Paint.strong : Paint.picked
         effectiveAppearance.performAsCurrentDrawingAppearance {
             self.layer?.backgroundColor = colour.cgColor
         }
     }
+}
+
+// MARK: - one setting
+
+final class Setting: NSView {
+    init(_ label: String, _ note: String, control: NSView) {
+        super.init(frame: .zero)
+
+        let name = NSTextField(labelWithString: label)
+        name.font = NSFont.systemFont(ofSize: 13.5, weight: .regular)
+        name.textColor = Paint.ink
+        name.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(name)
+
+        let under = Wrapping(labelWithString: note)
+        under.font = NSFont.systemFont(ofSize: 12, weight: .regular)
+        under.textColor = Paint.faint
+        under.maximumNumberOfLines = 0
+        under.lineBreakMode = .byWordWrapping
+        under.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(under)
+
+        control.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(control)
+
+        translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            name.leadingAnchor.constraint(equalTo: leadingAnchor),
+            name.topAnchor.constraint(equalTo: topAnchor, constant: 12),
+            under.leadingAnchor.constraint(equalTo: leadingAnchor),
+            under.topAnchor.constraint(equalTo: name.bottomAnchor, constant: 2),
+            under.trailingAnchor.constraint(lessThanOrEqualTo: control.leadingAnchor, constant: -20),
+            under.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -12),
+            control.trailingAnchor.constraint(equalTo: trailingAnchor),
+            control.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("nimo has no nib") }
 }
 
 // MARK: - the window
@@ -475,6 +624,7 @@ final class Main: NSObject, NSWindowDelegate {
     private let scroll     = NSScrollView()
     private let report     = NSStackView()
     private var rows: [Row] = []
+    private var settingsRow: Row!
 
     private var chosen = 0
     private var busy = false
@@ -491,7 +641,10 @@ final class Main: NSObject, NSWindowDelegate {
         window.title = "nimo"
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
-        window.backgroundColor = Paint.ground
+        // Glass: the window stops painting a background of its own, and the
+        // effect view underneath everything blurs whatever is behind it.
+        window.isOpaque = false
+        window.backgroundColor = .clear
         window.isMovableByWindowBackground = true
         window.minSize = NSSize(width: 760, height: 480)
         window.delegate = self
@@ -505,7 +658,21 @@ final class Main: NSObject, NSWindowDelegate {
     // MARK: building it
 
     private func build() {
-        guard let content = window.contentView else { return }
+        let glass = NSVisualEffectView()
+        glass.material = .sidebar
+        glass.blendingMode = .behindWindow
+        glass.state = .followsWindowActiveState
+        window.contentView = glass
+        let content: NSView = glass
+
+        // The work sits on a second, slightly denser pane, so the two halves
+        // of the window read apart without a box being drawn round either.
+        let pane = NSVisualEffectView()
+        pane.material = .contentBackground
+        pane.blendingMode = .withinWindow
+        pane.state = .followsWindowActiveState
+        pane.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(pane)
 
         // ---- down the side ----------------------------------------------
         let stack = NSStackView()
@@ -528,6 +695,14 @@ final class Main: NSObject, NSWindowDelegate {
             row.widthAnchor.constraint(equalToConstant: 190).isActive = true
             rows.append(row)
         }
+
+        // Settings is not one of the things nimo does, so it does not stand in
+        // the same list. It waits at the bottom, where every Mac keeps it.
+        settingsRow = Row(Action.settings, index: Action.all.count)
+        settingsRow.onClick = { [weak self] _ in self?.show(Action.all.count) }
+        settingsRow.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(settingsRow)
+        rows.append(settingsRow)
 
         // ---- the page ----------------------------------------------------
         // No card, no second surface, no border round anything. One hairline
@@ -579,6 +754,15 @@ final class Main: NSObject, NSWindowDelegate {
             stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 16),
             stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 48),
             stack.widthAnchor.constraint(equalToConstant: 214),
+
+            settingsRow.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
+            settingsRow.widthAnchor.constraint(equalToConstant: 190),
+            settingsRow.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -16),
+
+            pane.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 247),
+            pane.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            pane.topAnchor.constraint(equalTo: content.topAnchor),
+            pane.bottomAnchor.constraint(equalTo: content.bottomAnchor),
 
             edge.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 246),
             edge.topAnchor.constraint(equalTo: content.topAnchor),
@@ -696,15 +880,25 @@ final class Main: NSObject, NSWindowDelegate {
 
     // MARK: using it
 
+    private var isSettings: Bool { chosen == Action.all.count }
+
     private func show(_ index: Int) {
-        guard index >= 0, index < Action.all.count else { return }
+        guard index >= 0, index <= Action.all.count else { return }
         chosen = index
-        let item = Action.all[index]
 
         for (i, row) in rows.enumerated() { row.choose(i == index) }
 
+        let item = index == Action.all.count ? Action.settings : Action.all[index]
         titleLabel.stringValue = item.title
         blurbLabel.stringValue = item.blurb
+
+        if isSettings {
+            runButton.isHidden = true
+            drawSettings()
+            return
+        }
+
+        runButton.isHidden = false
         runButton.set(item.verb, live: !busy)
 
         if seen.contains(index) { return }
@@ -714,6 +908,167 @@ final class Main: NSObject, NSWindowDelegate {
         // change and touch nothing — nimo's own --dry-run, which is the same
         // measurement the real run uses.
         run(item, preview: item.asks != nil)
+    }
+
+    // MARK: settings
+
+    private func drawSettings() {
+        for view in report.arrangedSubviews {
+            report.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
+
+        let login = NSSwitch()
+        login.state = Login.on ? .on : .off
+        login.isEnabled = Login.possible
+        login.target = self
+        login.action = #selector(loginChanged(_:))
+        line(Setting("Open nimo when I sign in",
+                     Login.possible ? "It is here every morning without being asked."
+                                    : "This needs macOS 13 or newer.",
+                     control: login))
+
+        let animation = NSSwitch()
+        animation.state = (Config.value("animation").map { $0 == "never" || $0 == "off" || $0 == "no" } ?? false)
+            ? .off : .on
+        animation.target = self
+        animation.action = #selector(animationChanged(_:))
+        line(Setting("Draw the face in the terminal",
+                     "Only affects nimo run in a terminal. This window never animates.",
+                     control: animation))
+
+        let days = NSPopUpButton()
+        days.addItems(withTitles: ["7 days", "30 days", "90 days"])
+        let chosenDays = Config.value("days") ?? "30"
+        days.selectItem(withTitle: chosenDays + " days")
+        if days.indexOfSelectedItem < 0 { days.selectItem(withTitle: "30 days") }
+        days.target = self
+        days.action = #selector(daysChanged(_:))
+        line(Setting("Old means older than",
+                     "How long something sits in Downloads before nimo counts it as old.",
+                     control: days))
+
+        let terminal = NSButton(title: "Open…", target: self, action: #selector(openTerminal))
+        terminal.bezelStyle = .rounded
+        line(Setting("nimo in a terminal",
+                     "The same program, typed instead of clicked. Works on Linux and Windows too.",
+                     control: terminal))
+
+        // ---- what macOS will let it touch --------------------------------
+        words("Access", size: 12, weight: .medium, colour: Paint.faint, top: 30, bottom: 6)
+
+        let askAll = NSButton(title: "Ask for everything",
+                              target: self, action: #selector(askForEverything))
+        askAll.bezelStyle = .rounded
+        line(Setting("Let nimo see your files",
+                     "macOS asks once per folder. nimo only ever reads inside your home.",
+                     control: askAll))
+
+        line(Setting("Desktop", state(Access.may(Access.desktop)),
+                     control: mark(Access.may(Access.desktop))))
+        line(Setting("Downloads", state(Access.may(Access.downloads)),
+                     control: mark(Access.may(Access.downloads))))
+
+        let disk = NSButton(title: Access.everything ? "Open Settings" : "Turn on…",
+                            target: self, action: #selector(openDiskAccess))
+        disk.bezelStyle = .rounded
+        line(Setting("Everything else",
+                     Access.everything
+                        ? "Full Disk Access is on. nimo can clear the caches other apps hide."
+                        : "Without Full Disk Access some caches stay where they are. nimo works without it.",
+                     control: disk))
+
+        let events = NSButton(title: "Open Settings",
+                              target: self, action: #selector(openAutomation))
+        events.bezelStyle = .rounded
+        line(Setting("Changing your wallpaper",
+                     "macOS asks the first time. If you ever said no, it will not ask again — this is where you undo that.",
+                     control: events))
+
+        words("nimo \(Nimo.version) · MIT · github.com/danielkopa/nimo",
+              size: 12, weight: .regular, colour: Paint.faint, top: 26, bottom: 4)
+
+        scroll.alphaValue = 0
+        report.layoutSubtreeIfNeeded()
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.2
+            context.allowsImplicitAnimation = true
+            scroll.animator().alphaValue = 1
+        }
+    }
+
+    /// A word, not a tick in a box: the row already carries the tick.
+    private func state(_ open: Bool) -> String {
+        open ? "nimo can read this folder." : "nimo has not been let in here yet."
+    }
+
+    private func mark(_ open: Bool) -> NSView {
+        let icon = NSImageView()
+        let name = open ? "checkmark.circle.fill" : "circle.dashed"
+        if let picture = NSImage(systemSymbolName: name, accessibilityDescription: nil) {
+            picture.isTemplate = true
+            icon.image = picture
+        }
+        icon.contentTintColor = open ? Paint.ink : Paint.faint
+        icon.widthAnchor.constraint(equalToConstant: 16).isActive = true
+        icon.heightAnchor.constraint(equalToConstant: 16).isActive = true
+        return icon
+    }
+
+    /// Reading the folder is what raises the prompt, so this asks for each one
+    /// in turn and then draws the page again with whatever you answered.
+    @objc private func askForEverything() {
+        Access.may(Access.desktop)
+        Access.may(Access.downloads)
+        Access.may(FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Pictures"))
+        Access.may(FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Documents"))
+        drawSettings()
+    }
+
+    @objc private func openDiskAccess() {
+        Access.settings("Privacy_AllFiles")
+    }
+
+    @objc private func openAutomation() {
+        Access.settings("Privacy_Automation")
+    }
+
+    @objc private func loginChanged(_ sender: NSSwitch) {
+        if let trouble = Login.set(sender.state == .on) {
+            let alert = NSAlert()
+            alert.messageText = "nimo could not change that"
+            alert.informativeText = trouble
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+        }
+        // Ask macOS what it actually is now, rather than assuming it worked.
+        sender.state = Login.on ? .on : .off
+    }
+
+    @objc private func animationChanged(_ sender: NSSwitch) {
+        Config.set("animation", sender.state == .on ? "auto" : "never")
+    }
+
+    @objc private func daysChanged(_ sender: NSPopUpButton) {
+        let title = sender.titleOfSelectedItem ?? "30 days"
+        Config.set("days", title.replacingOccurrences(of: " days", with: ""))
+    }
+
+    @objc private func openTerminal() {
+        guard let min = Nimo.executable else { return }
+        let quoted = min.path.replacingOccurrences(of: "'", with: "'\\''")
+        let script = """
+        tell application "Terminal"
+        activate
+        do script "'\(quoted)'"
+        end tell
+        """
+        if let apple = NSAppleScript(source: script) {
+            var trouble: NSDictionary?
+            apple.executeAndReturnError(&trouble)
+        }
     }
 
     @objc private func go() {
