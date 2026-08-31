@@ -1019,9 +1019,9 @@ APP="$ROOT/app"
 check "the app has a source, a plist and a build" \
     "[ -f '$APP/Sources/main.swift' ] && [ -f '$APP/Info.plist' ] && [ -x '$APP/build.sh' ]"
 check "the build script parses"           "bash -n '$APP/build.sh'"
-check "the menu bar glyph is there twice" \
-    "[ -f '$APP/Resources/menubar.png' ] && [ -f '$APP/Resources/menubar@2x.png' ]"
 check "there is one icon to change"       "[ -f '$ROOT/assets/app/icon-1024.png' ]"
+check "and nothing the app no longer draws" \
+    "! ls '$APP/Resources'/menubar* >/dev/null 2>&1"
 
 check "the app is a normal app, not a menu bar one" \
     "! grep -q 'LSUIElement' '$APP/Info.plist'"
