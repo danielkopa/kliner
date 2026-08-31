@@ -573,33 +573,56 @@ final class Row: NSView {
     }
 }
 
-/// The one button. Ink, a soft round end, and nothing else on the page
-/// competing with it.
-final class Pill: NSButton {
-    private var live = true
+/// A button nimo draws itself.
+///
+/// A borderless NSButton puts its title where its cell wants it, not where the
+/// frame is, so a pill with a height of its own ends up with the words sitting
+/// off centre. This one is a view with a label pinned to both centres, which
+/// is the only way to be sure.
+final class Chip: NSView {
+    enum Kind { case strong, quiet }
 
-    init(target: AnyObject, action: Selector) {
+    var onClick: (() -> Void)?
+    /// What this button is about, when the row it sits in has a name.
+    var subject = ""
+    var index = 0
+
+    private let kind: Kind
+    private let label = NSTextField(labelWithString: "")
+    private var width: NSLayoutConstraint!
+    private var live = true
+    private var hovering = false
+
+    init(_ kind: Kind) {
+        self.kind = kind
         super.init(frame: .zero)
-        self.target = target
-        self.action = action
-        isBordered = false
+
+        translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
         layer?.cornerRadius = 16
-        translatesAutoresizingMaskIntoConstraints = false
-        heightAnchor.constraint(equalToConstant: 32).isActive = true
+
+        label.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        label.alignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(label)
+
+        width = widthAnchor.constraint(equalToConstant: 80)
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 32),
+            width,
+            label.centerXAnchor.constraint(equalTo: centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
     }
 
     required init?(coder: NSCoder) { fatalError("nimo has no nib") }
 
-    func set(_ words: String, live able: Bool) {
+    func set(_ words: String, live able: Bool = true) {
         live = able
-        isEnabled = able
-        let text = NSMutableAttributedString(string: "  " + words + "  ")
-        text.addAttributes([
-            .foregroundColor: able ? Paint.onStrong : Paint.faint,
-            .font: NSFont.systemFont(ofSize: 13, weight: .medium),
-        ], range: NSRange(location: 0, length: text.length))
-        attributedTitle = text
+        label.stringValue = words
+        // The pill is as wide as the words in it, plus the same air either side.
+        let padding: CGFloat = kind == .strong ? 20 : 16
+        width.constant = max(64, ceil(label.intrinsicContentSize.width) + padding * 2)
         repaint()
     }
 
@@ -608,10 +631,37 @@ final class Pill: NSButton {
         repaint()
     }
 
+    override func mouseEntered(with event: NSEvent) { hovering = true;  repaint() }
+    override func mouseExited(with event: NSEvent)  { hovering = false; repaint() }
+    override func mouseDown(with event: NSEvent)    { if live { onClick?() } }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        for area in trackingAreas { removeTrackingArea(area) }
+        addTrackingArea(NSTrackingArea(rect: .zero,
+                                       options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+                                       owner: self, userInfo: nil))
+    }
+
+    override func resetCursorRects() {
+        if live { addCursorRect(bounds, cursor: .pointingHand) }
+    }
+
     private func repaint() {
-        let colour = live ? Paint.strong : Paint.picked
+        let background: NSColor
+        if !live {
+            background = Paint.picked
+            label.textColor = Paint.faint
+        } else if kind == .strong {
+            background = Paint.strong
+            label.textColor = Paint.onStrong
+        } else {
+            background = Paint.picked
+            label.textColor = Paint.ink
+        }
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            self.layer?.backgroundColor = colour.cgColor
+            self.layer?.backgroundColor = background.cgColor
+            self.layer?.opacity = self.hovering && self.live ? 0.86 : 1
         }
     }
 }
@@ -662,7 +712,7 @@ final class Main: NSObject, NSWindowDelegate {
 
     private let titleLabel = NSTextField(labelWithString: "")
     private let blurbLabel = Wrapping(labelWithString: "")
-    private var runButton: Pill!
+    private var runButton: Chip!
     private let spinner    = NSProgressIndicator()
     private let scroll     = NSScrollView()
     private let report     = NSStackView()
@@ -800,20 +850,21 @@ final class Main: NSObject, NSWindowDelegate {
         edge.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(edge)
 
-        titleLabel.font = NSFont.systemFont(ofSize: 24, weight: .semibold)
+        titleLabel.font = NSFont.systemFont(ofSize: 26, weight: .semibold)
         titleLabel.textColor = Paint.ink
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(titleLabel)
 
-        blurbLabel.font = NSFont.systemFont(ofSize: 13.5, weight: .regular)
+        blurbLabel.font = NSFont.systemFont(ofSize: 14, weight: .regular)
         blurbLabel.textColor = Paint.muted
         blurbLabel.maximumNumberOfLines = 3
         blurbLabel.lineBreakMode = .byWordWrapping
-        blurbLabel.preferredMaxLayoutWidth = 460
+        blurbLabel.preferredMaxLayoutWidth = 520
         blurbLabel.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(blurbLabel)
 
-        runButton = Pill(target: self, action: #selector(go))
+        runButton = Chip(.strong)
+        runButton.onClick = { [weak self] in self?.go() }
 
         buttons.orientation = .horizontal
         buttons.alignment = .centerY
@@ -964,32 +1015,36 @@ final class Main: NSObject, NSWindowDelegate {
         if !Access.may(Access.desktop) || !Access.may(Access.downloads) {
             line(Suggest("nimo cannot see your files yet",
                          "macOS asks once per folder. It only ever reads inside your home.",
-                         verb: "Ask for everything", strong: true,
-                         target: self, action: #selector(askFromHome), tag: 0))
+                         verb: "Ask for everything", strong: true) { [weak self] in
+                             self?.askFromHome()
+                         })
             said = true
         }
 
         if let count = figures["Desktop"], !count.hasPrefix("0") {
             line(Suggest("\(count) on your desktop",
                          "Sorted into Desktop/Tidy by what they are. Nothing is deleted.",
-                         verb: "Clear it", strong: true,
-                         target: self, action: #selector(goToPage(_:)), tag: 1))
+                         verb: "Clear it", strong: true) { [weak self] in
+                             self?.show(1)
+                         })
             said = true
         }
 
         if let count = figures["Downloads"], !count.hasPrefix("0") {
             line(Suggest("\(count) in Downloads",
                          "The folder everything lands in and nothing ever leaves.",
-                         verb: "Sort it", strong: false,
-                         target: self, action: #selector(goToPage(_:)), tag: 2))
+                         verb: "Sort it", strong: false) { [weak self] in
+                             self?.show(2)
+                         })
             said = true
         }
 
         if let junk = figures["Junk"], !junk.hasPrefix("0") {
             line(Suggest("\(junk) of caches",
                          "Your apps rebuild these by themselves. Your own files are never touched.",
-                         verb: "Free it", strong: false,
-                         target: self, action: #selector(goToPage(_:)), tag: 7))
+                         verb: "Free it", strong: false) { [weak self] in
+                             self?.show(7)
+                         })
             said = true
         }
 
@@ -999,14 +1054,9 @@ final class Main: NSObject, NSWindowDelegate {
         }
     }
 
-    @objc private func goToPage(_ sender: NSButton) {
-        show(sender.tag)
-    }
-
     /// Stopping one thing by name, which is what --only is for. nimo still
     /// asks; the dialog here is that question.
-    @objc private func stopThis(_ sender: NSButton) {
-        let name = sender.identifier?.rawValue ?? ""
+    private func stopThis(_ name: String) {
         guard !name.isEmpty else { return }
 
         let alert = NSAlert()
@@ -1019,7 +1069,7 @@ final class Main: NSObject, NSWindowDelegate {
         launch(["startup", "--only", name, "--yes"])
     }
 
-    @objc private func askFromHome() {
+    private func askFromHome() {
         Access.may(Access.desktop)
         Access.may(Access.downloads)
         Access.may(FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Pictures"))
@@ -1070,9 +1120,9 @@ final class Main: NSObject, NSWindowDelegate {
                     && label.hasSuffix("/")
                 if stoppable, !label.isEmpty {
                     line(Suggest(label, value.isEmpty ? "starts when you sign in" : value,
-                                 verb: "Stop", strong: false,
-                                 target: self, action: #selector(stopThis(_:)), tag: 0,
-                                 name: label))
+                                 verb: "Stop", strong: false, name: label) { [weak self] in
+                                     self?.stopThis(label)
+                                 })
                     break
                 }
                 let said = Said(label: label, value: value, strong: strong, walkable: walkable)
@@ -1161,32 +1211,29 @@ final class Main: NSObject, NSWindowDelegate {
         buttons.addArrangedSubview(runButton)
 
         if !walked.isEmpty {
-            buttons.addArrangedSubview(quiet("Back", #selector(walkUp)))
+            buttons.addArrangedSubview(quiet("Back") { [weak self] in self?.walkUp() })
         }
 
         for (i, extra) in item.extras.enumerated() {
-            let button = quiet(extra.title, #selector(runExtra(_:)))
-            button.tag = i
-            buttons.addArrangedSubview(button)
+            buttons.addArrangedSubview(quiet(extra.title) { [weak self] in self?.runExtra(i) })
         }
 
         if item.reveal != nil {
-            buttons.addArrangedSubview(quiet("Show in Finder", #selector(revealFolder)))
+            buttons.addArrangedSubview(quiet("Show in Finder") { [weak self] in self?.revealFolder() })
         }
     }
 
-    private func quiet(_ words: String, _ selector: Selector) -> NSButton {
-        let button = NSButton(title: words, target: self, action: selector)
-        button.bezelStyle = .rounded
-        button.controlSize = .large
-        button.isEnabled = !busy
-        return button
+    private func quiet(_ words: String, _ then: @escaping () -> Void) -> Chip {
+        let chip = Chip(.quiet)
+        chip.set(words, live: !busy)
+        chip.onClick = then
+        return chip
     }
 
-    @objc private func runExtra(_ sender: NSButton) {
+    private func runExtra(_ which: Int) {
         let item = Action.all[chosen]
-        guard sender.tag >= 0, sender.tag < item.extras.count else { return }
-        let extra = item.extras[sender.tag]
+        guard which >= 0, which < item.extras.count else { return }
+        let extra = item.extras[which]
 
         if let question = extra.asks {
             let alert = NSAlert()
@@ -1199,7 +1246,7 @@ final class Main: NSObject, NSWindowDelegate {
         launch(extra.asks == nil ? extra.arguments : extra.arguments + ["--yes"])
     }
 
-    @objc private func revealFolder() {
+    private func revealFolder() {
         guard let folder = Action.all[chosen].reveal else { return }
         let url = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(folder)
@@ -1208,7 +1255,7 @@ final class Main: NSObject, NSWindowDelegate {
 
     // MARK: walking into a folder
 
-    @objc private func walkUp() {
+    private func walkUp() {
         if !walked.isEmpty { walked.removeLast() }
         walkHere()
     }
@@ -1263,8 +1310,7 @@ final class Main: NSObject, NSWindowDelegate {
                      "How long something sits in Downloads before nimo counts it as old.",
                      control: days))
 
-        let terminal = NSButton(title: "Open…", target: self, action: #selector(openTerminal))
-        terminal.bezelStyle = .rounded
+        let terminal = quiet("Open…") { [weak self] in self?.openTerminal() }
         line(Setting("nimo in a terminal",
                      "The same program, typed instead of clicked. Works on Linux and Windows too.",
                      control: terminal))
@@ -1274,9 +1320,7 @@ final class Main: NSObject, NSWindowDelegate {
         words("What nimo may touch", size: 12, weight: .medium,
               colour: Paint.faint, top: 4, bottom: 6)
 
-        let askAll = NSButton(title: "Ask for everything",
-                              target: self, action: #selector(askForEverything))
-        askAll.bezelStyle = .rounded
+        let askAll = quiet("Ask for everything") { [weak self] in self?.askForEverything() }
         line(Setting("Let nimo see your files",
                      "macOS asks once per folder. nimo only ever reads inside your home.",
                      control: askAll))
@@ -1286,18 +1330,16 @@ final class Main: NSObject, NSWindowDelegate {
         line(Setting("Downloads", state(Access.may(Access.downloads)),
                      control: mark(Access.may(Access.downloads))))
 
-        let disk = NSButton(title: Access.everything ? "Open Settings" : "Turn on…",
-                            target: self, action: #selector(openDiskAccess))
-        disk.bezelStyle = .rounded
+        let disk = quiet(Access.everything ? "Open Settings" : "Turn on…") {
+            Access.settings("Privacy_AllFiles")
+        }
         line(Setting("Everything else",
                      Access.everything
                         ? "Full Disk Access is on. nimo can clear the caches other apps hide."
                         : "Without Full Disk Access some caches stay where they are. nimo works without it.",
                      control: disk))
 
-        let events = NSButton(title: "Open Settings",
-                              target: self, action: #selector(openAutomation))
-        events.bezelStyle = .rounded
+        let events = quiet("Open Settings") { Access.settings("Privacy_Automation") }
         line(Setting("Changing your wallpaper",
                      "macOS asks the first time. If you ever said no, it will not ask again — this is where you undo that.",
                      control: events))
@@ -1349,7 +1391,7 @@ final class Main: NSObject, NSWindowDelegate {
 
     /// Reading the folder is what raises the prompt, so this asks for each one
     /// in turn and then draws the page again with whatever you answered.
-    @objc private func askForEverything() {
+    private func askForEverything() {
         Access.may(Access.desktop)
         Access.may(Access.downloads)
         Access.may(FileManager.default.homeDirectoryForCurrentUser
@@ -1357,14 +1399,6 @@ final class Main: NSObject, NSWindowDelegate {
         Access.may(FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Documents"))
         drawSettings()
-    }
-
-    @objc private func openDiskAccess() {
-        Access.settings("Privacy_AllFiles")
-    }
-
-    @objc private func openAutomation() {
-        Access.settings("Privacy_Automation")
     }
 
     @objc private func loginChanged(_ sender: NSSwitch) {
@@ -1388,7 +1422,7 @@ final class Main: NSObject, NSWindowDelegate {
         Config.set("days", title.replacingOccurrences(of: " days", with: ""))
     }
 
-    @objc private func openTerminal() {
+    private func openTerminal() {
         guard let min = Nimo.executable else { return }
         let quoted = min.path.replacingOccurrences(of: "'", with: "'\\''")
         let script = """
@@ -1403,7 +1437,7 @@ final class Main: NSObject, NSWindowDelegate {
         }
     }
 
-    @objc private func go() {
+    private func go() {
         let item = Action.all[chosen]
 
         if let question = item.asks {
@@ -1460,6 +1494,16 @@ final class Main: NSObject, NSWindowDelegate {
                 self.fitButtons()
             }
         }
+    }
+
+    /// ⌘1 … ⌘9 for the list, ⌘, for the gear. A window you can only reach
+    /// with a mouse is a window somebody has not finished.
+    @objc func goByNumber(_ sender: NSMenuItem) {
+        show(sender.tag)
+    }
+
+    @objc func openSettings() {
+        show(Action.all.count)
     }
 
     /// Closing the window puts nimo away; the Dock icon brings it back. It is
@@ -1521,7 +1565,7 @@ final class Suggest: NSView {
     private(set) var name = ""
 
     init(_ headline: String, _ note: String, verb: String, strong: Bool,
-         target: AnyObject, action: Selector, tag: Int, name: String = "") {
+         tag: Int = 0, name: String = "", then: @escaping () -> Void) {
         super.init(frame: .zero)
         self.name = name
         translatesAutoresizingMaskIntoConstraints = false
@@ -1540,19 +1584,11 @@ final class Suggest: NSView {
         under.translatesAutoresizingMaskIntoConstraints = false
         addSubview(under)
 
-        let button: NSButton
-        if strong {
-            let pill = Pill(target: target, action: action)
-            pill.set(verb, live: true)
-            button = pill
-        } else {
-            button = NSButton(title: verb, target: target, action: action)
-            button.bezelStyle = .rounded
-            button.controlSize = .large
-            button.translatesAutoresizingMaskIntoConstraints = false
-        }
-        button.tag = tag
-        button.identifier = NSUserInterfaceItemIdentifier(name)
+        let button = Chip(strong ? .strong : .quiet)
+        button.set(verb)
+        button.index = tag
+        button.subject = name
+        button.onClick = then
         addSubview(button)
 
         let rule = NSBox()
@@ -1683,8 +1719,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var main: Main!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.mainMenu = buildMenu()
+        // The window first: the menu points at it, so it has to exist.
         main = Main()
+        NSApp.mainMenu = buildMenu()
         main.window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
@@ -1711,6 +1748,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         about.target = self
         app.addItem(about)
 
+        let settings = NSMenuItem(title: "Settings…",
+                                  action: #selector(Main.openSettings), keyEquivalent: ",")
+        settings.target = main
+        app.addItem(.separator())
+        app.addItem(settings)
+
         app.addItem(.separator())
         let login = NSMenuItem(title: "Open nimo at login",
                                action: #selector(toggleLogin(_:)),
@@ -1732,6 +1775,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         app.addItem(NSMenuItem(title: "Quit nimo",
                                action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         appHolder.submenu = app
+
+        // Everything nimo does, by number.
+        let goHolder = NSMenuItem()
+        bar.addItem(goHolder)
+        let go = NSMenu(title: "Go")
+        for (i, item) in Action.all.enumerated() where i < 9 {
+            let entry = NSMenuItem(title: item.title,
+                                   action: #selector(Main.goByNumber(_:)),
+                                   keyEquivalent: String(i + 1))
+            entry.target = main
+            entry.tag = i
+            go.addItem(entry)
+        }
+        goHolder.submenu = go
 
         let editHolder = NSMenuItem()
         bar.addItem(editHolder)

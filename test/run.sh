@@ -1043,6 +1043,12 @@ UNSET=$(awk '
     { for (n in wanted) if ($0 ~ ("^ *" n " = ")) delete wanted[n] }
     END { for (n in wanted) print n }' "$APP/Sources/main.swift")
 check "nothing declared with ! is left unassigned" "[ -z '$UNSET' ]"
+check "nimo draws its own buttons, centred"  \
+    "grep -q 'final class Chip' '$APP/Sources/main.swift' && ! grep -q 'bezelStyle = .rounded' '$APP/Sources/main.swift'"
+check "and every page is on the keyboard"   \
+    "grep -q 'func goByNumber' '$APP/Sources/main.swift' && grep -q 'keyEquivalent: \\\",\\\"' '$APP/Sources/main.swift'"
+check "the menu is built after the window it points at" \
+    "grep -A2 'func applicationDidFinishLaunching' '$APP/Sources/main.swift' | grep -q 'main = Main()'"
 check "there is no terminal left in the window" \
     "! grep -q 'NSTextView' '$APP/Sources/main.swift'"
 check "what nimo said is laid out as text"  "grep -q 'final class Said' '$APP/Sources/main.swift'"
