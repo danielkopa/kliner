@@ -1101,7 +1101,14 @@ check "settings are the same file nimo reads" \
 # window, which is what left a hole above every one of them.
 check "the page starts at the top of the window" \
     "grep -q 'final class TopClip' '$APP/Sources/main.swift' && grep -q 'scroll.contentView = TopClip' '$APP/Sources/main.swift'"
-check "nimo's own face waits, not a spinner"  \
+check "waiting is the face, with nothing written on it" \
+    "grep -q 'final class Thinking' '$APP/Sources/main.swift' && ! grep -q 'one moment' '$APP/Sources/main.swift'"
+check "and something turns while it waits"  "grep -q 'CAShapeLayer' '$APP/Sources/main.swift'"
+check "both eyes shut when it blinks"       \
+    "python3 '$ROOT/tools/blinkcheck.py' '$APP/Resources/wordmark-blink@3x.png'"
+check "and the open frame is not two lids"  \
+    "! python3 '$ROOT/tools/blinkcheck.py' '$APP/Resources/wordmark@3x.png'"
+check "the face waits, not a spinner"        \
     "grep -q 'final class Thinking' '$APP/Sources/main.swift' && ! grep -q 'NSProgressIndicator' '$APP/Sources/main.swift'"
 check "the eyes in the wordmark blink"      \
     "grep -q 'final class Wordmark' '$APP/Sources/main.swift' && [ -f '$APP/Resources/wordmark-blink.png' ]"

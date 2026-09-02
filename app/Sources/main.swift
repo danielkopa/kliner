@@ -1572,12 +1572,14 @@ final class Main: NSObject, NSWindowDelegate {
             view.removeFromSuperview()
         }
 
+        words("nimo", size: 12.5, weight: .regular, colour: Paint.faint, top: 2, bottom: 8)
+
         let login = NSSwitch()
         login.state = Login.on ? .on : .off
         login.isEnabled = Login.possible
         login.target = self
         login.action = #selector(loginChanged(_:))
-        line(Setting("Open nimo when I sign in", control: login))
+        line(Setting("Open when I sign in", control: login))
 
         let days = NSPopUpButton()
         days.addItems(withTitles: ["7 days", "30 days", "90 days"])
@@ -1587,37 +1589,31 @@ final class Main: NSObject, NSWindowDelegate {
         days.action = #selector(daysChanged(_:))
         line(Setting("Old means older than", control: days))
 
-        line(Setting("nimo in a terminal",
-                     control: quiet("Open…") { [weak self] in self?.openTerminal() }))
+        line(Setting("In a terminal",
+                     control: quiet("Open") { [weak self] in self?.openTerminal() }))
 
         // ---- what macOS will let it touch --------------------------------
-        // The row says what is true; the button does the only thing there is
-        // to do about it. Neither needs a sentence under it.
-        divider()
+        // Each row says what is true; the button does the only thing there is
+        // to do about it.
+        words("Access", size: 12.5, weight: .regular, colour: Paint.faint,
+              top: 30, bottom: 8)
 
-        let shut = [("Desktop", Access.may(Access.desktop)),
-                    ("Downloads", Access.may(Access.downloads))].filter { !$0.1 }
-        let files = shut.isEmpty
-            ? "nimo can read your folders"
-            : "nimo has not been let into " + shut.map { $0.0 }.joined(separator: " or ")
-        line(Setting(files,
-                     control: quiet(shut.isEmpty ? "Check again" : "Ask for everything") {
+        let openFolders = Access.may(Access.desktop) && Access.may(Access.downloads)
+        line(Setting(openFolders ? "Your folders" : "Your folders, not yet",
+                     control: quiet(openFolders ? "Check again" : "Ask") {
                          [weak self] in self?.askForEverything()
                      }))
 
-        line(Setting(Access.everything
-                        ? "Full Disk Access is on"
-                        : "Full Disk Access is off",
-                     control: quiet(Access.everything ? "Settings" : "Turn on…") {
+        line(Setting(Access.everything ? "Full Disk Access" : "Full Disk Access, off",
+                     control: quiet(Access.everything ? "Settings" : "Turn on") {
                          Access.settings("Privacy_AllFiles")
                      }))
 
         line(Setting("Changing your wallpaper",
                      control: quiet("Settings") { Access.settings("Privacy_Automation") }))
 
-        divider()
         words("nimo \(Nimo.version) · MIT · github.com/danielkopa/nimo",
-              size: 12.5, weight: .regular, colour: Paint.faint, top: 2, bottom: 4)
+              size: 12.5, weight: .regular, colour: Paint.faint, top: 32, bottom: 4)
 
         settle()
     }
@@ -1934,8 +1930,8 @@ final class TopClip: NSClipView {
 /// that blinks says somebody is looking at the thing you asked about.
 final class Thinking: NSView {
     private let face = NSImageView()
-    private let word = NSTextField(labelWithString: "one moment")
     private var pending: Timer?
+    private let ring = CAShapeLayer()
 
     init() {
         super.init(frame: .zero)
@@ -1946,29 +1942,51 @@ final class Thinking: NSView {
         face.translatesAutoresizingMaskIntoConstraints = false
         addSubview(face)
 
-        word.font = NSFont.systemFont(ofSize: 13, weight: .regular)
-        word.textColor = Paint.faint
-        word.alignment = .center
-        word.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(word)
-
         NSLayoutConstraint.activate([
             heightAnchor.constraint(greaterThanOrEqualToConstant: 300),
             face.centerXAnchor.constraint(equalTo: centerXAnchor),
-            face.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -18),
+            face.centerYAnchor.constraint(equalTo: centerYAnchor),
             face.widthAnchor.constraint(equalToConstant: 84),
             face.heightAnchor.constraint(equalToConstant: 84),
-            word.centerXAnchor.constraint(equalTo: centerXAnchor),
-            word.topAnchor.constraint(equalTo: face.bottomAnchor, constant: 18),
         ])
 
         breathe()
         blinkLater()
+        wantsLayer = true
+        layer?.addSublayer(ring)
     }
 
     required init?(coder: NSCoder) { fatalError("nimo has no nib") }
 
     deinit { pending?.invalidate() }
+
+    /// A thin arc turning slowly around the face. It says "still going"
+    /// without a word, and it is the only moving thing on the page.
+    override func layout() {
+        super.layout()
+        let middle = NSPoint(x: bounds.midX, y: bounds.midY)
+        let r: CGFloat = 62
+        let path = CGMutablePath()
+        path.addArc(center: CGPoint(x: middle.x, y: middle.y), radius: r,
+                    startAngle: 0, endAngle: .pi * 0.55, clockwise: false)
+        ring.path = path
+        ring.frame = bounds
+        ring.fillColor = nil
+        ring.lineWidth = 2
+        ring.lineCap = .round
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            self.ring.strokeColor = Paint.line.cgColor
+        }
+        if ring.animation(forKey: "turning") == nil {
+            let turn = CABasicAnimation(keyPath: "transform.rotation.z")
+            turn.fromValue = 0
+            turn.toValue = Double.pi * 2
+            turn.duration = 2.6
+            turn.repeatCount = .infinity
+            ring.anchorPoint = NSPoint(x: 0.5, y: 0.5)
+            ring.add(turn, forKey: "turning")
+        }
+    }
 
     /// Slower than a spinner on purpose: nimo is thinking, not straining.
     private func breathe() {
