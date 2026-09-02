@@ -1123,7 +1123,7 @@ check "which is a real comparison, not a coincidence" \
 check "the face is drawn in the page's own ink" \
     "grep -q 'picture?.isTemplate = true' '$APP/Sources/main.swift'"
 check "a blink is a movement, not a flicker" \
-    "[ -f '$APP/Resources/wordmark-half@3x.png' ] && [ -f '$APP/Resources/mascot-half@3x.png' ] && grep -q 'Three frames, not two' '$APP/Sources/main.swift'"
+    "[ -f '$APP/Resources/wordmark-half@3x.png' ] && [ -f '$APP/Resources/mascot-half@3x.png' ] && grep -q 'Three frames to shut an eye, not two' '$APP/Sources/main.swift'"
 check "the halfway eye is between open and shut" \
     "python3 '$ROOT/tools/blinkcheck.py' --shut '$APP/Resources/mascot-half@3x.png' '$APP/Resources/mascot@3x.png' >/dev/null; [ \$? = 1 ] && python3 '$ROOT/tools/blinkcheck.py' --shut '$APP/Resources/mascot-blink@3x.png' '$APP/Resources/mascot-half@3x.png'"
 check "the ring goes round the face, not round a circle" \
@@ -1250,7 +1250,11 @@ check "a page fills itself in without changing anything" \
     "grep -q 'run(item, preview: true)' '$APP/Sources/main.swift' && grep -q 'item.looksOnly' '$APP/Sources/main.swift'"
 check "arriving on Wallpaper does not change it" \
     "grep -q 'looksOnly: false' '$APP/Sources/main.swift'"
-check "the eye looks about when it opens"   "grep -q 'func glance' '$APP/Sources/main.swift'"
+check "the eye looks about when it opens"   "grep -q '\"-left\" : \"-right\"' '$APP/Sources/main.swift'"
+# Shut, round, a pair of dashes, shut again, and back to the quotes. A face
+# with one expression is a picture; a face with three is somebody.
+check "and it has more than one face to wear" \
+    "grep -q '(\"-round\", 0.42)' '$APP/Sources/main.swift' && [ -f '$APP/Resources/mascot-round@3x.png' ] && [ -f '$APP/Resources/wordmark-dash@3x.png' ]"
 check "the first time, it introduces itself" \
     "grep -q 'func drawWelcome' '$APP/Sources/main.swift' && grep -q 'welcomed' '$APP/Sources/main.swift'"
 check "the welcome is four pages, not one"  \
@@ -1333,7 +1337,13 @@ check "and pressing one starts it"           \
 check "a page can be asked again"            \
     "grep -q 'func refresh' '$APP/Sources/main.swift' && grep -q 'keyEquivalent: \"r\"' '$APP/Sources/main.swift'"
 check "and the introduction shown again"     \
-    "grep -q 'func replaySetup' '$APP/Sources/main.swift' && grep -q 'keyEquivalent: \"R\"' '$APP/Sources/main.swift'"
+    "grep -q 'func replaySetup' '$APP/Sources/main.swift' && grep -A1 'Show the introduction' '$APP/Sources/main.swift' | grep -q 'keyEquivalent: \"f\"'"
+# Two arcs crossing on a shape is something turning over; one arc going round
+# is a spinner wearing a costume.
+check "the waiting has two arcs, not one"    \
+    "grep -q 'private let trail = CAShapeLayer()' '$APP/Sources/main.swift' && grep -q 'send(trail, length: 0.34' '$APP/Sources/main.swift'"
+check "and the face waiting wears the same faces" \
+    "grep -q '(\"mascot-round\", 0.40)' '$APP/Sources/main.swift'"
 # The outline is drawn at the size the face is drawn, so a face that scales is
 # a face that leaves its own outline behind.
 check "the waiting face does not shrink out of its outline" \
@@ -1385,7 +1395,7 @@ check "and none of them names its own corner" \
     "! grep -qE 'layer\\?.cornerRadius = 1[02]$' '$APP/Sources/main.swift'"
 # The eyes move, not the mark. A layer slid sideways is the whole word walking.
 check "only the eyes look sideways"          \
-    "! grep -q 'transform.translation.x' '$APP/Sources/main.swift' && grep -q 'wordmark-right' '$APP/Sources/main.swift'"
+    "! grep -q 'transform.translation.x' '$APP/Sources/main.swift' && grep -q '\"-right\"' '$APP/Sources/main.swift'"
 check "and the frames are drawn from the art" \
     "python3 '$ROOT/tools/glance.py' '$APP/Resources' >/dev/null"
 # Proved by the pixels: the looking frames differ from the one they came from

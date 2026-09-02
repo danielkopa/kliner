@@ -96,7 +96,33 @@ def eyes(image, holes):
     return keep
 
 
-def look(image, holes, shift):
+def shape(out, colour, kind, box, scale):
+    """Draw one eye, in place of the one that was lifted out."""
+    px = out.load()
+    w, h = out.size
+    x0, x1, y0, y1 = box
+    mx, my = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+
+    if kind == "round":
+        # As wide as the eye was, and round, so the face reads as surprised
+        # rather than as a different face.
+        r = (x1 - x0 + 1) / 2.0
+        for y in range(int(my - r) - 1, int(my + r) + 2):
+            for x in range(int(mx - r) - 1, int(mx + r) + 2):
+                if 0 <= x < w and 0 <= y < h:
+                    if (x - mx) ** 2 + (y - my) ** 2 <= r * r:
+                        px[x, y] = colour
+        return
+
+    # A dash: as wide as the eye was, a third as tall, on its middle line.
+    tall = max(2 * scale, (y1 - y0 + 1) // 3)
+    for y in range(int(my - tall / 2), int(my + tall / 2) + 1):
+        for x in range(x0, x1 + 1):
+            if 0 <= x < w and 0 <= y < h:
+                px[x, y] = colour
+
+
+def look(image, holes, shift, kind=None):
     """The same picture with its eyes moved sideways."""
     out = image.copy()
     px = out.load()
@@ -122,11 +148,31 @@ def look(image, holes, shift):
     else:
         filler = (0, 0, 0, 0)
 
+    # What an eye is drawn in: the colour it already was, or, for a hole cut
+    # out of a blob, nothing at all.
+    ink = (0, 0, 0, 0)
+    if not holes:
+        best = 0
+        for run in found:
+            for x, y in run:
+                if was[x, y][3] > best:
+                    best = was[x, y][3]
+                    ink = was[x, y]
+
     moved = []
+    boxes = []
     for run in found:
+        xs = [p[0] for p in run]
+        ys = [p[1] for p in run]
+        boxes.append((min(xs), max(xs), min(ys), max(ys)))
         for x, y in run:
             moved.append(((x, y), was[x, y]))
             px[x, y] = filler
+
+    if kind is not None:
+        for box in boxes:
+            shape(out, ink, kind, box, max(1, image.size[0] // 78))
+        return out
 
     w, h = out.size
     for (x, y), colour in moved:
@@ -185,8 +231,8 @@ def check(where):
     """The frames must differ from the one they came from in one small place,
     up near the top. Anything wider than that is the whole mark moving, which
     is the thing this replaced."""
-    for name, sides in (("wordmark", ("right",)),
-                        ("mascot", ("left", "right"))):
+    for name, sides in (("wordmark", ("right", "round", "dash")),
+                        ("mascot", ("left", "right", "round", "dash"))):
         base = Image.open("%s/%s@3x.png" % (where, name)).convert("RGBA")
         w, h = base.size
         for side in sides:
@@ -234,6 +280,16 @@ def main():
                     print("could not find the eyes in", path)
                     return 1
                 shifted.save("%s/%s-%s%s.png" % (where, name, side, tag))
+                made += 1
+
+            # Two more eyes to wear: round, and a pair of dashes. A face with
+            # one expression is a picture; a face with three is somebody.
+            for kind in ("round", "dash"):
+                drawn = look(image, holes, 0, kind=kind)
+                if drawn is None:
+                    print("could not find the eyes in", path)
+                    return 1
+                drawn.save("%s/%s-%s%s.png" % (where, name, kind, tag))
                 made += 1
     print("%d frames" % made)
     return 0

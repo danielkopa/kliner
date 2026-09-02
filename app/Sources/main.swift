@@ -711,59 +711,53 @@ final class Ghost: NSView {
 /// blinks is alive, and a thing that blinks twice a minute is not a
 /// distraction.
 final class Wordmark: NSImageView {
-    /// Three frames, not two. An eye that goes open, half, shut, half, open
-    /// reads as an eye closing; two frames read as a flicker.
-    private let open  = NSImage(named: "wordmark")
-    private let half  = NSImage(named: "wordmark-half")
-    private let shut  = NSImage(named: "wordmark-blink")
-    private let small     = NSImage(named: "mascot")
-    private let smallHalf = NSImage(named: "mascot-half")
-    private let smallShut = NSImage(named: "mascot-blink")
-
-    /// The eyes moved, and nothing else. Drawn frames, because the art is a
-    /// flat picture: sliding the layer sideways slid the whole word with it,
-    /// and a word that shuffles about is not a glance.
+    /// Every face Kliner has, by the name of its file. `""` is the one it
+    /// wears; the rest are the ones it puts on for a moment and takes off.
     ///
-    /// The quotes sit at the end of the word with a letter right behind them,
-    /// so the wordmark can only look outward. The face has room either side.
-    private let peek      = NSImage(named: "wordmark-right")
-    private let smallLeft  = NSImage(named: "mascot-left")
-    private let smallRight = NSImage(named: "mascot-right")
+    /// Three frames to shut an eye, not two: open, half, shut reads as an eye
+    /// closing, where two frames read as a flicker.
+    private static let faces = ["", "-half", "-blink", "-left", "-right",
+                                "-round", "-dash"]
 
     private var pending: Timer?
     private var folded = false
-    private var stage = 0            // 0 open, 1 halfway, 2 shut
+    private var worn = ""
 
     init() {
         super.init(frame: .zero)
         // Every one of them is a template: macOS draws the shape in the colour
         // of the text beside it, so the face is never a black blob.
-        for picture in [open, half, shut, small, smallHalf, smallShut,
-                        peek, smallLeft, smallRight] {
-            picture?.isTemplate = true
+        for base in ["wordmark", "mascot"] {
+            for face in Wordmark.faces {
+                NSImage(named: base + face)?.isTemplate = true
+            }
         }
         imageScaling = .scaleProportionallyUpOrDown
         imageAlignment = .alignLeft
         translatesAutoresizingMaskIntoConstraints = false
-        wake()
+        wear("")
         later()
     }
 
-    required init?(coder: NSCoder) { fatalError("nimo has no nib") }
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
 
     deinit { pending?.invalidate() }
 
     /// Folded down to a rail there is no room for a word, so the face goes
-    /// there instead — and it blinks the same way.
+    /// there instead, and it wears the same faces.
     func fold(_ yes: Bool) {
         folded = yes
         imageAlignment = yes ? .alignCenter : .alignLeft
-        wake()
+        wear(worn)
     }
 
-    private func wake() {
-        let frames = folded ? [small, smallHalf, smallShut] : [open, half, shut]
-        image = frames[min(stage, 2)]
+    private func wear(_ face: String) {
+        // The word's quotes have a letter right behind them, so it cannot look
+        // to the left. The face has room either side.
+        var want = face
+        if !folded, face == "-left" { want = "-right" }
+        worn = want
+        image = NSImage(named: (folded ? "mascot" : "wordmark") + want)
     }
 
     override func updateTrackingAreas() {
@@ -785,46 +779,28 @@ final class Wordmark: NSImageView {
         }
     }
 
-    /// Down in two steps, held, and up in two. Sixty milliseconds a step is
-    /// the shortest that still reads as a movement rather than a glitch.
+    /// The whole turn: eyes shut, eyes round, eyes a pair of dashes, eyes shut
+    /// again, and back to the quotes it started with. Sixty milliseconds a
+    /// step for the shutting, and a beat on each face it puts on, which is the
+    /// difference between a thing with a face and a thing with a picture of
+    /// one.
     private func blink() {
-        guard window != nil, stage == 0 else { later(); return }
-        run([(1, 0.06), (2, 0.06), (2, 0.07), (1, 0.06), (0, 0)]) { [weak self] in
-            guard let self = self else { return }
-            self.glance()
-            if Bool.random() && Bool.random() {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.14) {
-                    self.run([(1, 0.05), (2, 0.06), (1, 0.05), (0, 0)]) { self.later() }
-                }
-            } else {
-                self.later()
-            }
+        guard window != nil, worn == "" else { later(); return }
+        wear(Bool.random() ? "-left" : "-right")
+        walk([("-half", 0.06), ("-blink", 0.06), ("-blink", 0.07),
+              ("-round", 0.42),
+              ("-dash", 0.38),
+              ("-blink", 0.07), ("-half", 0.06), ("", 0)]) { [weak self] in
+            self?.later()
         }
     }
 
-    /// A blink that ends with a small look sideways. Two points is nothing on
-    /// its own and everything at this size: it turns a shutter into a glance.
-    ///
-    /// It is a frame, not a transform. Moving the layer moved the whole mark,
-    /// which is the face walking rather than the eyes going.
-    private func glance() {
-        guard stage == 0, window != nil else { return }
-        let aside = folded ? (Bool.random() ? smallLeft : smallRight) : peek
-        guard let looking = aside else { return }
-        image = looking
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) { [weak self] in
-            guard let self = self, self.stage == 0 else { return }
-            self.wake()
-        }
-    }
-
-    private func run(_ steps: [(Int, Double)], then: @escaping () -> Void) {
-        guard let (next, wait) = steps.first else { then(); return }
-        stage = next
-        wake()
+    private func walk(_ steps: [(String, Double)], then: @escaping () -> Void) {
+        guard let (face, wait) = steps.first else { then(); return }
+        wear(face)
         if steps.count == 1 { then(); return }
         DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
-            self?.run(Array(steps.dropFirst()), then: then)
+            self?.walk(Array(steps.dropFirst()), then: then)
         }
     }
 }
@@ -2471,7 +2447,7 @@ final class Main: NSObject, NSWindowDelegate {
                      control: quiet("Open") { [weak self] in self?.openTerminal() }))
 
         line(Setting("The introduction",
-                     control: quiet("Show it again  ⇧⌘R") { [weak self] in
+                     control: quiet("Show it again  ⌘F") { [weak self] in
                          self?.replaySetup()
                      }))
 
@@ -4157,6 +4133,10 @@ final class Thinking: NSView {
     /// travel along. One short arc on its own reads as a scratch on the page.
     private let track = CAShapeLayer()
     private let ring = CAShapeLayer()
+    /// A longer, fainter piece going round the other way. Two arcs crossing
+    /// on a shape is something turning over; one arc going round is a spinner
+    /// wearing a costume.
+    private let trail = CAShapeLayer()
     private var pending: Timer?
 
     /// How wide the face is drawn. The ring is worked out from this and the
@@ -4185,6 +4165,7 @@ final class Thinking: NSView {
         ])
 
         layer?.addSublayer(track)
+        layer?.addSublayer(trail)
         layer?.addSublayer(ring)
         breathe()
         blinkLater()
@@ -4214,7 +4195,7 @@ final class Thinking: NSView {
         // same place. Not a ring round it, the edge of it.
         let shape = Thinking.path(around: middle, size: Thinking.across)
 
-        for layer in [track, ring] {
+        for layer in [track, trail, ring] {
             layer.frame = bounds
             layer.path = shape
             layer.fillColor = nil
@@ -4224,7 +4205,8 @@ final class Thinking: NSView {
         }
         effectiveAppearance.performAsCurrentDrawingAppearance {
             self.track.strokeColor = Paint.line.cgColor
-            self.ring.strokeColor = Paint.muted.cgColor
+            self.trail.strokeColor = Paint.faint.cgColor
+            self.ring.strokeColor = Paint.ink.cgColor
         }
         travel()
     }
@@ -4234,23 +4216,34 @@ final class Thinking: NSView {
     /// not to read as a border.
     private func travel() {
         guard ring.animation(forKey: "travelling") == nil else { return }
-        ring.strokeStart = 0
-        ring.strokeEnd = 0.16
+
+        // The bright piece, going round. Sixteen per cent is long enough to
+        // read as movement and short enough not to read as a border.
+        send(ring, length: 0.16, seconds: 2.2, backwards: false)
+        // And a longer, fainter one going the other way, half as fast, so the
+        // two pass each other somewhere new every time.
+        send(trail, length: 0.34, seconds: 3.7, backwards: true)
+    }
+
+    private func send(_ layer: CAShapeLayer, length: CGFloat,
+                      seconds: Double, backwards: Bool) {
+        layer.strokeStart = 0
+        layer.strokeEnd = length
 
         let head = CABasicAnimation(keyPath: "strokeEnd")
-        head.fromValue = 0.16
-        head.toValue = 1.16
+        head.fromValue = backwards ? 1 : length
+        head.toValue = backwards ? -length : 1 + length
 
         let tail = CABasicAnimation(keyPath: "strokeStart")
-        tail.fromValue = 0.0
-        tail.toValue = 1.0
+        tail.fromValue = backwards ? 1 - length : 0
+        tail.toValue = backwards ? -2 * length : 1
 
         let both = CAAnimationGroup()
         both.animations = [head, tail]
-        both.duration = 2.2
+        both.duration = seconds
         both.repeatCount = .infinity
         both.timingFunction = CAMediaTimingFunction(name: .linear)
-        ring.add(both, forKey: "travelling")
+        layer.add(both, forKey: "travelling")
     }
 
     /// Slower than a spinner on purpose: Kliner is thinking, not straining.
@@ -4283,13 +4276,20 @@ final class Thinking: NSView {
         }
     }
 
+    /// A face waiting does what the mark does when you look at it: shuts,
+    /// goes round, goes to a pair of dashes, shuts again, and comes back. It
+    /// is the difference between a thing that is working and a picture of a
+    /// thing that is working.
     private func blinkLater() {
         pending?.invalidate()
-        pending = Timer.scheduledTimer(withTimeInterval: Double.random(in: 1...2.4),
+        pending = Timer.scheduledTimer(withTimeInterval: Double.random(in: 0.9...2.0),
                                        repeats: false) { [weak self] _ in
             guard let self = self, self.window != nil else { return }
             self.close([("mascot-half", 0.06), ("mascot-blink", 0.07),
-                        ("mascot-half", 0.06), ("mascot", 0)]) {
+                        ("mascot-round", 0.40),
+                        ("mascot-dash", 0.34),
+                        ("mascot-blink", 0.07), ("mascot-half", 0.06),
+                        ("mascot", 0)]) {
                 self.blinkLater()
             }
         }
@@ -4535,8 +4535,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // The introduction, whenever you want to look at it.
         let intro = NSMenuItem(title: "Show the introduction",
-                               action: #selector(Main.replaySetup), keyEquivalent: "R")
-        intro.keyEquivalentModifierMask = [.command, .shift]
+                               action: #selector(Main.replaySetup), keyEquivalent: "f")
         intro.target = main
         look.addItem(intro)
         look.addItem(.separator())
