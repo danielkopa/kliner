@@ -1130,6 +1130,9 @@ final class Main: NSObject, NSWindowDelegate {
     private var footStack: NSStackView!
     private var railLine: NSBox!
     private var primary: Chip!
+    private var helper: Helper!
+    /// What Kliner was asked to do, in order, one at a time.
+    private var queue: [Int] = []
     private var mascot: Floating?
 
     /// Which setup has been read. Bumped whenever the setup changes, so a
@@ -1390,6 +1393,14 @@ final class Main: NSObject, NSWindowDelegate {
         content.addSubview(buttons)
 
 
+        // Kliner, in the corner of the page, waiting to be given something to
+        // do. Over the work rather than in it, so it is there whatever page
+        // you are on and however far down it you have scrolled.
+        let sitting = Helper()
+        sitting.onClick = { [weak self] in self?.offerJobs() }
+        helper = sitting
+        content.addSubview(sitting)
+
         scroll.onBack = { [weak self] in self?.swipedBack() }
         scroll.onForward = { [weak self] in self?.swipedOn() }
         scroll.contentView = TopClip()
@@ -1464,6 +1475,11 @@ final class Main: NSObject, NSWindowDelegate {
             titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: buttons.leadingAnchor,
                                                  constant: -Step.air),
             titleLabel.centerYAnchor.constraint(equalTo: chrome.centerYAnchor),
+
+            sitting.trailingAnchor.constraint(equalTo: content.trailingAnchor,
+                                              constant: -Step.wide),
+            sitting.bottomAnchor.constraint(equalTo: content.bottomAnchor,
+                                            constant: -Step.wide),
 
             scroll.leadingAnchor.constraint(equalTo: edge.trailingAnchor),
             scroll.trailingAnchor.constraint(equalTo: content.trailingAnchor),
@@ -1657,9 +1673,45 @@ final class Main: NSObject, NSWindowDelegate {
             line(Nudge())
         }
 
-        settle()
-        slide(step >= last ? 1 : -1)
+        teach(step >= last ? 1 : -1)
         last = step
+    }
+
+    /// How a page of the setup arrives.
+    ///
+    /// The rest of the app settles down the page, a row at a time, which is
+    /// right for a page of results. A page that is explaining something wants
+    /// the other axis: the face first, then the headline, then each line under
+    /// it coming in from the side it was going, further apart than the app's
+    /// own rhythm, so it reads as somebody laying things out one at a time
+    /// rather than a page appearing.
+    private func teach(_ way: CGFloat) {
+        report.layoutSubtreeIfNeeded()
+        let start = CACurrentMediaTime() + 0.04
+
+        for (i, view) in report.arrangedSubviews.enumerated() {
+            view.wantsLayer = true
+
+            let across = CABasicAnimation(keyPath: "transform.translation.x")
+            across.fromValue = 26 * way
+            across.toValue = 0
+
+            let rise = CABasicAnimation(keyPath: "transform.translation.y")
+            rise.fromValue = i == 0 ? -12 : 0
+            rise.toValue = 0
+
+            let fade = CABasicAnimation(keyPath: "opacity")
+            fade.fromValue = 0
+            fade.toValue = 1
+
+            let all = CAAnimationGroup()
+            all.animations = [across, rise, fade]
+            all.duration = 0.46
+            all.beginTime = start + Double(min(i, 8)) * 0.075
+            all.fillMode = .backwards
+            all.timingFunction = CAMediaTimingFunction(controlPoints: 0.16, 1, 0.3, 1)
+            view.layer?.add(all, forKey: "arriving")
+        }
     }
 
     /// The setup, and nothing else. A window that shows you its list, its
@@ -1667,7 +1719,7 @@ final class Main: NSObject, NSWindowDelegate {
     /// asking you to read two things at once.
     private func bare(_ yes: Bool) {
         for view: NSView? in [sideStack, footStack, railLine, chrome,
-                              buttons, search, titleLabel] {
+                              buttons, search, titleLabel, helper] {
             view?.isHidden = yes
         }
         // And one colour, not two. With the list hidden but the rail still
@@ -1675,26 +1727,6 @@ final class Main: NSObject, NSWindowDelegate {
         // different dark, which is the first thing you saw.
         railWidth.constant = yes ? 0 : (narrow ? 70 : 246)
         window.contentView?.layoutSubtreeIfNeeded()
-    }
-
-    /// The page arriving from the side it came from. Going on moves it in from
-    /// the right, going back from the left, which is the only thing that makes
-    /// a set of pages feel like a set rather than a stack of replacements.
-    private func slide(_ way: CGFloat) {
-        report.wantsLayer = true
-        let across = CABasicAnimation(keyPath: "transform.translation.x")
-        across.fromValue = 34 * way
-        across.toValue = 0
-
-        let fade = CABasicAnimation(keyPath: "opacity")
-        fade.fromValue = 0
-        fade.toValue = 1
-
-        let both = CAAnimationGroup()
-        both.animations = [across, fade]
-        both.duration = 0.34
-        both.timingFunction = CAMediaTimingFunction(controlPoints: 0.16, 1, 0.3, 1)
-        report.layer?.add(both, forKey: "arriving")
     }
 
     /// The way out of the setup: the face, big, over the whole window, growing
@@ -2128,6 +2160,15 @@ final class Main: NSObject, NSWindowDelegate {
         titleLabel.layer?.add(show, forKey: "arriving")
     }
 
+    /// He was doing the waiting in the middle of the page; now the page has
+    /// come back, so he goes and sits down in the corner.
+    private func settleHelper() {
+        guard !welcoming, let over = window.contentView else { return }
+        let middle = scroll.convert(CGPoint(x: scroll.bounds.midX,
+                                            y: scroll.bounds.midY), to: over)
+        helper.land(from: middle)
+    }
+
     /// Air between the cards. A stack view's own spacing would put the same
     /// gap inside them.
     private func gap(_ height: CGFloat) {
@@ -2532,6 +2573,97 @@ final class Main: NSObject, NSWindowDelegate {
         }
         return lines
     }
+
+    // MARK: giving Kliner something to do
+
+    /// Everything Kliner can be told to do, in one list, with what there is of
+    /// it beside each. Picking one starts it; picking the first starts all of
+    /// them, in order, after one question covering the lot.
+    private func offerJobs() {
+        var lines: [Sheet.Line] = [.over("Give Kliner something to do")]
+        let worth = worthDoing()
+
+        if worth.count > 1 {
+            let names = worth.map { Action.all[$0].title.lowercased() }
+            lines.append(Sheet.Line("Do all of it",
+                                    note: names.joined(separator: ", ")) { [weak self] in
+                self?.doThemAll(worth)
+            })
+        }
+
+        for which in Main.doable {
+            let item = Action.all[which]
+            lines.append(Sheet.Line(item.verb, note: waiting(which)) { [weak self] in
+                self?.startOn(which)
+            })
+        }
+        Sheet.open(lines, under: helper, wide: 320)
+    }
+
+    /// The ones Home found something to do about, in the order they are worth
+    /// doing: clear the desk, sort what landed on it, then free the caches.
+    private func worthDoing() -> [Int] {
+        var figures: [String: String] = [:]
+        for piece in kept[0] ?? [] {
+            if case .row(let label, let value, _, _, _) = piece { figures[label] = value }
+        }
+        func some(_ key: String) -> Bool {
+            guard let said = figures[key] else { return false }
+            return !said.hasPrefix("0")
+        }
+        var out: [Int] = []
+        if some("Desktop")   { out.append(1) }
+        if some("Downloads") { out.append(2) }
+        if some("Junk")      { out.append(6) }
+        return out
+    }
+
+    /// What there is of a job, from the last reading Home took.
+    private func waiting(_ which: Int) -> String? {
+        var figures: [String: String] = [:]
+        for piece in kept[0] ?? [] {
+            if case .row(let label, let value, _, _, _) = piece { figures[label] = value }
+        }
+        switch which {
+        case 1: return figures["Desktop"]
+        case 2: return figures["Downloads"]
+        case 6: return figures["Junk"]
+        default: return nil
+        }
+    }
+
+    /// One question for the lot, then each in turn. Kliner still writes down
+    /// every move, so the whole run is one thing to reverse.
+    private func doThemAll(_ jobs: [Int]) {
+        guard !busy, !jobs.isEmpty else { return }
+        let said = jobs.map { "· " + Action.all[$0].verb }.joined(separator: "\n")
+
+        let alert = NSAlert()
+        alert.messageText = "Do all of it?"
+        alert.informativeText = """
+        \(said)
+
+        Nothing is deleted that Kliner cannot put back, and Put it all back reverses the whole run.
+        """
+        alert.addButton(withTitle: "Do it")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        queue = jobs
+        nextInQueue()
+    }
+
+    private func nextInQueue() {
+        guard !queue.isEmpty else { return }
+        let which = queue.removeFirst()
+        show(which)
+        let item = Action.all[which]
+        kept[which] = nil
+        run(item, preview: false)
+    }
+
+    /// The pages that do something, in the order they read down the list.
+    static let doable = [1, 2, 3, 6, 8]
 
     /// The keys, where somebody looking for them would look.
     private func keys() -> [Sheet.Line] {
@@ -3094,6 +3226,13 @@ final class Main: NSObject, NSWindowDelegate {
                 }
                 self.busy = false
                 self.fitButtons()
+                self.settleHelper()
+                // A queue keeps going by itself, one page at a time.
+                if !self.queue.isEmpty {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        self.nextInQueue()
+                    }
+                }
             }
         }
     }
@@ -4120,6 +4259,159 @@ final class Nudge: NSView {
         fade.duration = 2.1
         fade.repeatCount = .infinity
         arrow.layer?.add(fade, forKey: "showing")
+    }
+}
+
+/// Kliner, sitting in the corner of the page, waiting to be given something
+/// to do.
+///
+/// It is where he lands when a job finishes: he does the waiting in the
+/// middle of the page and then goes and sits down there, so the thing that
+/// was working and the thing you hand work to are plainly the same thing.
+final class Helper: NSView {
+    var onClick: (() -> Void)?
+
+    private let face = NSImageView()
+    private let disc = NSView()
+    private var pending: Timer?
+    private var hovering = false
+
+    init() {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+
+        disc.wantsLayer = true
+        disc.layer?.cornerRadius = 22
+        disc.layer?.borderWidth = 1
+        disc.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(disc)
+
+        let picture = NSImage(named: "mascot")
+        picture?.isTemplate = true
+        face.image = picture
+        face.imageScaling = .scaleProportionallyUpOrDown
+        face.translatesAutoresizingMaskIntoConstraints = false
+        disc.addSubview(face)
+
+        NSLayoutConstraint.activate([
+            widthAnchor.constraint(equalToConstant: 44),
+            heightAnchor.constraint(equalToConstant: 44),
+            disc.leadingAnchor.constraint(equalTo: leadingAnchor),
+            disc.trailingAnchor.constraint(equalTo: trailingAnchor),
+            disc.topAnchor.constraint(equalTo: topAnchor),
+            disc.bottomAnchor.constraint(equalTo: bottomAnchor),
+            face.centerXAnchor.constraint(equalTo: disc.centerXAnchor),
+            face.centerYAnchor.constraint(equalTo: disc.centerYAnchor),
+            face.widthAnchor.constraint(equalToConstant: 24),
+            face.heightAnchor.constraint(equalToConstant: 24),
+        ])
+
+        toolTip = "Give Kliner something to do"
+        paint()
+        breathe()
+        blinkLater()
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+
+    deinit { pending?.invalidate() }
+
+    /// He comes across from wherever the waiting was and sits down. The
+    /// distance is worked out when it runs, so it is right whatever size the
+    /// window is.
+    func land(from middle: CGPoint) {
+        let mine = CGPoint(x: frame.midX, y: frame.midY)
+        let across = CAKeyframeAnimation(keyPath: "transform")
+        let start = CATransform3DMakeTranslation(middle.x - mine.x, middle.y - mine.y, 0)
+        let over = CATransform3DConcat(CATransform3DMakeScale(2.6, 2.6, 1), start)
+        across.values = [
+            NSValue(caTransform3D: over),
+            NSValue(caTransform3D: CATransform3DMakeScale(1.15, 1.15, 1)),
+            NSValue(caTransform3D: CATransform3DIdentity),
+        ]
+        across.keyTimes = [0, 0.78, 1]
+        across.duration = 0.66
+        across.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 0.9, 0.3, 1)
+        layer?.add(across, forKey: "landing")
+
+        let show = CABasicAnimation(keyPath: "opacity")
+        show.fromValue = 0.35
+        show.toValue = 1
+        show.duration = 0.4
+        layer?.add(show, forKey: "arriving")
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        for area in trackingAreas { removeTrackingArea(area) }
+        addTrackingArea(NSTrackingArea(rect: .zero,
+                                       options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+                                       owner: self, userInfo: nil))
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        bounds.contains(convert(point, from: superview)) ? self : nil
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        hovering = true
+        paint()
+        wear(["mascot-half", "mascot-blink", "mascot-half", "mascot-round"], 0)
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        hovering = false
+        paint()
+        wear(["mascot"], 0)
+    }
+
+    override func mouseDown(with event: NSEvent) { onClick?() }
+    override func resetCursorRects()             { addCursorRect(bounds, cursor: .pointingHand) }
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        paint()
+    }
+
+    private func paint() {
+        face.contentTintColor = hovering ? Paint.ink : Paint.muted
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            self.disc.layer?.borderColor = Paint.line.cgColor
+            ease(self.disc.layer,
+                 to: self.hovering ? Paint.picked : Paint.hover.withAlphaComponent(0.5))
+        }
+    }
+
+    /// Barely: enough that the corner is alive, not enough to be movement in
+    /// the corner of your eye while you are reading.
+    private func breathe() {
+        let up = CABasicAnimation(keyPath: "transform.translation.y")
+        up.fromValue = -1.5
+        up.toValue = 1.5
+        up.duration = 2.8
+        up.autoreverses = true
+        up.repeatCount = .infinity
+        up.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        disc.layer?.add(up, forKey: "breathing")
+    }
+
+    private func blinkLater() {
+        pending?.invalidate()
+        pending = Timer.scheduledTimer(withTimeInterval: Double.random(in: 5...11),
+                                       repeats: false) { [weak self] _ in
+            guard let self = self, self.window != nil, !self.hovering else { return }
+            self.wear(["mascot-half", "mascot-blink", "mascot-half", "mascot"], 0)
+        }
+    }
+
+    private func wear(_ faces: [String], _ i: Int) {
+        guard i < faces.count else { blinkLater(); return }
+        let picture = NSImage(named: faces[i])
+        picture?.isTemplate = true
+        face.image = picture
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) { [weak self] in
+            self?.wear(faces, i + 1)
+        }
     }
 }
 

@@ -1281,8 +1281,12 @@ check "the eye looks about when it opens"   "grep -q '\"-left\" : \"-right\"' '$
 # from the side it came from, and the last button asks to be pressed.
 check "the setup shows nothing but itself"   \
     "grep -q 'func bare(' '$APP/Sources/main.swift' && grep -q 'bare(true)' '$APP/Sources/main.swift' && grep -q 'bare(false)' '$APP/Sources/main.swift'"
-check "and its pages arrive from the side"   \
-    "grep -q 'func slide(' '$APP/Sources/main.swift' && grep -q 'slide(step >= last ? 1 : -1)' '$APP/Sources/main.swift'"
+# A page of results settles down the page, a row at a time. A page explaining
+# something wants the other axis: the face, then the headline, then each line
+# coming in from the side it was going, further apart, so it reads as somebody
+# laying things out rather than a page appearing.
+check "and its pages are laid out, not just shown" \
+    "grep -q 'func teach(' '$APP/Sources/main.swift' && grep -q 'teach(step >= last ? 1 : -1)' '$APP/Sources/main.swift'"
 # The face is what asks, not the button. On the pages before it, the thing to
 # learn is that two fingers turn the page, so the page says so, once.
 check "and the face asks for the last press" \
@@ -1328,7 +1332,7 @@ check "the face drifts while it says hello" "grep -q 'final class Floating' '$AP
 check "the face is on every page of the setup" \
     "grep -q 'let face = mascot ?? Floating()' '$APP/Sources/main.swift' && grep -q 'face.nod()' '$APP/Sources/main.swift'"
 check "and nothing is drawn behind it"       \
-    "! grep -q 'private let disc = NSView()' '$APP/Sources/main.swift'"
+    "! sed -n '/^final class Floating/,/^}/p' '$APP/Sources/main.swift' | grep -q 'private let disc'"
 check "it moves on two clocks that never line up" \
     "grep -q 'forKey: \"drifting\"' '$APP/Sources/main.swift' && grep -q 'forKey: \"tilting\"' '$APP/Sources/main.swift' && grep -q 'forKey: \"swelling\"' '$APP/Sources/main.swift'"
 # A Mac says "the one before" with two fingers. The setup is four pages and
@@ -1433,7 +1437,18 @@ check "but not while something is being typed into" \
 # The outline is drawn at the size the face is drawn, so a face that scales is
 # a face that leaves its own outline behind.
 check "the waiting face does not shrink out of its outline" \
-    "! grep -q 'forKey: \"breathing\"' '$APP/Sources/main.swift'"
+    "! sed -n '/^final class Thinking/,/^}/p' '$APP/Sources/main.swift' | grep -q 'transform.scale'"
+# He does the waiting in the middle of the page and then goes and sits in the
+# corner, so the thing that was working and the thing you hand work to are
+# plainly the same thing.
+check "Kliner sits in the corner of the page" \
+    "grep -q 'final class Helper' '$APP/Sources/main.swift' && grep -q 'func settleHelper' '$APP/Sources/main.swift' && grep -q 'helper.land(from: middle)' '$APP/Sources/main.swift'"
+check "and you can give him something to do"  \
+    "grep -q 'func offerJobs' '$APP/Sources/main.swift' && grep -q 'Give Kliner something to do' '$APP/Sources/main.swift'"
+check "all of it at once asks once, for the lot" \
+    "grep -q 'func doThemAll' '$APP/Sources/main.swift' && grep -q 'messageText = \"Do all of it?\"' '$APP/Sources/main.swift'"
+check "and works through them one page at a time" \
+    "grep -q 'func nextInQueue' '$APP/Sources/main.swift' && grep -q 'if !self.queue.isEmpty {' '$APP/Sources/main.swift'"
 check "a click cannot be eaten by the picture inside a button" \
     "[ \$(grep -c 'override func hitTest' '$APP/Sources/main.swift') -ge 6 ]"
 check "there is a way to search from the keyboard" \
