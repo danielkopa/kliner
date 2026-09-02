@@ -97,15 +97,61 @@ cp -R completions "$inside/completions"
 chmod 755 "$inside/min"
 
 # --- sign it ------------------------------------------------------------
-# Ad-hoc, with no certificate. On Apple silicon an unsigned binary will not
-# start at all, so this is not decoration. It does not get past Gatekeeper —
-# nothing but a paid Developer ID does — which is why the download page
-# explains right-click, Open.
-echo "==> signing (ad-hoc)"
-codesign --force --deep --sign - --timestamp=none "$app" >/dev/null 2>&1 || {
-    echo "build.sh: could not sign the app" >&2
-    exit 1
-}
+# Why this is not just `codesign -s -`:
+#
+# macOS remembers what you have allowed an app to touch by its signature. An
+# ad-hoc signature is the file's own hash, so it changes every time a byte of
+# the app changes — and every rebuild arrives as a stranger that has to ask
+# for your Desktop and your Downloads all over again.
+#
+# A signing identity of its own fixes that. It is self-signed and nobody else
+# trusts it, which is fine: Gatekeeper is not what is being solved here.
+# macOS only needs the identity to be *the same one* each time, and then it
+# stops asking twice for the same thing.
+identity="Kliner Local"
+
+if ! security find-identity -v -p codesigning 2>/dev/null | grep -q "$identity"; then
+    echo "==> making a signing identity (once, self-signed, no administrator)"
+    work=$(mktemp -d)
+    cat > "$work/openssl.cnf" <<CONF
+[ req ]
+distinguished_name = name
+x509_extensions    = codesign
+prompt             = no
+[ name ]
+CN = $identity
+[ codesign ]
+basicConstraints       = critical,CA:false
+keyUsage               = critical,digitalSignature
+extendedKeyUsage       = critical,codeSigning
+CONF
+    if openssl req -x509 -newkey rsa:2048 -nodes -days 3650 \
+        -config "$work/openssl.cnf" \
+        -keyout "$work/key.pem" -out "$work/cert.pem" >/dev/null 2>&1 &&
+       openssl pkcs12 -export -inkey "$work/key.pem" -in "$work/cert.pem" \
+        -name "$identity" -passout pass: -out "$work/id.p12" >/dev/null 2>&1 &&
+       security import "$work/id.p12" -k ~/Library/Keychains/login.keychain-db \
+        -P "" -T /usr/bin/codesign >/dev/null 2>&1
+    then
+        # let codesign use the key without asking every single time
+        security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "" ~/Library/Keychains/login.keychain-db >/dev/null 2>&1 || true
+        echo "    made \"$identity\""
+    else
+        echo "    could not make one; falling back to an ad-hoc signature"
+        identity="-"
+    fi
+    rm -rf "$work"
+fi
+
+echo "==> signing"
+if ! codesign --force --deep --sign "$identity" --timestamp=none "$app" >/dev/null 2>&1; then
+    echo "    that identity did not work; falling back to an ad-hoc signature" >&2
+    codesign --force --deep --sign - --timestamp=none "$app" >/dev/null 2>&1 || {
+        echo "build.sh: could not sign the app" >&2
+        exit 1
+    }
+fi
 codesign --verify --deep --strict "$app" || {
     echo "build.sh: the signature did not verify" >&2
     exit 1

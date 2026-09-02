@@ -1203,6 +1203,13 @@ check "the app reads the pipe before it waits" \
 check "the build copies min itself"       "grep -q 'cp min VERSION' '$APP/build.sh'"
 check "the build copies the libraries"    "grep -q 'cp -R lib' '$APP/build.sh'"
 check "the build signs the app"           "grep -q 'codesign --force' '$APP/build.sh'"
+# An ad-hoc signature changes with every byte of the app, and macOS forgets
+# what you allowed the moment it does. A signing identity of its own is what
+# stops the endless asking.
+check "and signs it as the same app each time" \
+    "grep -q 'Kliner Local' '$APP/build.sh' && grep -q 'find-identity' '$APP/build.sh'"
+check "with a way back if that fails"     \
+    "grep -q 'falling back to an ad-hoc signature' '$APP/build.sh'"
 check "the build makes both architectures" "grep -q 'for arch in arm64 x86_64' '$APP/build.sh'"
 check "the build never ships the tests"   "! grep -q 'cp -R test' '$APP/build.sh'"
 check "there is one command that installs it" "[ -x '$APP/install-app.sh' ]"
