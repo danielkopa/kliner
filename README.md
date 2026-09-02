@@ -56,7 +56,7 @@ turns it off for good.
 
 ### As an app, from the menu bar
 
-[**Download Nimo.app**](https://github.com/danielkopa/nimo/releases/latest/download/Nimo.app.zip)
+[**Download Kliner.app**](https://github.com/danielkopa/nimo/releases/latest/download/Kliner.app.zip)
 — unzip it, drag it into Applications, then **right-click it and choose Open**
 the first time. macOS says it cannot check the app because nimo is not signed
 with Apple's $99-a-year certificate; that is a statement about a receipt, not

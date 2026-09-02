@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-#   app/install-app.sh — build Nimo.app on this Mac and put it in place.
+#   app/install-app.sh — build Kliner.app on this Mac and put it in place.
 #
 #   One command, from anywhere:
 #
@@ -24,7 +24,7 @@ say()  { printf '  %s\n' "$1"; }
 good() { printf '  %s✓%s %s\n' "$cyan" "$off" "$1"; }
 bad()  { printf '  %s✗%s %s\n' "$red" "$off" "$1" >&2; }
 
-printf '\n  %s◍ nimo%s  %sbuilding the app%s\n\n' "$cyan" "$off" "$dim" "$off"
+printf '\n  %skliner%s  %sbuilding the app%s\n\n' "$cyan" "$off" "$dim" "$off"
 
 if [ "$(uname -s)" != "Darwin" ]; then
     bad "This builds a Mac app, and this is not a Mac."
@@ -68,7 +68,7 @@ if ! bash "$root/app/build.sh"; then
     exit 1
 fi
 
-app="$root/app/build/Nimo.app"
+app="$root/app/build/Kliner.app"
 [ -d "$app" ] || { bad "The build said it worked, but there is no app."; exit 1; }
 
 # --- where it goes ------------------------------------------------------
@@ -82,32 +82,32 @@ if [ ! -w "$dest" ]; then
 fi
 
 # A running copy holds its own bundle open, so it goes first.
-if pgrep -x Nimo >/dev/null 2>&1; then
-    osascript -e 'tell application "Nimo" to quit' >/dev/null 2>&1 || killall Nimo 2>/dev/null || true
+if pgrep -x Kliner >/dev/null 2>&1; then
+    osascript -e 'tell application "Kliner" to quit' >/dev/null 2>&1 || killall Kliner 2>/dev/null || true
     sleep 1
 fi
 
-if [ -d "$dest/Nimo.app" ]; then
-    rm -rf "$dest/Nimo.app.old"
-    mv "$dest/Nimo.app" "$dest/Nimo.app.old"
+if [ -d "$dest/Kliner.app" ]; then
+    rm -rf "$dest/Kliner.app.old"
+    mv "$dest/Kliner.app" "$dest/Kliner.app.old"
 fi
 
-ditto "$app" "$dest/Nimo.app"
-rm -rf "$dest/Nimo.app.old"
+ditto "$app" "$dest/Kliner.app"
+rm -rf "$dest/Kliner.app.old"
 
 # Built here, not downloaded — but a stray quarantine flag from anywhere in
 # the tree would still make macOS ask. Take it off and there is nothing to ask.
-xattr -dr com.apple.quarantine "$dest/Nimo.app" 2>/dev/null || true
+xattr -dr com.apple.quarantine "$dest/Kliner.app" 2>/dev/null || true
 
-open "$dest/Nimo.app"
+open "$dest/Kliner.app"
 
 printf '\n'
-good "Nimo is in $(printf '%s' "$dest" | sed "s|$HOME|~|")"
+good "Kliner is in $(printf '%s' "$dest" | sed "s|$HOME|~|")"
 good "It is running — look at the top right of your screen, beside the clock."
 printf '\n'
 say "${dim}Click the face. Everything asks before it changes anything,${off}"
 say "${dim}and \"Put it all back\" reverses the lot.${off}"
 printf '\n'
 say "${dim}To have it there every morning: the menu has \"Open nimo at login\".${off}"
-say "${dim}To remove it: drag Nimo out of Applications. That is all it is.${off}"
+say "${dim}To remove it: drag Kliner out of Applications. That is all it is.${off}"
 printf '\n'

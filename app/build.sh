@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
-#   app/build.sh — turn this repository into Nimo.app
+#   app/build.sh — turn this repository into Kliner.app
 #
 #   No Xcode project: swiftc from the command line tools, a plist, an icon,
 #   and the whole of nimo copied inside. The app is one file people can
 #   download, drag into Applications, and delete again by dragging out.
 #
 #   Run it on a Mac:  bash app/build.sh
-#   Out comes:        app/build/Nimo.app  and  app/build/Nimo.app.zip
+#   Out comes:        app/build/Kliner.app  and  app/build/Kliner.app.zip
 #
 set -eu
 
@@ -29,7 +29,7 @@ done
 
 version=$(tr -d ' \n' < VERSION)
 build="$root/app/build"
-app="$build/Nimo.app"
+app="$build/Kliner.app"
 
 echo "==> nimo $version"
 
@@ -66,10 +66,10 @@ slices=""
 for arch in arm64 x86_64; do
     if swiftc -O -whole-module-optimization \
         -target "${arch}-apple-macos12.0" \
-        -o "$build/Nimo-$arch" \
+        -o "$build/Kliner-$arch" \
         app/Sources/main.swift 2>"$build/$arch.log"
     then
-        slices="$slices $build/Nimo-$arch"
+        slices="$slices $build/Kliner-$arch"
         echo "    $arch"
     else
         echo "    $arch failed:" >&2
@@ -81,9 +81,9 @@ for arch in arm64 x86_64; do
 done
 
 # shellcheck disable=SC2086
-lipo -create $slices -output "$app/Contents/MacOS/Nimo"
-rm -f "$build"/Nimo-arm64 "$build"/Nimo-x86_64
-chmod 755 "$app/Contents/MacOS/Nimo"
+lipo -create $slices -output "$app/Contents/MacOS/Kliner"
+rm -f "$build"/Kliner-arm64 "$build"/Kliner-x86_64
+chmod 755 "$app/Contents/MacOS/Kliner"
 
 # --- nimo itself --------------------------------------------------------
 # The app carries the program it is a window on. Not the tests, not the
@@ -115,9 +115,9 @@ codesign --verify --deep --strict "$app" || {
 # ditto, not zip: it is the one that keeps the bundle's symlinks and flags
 # intact, and a zip that loses those is an app that will not open.
 echo "==> zipping"
-( cd "$build" && ditto -c -k --sequesterRsrc --keepParent Nimo.app Nimo.app.zip )
+( cd "$build" && ditto -c -k --sequesterRsrc --keepParent Kliner.app Kliner.app.zip )
 
-size=$(du -h "$build/Nimo.app.zip" | cut -f1)
+size=$(du -h "$build/Kliner.app.zip" | cut -f1)
 echo
-echo "    $build/Nimo.app.zip  ($size)"
+echo "    $build/Kliner.app.zip  ($size)"
 echo

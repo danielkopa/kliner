@@ -36,11 +36,11 @@ jobs:
 
       - name: and it must be a real app before it goes anywhere
         run: |
-          test -x app/build/Nimo.app/Contents/MacOS/Nimo
-          test -f app/build/Nimo.app/Contents/Resources/nimo/min
-          test -f app/build/Nimo.app/Contents/Resources/AppIcon.icns
-          codesign --verify --deep --strict app/build/Nimo.app
-          lipo -archs app/build/Nimo.app/Contents/MacOS/Nimo
+          test -x app/build/Kliner.app/Contents/MacOS/Kliner
+          test -f app/build/Kliner.app/Contents/Resources/nimo/min
+          test -f app/build/Kliner.app/Contents/Resources/AppIcon.icns
+          codesign --verify --deep --strict app/build/Kliner.app
+          lipo -archs app/build/Kliner.app/Contents/MacOS/Kliner
 
       - name: take the notes out of the changelog
         id: notes
@@ -57,7 +57,7 @@ jobs:
             echo ""
             echo "### The app"
             echo ""
-            echo "Download **Nimo.app.zip** below, unzip it, and drag Nimo into Applications."
+            echo "Download **Kliner.app.zip** below, unzip it, and drag Kliner into Applications."
             echo "The first time, right-click it and choose Open — it is not signed with a"
             echo "\$99-a-year Apple certificate, and macOS says so once."
             echo ""
@@ -74,6 +74,6 @@ jobs:
         with:
           name: nimo ${{ github.ref_name }}
           body: ${{ steps.notes.outputs.notes }}
-          files: app/build/Nimo.app.zip
+          files: app/build/Kliner.app.zip
           draft: false
           prerelease: false

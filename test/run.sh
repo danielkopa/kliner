@@ -1054,6 +1054,10 @@ MISSING=$(awk '
     END { for (n in want) if (!(n in have)) print n }' "$APP/Sources/main.swift")
 check "every method the file calls, the file defines" "[ -z '$MISSING' ]"
 check "no class overrides init(coder:) twice" "[ -z '$DOUBLE' ]"
+# Slicing a block out and writing a new one back can leave both. A name that
+# appears twice is a compile error, and the shape of that mistake.
+TWICE=$(grep -o '^final class [A-Za-z]*' "$APP/Sources/main.swift" | sort | uniq -d)
+check "no class is declared twice"          "[ -z '$TWICE' ]"
 # A property declared with ! and never assigned is nil the moment something
 # reads it — which, in a window, is at launch. That is the shape of the bug
 # that shipped an app which would not open, so the suite reads for it.
@@ -1108,6 +1112,22 @@ check "both eyes shut when it blinks"       \
     "python3 '$ROOT/tools/blinkcheck.py' '$APP/Resources/wordmark-blink@3x.png'"
 check "and the open frame is not two lids"  \
     "! python3 '$ROOT/tools/blinkcheck.py' '$APP/Resources/wordmark@3x.png'"
+check "the face has two eyes, not one"      \
+    "python3 '$ROOT/tools/blinkcheck.py' --holes '$APP/Resources/mascot-blink@3x.png'"
+check "and shuts them, rather than thickening them" \
+    "python3 '$ROOT/tools/blinkcheck.py' --shut '$APP/Resources/mascot-blink@3x.png' '$APP/Resources/mascot@3x.png'"
+check "which is a real comparison, not a coincidence" \
+    "! python3 '$ROOT/tools/blinkcheck.py' --shut '$APP/Resources/mascot@3x.png' '$APP/Resources/mascot-blink@3x.png'"
+check "the face is drawn in the page's own ink" \
+    "grep -q 'picture?.isTemplate = true' '$APP/Sources/main.swift'"
+check "a blink is a movement, not a flicker" \
+    "[ -f '$APP/Resources/wordmark-half@3x.png' ] && [ -f '$APP/Resources/mascot-half@3x.png' ] && grep -q 'Three frames, not two' '$APP/Sources/main.swift'"
+check "the halfway eye is between open and shut" \
+    "python3 '$ROOT/tools/blinkcheck.py' --shut '$APP/Resources/mascot-half@3x.png' '$APP/Resources/mascot@3x.png' >/dev/null; [ \$? = 1 ] && python3 '$ROOT/tools/blinkcheck.py' --shut '$APP/Resources/mascot-blink@3x.png' '$APP/Resources/mascot-half@3x.png'"
+check "the ring goes round the face, not round a circle" \
+    "grep -q 'static let outline' '$APP/Sources/main.swift' && grep -q 'travelling' '$APP/Sources/main.swift'"
+check "an answer only lands on the page that asked" \
+    "grep -q 'let asked = chosen' '$APP/Sources/main.swift' && grep -q 'guard self.chosen == asked' '$APP/Sources/main.swift'"
 check "the face waits, not a spinner"        \
     "grep -q 'final class Thinking' '$APP/Sources/main.swift' && ! grep -q 'NSProgressIndicator' '$APP/Sources/main.swift'"
 check "the eyes in the wordmark blink"      \
@@ -1145,7 +1165,11 @@ check "and a colour is eased, never snapped" \
     "grep -q 'func ease' '$APP/Sources/main.swift' && ! grep -q 'layer?.backgroundColor = background.cgColor' '$APP/Sources/main.swift'"
 check "its version is filled in at build" "grep -q '__VERSION__' '$APP/Info.plist'"
 check "build.sh fills it in"              "grep -q 's/__VERSION__/' '$APP/build.sh'"
-check "the plist names the executable"    "grep -q '<string>Nimo</string>' '$APP/Info.plist'"
+check "the plist names the executable"    "grep -q '<string>Kliner</string>' '$APP/Info.plist'"
+check "the app is called Kliner"          "grep -q 'app.kliner.mac' '$APP/Info.plist' && grep -q 'Kliner.app' '$APP/build.sh'"
+check "and called it nowhere else"        \
+    "! grep -q 'Nimo' '$APP/build.sh' && ! grep -q 'Nimo' '$APP/install-app.sh' && ! grep -q 'Nimo' '$APP/Info.plist'"
+check "and points at its own site"        "grep -q 'kliner.app' '$APP/Sources/main.swift'"
 
 # Every command the menu offers has to be a command min answers to. This is
 # the check that catches a renamed command months from now.
@@ -1190,15 +1214,34 @@ check "opening at login is asked for properly" \
     "grep -q 'SMAppService' '$APP/Sources/main.swift'"
 check "and only where macOS has a way to"  "grep -q '#available(macOS 13.0' '$APP/Sources/main.swift'"
 check "a page fills itself in without changing anything" \
-    "grep -q 'preview: item.asks != nil' '$APP/Sources/main.swift'"
+    "grep -q 'run(item, preview: true)' '$APP/Sources/main.swift' && grep -q 'item.looksOnly' '$APP/Sources/main.swift'"
+check "arriving on Wallpaper does not change it" \
+    "grep -q 'looksOnly: false' '$APP/Sources/main.swift'"
+check "the eye looks about when it opens"   "grep -q 'func glance' '$APP/Sources/main.swift'"
+check "the first time, it introduces itself" \
+    "grep -q 'func drawWelcome' '$APP/Sources/main.swift' && grep -q 'welcomed' '$APP/Sources/main.swift'"
+check "and only the first time"             "grep -q 'Config.set(\\\"welcomed\\\"' '$APP/Sources/main.swift'"
+check "the face drifts while it says hello" "grep -q 'final class Floating' '$APP/Sources/main.swift'"
+check "it can say when a job is done"       \
+    "grep -q 'enum Word' '$APP/Sources/main.swift' && grep -q 'UNUserNotificationCenter' '$APP/Sources/main.swift'"
+check "but only for runs that changed something" \
+    "grep -q 'arguments.contains(\\\"--yes\\\")' '$APP/Sources/main.swift'"
+check "wallpaper is a row of pictures"      "grep -q 'symbolic: true' '$APP/Sources/main.swift'"
 check "and a preview can never be given --yes" \
     "! grep -qE 'preview.*--yes|--yes.*preview' '$APP/Sources/main.swift'"
-ACTIONS=$(grep -c 'Action(title:' "$APP/Sources/main.swift")
-PICTURES=$(grep -c '^ *symbol: "[a-z]' "$APP/Sources/main.swift")
-check "every row down the side has a picture" "[ '$ACTIONS' = '$PICTURES' ] && [ '$ACTIONS' != '0' ]"
+# Every Action literal must carry a symbol, or a row down the side is blank.
+NAKED=$(awk '
+    /Action\(title:/ { inside = 1; got = 0; name = $0 }
+    inside && /symbol:/ { got = 1 }
+    inside && /\),?$/ && /symbol:|reveal:|walks:|looksOnly:|symbolic:|group:/ {
+        if (got) { inside = 0 } }
+    inside && /^ *Action\(title:/ && NR > 1 { }
+    inside && /^\s*$/ { if (!got) print name; inside = 0 }
+    END { }' "$APP/Sources/main.swift")
+check "every row down the side has a picture" "[ -z '$NAKED' ]"
 check "ci builds the app"                 "grep -q 'app/build.sh' '$ROOT/.github/workflows/ci.yml'"
-check "the release carries the app"       "grep -q 'Nimo.app.zip' '$ROOT/.github/workflows/release.yml'"
-check "the site points at the release"    "grep -q 'releases/latest/download/Nimo.app.zip' '$ROOT/docs/index.html'"
+check "the release carries the app"       "grep -q 'Kliner.app.zip' '$ROOT/.github/workflows/release.yml'"
+check "the site points at the release"    "grep -q 'releases/latest/download/Kliner.app.zip' '$ROOT/docs/index.html'"
 
 # ---- verdict ------------------------------------------------------------
 

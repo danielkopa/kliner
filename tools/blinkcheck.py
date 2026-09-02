@@ -60,8 +60,73 @@ def runs_of_ink(width, height, rows, fromFraction):
     return marks
 
 
+def holes(width, height, rows):
+    """Eyes cut out of a shape, read along the line they sit on.
+
+    A band will not do: no column of the face is clear all the way down. The
+    eyes are found on one row, between the shape's own two edges."""
+    best = []
+    for y in range(int(height * 0.28), int(height * 0.55)):
+        row = [rows[y][x * 4 + 3] > 120 for x in range(width)]
+        if True not in row:
+            continue
+        left, right = row.index(True), len(row) - 1 - row[::-1].index(True)
+        gaps, run = [], None
+        for x in range(left, right + 1):
+            if not row[x] and run is None:
+                run = x
+            if row[x] and run is not None:
+                gaps.append((run, x - 1)); run = None
+        if len(gaps) > len(best):
+            best = gaps
+    return best
+
+
+def eyeHeight(width, height, rows):
+    """How tall the two holes are, so an open eye can be told from a shut one."""
+    cut = holes(width, height, rows)
+    if len(cut) != 2:
+        return 0
+    tall = 0
+    for (x0, x1) in cut:
+        middle = (x0 + x1) // 2
+        clear = sum(1 for y in range(height) if rows[y][middle * 4 + 3] <= 120
+                    and any(rows[k][middle * 4 + 3] > 120 for k in range(y))
+                    and any(rows[k][middle * 4 + 3] > 120 for k in range(y + 1, height)))
+        tall = max(tall, clear)
+    return tall
+
+
 def main(path):
     width, height, rows = read(path)
+
+    if "--shut" in sys.argv:
+        other = [a for a in sys.argv[1:] if not a.startswith("-")][1]
+        ow, oh, orows = read(other)
+        shut = eyeHeight(width, height, rows)
+        open_ = eyeHeight(ow, oh, orows)
+        if shut == 0 or open_ == 0:
+            print("could not measure both frames")
+            return 1
+        if shut > open_ * 0.7:
+            print("the shut eye is %d tall against %d open: it is not a lid" % (shut, open_))
+            return 1
+        print("shut %d, open %d" % (shut, open_))
+        return 0
+
+    if "--holes" in sys.argv:
+        cut = holes(width, height, rows)
+        if len(cut) != 2:
+            print("%d hole(s) across the middle: expected two eyes" % len(cut))
+            return 1
+        a = cut[0][1] - cut[0][0] + 1
+        b = cut[1][1] - cut[1][0] + 1
+        if abs(a - b) > max(2, (a + b) // 6):
+            print("the two eyes are %d and %d wide: they do not match" % (a, b))
+            return 1
+        print("two eyes, %d and %d wide" % (a, b))
+        return 0
+
     marks = runs_of_ink(width, height, rows, 0.75)
     if len(marks) < 2:
         print("only %d mark(s) in the quote: an eye is missing" % len(marks))
@@ -79,5 +144,6 @@ def main(path):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1] if len(sys.argv) > 1
+    files = [a for a in sys.argv[1:] if not a.startswith("-")]
+    sys.exit(main(files[0] if files
                   else "app/Resources/wordmark-blink@3x.png"))

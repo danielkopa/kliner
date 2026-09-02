@@ -16,6 +16,7 @@ import AppKit
 import Foundation
 import QuartzCore
 import ServiceManagement
+import UserNotifications
 
 // MARK: - nimo's colours
 
@@ -68,7 +69,7 @@ enum Nimo {
             return Outcome(ok: false, text: """
               nimo could not find its own copy of min.
 
-              The app was unpacked incompletely. Move the whole Nimo app —
+              The app was unpacked incompletely. Move the whole Kliner app —
               not a piece of it — into Applications.
             """)
         }
@@ -118,6 +119,14 @@ struct Extra {
     let title: String
     let arguments: [String]
     let asks: String?
+    /// When a page's actions are all one gesture — forward, back, undo — a row
+    /// of words is heavier than a row of pictures.
+    let symbol: String?
+
+    init(title: String, arguments: [String], asks: String?, symbol: String? = nil) {
+        self.title = title; self.arguments = arguments
+        self.asks = asks; self.symbol = symbol
+    }
 }
 
 struct Action {
@@ -131,14 +140,21 @@ struct Action {
     let extras: [Extra]      // the smaller buttons next to the big one
     let reveal: String?      // a folder this page is about, to open in Finder
     let walks: Bool          // rows on this page can be stepped into
+    /// Whether opening the page may run it. Asking nothing is not the same as
+    /// changing nothing: Next changes your wallpaper the moment it runs, so
+    /// arriving on that page must not run it.
+    let looksOnly: Bool
+    /// Draw this page's buttons as one group of pictures.
+    let symbolic: Bool
 
     init(title: String, blurb: String, verb: String, arguments: [String],
          asks: String?, group: String, symbol: String,
-         extras: [Extra] = [], reveal: String? = nil, walks: Bool = false) {
+         extras: [Extra] = [], reveal: String? = nil, walks: Bool = false,
+         looksOnly: Bool = true, symbolic: Bool = false) {
         self.title = title; self.blurb = blurb; self.verb = verb
         self.arguments = arguments; self.asks = asks; self.group = group
         self.symbol = symbol; self.extras = extras; self.reveal = reveal
-        self.walks = walks
+        self.walks = walks; self.looksOnly = looksOnly; self.symbolic = symbolic
     }
 
     /// Not one of the things nimo does — the place where you say how it
@@ -193,8 +209,11 @@ struct Action {
                asks: nil,
                group: "Your screen",
                symbol: "photo",
-               extras: [Extra(title: "Previous", arguments: ["prev"], asks: nil),
-                        Extra(title: "The one I had", arguments: ["wallpaper", "--restore"], asks: nil)]),
+               extras: [Extra(title: "Previous", arguments: ["prev"], asks: nil,
+                              symbol: "chevron.left"),
+                        Extra(title: "The one I had", arguments: ["wallpaper", "--restore"],
+                              asks: nil, symbol: "arrow.uturn.backward")],
+               looksOnly: false, symbolic: true),
 
         Action(title: "Startup",
                blurb: "What launches itself when you sign in — and which of them nimo can turn off.",
@@ -351,6 +370,30 @@ final class Wrapping: NSTextField {
         if abs(preferredMaxLayoutWidth - bounds.width) > 0.5 {
             preferredMaxLayoutWidth = bounds.width
             super.layout()
+        }
+    }
+}
+
+// MARK: - a word when it is done
+
+/// A job takes a few seconds and you may have gone elsewhere. macOS will say
+/// so for us, once you have allowed it — and if you have not, nothing here
+/// complains about it.
+enum Word {
+    static func ask() {
+        UNUserNotificationCenter.current()
+            .requestAuthorization(options: [.alert, .sound]) { _, _ in }
+    }
+
+    static func say(_ headline: String, _ detail: String) {
+        let centre = UNUserNotificationCenter.current()
+        centre.getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized else { return }
+            let note = UNMutableNotificationContent()
+            note.title = headline
+            note.body = detail
+            centre.add(UNNotificationRequest(identifier: UUID().uuidString,
+                                             content: note, trigger: nil))
         }
     }
 }
@@ -574,17 +617,26 @@ final class Ghost: NSView {
 /// blinks is alive, and a thing that blinks twice a minute is not a
 /// distraction.
 final class Wordmark: NSImageView {
+    /// Three frames, not two. An eye that goes open, half, shut, half, open
+    /// reads as an eye closing; two frames read as a flicker.
     private let open  = NSImage(named: "wordmark")
+    private let half  = NSImage(named: "wordmark-half")
     private let shut  = NSImage(named: "wordmark-blink")
-    private let small = NSImage(named: "mascot")
+    private let small     = NSImage(named: "mascot")
+    private let smallHalf = NSImage(named: "mascot-half")
     private let smallShut = NSImage(named: "mascot-blink")
+
     private var pending: Timer?
     private var folded = false
-    private var closed = false
+    private var stage = 0            // 0 open, 1 halfway, 2 shut
 
     init() {
         super.init(frame: .zero)
-        for picture in [open, shut] { picture?.isTemplate = true }
+        // Every one of them is a template: macOS draws the shape in the colour
+        // of the text beside it, so the face is never a black blob.
+        for picture in [open, half, shut, small, smallHalf, smallShut] {
+            picture?.isTemplate = true
+        }
         imageScaling = .scaleProportionallyUpOrDown
         imageAlignment = .alignLeft
         translatesAutoresizingMaskIntoConstraints = false
@@ -605,8 +657,8 @@ final class Wordmark: NSImageView {
     }
 
     private func wake() {
-        if folded { image = closed ? smallShut : small }
-        else      { image = closed ? shut : open }
+        let frames = folded ? [small, smallHalf, smallShut] : [open, half, shut]
+        image = frames[min(stage, 2)]
     }
 
     override func updateTrackingAreas() {
@@ -628,14 +680,16 @@ final class Wordmark: NSImageView {
         }
     }
 
+    /// Down in two steps, held, and up in two. Sixty milliseconds a step is
+    /// the shortest that still reads as a movement rather than a glitch.
     private func blink() {
-        guard window != nil, !closed else { later(); return }
-        shutEyes(for: 0.12) { [weak self] in
-            // now and then, twice — the way a real blink sometimes doubles
+        guard window != nil, stage == 0 else { later(); return }
+        run([(1, 0.06), (2, 0.06), (2, 0.07), (1, 0.06), (0, 0)]) { [weak self] in
             guard let self = self else { return }
+            self.glance()
             if Bool.random() && Bool.random() {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-                    self.shutEyes(for: 0.1) { self.later() }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.14) {
+                    self.run([(1, 0.05), (2, 0.06), (1, 0.05), (0, 0)]) { self.later() }
                 }
             } else {
                 self.later()
@@ -643,13 +697,25 @@ final class Wordmark: NSImageView {
         }
     }
 
-    private func shutEyes(for seconds: Double, then: @escaping () -> Void) {
-        closed = true
+    /// A blink that ends with a small look sideways. Two points is nothing on
+    /// its own and everything at this size: it turns a shutter into a glance.
+    private func glance() {
+        wantsLayer = true
+        let look = CAKeyframeAnimation(keyPath: "transform.translation.x")
+        look.values = [0, Bool.random() ? 2.0 : -2.0, 0]
+        look.keyTimes = [0, 0.45, 1]
+        look.duration = 0.5
+        look.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        layer?.add(look, forKey: "glance")
+    }
+
+    private func run(_ steps: [(Int, Double)], then: @escaping () -> Void) {
+        guard let (next, wait) = steps.first else { then(); return }
+        stage = next
         wake()
-        DispatchQueue.main.asyncAfter(deadline: .now() + seconds) { [weak self] in
-            self?.closed = false
-            self?.wake()
-            then()
+        if steps.count == 1 { then(); return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
+            self?.run(Array(steps.dropFirst()), then: then)
         }
     }
 }
@@ -673,6 +739,10 @@ final class Row: NSView {
     /// Narrowed to its picture, the row is still the row: same target, same
     /// fill, same place in the list. Only the word goes.
     func narrow(_ yes: Bool) {
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.14
+            self.name.animator().alphaValue = yes ? 0 : 1
+        }
         name.isHidden = yes
         atLeft.isActive = !yes
         inMiddle.isActive = yes
@@ -906,6 +976,7 @@ final class Main: NSObject, NSWindowDelegate {
     private var wordmark: Wordmark!
     private var groupLabels: [NSTextField] = []
     private var narrow = false
+    private var welcoming = false
     private var foldButton: Ghost!
     private var backButton: Ghost!
     private var onButton: Ghost!
@@ -927,7 +998,7 @@ final class Main: NSObject, NSWindowDelegate {
                           defer: false)
         super.init()
 
-        window.title = "nimo"
+        window.title = "Kliner"
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         // Glass: the window stops painting a background of its own, and the
@@ -940,7 +1011,14 @@ final class Main: NSObject, NSWindowDelegate {
         _ = window.setFrameAutosaveName("nimo.main")
 
         build()
-        show(0)
+        if Config.value("welcomed") == nil {
+            welcoming = true
+            drawWelcome()
+            titleLabel.stringValue = "Hello"
+            for row in rows { row.choose(false) }
+        } else {
+            show(0)
+        }
         window.center()
     }
 
@@ -1098,7 +1176,8 @@ final class Main: NSObject, NSWindowDelegate {
         railWidth = edge.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 246)
         // Past the three lights when the list is open; past the rail when it
         // is shut, so nothing ever sits on top of anything.
-        chromeLeading = chrome.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 78)
+        // The last light ends at x = 72; four points of air after it.
+        chromeLeading = chrome.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 76)
         stackWidth = stack.widthAnchor.constraint(equalToConstant: 214)
 
         NSLayoutConstraint.activate([
@@ -1120,6 +1199,9 @@ final class Main: NSObject, NSWindowDelegate {
             edge.widthAnchor.constraint(equalToConstant: 1),
 
             chromeLeading,
+            // The lights are 12pt across with their centres on y = 20 in a
+            // standard title bar; a 26pt button centred on the same line
+            // starts at 7.
             chrome.topAnchor.constraint(equalTo: content.topAnchor, constant: 7),
 
             titleLabel.leadingAnchor.constraint(equalTo: edge.trailingAnchor, constant: 46),
@@ -1172,6 +1254,51 @@ final class Main: NSObject, NSWindowDelegate {
     /// Home is doctor's own reading, laid out as four figures and a short
     /// list of what is worth doing about them. Nothing new is measured for
     /// it — it is the same numbers, arranged for a person arriving.
+    /// The first time, and only the first time. Three lines about what this
+    /// is, one button that asks macOS for what it needs, and the face drifting
+    /// about above them.
+    private func drawWelcome() {
+        for view in report.arrangedSubviews {
+            report.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
+        for view in buttons.arrangedSubviews {
+            buttons.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
+
+        line(Floating())
+
+        words("Kliner tidies the parts of a Mac that get away from you.",
+              size: 15, weight: .medium, colour: Paint.ink, top: 6, bottom: 10)
+        words("Everything it does, it writes down. Put it all back reverses any of it.",
+              size: 13.5, weight: .regular, colour: Paint.muted, top: 0, bottom: 4)
+        words("It never leaves your home folder, never asks for an administrator, and never uses the network.",
+              size: 13.5, weight: .regular, colour: Paint.muted, top: 0, bottom: 18)
+
+        let start = Chip(.strong)
+        start.set("Let macOS know")
+        start.onClick = { [weak self] in
+            guard let self = self else { return }
+            Word.ask()
+            self.askForEverything()
+            Config.set("welcomed", "yes")
+            self.welcoming = false
+            self.show(0)
+        }
+        let holder = NSView()
+        holder.translatesAutoresizingMaskIntoConstraints = false
+        holder.addSubview(start)
+        NSLayoutConstraint.activate([
+            start.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
+            start.topAnchor.constraint(equalTo: holder.topAnchor),
+            start.bottomAnchor.constraint(equalTo: holder.bottomAnchor, constant: -10),
+        ])
+        line(holder)
+
+        settle()
+    }
+
     private func drawHome(_ pieces: [Piece]) {
         var figures: [String: String] = [:]
         for piece in pieces {
@@ -1448,6 +1575,10 @@ final class Main: NSObject, NSWindowDelegate {
 
     private func show(_ index: Int, remember: Bool = true) {
         guard index >= 0, index <= Action.all.count else { return }
+        if welcoming {
+            welcoming = false
+            Config.set("welcomed", "yes")
+        }
         if remember, index != chosen {
             behind.append(chosen)
             ahead = []
@@ -1469,11 +1600,17 @@ final class Main: NSObject, NSWindowDelegate {
 
         if seen.contains(index) { return }
 
-        // Open a page and it fills in by itself. The ones that only look just
-        // look; the ones that would change something show you what they would
-        // change and touch nothing — nimo's own --dry-run, which is the same
-        // measurement the real run uses.
-        run(item, preview: item.asks != nil)
+        // Open a page and it fills in by itself — but only if arriving cannot
+        // change anything. The ones that ask show their --dry-run; the ones
+        // that act without asking, like Next, wait for you to press the button.
+        if item.asks != nil {
+            run(item, preview: true)
+        } else if item.looksOnly {
+            run(item)
+        } else {
+            seen.insert(index)
+            draw([.text("Ready when you are.")])
+        }
     }
 
     /// The big button, then whatever else this page can do. Rebuilt whenever
@@ -1487,6 +1624,52 @@ final class Main: NSObject, NSWindowDelegate {
         guard !isSettings else { return }
 
         let item = Action.all[chosen]
+
+        if item.symbolic {
+            // One group, three pictures, a hairline between them. Next is the
+            // lit one because it is the thing you came to press.
+            let group = NSStackView()
+            group.orientation = .horizontal
+            group.spacing = 0
+            group.wantsLayer = true
+            group.layer?.cornerRadius = 9
+            group.translatesAutoresizingMaskIntoConstraints = false
+            group.effectiveAppearance.performAsCurrentDrawingAppearance {
+                group.layer?.backgroundColor = Paint.picked.cgColor
+            }
+
+            let next = Ghost("chevron.right")
+            next.onClick = { [weak self] in self?.go() }
+            next.toolTip = item.verb
+            next.isEnabled = !busy
+            group.addArrangedSubview(next)
+
+            for (i, extra) in item.extras.enumerated() {
+                let hair = NSBox()
+                hair.boxType = .custom
+                hair.borderWidth = 0
+                hair.fillColor = Paint.line
+                hair.translatesAutoresizingMaskIntoConstraints = false
+                hair.widthAnchor.constraint(equalToConstant: 1).isActive = true
+                hair.heightAnchor.constraint(equalToConstant: 16).isActive = true
+                group.addArrangedSubview(hair)
+
+                let button = Ghost(extra.symbol ?? "circle")
+                button.toolTip = extra.title
+                button.isEnabled = !busy
+                button.onClick = { [weak self] in self?.runExtra(i) }
+                group.addArrangedSubview(button)
+            }
+
+            buttons.addArrangedSubview(group)
+            if item.reveal != nil {
+                buttons.addArrangedSubview(quiet("Show in Finder") {
+                    [weak self] in self?.revealFolder()
+                })
+            }
+            return
+        }
+
         runButton.set(item.verb, live: !busy)
         buttons.addArrangedSubview(runButton)
 
@@ -1572,7 +1755,7 @@ final class Main: NSObject, NSWindowDelegate {
             view.removeFromSuperview()
         }
 
-        words("nimo", size: 12.5, weight: .regular, colour: Paint.faint, top: 2, bottom: 8)
+        words("Kliner", size: 12.5, weight: .regular, colour: Paint.faint, top: 2, bottom: 8)
 
         let login = NSSwitch()
         login.state = Login.on ? .on : .off
@@ -1598,21 +1781,24 @@ final class Main: NSObject, NSWindowDelegate {
         words("Access", size: 12.5, weight: .regular, colour: Paint.faint,
               top: 30, bottom: 8)
 
+        // Full Disk Access first, because it is the one that ends the asking.
+        // Folder by folder, macOS prompts again for every folder nimo has not
+        // been in yet; with this on it never prompts at all.
+        line(Setting(Access.everything ? "Full Disk Access, on" : "Full Disk Access, off",
+                     control: quiet(Access.everything ? "Settings" : "Turn on") {
+                         [weak self] in self?.explainFullDisk()
+                     }))
+
         let openFolders = Access.may(Access.desktop) && Access.may(Access.downloads)
         line(Setting(openFolders ? "Your folders" : "Your folders, not yet",
                      control: quiet(openFolders ? "Check again" : "Ask") {
                          [weak self] in self?.askForEverything()
                      }))
 
-        line(Setting(Access.everything ? "Full Disk Access" : "Full Disk Access, off",
-                     control: quiet(Access.everything ? "Settings" : "Turn on") {
-                         Access.settings("Privacy_AllFiles")
-                     }))
-
         line(Setting("Changing your wallpaper",
                      control: quiet("Settings") { Access.settings("Privacy_Automation") }))
 
-        words("nimo \(Nimo.version) · MIT · github.com/danielkopa/nimo",
+        words("Kliner \(Nimo.version) · MIT · kliner.app",
               size: 12.5, weight: .regular, colour: Paint.faint, top: 32, bottom: 4)
 
         settle()
@@ -1641,6 +1827,28 @@ final class Main: NSObject, NSWindowDelegate {
 
     /// Reading a folder is what raises the prompt, so asking and checking are
     /// the same act. Then the page is drawn again from whatever you answered.
+    /// macOS will not let an app switch this on, and it will not let it point
+    /// at itself in the list either. What it can do is say which switch, and
+    /// open the page it is on.
+    private func explainFullDisk() {
+        if Access.everything {
+            Access.settings("Privacy_AllFiles")
+            return
+        }
+        let alert = NSAlert()
+        alert.messageText = "Turn on Full Disk Access for Kliner"
+        alert.informativeText = """
+        Settings will open on the right page. Switch Kliner on in the list, \
+        then come back — it will stop asking about folders one at a time.
+
+        Nothing else changes: Kliner still only reads inside your home folder.
+        """
+        alert.addButton(withTitle: "Open Settings")
+        alert.addButton(withTitle: "Not now")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        Access.settings("Privacy_AllFiles")
+    }
+
     private func askForEverything() {
         Access.may(Access.desktop)
         Access.may(Access.downloads)
@@ -1654,7 +1862,7 @@ final class Main: NSObject, NSWindowDelegate {
     @objc private func loginChanged(_ sender: NSSwitch) {
         if let trouble = Login.set(sender.state == .on) {
             let alert = NSAlert()
-            alert.messageText = "nimo could not change that"
+            alert.messageText = "Kliner could not change that"
             alert.informativeText = trouble
             alert.addButton(withTitle: "OK")
             alert.runModal()
@@ -1727,12 +1935,34 @@ final class Main: NSObject, NSWindowDelegate {
     }
 
     private func spin(_ arguments: [String]) {
+        // Which page asked. A run takes seconds, and in those seconds you can
+        // be somewhere else — Settings, most often, because it is the one you
+        // click while something is still going. Its answer belongs to the page
+        // that asked for it and nowhere else.
+        let asked = chosen
+
         DispatchQueue.global(qos: .userInitiated).async {
             let result = Nimo.run(arguments)
             DispatchQueue.main.async {
+                guard self.chosen == asked else {
+                    self.busy = false
+                    self.fitButtons()
+                    return
+                }
                 let pieces = Report.parse(result.text)
-                if pieces.isEmpty { self.say("nimo said nothing at all.") }
+                if pieces.isEmpty { self.say("Kliner said nothing at all.") }
                 else { self.draw(pieces) }
+
+                // Only for the ones that changed something, and only the line
+                // nimo already wrote — no second opinion invented here.
+                if !arguments.contains("--dry-run"), arguments.contains("--yes") {
+                    for piece in pieces {
+                        if case .good(let done) = piece {
+                            Word.say(Action.all[asked].title, done)
+                            break
+                        }
+                    }
+                }
                 self.busy = false
                 self.fitButtons()
             }
@@ -1745,13 +1975,17 @@ final class Main: NSObject, NSWindowDelegate {
     @objc func foldSide() {
         narrow.toggle()
 
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.14
+            for head in self.groupLabels { head.animator().alphaValue = self.narrow ? 0 : 1 }
+        }
         for row in rows { row.narrow(narrow) }
         for head in groupLabels { head.isHidden = narrow }
         wordmark.fold(narrow)
         markWidth.constant = narrow ? 38 : 190
         stackWidth.constant = narrow ? 38 : 214
         railWidth.constant = narrow ? 70 : 246
-        chromeLeading.constant = narrow ? 92 : 78
+        chromeLeading.constant = narrow ? 90 : 76
         foldButton.toolTip = narrow ? "Show the list  ⌘B" : "Hide the list  ⌘B"
 
         NSAnimationContext.runAnimationGroup { context in
@@ -1879,6 +2113,85 @@ final class Disk: NSView {
     required init?(coder: NSCoder) { fatalError("nimo has no nib") }
 }
 
+// MARK: - the face, drifting
+
+/// The face on the welcome page, floating the way something weightless does.
+/// It is the only thing on that page that moves, and it is what tells you the
+/// app has a character rather than a control panel.
+final class Floating: NSView {
+    private let face = NSImageView()
+
+    init() {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+
+        let awake = NSImage(named: "mascot")
+        awake?.isTemplate = true
+        face.image = awake
+        face.contentTintColor = Paint.ink
+        face.imageScaling = .scaleProportionallyUpOrDown
+        face.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(face)
+
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 132),
+            face.leadingAnchor.constraint(equalTo: leadingAnchor),
+            face.centerYAnchor.constraint(equalTo: centerYAnchor),
+            face.widthAnchor.constraint(equalToConstant: 76),
+            face.heightAnchor.constraint(equalToConstant: 76),
+        ])
+
+        drift()
+        blinkLater()
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+
+    private var pending: Timer?
+    deinit { pending?.invalidate() }
+
+    private func drift() {
+        face.wantsLayer = true
+
+        let up = CABasicAnimation(keyPath: "transform.translation.y")
+        up.fromValue = -5
+        up.toValue = 5
+        up.duration = 2.4
+        up.autoreverses = true
+        up.repeatCount = .infinity
+        up.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        face.layer?.add(up, forKey: "drifting")
+
+        let tilt = CABasicAnimation(keyPath: "transform.rotation.z")
+        tilt.fromValue = -0.045
+        tilt.toValue = 0.045
+        tilt.duration = 3.7
+        tilt.autoreverses = true
+        tilt.repeatCount = .infinity
+        tilt.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        face.layer?.add(tilt, forKey: "tilting")
+    }
+
+    private func blinkLater() {
+        pending?.invalidate()
+        pending = Timer.scheduledTimer(withTimeInterval: Double.random(in: 2...5),
+                                       repeats: false) { [weak self] _ in
+            guard let self = self, self.window != nil else { return }
+            self.step(["mascot-half", "mascot-blink", "mascot-half", "mascot"], 0)
+        }
+    }
+
+    private func step(_ names: [String], _ i: Int) {
+        guard i < names.count else { blinkLater(); return }
+        let picture = NSImage(named: names[i])
+        picture?.isTemplate = true
+        face.image = picture
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) { [weak self] in
+            self?.step(names, i + 1)
+        }
+    }
+}
+
 // MARK: - a number worth looking at
 
 /// One figure, large, with what it is underneath.
@@ -1929,63 +2242,104 @@ final class TopClip: NSClipView {
 /// nimo, breathing, while it works. A spinner says a machine is busy; a face
 /// that blinks says somebody is looking at the thing you asked about.
 final class Thinking: NSView {
+    /// nimo's own outline, measured off the artwork: the radius of the shape
+    /// at seventy-two angles, as a fraction of its widest. The ring that turns
+    /// while you wait traces this, so it goes round the face rather than round
+    /// a circle the face happens to sit in.
+    static let outline: [CGFloat] = [
+        0.9560, 0.9355, 0.9150, 0.8974, 0.8798, 0.8592, 0.8592, 0.8710, 0.9032,
+        0.9443, 0.9736, 0.9941, 1.0000, 0.9883, 0.9589, 0.9091, 0.8504, 0.7889,
+        0.7419, 0.7947, 0.8504, 0.9091, 0.9589, 0.9883, 1.0000, 0.9941, 0.9736,
+        0.9355, 0.9032, 0.8710, 0.8534, 0.8592, 0.8739, 0.8974, 0.9150, 0.9355,
+        0.9501, 0.9589, 0.9501, 0.9326, 0.9032, 0.8592, 0.8035, 0.7566, 0.7273,
+        0.7126, 0.7097, 0.7449, 0.7830, 0.8299, 0.8651, 0.8915, 0.9032, 0.9062,
+        0.9003, 0.9003, 0.8915, 0.8798, 0.8534, 0.8211, 0.7859, 0.7449, 0.7185,
+        0.7038, 0.7185, 0.7507, 0.7977, 0.8475, 0.8974, 0.9384, 0.9560, 0.9589,
+    ]
+
     private let face = NSImageView()
-    private var pending: Timer?
     private let ring = CAShapeLayer()
+    private var pending: Timer?
 
     init() {
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
 
-        face.image = NSImage(named: "mascot")
+        let awake = NSImage(named: "mascot")
+        awake?.isTemplate = true
+        face.image = awake
+        face.contentTintColor = Paint.muted
         face.imageScaling = .scaleProportionallyUpOrDown
         face.translatesAutoresizingMaskIntoConstraints = false
         addSubview(face)
 
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(greaterThanOrEqualToConstant: 300),
+            heightAnchor.constraint(greaterThanOrEqualToConstant: 320),
             face.centerXAnchor.constraint(equalTo: centerXAnchor),
             face.centerYAnchor.constraint(equalTo: centerYAnchor),
-            face.widthAnchor.constraint(equalToConstant: 84),
-            face.heightAnchor.constraint(equalToConstant: 84),
+            face.widthAnchor.constraint(equalToConstant: 88),
+            face.heightAnchor.constraint(equalToConstant: 88),
         ])
 
+        layer?.addSublayer(ring)
         breathe()
         blinkLater()
-        wantsLayer = true
-        layer?.addSublayer(ring)
     }
 
     required init?(coder: NSCoder) { fatalError("nimo has no nib") }
 
     deinit { pending?.invalidate() }
 
-    /// A thin arc turning slowly around the face. It says "still going"
-    /// without a word, and it is the only moving thing on the page.
+    /// The shape, as a path, at whatever size it is asked for.
+    private static func path(around middle: CGPoint, reach: CGFloat) -> CGPath {
+        let path = CGMutablePath()
+        for (i, r) in outline.enumerated() {
+            let angle = 2 * CGFloat.pi * CGFloat(i) / CGFloat(outline.count)
+            let point = CGPoint(x: middle.x + cos(angle) * reach * r,
+                                y: middle.y + sin(angle) * reach * r)
+            if i == 0 { path.move(to: point) } else { path.addLine(to: point) }
+        }
+        path.closeSubpath()
+        return path
+    }
+
     override func layout() {
         super.layout()
-        let middle = NSPoint(x: bounds.midX, y: bounds.midY)
-        let r: CGFloat = 62
-        let path = CGMutablePath()
-        path.addArc(center: CGPoint(x: middle.x, y: middle.y), radius: r,
-                    startAngle: 0, endAngle: .pi * 0.55, clockwise: false)
-        ring.path = path
+        let middle = CGPoint(x: bounds.midX, y: bounds.midY)
         ring.frame = bounds
+        ring.path = Thinking.path(around: middle, reach: 74)
         ring.fillColor = nil
         ring.lineWidth = 2
         ring.lineCap = .round
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            self.ring.strokeColor = Paint.line.cgColor
+            self.ring.strokeColor = Paint.muted.cgColor
         }
-        if ring.animation(forKey: "turning") == nil {
-            let turn = CABasicAnimation(keyPath: "transform.rotation.z")
-            turn.fromValue = 0
-            turn.toValue = Double.pi * 2
-            turn.duration = 2.6
-            turn.repeatCount = .infinity
-            ring.anchorPoint = NSPoint(x: 0.5, y: 0.5)
-            ring.add(turn, forKey: "turning")
-        }
+        travel()
+    }
+
+    /// A short piece of the outline, going round it. The whole outline drawn
+    /// at once would be a box round the face; a piece of it going round is
+    /// something waiting.
+    private func travel() {
+        guard ring.animation(forKey: "travelling") == nil else { return }
+        ring.strokeStart = 0
+        ring.strokeEnd = 0.16
+
+        let head = CABasicAnimation(keyPath: "strokeEnd")
+        head.fromValue = 0.16
+        head.toValue = 1.16
+
+        let tail = CABasicAnimation(keyPath: "strokeStart")
+        tail.fromValue = 0.0
+        tail.toValue = 1.0
+
+        let both = CAAnimationGroup()
+        both.animations = [head, tail]
+        both.duration = 2.2
+        both.repeatCount = .infinity
+        both.timingFunction = CAMediaTimingFunction(name: .linear)
+        ring.add(both, forKey: "travelling")
     }
 
     /// Slower than a spinner on purpose: nimo is thinking, not straining.
@@ -2001,14 +2355,25 @@ final class Thinking: NSView {
         face.layer?.add(pulse, forKey: "breathing")
     }
 
+    /// The same movement the wordmark makes, in the same steps.
+    private func close(_ steps: [(String, Double)], then: @escaping () -> Void) {
+        guard let (name, wait) = steps.first else { then(); return }
+        let picture = NSImage(named: name)
+        picture?.isTemplate = true
+        face.image = picture
+        if steps.count == 1 { then(); return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
+            self?.close(Array(steps.dropFirst()), then: then)
+        }
+    }
+
     private func blinkLater() {
         pending?.invalidate()
         pending = Timer.scheduledTimer(withTimeInterval: Double.random(in: 1...2.4),
                                        repeats: false) { [weak self] _ in
             guard let self = self, self.window != nil else { return }
-            self.face.image = NSImage(named: "mascot-blink")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.11) {
-                self.face.image = NSImage(named: "mascot")
+            self.close([("mascot-half", 0.06), ("mascot-blink", 0.07),
+                        ("mascot-half", 0.06), ("mascot", 0)]) {
                 self.blinkLater()
             }
         }
@@ -2194,7 +2559,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let appHolder = NSMenuItem()
         bar.addItem(appHolder)
         let app = NSMenu()
-        let about = NSMenuItem(title: "About nimo",
+        let about = NSMenuItem(title: "About Kliner",
                                action: #selector(showAbout), keyEquivalent: "")
         about.target = self
         app.addItem(about)
@@ -2215,15 +2580,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         app.addItem(login)
 
         app.addItem(.separator())
-        let terminal = NSMenuItem(title: "Open nimo in Terminal…",
+        let terminal = NSMenuItem(title: "Open in Terminal…",
                                   action: #selector(openInTerminal), keyEquivalent: "")
         terminal.target = self
         app.addItem(terminal)
 
         app.addItem(.separator())
-        app.addItem(NSMenuItem(title: "Hide nimo",
+        app.addItem(NSMenuItem(title: "Hide Kliner",
                                action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
-        app.addItem(NSMenuItem(title: "Quit nimo",
+        app.addItem(NSMenuItem(title: "Quit Kliner",
                                action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         appHolder.submenu = app
 
@@ -2285,7 +2650,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleLogin(_ sender: NSMenuItem) {
         if let trouble = Login.set(sender.state != .on) {
             let alert = NSAlert()
-            alert.messageText = "nimo could not change that"
+            alert.messageText = "Kliner could not change that"
             alert.informativeText = trouble
             alert.addButton(withTitle: "OK")
             alert.runModal()
@@ -2313,7 +2678,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showAbout() {
         let alert = NSAlert()
-        alert.messageText = "nimo \(Nimo.version)"
+        alert.messageText = "Kliner \(Nimo.version)"
         alert.informativeText = """
         make your workspace clean
 
@@ -2327,7 +2692,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.addButton(withTitle: "OK")
         alert.addButton(withTitle: "Open the website")
         if alert.runModal() == .alertSecondButtonReturn,
-           let url = URL(string: "https://danielkopa.github.io/nimo/") {
+           let url = URL(string: "https://kliner.app") {
             _ = NSWorkspace.shared.open(url)
         }
     }

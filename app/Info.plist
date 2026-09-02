@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleName</key>
-	<string>Nimo</string>
+	<string>Kliner</string>
 	<key>CFBundleDisplayName</key>
-	<string>Nimo</string>
+	<string>Kliner</string>
 	<key>CFBundleExecutable</key>
-	<string>Nimo</string>
+	<string>Kliner</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.danielkopa.nimo</string>
+	<string>app.kliner.mac</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleIconFile</key>
@@ -25,18 +25,18 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string>MIT licensed. https://github.com/danielkopa/nimo</string>
+	<string>MIT licensed. https://kliner.app</string>
 	<!-- The only thing nimo asks another app to do is open a Terminal window
 	     when you choose "Open nimo in Terminal…", and macOS wants that said
 	     out loud before it will let it happen. -->
 	<key>NSAppleEventsUsageDescription</key>
-	<string>nimo opens a Terminal window when you ask it to, and sets your wallpaper.</string>
+	<string>Kliner opens a Terminal window when you ask it to, and sets your wallpaper.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>nimo gathers loose screenshots into your Pictures folder.</string>
+	<string>Kliner gathers loose screenshots into your Pictures folder.</string>
 	<key>NSDesktopFolderUsageDescription</key>
-	<string>nimo sorts your desktop into folders. It never deletes your files.</string>
+	<string>Kliner sorts your desktop into folders. It never deletes your files.</string>
 	<key>NSDownloadsFolderUsageDescription</key>
-	<string>nimo sorts your downloads into folders. It never deletes your files.</string>
+	<string>Kliner sorts your downloads into folders. It never deletes your files.</string>
 	<key>NSSupportsSuddenTermination</key>
 	<true/>
 </dict>

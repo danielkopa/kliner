@@ -65,26 +65,26 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: build Nimo.app
+      - name: build Kliner.app
         run: bash app/build.sh
       - name: it has to be an app, not a folder shaped like one
         run: |
-          test -x app/build/Nimo.app/Contents/MacOS/Nimo
-          test -f app/build/Nimo.app/Contents/Resources/AppIcon.icns
-          test -f app/build/Nimo.app/Contents/Resources/menubar@2x.png
-          test -f app/build/Nimo.app/Contents/Resources/nimo/min
-          test -f app/build/Nimo.app/Contents/Resources/nimo/lib/ui.sh
-          plutil -lint app/build/Nimo.app/Contents/Info.plist
-          codesign --verify --deep --strict app/build/Nimo.app
-          lipo -archs app/build/Nimo.app/Contents/MacOS/Nimo | tee /dev/stderr | grep -q arm64
+          test -x app/build/Kliner.app/Contents/MacOS/Kliner
+          test -f app/build/Kliner.app/Contents/Resources/AppIcon.icns
+          test -f app/build/Kliner.app/Contents/Resources/menubar@2x.png
+          test -f app/build/Kliner.app/Contents/Resources/nimo/min
+          test -f app/build/Kliner.app/Contents/Resources/nimo/lib/ui.sh
+          plutil -lint app/build/Kliner.app/Contents/Info.plist
+          codesign --verify --deep --strict app/build/Kliner.app
+          lipo -archs app/build/Kliner.app/Contents/MacOS/Kliner | tee /dev/stderr | grep -q arm64
       - name: and the copy of nimo inside it has to run
         run: |
-          /bin/bash app/build/Nimo.app/Contents/Resources/nimo/min version
-          /bin/bash app/build/Nimo.app/Contents/Resources/nimo/min preview --json | head -3
+          /bin/bash app/build/Kliner.app/Contents/Resources/nimo/min version
+          /bin/bash app/build/Kliner.app/Contents/Resources/nimo/min preview --json | head -3
       - uses: actions/upload-artifact@v4
         with:
-          name: Nimo.app
-          path: app/build/Nimo.app.zip
+          name: Kliner.app
+          path: app/build/Kliner.app.zip
 
   test-windows:
     name: tests on windows, in the bash git ships
