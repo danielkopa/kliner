@@ -1178,8 +1178,13 @@ check "a row of files can be opened"        "grep -q 'func openKind' '$APP/Sourc
 check "the folded rail shows the face"      "grep -q 'func fold' '$APP/Sources/main.swift' && [ -f '$APP/Resources/mascot.png' ]"
 check "the wordmark blinks when you point at it" \
     "grep -q 'override func mouseEntered' '$APP/Sources/main.swift' && grep -q 'Look at it and it looks back' '$APP/Sources/main.swift'"
-check "one size for everything nimo says"   \
-    "[ \$(grep -c 'words(text, size: 13.5' '$APP/Sources/main.swift') -ge 3 ]"
+# Ten point sizes on nine pages is what "nothing lines up" looks like from the
+# outside. There is one type scale and one spacing scale, and nothing outside
+# them names a number.
+check "one type scale, and nothing outside it" \
+    "grep -q 'enum Words {' '$APP/Sources/main.swift' && [ \$(grep -c 'ofSize:' '$APP/Sources/main.swift') = \$(sed -n '/^enum Words {/,/^}/p' '$APP/Sources/main.swift' | grep -c 'ofSize:') ]"
+check "one spacing scale as well"            \
+    "grep -q 'enum Step {' '$APP/Sources/main.swift' && grep -q 'static let air:   CGFloat' '$APP/Sources/main.swift'"
 check "the page arrives a line at a time"   \
     "grep -q 'CAAnimationGroup' '$APP/Sources/main.swift' && grep -q 'arriving' '$APP/Sources/main.swift'"
 check "and a colour is eased, never snapped" \
@@ -1290,8 +1295,23 @@ check "the words live on the tooltips"      \
     "grep -q 'first.toolTip = item.verb' '$APP/Sources/main.swift'"
 # The row of buttons sits opposite the page title, not underneath it, so one
 # line across the top says what the page is and what it can do.
-check "and the row sits opposite the title, on the right" \
-    "grep -q 'buttons.trailingAnchor.constraint(equalTo: content.trailingAnchor' '$APP/Sources/main.swift' && grep -q 'buttons.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor)' '$APP/Sources/main.swift'"
+# One row across the top holds everything that is not the page. The page under
+# it is only the page.
+check "and the row lives in the top bar"     \
+    "grep -q 'buttons.trailingAnchor.constraint(equalTo: seek.leadingAnchor' '$APP/Sources/main.swift' && grep -q 'buttons.centerYAnchor.constraint(equalTo: chrome.centerYAnchor)' '$APP/Sources/main.swift'"
+# Home is a list of things to do, not four numbers and a shrug.
+check "home says what to do about it"        \
+    "grep -q 'final class Job' '$APP/Sources/main.swift' && grep -q 'let list = Card(\"What to do\")' '$APP/Sources/main.swift'"
+check "and pressing one starts it"           \
+    "grep -q 'func startOn' '$APP/Sources/main.swift'"
+check "a page can be asked again"            \
+    "grep -q 'func refresh' '$APP/Sources/main.swift' && grep -q 'keyEquivalent: \"r\"' '$APP/Sources/main.swift'"
+check "and the introduction shown again"     \
+    "grep -q 'func replaySetup' '$APP/Sources/main.swift' && grep -q 'keyEquivalent: \"R\"' '$APP/Sources/main.swift'"
+# The outline is drawn at the size the face is drawn, so a face that scales is
+# a face that leaves its own outline behind.
+check "the waiting face does not shrink out of its outline" \
+    "! grep -q 'forKey: \"breathing\"' '$APP/Sources/main.swift'"
 check "a click cannot be eaten by the picture inside a button" \
     "[ \$(grep -c 'override func hitTest' '$APP/Sources/main.swift') -ge 6 ]"
 check "there is a way to search from the keyboard" \
