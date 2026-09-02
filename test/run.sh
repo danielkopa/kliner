@@ -1170,6 +1170,20 @@ check "what is big is a breakdown too"       \
     "grep -q 'func drawBreakdown' '$APP/Sources/main.swift' && grep -q 'Everything else' '$APP/Sources/main.swift'"
 check "and its folders still open"           \
     "grep -q 'walkable: one.folder' '$APP/Sources/main.swift'"
+# A page about a folder lists things in that folder, and a thing in a folder
+# is something you can open.
+check "a row opens the thing it names"       \
+    "grep -q 'func openThing' '$APP/Sources/main.swift' && grep -q 'self?.openThing(label)' '$APP/Sources/main.swift'"
+check "and it looks in Tidy when it has been tidied" \
+    "grep -q 'appendingPathComponent(\"Tidy\")' '$APP/Sources/main.swift'"
+# A page saying how much room is left on a disk is out of date the moment it
+# is drawn.
+check "home takes its reading again"         \
+    "grep -q 'func tick()' '$APP/Sources/main.swift' && grep -q 'quietly: true' '$APP/Sources/main.swift'"
+check "but never while something is running" \
+    "grep -q 'guard self.chosen == 0, !self.busy, !self.welcoming' '$APP/Sources/main.swift'"
+check "and the breakdown has the picture as well as the table" \
+    "grep -q 'final class Bars' '$APP/Sources/main.swift' && grep -q 'card.add(Bars(named.map' '$APP/Sources/main.swift'"
 check "sizes are read back into numbers"    "grep -q 'func bytes' '$APP/Sources/main.swift'"
 check "no paragraph under every title"      "! grep -q 'blurbLabel' '$APP/Sources/main.swift'"
 check "the window is glass, in two weights"  \
@@ -1332,7 +1346,15 @@ check "and everything else is behind one button" \
 # One row across the top holds everything that is not the page. The page under
 # it is only the page.
 check "and the row lives in the top bar"     \
-    "grep -q 'buttons.trailingAnchor.constraint(equalTo: bell.leadingAnchor' '$APP/Sources/main.swift' && grep -q 'buttons.centerYAnchor.constraint(equalTo: chrome.centerYAnchor)' '$APP/Sources/main.swift'"
+    "grep -q 'buttons.trailingAnchor.constraint(equalTo: content.trailingAnchor' '$APP/Sources/main.swift' && grep -q 'buttons.centerYAnchor.constraint(equalTo: chrome.centerYAnchor)' '$APP/Sources/main.swift'"
+# Pinning a view to the far edge of something inside it is a loop: the row is
+# placed by its contents and its contents are placed by the row. Auto Layout
+# does not crash on it, it quietly throws constraints away, and half the
+# window comes out missing. That shipped once.
+check "nothing is pinned to its own contents" \
+    "python3 '$ROOT/tools/loopcheck.py' '$APP/Sources/main.swift'"
+check "and the trail never says the same word twice" \
+    "grep -q 'trail(place == name ? \"Kliner\" : place, name)' '$APP/Sources/main.swift'"
 # The name of the page is in that row, on the same line as everything you can
 # do to it, and there is no second copy of it below.
 check "the page's name is in the row as well" \

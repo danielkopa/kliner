@@ -1151,6 +1151,9 @@ final class Main: NSObject, NSWindowDelegate {
     /// redraws that, rather than walking your home folder again to be told the
     /// same thing.
     private var kept: [Int: [Piece]] = [:]
+    /// Home is a reading of a machine that keeps changing, so it takes the
+    /// reading again while you are looking at it.
+    private var ticking: Timer?
 
     override init() {
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 940, height: 640),
@@ -1183,6 +1186,27 @@ final class Main: NSObject, NSWindowDelegate {
             show(0)
         }
         window.center()
+    }
+
+    /// Home again, quietly, every half minute.
+    ///
+    /// A page saying how much room is left on a disk is out of date the moment
+    /// it is drawn. It reads again while you are looking at it, but only while
+    /// you are looking at it, and never while something else is running, so
+    /// nothing ever moves under your hand.
+    private func tick() {
+        ticking?.invalidate()
+        ticking = nil
+        guard chosen == 0, isPage else { return }
+        ticking = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) {
+            [weak self] _ in
+            guard let self = self else { return }
+            guard self.chosen == 0, !self.busy, !self.welcoming,
+                  self.window.isVisible, self.window.occlusionState.contains(.visible)
+            else { return }
+            self.kept[0] = nil
+            self.run(Action.all[0], quietly: true)
+        }
     }
 
     /// Up and down move through the list. A window you can only work with a
@@ -1439,10 +1463,11 @@ final class Main: NSObject, NSWindowDelegate {
             chrome.centerYAnchor.constraint(equalTo: content.topAnchor,
                                             constant: Step.lights),
 
-            bell.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -Step.air),
-            bell.centerYAnchor.constraint(equalTo: chrome.centerYAnchor),
-
-            buttons.trailingAnchor.constraint(equalTo: bell.leadingAnchor, constant: -Step.tight),
+            // The bell is inside this row now, so the row is what is pinned.
+            // Pinning the row to the bell inside it is a loop, and a loop is
+            // a layout that quietly throws everything away.
+            buttons.trailingAnchor.constraint(equalTo: content.trailingAnchor,
+                                              constant: -Step.air),
             buttons.centerYAnchor.constraint(equalTo: chrome.centerYAnchor),
 
             seek.leadingAnchor.constraint(equalTo: chrome.trailingAnchor, constant: Step.close),
@@ -1911,7 +1936,8 @@ final class Main: NSObject, NSWindowDelegate {
                 bars.append((name: "Everything else", share: tail,
                              colour: Paint.band(shown)))
             }
-            card.add(Split(bars))
+            card.add(Bars(named.map { (name: $0.name, size: $0.size) }), gap: Step.tight)
+            card.add(Split(bars), gap: Step.air)
 
             card.add(Ledger(colour: nil, name: "What is in it",
                             share: "Share", size: "Size", head: true), gap: Step.air)
@@ -2185,7 +2211,16 @@ final class Main: NSObject, NSWindowDelegate {
                                 })
                     break
                 }
-                put(Said(label: label, value: value, strong: strong))
+                // A page about a folder lists things in that folder, and a
+                // thing in a folder is something you can open. Clicking a row
+                // opens what it names, wherever Kliner has since moved it to.
+                let openable = Action.all[chosen].reveal != nil && !label.isEmpty
+                let said = Said(label: label, value: value, strong: strong,
+                                walkable: openable)
+                if openable {
+                    said.onOpen = { [weak self] in self?.openThing(label) }
+                }
+                put(said)
 
             // One size for everything nimo says. Weight and colour carry the
             // difference; a second size only makes the page look assembled
@@ -2450,6 +2485,7 @@ final class Main: NSObject, NSWindowDelegate {
         chosen = index
         walked = []
         showArrows()
+        tick()
 
         // A row is lit when the page you are on lives in it, not only when it
         // is the page the row opens: Downloads is inside Desk, and Desk is
@@ -2460,8 +2496,9 @@ final class Main: NSObject, NSWindowDelegate {
         }
 
         let item = page(index)
-        trail(Action.place(of: index)?.title ?? "Kliner",
-              index == 0 ? "Home" : item.title)
+        let name = index == 0 ? "Home" : item.title
+        let place = Action.place(of: index)?.title ?? "Kliner"
+        trail(place == name ? "Kliner" : place, name)
         fitButtons()
 
         if isSettings {
@@ -2595,6 +2632,39 @@ final class Main: NSObject, NSWindowDelegate {
         let target = FileManager.default.fileExists(atPath: tidy.path)
             ? tidy : home.appendingPathComponent(folder)
         NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: target.path)
+    }
+
+    /// Open the thing a row names.
+    ///
+    /// Where it is depends on whether Kliner has been run yet: before, it is
+    /// in the folder itself; after, it is inside Tidy, filed by what it is.
+    /// So it looks in the folder, then through Tidy, and if it cannot find it
+    /// at all it opens the folder rather than nothing.
+    private func openThing(_ name: String) {
+        guard isPage, let folder = Action.all[chosen].reveal else { return }
+        let files = FileManager.default
+        let base = files.homeDirectoryForCurrentUser.appendingPathComponent(folder)
+
+        let plain = base.appendingPathComponent(name)
+        if files.fileExists(atPath: plain.path) {
+            NSWorkspace.shared.open(plain)
+            return
+        }
+
+        // Two levels is as deep as Tidy goes: Tidy, then what it is.
+        let tidy = base.appendingPathComponent("Tidy")
+        if let kinds = try? files.contentsOfDirectory(at: tidy,
+                                                     includingPropertiesForKeys: nil) {
+            for kind in kinds {
+                let inside = kind.appendingPathComponent(name)
+                if files.fileExists(atPath: inside.path) {
+                    NSWorkspace.shared.open(inside)
+                    return
+                }
+            }
+        }
+
+        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: base.path)
     }
 
     private func revealFolder() {
@@ -2833,12 +2903,16 @@ final class Main: NSObject, NSWindowDelegate {
         run(item)
     }
 
-    private func run(_ item: Action, preview: Bool = false) {
+    /// `quietly` is for the reading Home takes of itself: it runs the same
+    /// command, but it does not blank the page and put the waiting face up,
+    /// because nobody asked for it and a page that goes blank on its own is a
+    /// page that flickers.
+    private func run(_ item: Action, preview: Bool = false, quietly: Bool = false) {
         guard !busy else { return }
         busy = true
         seen.insert(chosen)
         fitButtons()
-        waiting()
+        if !quietly { waiting() }
 
         // Only after somebody has said yes does --yes go anywhere near nimo,
         // and a preview cannot be given it at all.
@@ -3744,9 +3818,11 @@ final class Seek: NSView, NSTextFieldDelegate {
         glass.contentTintColor = Paint.faint
         field.textColor = Paint.ink
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            self.layer?.backgroundColor = Paint.hover.withAlphaComponent(0.35).cgColor
+            // Enough fill to read as a field. At a third of the hover colour
+            // it was a word with a key floating beside it.
+            self.layer?.backgroundColor = Paint.hover.cgColor
             self.layer?.borderColor = Paint.line.cgColor
-            self.badge.layer?.backgroundColor = Paint.hover.cgColor
+            self.badge.layer?.backgroundColor = Paint.picked.cgColor
         }
     }
 }
@@ -4136,6 +4212,100 @@ enum Panel {
         view.effectiveAppearance.performAsCurrentDrawingAppearance {
             view.layer?.backgroundColor = Paint.hover.withAlphaComponent(0.4).cgColor
             view.layer?.borderColor = Paint.line.cgColor
+        }
+    }
+}
+
+/// The breakdown as a row of bars, tallest first: the picture a dashboard is
+/// built round, and here it is the same numbers the table under it lists.
+///
+/// It lays itself out rather than stacking constrained views, because a bar
+/// chart is heights in proportion and proportions and gaps cannot both be
+/// constraints without one of them being broken.
+final class Bars: NSView {
+    private let parts: [(name: String, size: Double)]
+    private var poles: [NSView] = []
+    private var names: [NSTextField] = []
+    private var grown = false
+
+    init(_ parts: [(name: String, size: Double)]) {
+        self.parts = Array(parts.prefix(12))
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+
+        for (i, part) in self.parts.enumerated() {
+            let pole = NSView()
+            pole.wantsLayer = true
+            pole.layer?.cornerRadius = 3
+            pole.layer?.backgroundColor = Paint.band(min(i, 6)).cgColor
+            pole.toolTip = "\(part.name)  \(size(part.size))"
+            addSubview(pole)
+            poles.append(pole)
+
+            // The name under its own bar, cut to what fits rather than turned
+            // on its side: a chart you have to tilt your head at is a chart.
+            let under = NSTextField(labelWithString: String(part.name.prefix(9)))
+            under.font = Words.small
+            under.textColor = Paint.faint
+            under.alignment = .center
+            under.lineBreakMode = .byTruncatingTail
+            addSubview(under)
+            names.append(under)
+        }
+
+        heightAnchor.constraint(equalToConstant: 168).isActive = true
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            for (i, pole) in self.poles.enumerated() {
+                pole.layer?.backgroundColor = Paint.band(min(i, 6)).cgColor
+            }
+        }
+    }
+
+    override func layout() {
+        super.layout()
+        guard !poles.isEmpty else { return }
+        let words: CGFloat = 18
+        let air: CGFloat = 10
+        let room = bounds.height - words
+        let wide = (bounds.width - air * CGFloat(poles.count - 1)) / CGFloat(poles.count)
+        let tallest = max(0.0001, parts.map { $0.size }.max() ?? 1)
+
+        for (i, pole) in poles.enumerated() {
+            let x = CGFloat(i) * (wide + air)
+            // Nothing shorter than its own corner, or a small share draws as
+            // a smudge on the floor rather than as a short bar.
+            let tall = max(6, room * CGFloat(parts[i].size / tallest))
+            pole.frame = NSRect(x: x, y: words, width: wide, height: tall)
+            names[i].frame = NSRect(x: x - air / 2, y: 0,
+                                    width: wide + air, height: 14)
+        }
+        grow()
+    }
+
+    /// The bars come up out of the floor, one after another. Twenty-five
+    /// milliseconds apart is enough to read as a sweep and not enough to be a
+    /// thing you wait for.
+    private func grow() {
+        guard !grown, window != nil else { return }
+        grown = true
+        for (i, pole) in poles.enumerated() {
+            let up = CABasicAnimation(keyPath: "transform.scale.y")
+            up.fromValue = 0
+            up.toValue = 1
+            up.duration = 0.42
+            up.beginTime = CACurrentMediaTime() + Double(i) * 0.025
+            up.fillMode = .backwards
+            up.timingFunction = CAMediaTimingFunction(controlPoints: 0.16, 1, 0.3, 1)
+            pole.layer?.anchorPoint = CGPoint(x: 0.5, y: 0)
+            pole.layer?.position = CGPoint(x: pole.frame.midX, y: pole.frame.minY)
+            pole.layer?.add(up, forKey: "growing")
         }
     }
 }
