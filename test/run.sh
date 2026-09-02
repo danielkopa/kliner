@@ -1444,11 +1444,26 @@ check "the waiting face does not shrink out of its outline" \
 check "Kliner sits in the corner of the page" \
     "grep -q 'final class Helper' '$APP/Sources/main.swift' && grep -q 'func settleHelper' '$APP/Sources/main.swift' && grep -q 'helper.land(from: middle)' '$APP/Sources/main.swift'"
 check "and you can give him something to do"  \
-    "grep -q 'func offerJobs' '$APP/Sources/main.swift' && grep -q 'Give Kliner something to do' '$APP/Sources/main.swift'"
+    "grep -q 'func jobs()' '$APP/Sources/main.swift' && grep -q 'Give Kliner something to do' '$APP/Sources/main.swift'"
 check "all of it at once asks once, for the lot" \
     "grep -q 'func doThemAll' '$APP/Sources/main.swift' && grep -q 'messageText = \"Do all of it?\"' '$APP/Sources/main.swift'"
+check "and it ends back where it was asked for" \
+    "grep -q 'ran = false' '$APP/Sources/main.swift' && grep -A6 'guard ran else' '$APP/Sources/main.swift' | grep -q 'self.show(0)'"
 check "and works through them one page at a time" \
-    "grep -q 'func nextInQueue' '$APP/Sources/main.swift' && grep -q 'if !self.queue.isEmpty {' '$APP/Sources/main.swift'"
+    "grep -q 'func nextInQueue' '$APP/Sources/main.swift' && grep -q 'func carryOn' '$APP/Sources/main.swift'"
+# Opening a page starts a run of its own, the preview, and `run` drops
+# anything asked for while one is going. So a press on a task was swallowed:
+# the page changed and nothing happened.
+check "a press waits its turn instead of being dropped" \
+    "grep -q 'private func once(' '$APP/Sources/main.swift' && grep -A8 'func startOn' '$APP/Sources/main.swift' | grep -q 'once {'"
+# He flies in from wherever the waiting was, so he only flies when there was
+# one. Home reading itself every half minute is not an arrival to watch.
+check "and he only flies in when he was waiting" \
+    "grep -q 'waited = !quietly' '$APP/Sources/main.swift' && grep -q 'guard waited, !welcoming' '$APP/Sources/main.swift'"
+# A list belonging to something at the bottom of a window has to open upwards,
+# or it opens off the window and over the desktop.
+check "a list opens where there is room for it" \
+    "grep -q 'var side = NSRectEdge.minY' '$APP/Sources/main.swift' && grep -q 'preferredEdge: side' '$APP/Sources/main.swift'"
 check "a click cannot be eaten by the picture inside a button" \
     "[ \$(grep -c 'override func hitTest' '$APP/Sources/main.swift') -ge 6 ]"
 check "there is a way to search from the keyboard" \
@@ -1457,14 +1472,16 @@ check "and typing narrows the list rather than covering it" \
     "grep -q 'func sieve' '$APP/Sources/main.swift' && grep -q 'rows\\[i\\].isHidden' '$APP/Sources/main.swift'"
 # One thing in the corner of the row, and it holds everything that used to be
 # spread along it: what this page can do, what Kliner has done, and the keys.
-check "Kliner sits in the corner and holds the rest" \
-    "grep -q 'NSImage(named: \"mascot\")' '$APP/Sources/main.swift' && grep -q 'func here()' '$APP/Sources/main.swift' && grep -q 'func keys()' '$APP/Sources/main.swift'"
+check "Kliner holds the rest of it"          \
+    "grep -q 'func here()' '$APP/Sources/main.swift' && grep -q 'func keys()' '$APP/Sources/main.swift'"
 check "and one list holds all three"          \
     "grep -q 'static func over(' '$APP/Sources/main.swift' && grep -q 'Sheet.Line.over(\"Recently\")' '$APP/Sources/main.swift'"
-check "the bell says when something happened" \
-    "grep -q 'final class Bell' '$APP/Sources/main.swift' && grep -q 'self.bellButton.unread = true' '$APP/Sources/main.swift'"
-check "and reading it puts the dot out"      \
-    "grep -A1 'func showActivity' '$APP/Sources/main.swift' | grep -q 'bellButton.unread = false'"
+# One Kliner. He was in the corner of the top row and in the corner of the
+# page at the same time, which is two of him.
+check "there is one Kliner, and he holds the dot" \
+    "! grep -q 'class Bell' '$APP/Sources/main.swift' && grep -q 'self.helper.unread = true' '$APP/Sources/main.swift'"
+check "and looking at him puts it out"       \
+    "grep -A1 'func showActivity' '$APP/Sources/main.swift' | grep -q 'helper.unread = false'"
 # Swift will not reorder labelled arguments for you. Since nothing here can
 # compile Swift, read the initialisers out of the source and check every call
 # site against them by hand.

@@ -1125,7 +1125,6 @@ final class Main: NSObject, NSWindowDelegate {
     private var chrome: NSStackView!
     private var chromeLeading: NSLayoutConstraint!
     private var search: Seek!
-    private var bellButton: Bell!
     private var titleLeading: NSLayoutConstraint!
     private var footStack: NSStackView!
     private var railLine: NSBox!
@@ -1133,6 +1132,10 @@ final class Main: NSObject, NSWindowDelegate {
     private var helper: Helper!
     /// What Kliner was asked to do, in order, one at a time.
     private var queue: [Int] = []
+    /// Whether the run that is finishing put the waiting face up.
+    private var waited = false
+    /// Whether a queue was worked through, so the end of it goes back to Home.
+    private var ran = false
     private var mascot: Floating?
 
     /// Which setup has been read. Bumped whenever the setup changes, so a
@@ -1367,18 +1370,9 @@ final class Main: NSObject, NSWindowDelegate {
 
 
 
-        // The right of the row is two things. The bell, because something may
-        // have happened while you were not looking. And, only on the pages
-        // that do something, the one thing that page is for.
-        //
-        // Everything else that was here — a count the page already shows, a
-        // second way to switch pages when the trail is already one, a button
-        // holding three more buttons — was noise.
-        let bell = Bell()
-        bell.onClick = { [weak self] in self?.showActivity() }
-        bell.toolTip = "Kliner"
-        bellButton = bell
-
+        // The right of the row is one thing: on the pages that do something,
+        // the one thing that page is for. Kliner himself is in the corner of
+        // the page below, and one of him is enough.
         let doIt = Chip(.strong)
         doIt.onClick = { [weak self] in self?.go() }
         primary = doIt
@@ -1387,9 +1381,7 @@ final class Main: NSObject, NSWindowDelegate {
         buttons.alignment = .centerY
         buttons.spacing = Step.tight
         buttons.translatesAutoresizingMaskIntoConstraints = false
-        for view in [doIt, bell] as [NSView] {
-            buttons.addArrangedSubview(view)
-        }
+        buttons.addArrangedSubview(doIt)
         content.addSubview(buttons)
 
 
@@ -1397,7 +1389,7 @@ final class Main: NSObject, NSWindowDelegate {
         // do. Over the work rather than in it, so it is there whatever page
         // you are on and however far down it you have scrolled.
         let sitting = Helper()
-        sitting.onClick = { [weak self] in self?.offerJobs() }
+        sitting.onClick = { [weak self] in self?.showActivity() }
         helper = sitting
         content.addSubview(sitting)
 
@@ -1414,8 +1406,9 @@ final class Main: NSObject, NSWindowDelegate {
         report.orientation = .vertical
         report.alignment = .leading
         report.spacing = 0
+        // Room at the bottom for him to sit without anything under him.
         report.edgeInsets = NSEdgeInsets(top: Step.hair, left: Step.edge,
-                                         bottom: Step.edge, right: Step.edge)
+                                         bottom: 96, right: Step.edge)
         report.translatesAutoresizingMaskIntoConstraints = false
         scroll.documentView = report
 
@@ -1722,6 +1715,7 @@ final class Main: NSObject, NSWindowDelegate {
                               buttons, search, titleLabel, helper] {
             view?.isHidden = yes
         }
+        Sheet.hide()
         // And one colour, not two. With the list hidden but the rail still
         // where it was, the window was a wide dark page beside a strip of a
         // different dark, which is the first thing you saw.
@@ -1911,9 +1905,26 @@ final class Main: NSObject, NSWindowDelegate {
     /// button on a line of the list means. It still asks: the question lives
     /// on the page, not here.
     private func startOn(_ index: Int) {
-        show(index)
         guard index < Action.all.count else { return }
-        go()
+        show(index)
+        // Opening a page starts a run of its own, the preview, and `run` drops
+        // anything asked for while one is going. So the press was swallowed:
+        // the page changed and nothing happened. It waits its turn now.
+        once { [weak self] in
+            guard let self = self, self.chosen == index else { return }
+            self.go()
+        }
+    }
+
+    /// Do this when nothing else is running. Gives up after a few seconds,
+    /// because a job that never ends should not leave something queued behind
+    /// it forever.
+    private func once(_ then: @escaping () -> Void, tries: Int = 60) {
+        guard busy else { then(); return }
+        guard tries > 0 else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.once(then, tries: tries - 1)
+        }
     }
 
     /// A list of things with a size each, drawn as the bar and the table of
@@ -2163,7 +2174,8 @@ final class Main: NSObject, NSWindowDelegate {
     /// He was doing the waiting in the middle of the page; now the page has
     /// come back, so he goes and sits down in the corner.
     private func settleHelper() {
-        guard !welcoming, let over = window.contentView else { return }
+        guard waited, !welcoming, let over = window.contentView else { return }
+        waited = false
         let middle = scroll.convert(CGPoint(x: scroll.bounds.midX,
                                             y: scroll.bounds.midY), to: over)
         helper.land(from: middle)
@@ -2511,9 +2523,10 @@ final class Main: NSObject, NSWindowDelegate {
     /// one thing left in that corner: what this page can do, what Kliner has
     /// done, and the keys.
     func showActivity() {
-        bellButton.unread = false
-        Sheet.open(here() + [Sheet.Line.over("Recently"), Sheet.Line("Looking…")],
-                   under: bellButton, wide: 320)
+        helper.unread = false
+        Sheet.open(jobs() + here() + [Sheet.Line.over("Recently"),
+                                      Sheet.Line("Looking…")],
+                   under: helper, wide: 340)
 
         DispatchQueue.global(qos: .userInitiated).async {
             let result = Nimo.run(["undo", "--all", "--dry-run"])
@@ -2534,10 +2547,10 @@ final class Main: NSObject, NSWindowDelegate {
                         self?.openUndo()
                     })
                 }
-                Sheet.open(self.here()
+                Sheet.open(self.jobs() + self.here()
                            + [Sheet.Line.over("Recently")] + done
                            + self.keys(),
-                           under: self.bellButton, wide: 320)
+                           under: self.helper, wide: 340)
             }
         }
     }
@@ -2579,7 +2592,8 @@ final class Main: NSObject, NSWindowDelegate {
     /// Everything Kliner can be told to do, in one list, with what there is of
     /// it beside each. Picking one starts it; picking the first starts all of
     /// them, in order, after one question covering the lot.
-    private func offerJobs() {
+    /// What Kliner can be told to do, with what there is of each beside it.
+    private func jobs() -> [Sheet.Line] {
         var lines: [Sheet.Line] = [.over("Give Kliner something to do")]
         let worth = worthDoing()
 
@@ -2597,7 +2611,7 @@ final class Main: NSObject, NSWindowDelegate {
                 self?.startOn(which)
             })
         }
-        Sheet.open(lines, under: helper, wide: 320)
+        return lines
     }
 
     /// The ones Home found something to do about, in the order they are worth
@@ -2653,13 +2667,37 @@ final class Main: NSObject, NSWindowDelegate {
         nextInQueue()
     }
 
+    /// A queue keeps going by itself, one page at a time, whatever else
+    /// happened to the run that just ended.
+    private func carryOn() {
+        guard !queue.isEmpty else {
+            // The run is over. Home is where it was asked for and where the
+            // numbers it changed are, so that is where it ends.
+            guard ran else { return }
+            ran = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { [weak self] in
+                guard let self = self, !self.busy else { return }
+                self.kept[0] = nil
+                self.show(0)
+            }
+            return
+        }
+        ran = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { [weak self] in
+            self?.nextInQueue()
+        }
+    }
+
     private func nextInQueue() {
         guard !queue.isEmpty else { return }
         let which = queue.removeFirst()
         show(which)
-        let item = Action.all[which]
-        kept[which] = nil
-        run(item, preview: false)
+        once { [weak self] in
+            guard let self = self, self.chosen == which else { return }
+            self.kept[which] = nil
+            // Already asked, once, for the whole run.
+            self.run(Action.all[which], preview: false)
+        }
     }
 
     /// The pages that do something, in the order they read down the list.
@@ -3165,6 +3203,10 @@ final class Main: NSObject, NSWindowDelegate {
         busy = true
         seen.insert(chosen)
         fitButtons()
+        // He flies to the corner from wherever the waiting was, so he only
+        // flies when there was one. Home reading itself every half minute is
+        // not something to watch him arrive from.
+        waited = !quietly
         if !quietly { waiting() }
 
         // Only after somebody has said yes does --yes go anywhere near nimo,
@@ -3199,7 +3241,9 @@ final class Main: NSObject, NSWindowDelegate {
             DispatchQueue.main.async {
                 guard self.chosen == asked else {
                     self.busy = false
+                    self.waited = false
                     self.fitButtons()
+                    self.carryOn()
                     return
                 }
                 let pieces = Report.parse(result.text)
@@ -3219,7 +3263,7 @@ final class Main: NSObject, NSWindowDelegate {
                     for piece in pieces {
                         if case .good(let done) = piece {
                             Word.say(Action.all[asked].title, done)
-                            self.bellButton.unread = true
+                            self.helper.unread = true
                             break
                         }
                     }
@@ -3227,12 +3271,7 @@ final class Main: NSObject, NSWindowDelegate {
                 self.busy = false
                 self.fitButtons()
                 self.settleHelper()
-                // A queue keeps going by itself, one page at a time.
-                if !self.queue.isEmpty {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        self.nextInQueue()
-                    }
-                }
+                self.carryOn()
             }
         }
     }
@@ -3821,6 +3860,9 @@ enum Sheet {
         showing = nil
     }
 
+    /// `under` is what it belongs to, not where it goes. A list belonging to
+    /// something at the bottom of a window has to open upwards, or it opens
+    /// off the window and over the desktop, which is what it did.
     static func open(_ lines: [Line], under view: NSView, wide: CGFloat = 240) {
         hide()
 
@@ -3886,7 +3928,16 @@ enum Sheet {
         sheet.behavior = .transient
         sheet.animates = true
         showing = sheet
-        sheet.show(relativeTo: view.bounds, of: view, preferredEdge: .maxY)
+
+        // AppKit's y grows upward, so .minY is below the thing and .maxY is
+        // above it. Below, unless the thing is in the bottom third of the
+        // window it is in.
+        var side = NSRectEdge.minY
+        if let room = view.window?.contentView {
+            let mine = view.convert(view.bounds, to: room)
+            if mine.midY < room.bounds.height / 3 { side = .maxY }
+        }
+        sheet.show(relativeTo: view.bounds, of: view, preferredEdge: side)
     }
 }
 
@@ -4004,107 +4055,6 @@ final class Seek: NSView, NSTextFieldDelegate {
             self.layer?.backgroundColor = Paint.hover.cgColor
             self.layer?.borderColor = Paint.line.cgColor
             self.badge.layer?.backgroundColor = Paint.picked.cgColor
-        }
-    }
-}
-
-/// Kliner, in the corner of the row, with the dot that says something
-/// happened while you were not looking.
-///
-/// It is the one thing in that corner and it holds everything that used to be
-/// spread along the row: what this page can do, what Kliner has done, and the
-/// keys. The dot is not decoration: it goes on when Kliner has done something
-/// since you last looked, and off the moment you have.
-final class Bell: NSView {
-    var onClick: (() -> Void)?
-
-    var unread = false {
-        didSet { dot.isHidden = !unread }
-    }
-
-    private let icon = NSImageView()
-    private let dot = NSView()
-    private var hovering = false
-
-    init() {
-        super.init(frame: .zero)
-        translatesAutoresizingMaskIntoConstraints = false
-        wantsLayer = true
-        layer?.cornerRadius = 8
-
-        let picture = NSImage(named: "mascot")
-        picture?.isTemplate = true
-        icon.image = picture
-        icon.imageScaling = .scaleProportionallyUpOrDown
-        icon.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(icon)
-
-        dot.wantsLayer = true
-        dot.layer?.cornerRadius = 3.5
-        dot.layer?.backgroundColor = NSColor.systemRed.cgColor
-        dot.isHidden = true
-        dot.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(dot)
-
-        NSLayoutConstraint.activate([
-            widthAnchor.constraint(equalToConstant: 26),
-            heightAnchor.constraint(equalToConstant: 26),
-            icon.centerXAnchor.constraint(equalTo: centerXAnchor),
-            icon.centerYAnchor.constraint(equalTo: centerYAnchor),
-            icon.widthAnchor.constraint(equalToConstant: 17),
-            icon.heightAnchor.constraint(equalToConstant: 17),
-            dot.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -2),
-            dot.topAnchor.constraint(equalTo: topAnchor, constant: 2),
-            dot.widthAnchor.constraint(equalToConstant: 7),
-            dot.heightAnchor.constraint(equalToConstant: 7),
-        ])
-
-        repaint()
-    }
-
-    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
-
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        for area in trackingAreas { removeTrackingArea(area) }
-        addTrackingArea(NSTrackingArea(rect: .zero,
-                                       options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
-                                       owner: self, userInfo: nil))
-    }
-
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        bounds.contains(convert(point, from: superview)) ? self : nil
-    }
-
-    override func mouseExited(with event: NSEvent)  { hovering = false; repaint() }
-    override func mouseDown(with event: NSEvent)    { onClick?() }
-    override func resetCursorRects()                { addCursorRect(bounds, cursor: .pointingHand) }
-    override func viewDidChangeEffectiveAppearance() {
-        super.viewDidChangeEffectiveAppearance()
-        repaint()
-    }
-
-    /// He blinks when you point at him, the way the mark down the side does.
-    override func mouseEntered(with event: NSEvent) {
-        hovering = true
-        repaint()
-        wear(["mascot-half", "mascot-blink", "mascot-half", "mascot"], 0)
-    }
-
-    private func wear(_ faces: [String], _ i: Int) {
-        guard i < faces.count else { return }
-        let picture = NSImage(named: faces[i])
-        picture?.isTemplate = true
-        icon.image = picture
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) { [weak self] in
-            self?.wear(faces, i + 1)
-        }
-    }
-
-    private func repaint() {
-        icon.contentTintColor = hovering ? Paint.ink : Paint.muted
-        effectiveAppearance.performAsCurrentDrawingAppearance {
-            ease(self.layer, to: self.hovering ? Paint.hover : NSColor.clear)
         }
     }
 }
@@ -4271,8 +4221,15 @@ final class Nudge: NSView {
 final class Helper: NSView {
     var onClick: (() -> Void)?
 
+    /// The dot is not decoration: it goes on when Kliner has done something
+    /// since you last looked at him, and off the moment you have.
+    var unread = false {
+        didSet { dot.isHidden = !unread }
+    }
+
     private let face = NSImageView()
     private let disc = NSView()
+    private let dot = NSView()
     private var pending: Timer?
     private var hovering = false
 
@@ -4294,9 +4251,20 @@ final class Helper: NSView {
         face.translatesAutoresizingMaskIntoConstraints = false
         disc.addSubview(face)
 
+        dot.wantsLayer = true
+        dot.layer?.cornerRadius = 4
+        dot.layer?.backgroundColor = NSColor.systemRed.cgColor
+        dot.isHidden = true
+        dot.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(dot)
+
         NSLayoutConstraint.activate([
             widthAnchor.constraint(equalToConstant: 44),
             heightAnchor.constraint(equalToConstant: 44),
+            dot.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -1),
+            dot.topAnchor.constraint(equalTo: topAnchor, constant: 1),
+            dot.widthAnchor.constraint(equalToConstant: 8),
+            dot.heightAnchor.constraint(equalToConstant: 8),
             disc.leadingAnchor.constraint(equalTo: leadingAnchor),
             disc.trailingAnchor.constraint(equalTo: trailingAnchor),
             disc.topAnchor.constraint(equalTo: topAnchor),
