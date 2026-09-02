@@ -361,7 +361,7 @@ nimo_wall_complain() {
             nimo_dim "    tccutil reset AppleEvents"
             nimo_blank
             nimo_dim "say yes when the box appears. nothing else on your Mac loses"
-            nimo_dim "anything by it — it only forgets the answers."
+            nimo_dim "anything by it, it only forgets the answers."
             ;;
         *)
             nimo_warn "nimo asked your Mac to change the wallpaper and it did not"
@@ -615,7 +615,7 @@ nimo_wall_restore() {
     store=$(nimo_wall_store)
 
     if [ ! -f "$saved" ] && [ ! -f "$kept" ]; then
-        nimo_dim "no wallpaper saved yet — nimo has not changed it"
+        nimo_dim "no wallpaper saved yet, nimo has not changed it"
         nimo_panel_close
         nimo_blank
         return 0
@@ -639,7 +639,7 @@ nimo_wall_restore() {
         nimo_ok "Wallpaper restored"
         if [ -n "$was" ] && [ ! -f "$was" ]; then
             nimo_dim "the picture you had is gone, so nimo put back the whole"
-            nimo_dim "setting instead — exactly as it was before it started"
+            nimo_dim "setting instead, exactly as it was before it started"
         else
             nimo_dim "put back from the copy nimo kept of the setting itself"
         fi
@@ -726,7 +726,7 @@ EOF
 $labels
 EOF
         nimo_panel_close
-        [ "$count" -gt "$limit" ] && nimo_dim "$((count - limit)) more — see them all with  min wallpaper --limit $count"
+        [ "$count" -gt "$limit" ] && nimo_dim "$((count - limit)) more, see them all with  min wallpaper --limit $count"
         nimo_blank
         nimo_dim "run  min wallpaper  to choose one"
         nimo_blank
@@ -761,7 +761,7 @@ EOF
             return 0
         fi
         nimo_blank
-        nimo_ok "Kept — $(nimo_wall_pretty "$chosen")"
+        nimo_ok "Kept, $(nimo_wall_pretty "$chosen")"
         nimo_dim "the one you had before is one  min wallpaper --restore  away"
         nimo_blank
         return 0
@@ -771,7 +771,7 @@ EOF
         read -r answer || answer=""
         case "$answer" in
             '')          chosen="$suggested" ;;
-            *[!0-9]*)    nimo_blank; nimo_dim "that was not a number — nothing changed"; nimo_blank; return 0 ;;
+            *[!0-9]*)    nimo_blank; nimo_dim "that was not a number, nothing changed"; nimo_blank; return 0 ;;
             *)           chosen=$(printf '%s\n' "$list" | sed -n "${answer}p") ;;
         esac
     else
@@ -784,7 +784,7 @@ EOF
 
     if [ -z "$chosen" ] || [ ! -f "$chosen" ]; then
         nimo_blank
-        nimo_dim "no such wallpaper — nothing changed"
+        nimo_dim "no such wallpaper, nothing changed"
         nimo_blank
         return 0
     fi
@@ -794,7 +794,7 @@ EOF
     nimo_blank
     if nimo_wall_apply "$chosen"; then
         nimo_wall_remember "$chosen"
-        nimo_ok "Wallpaper set — $(nimo_wall_pretty "$chosen")"
+        nimo_ok "Wallpaper set, $(nimo_wall_pretty "$chosen")"
         nimo_dim "flip on with  min next   ·   undo with  min wallpaper --restore"
         nimo_wall_unsure_note
     else

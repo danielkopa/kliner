@@ -103,9 +103,9 @@ EOF
     nimo_total "$(nimo_plural "$count" program)" "$(nimo_human_kb "$total")"
     nimo_panel_close
     nimo_dim "windows does not record when you last opened a program, so this is"
-    nimo_dim "by install date — nimo cannot tell you which ones you have forgotten"
+    nimo_dim "by install date, nimo cannot tell you which ones you have forgotten"
     nimo_blank
-    nimo_dim "nimo does not uninstall anything — this is a list, not a plan"
+    nimo_dim "nimo does not uninstall anything, this is a list, not a plan"
     nimo_dim "remove them from  Settings › Apps › Installed apps"
     nimo_blank
     return 0
@@ -191,7 +191,7 @@ EOF
     nimo_rule
     nimo_total "$(nimo_plural "$count" app)" "$(nimo_human_kb "$total")"
     nimo_panel_close
-    nimo_dim "nimo does not uninstall anything — this is a list, not a plan"
+    nimo_dim "nimo does not uninstall anything, this is a list, not a plan"
     nimo_dim "drag the ones you agree with to the Trash, then  min empty"
     nimo_blank
     return 0
@@ -282,11 +282,11 @@ nimo_cmd_empty() {
     nimo_row_kb "$(nimo_plural "$count" item)" "$kb" "waiting to be taken out"
     nimo_panel_close
     nimo_blank
-    nimo_dim "this one is not undoable — $what is already the undo"
+    nimo_dim "this one is not undoable, $what is already the undo"
     nimo_blank
 
     if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
-        nimo_dim "preview only — nothing was emptied"
+        nimo_dim "preview only, nothing was emptied"
         nimo_blank
         return 0
     fi

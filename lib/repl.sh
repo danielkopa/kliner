@@ -45,7 +45,7 @@ nimo_repl_list() {
     nimo_panel_open "what you can type"
 
     nimo_repl_head "clear something"
-    nimo_repl_row ▤ /clear       "desktop, downloads, screenshots — you pick"
+    nimo_repl_row ▤ /clear       "desktop, downloads, screenshots, you pick"
     if [ "$n_desk" -gt 0 ]; then
         nimo_repl_row ▼ /desktop "$(nimo_plural "$n_desk" item) on your desktop right now"
     else
@@ -65,8 +65,8 @@ nimo_repl_list() {
 
     nimo_repl_head "make it yours"
     nimo_repl_row ◐ /wallpaper   "flip through them, live, on your own screen"
-    nimo_repl_row → /next        "the next one — /prev goes back"
-    nimo_repl_row ◑ /dark        "switch appearance — /light switches back"
+    nimo_repl_row → /next        "the next one, /prev goes back"
+    nimo_repl_row ◑ /dark        "switch appearance, /light switches back"
     nimo_repl_row ◇ /zen         "stop drawing icons on the desktop at all"
     if [ "$plat" = "windows" ]; then
         nimo_repl_row ■ /setup   "explorer and the taskbar, tuned once"
@@ -81,17 +81,17 @@ nimo_repl_list() {
 
     nimo_repl_head "get the disk back"
     nimo_repl_row ◍ /clean       "caches your apps rebuild by themselves"
-    nimo_repl_row ◆ /top         "the biggest things — step inside them"
+    nimo_repl_row ◆ /top         "the biggest things, step inside them"
     nimo_repl_row ⧉ /duplicates  "the same file, kept more than once"
     nimo_repl_row ▢ /cleandoc    "empty a file, keeping what was in it"
     nimo_blank
 
     nimo_repl_head "and back again"
-    nimo_repl_row ↺ /undo        "anything nimo has done — /undo --all for the lot"
+    nimo_repl_row ↺ /undo        "anything nimo has done, /undo --all for the lot"
     if [ "$NIMO_AUTO" = "1" ]; then
-        nimo_repl_row ● /auto    "on — /auto off puts the questions back"
+        nimo_repl_row ● /auto    "on, /auto off puts the questions back"
     else
-        nimo_repl_row ○ /auto    "stop asking me — one yes for the session"
+        nimo_repl_row ○ /auto    "stop asking me, one yes for the session"
     fi
     nimo_blank
 
@@ -279,7 +279,7 @@ nimo_auto_explain() {
     nimo_panel_open "yes to everything"
     nimo_say "nimo stops asking. Every command runs the moment you type it."
     nimo_blank
-    nimo_dim "this covers this session only — it is off again next time"
+    nimo_dim "this covers this session only, it is off again next time"
     nimo_dim "undo still works for everything that has one:  /undo"
     nimo_dim "the trash is the exception. /empty has no undo, auto or not."
     nimo_panel_close
@@ -298,7 +298,7 @@ nimo_auto_set() {
 
     if [ "$NIMO_AUTO" = "1" ]; then
         nimo_blank
-        nimo_dim "already on — /auto off to turn it back"
+        nimo_dim "already on, /auto off to turn it back"
         nimo_blank
         return 0
     fi
@@ -440,7 +440,7 @@ nimo_repl_do() {
         # the whole line, spelled right, before falling back to one word
         if [ "$fixed" != "$phrase" ] && [ -n "$(nimo_repl_command "$fixed")" ]; then
             nimo_blank
-            nimo_warn "nimo does not know \"$phrase\" — did you mean /$fixed?"
+            nimo_warn "nimo does not know \"$phrase\", did you mean /$fixed?"
             nimo_blank
             return 0
         fi
@@ -448,7 +448,7 @@ nimo_repl_do() {
         guess=$(nimo_repl_guess "$phrase") || guess=""
         nimo_blank
         if [ -n "$guess" ]; then
-            nimo_warn "nimo does not know \"$phrase\" — did you mean /$guess?"
+            nimo_warn "nimo does not know \"$phrase\", did you mean /$guess?"
         else
             nimo_warn "nimo does not know \"$phrase\""
             nimo_dim "type / to see everything it does know"
@@ -478,7 +478,7 @@ nimo_repl() {
     fi
     nimo_blank
     if [ "$NIMO_AUTO" = "1" ]; then
-        nimo_dim "auto is on — nothing will ask. /auto off to change that."
+        nimo_dim "auto is on, nothing will ask. /auto off to change that."
     else
         nimo_dim "/ to see what it can do"
     fi

@@ -254,7 +254,7 @@ nimo_cmd_setup() {
         macos|windows) ;;
         *)
             nimo_warn "min setup knows how to tune macOS and Windows, not this."
-            nimo_dim "everything else in nimo works here — try  min clean"
+            nimo_dim "everything else in nimo works here, try  min clean"
             nimo_blank
             return 0 ;;
     esac
@@ -271,13 +271,13 @@ nimo_cmd_setup() {
 
     if [ "$planned" = "0" ]; then
         nimo_blank
-        nimo_warn "no matching group — try  min setup --list"
+        nimo_warn "no matching group, try  min setup --list"
         nimo_blank
         return 1
     fi
 
     nimo_blank
-    nimo_dim "these are preferences only — no files are touched, nothing needs sudo"
+    nimo_dim "these are preferences only, no files are touched, nothing needs sudo"
     nimo_blank
 
     if [ "${NIMO_DRY_RUN:-0}" != "1" ]; then
@@ -305,7 +305,7 @@ nimo_cmd_setup() {
 
     if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
         nimo_blank
-        nimo_dim "preview only — nothing was changed"
+        nimo_dim "preview only, nothing was changed"
         nimo_blank
         return 0
     fi
@@ -352,7 +352,7 @@ nimo_zen_windows() {
 
     if [ "$showing" = "$want" ]; then
         nimo_blank
-        nimo_dim "already like that — nothing to do"
+        nimo_dim "already like that, nothing to do"
         nimo_panel_close
         nimo_blank
         return 0
@@ -363,7 +363,7 @@ nimo_zen_windows() {
 
     if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
         nimo_win_icons_apply "$want"
-        nimo_dim "preview only — nothing was changed"
+        nimo_dim "preview only, nothing was changed"
         nimo_blank
         return 0
     fi
@@ -386,7 +386,7 @@ nimo_zen_windows() {
         nimo_ok "Quiet desktop."
         nimo_dim "bring it back with  min zen --restore"
     fi
-    nimo_dim "Explorer picks this up when it next redraws — sign out and back"
+    nimo_dim "Explorer picks this up when it next redraws, sign out and back"
     nimo_dim "in if it has not by then"
     nimo_blank
     return 0
@@ -431,7 +431,7 @@ nimo_cmd_zen() {
 
     if [ "$showing" = "$want" ]; then
         nimo_blank
-        nimo_dim "already like that — nothing to do"
+        nimo_dim "already like that, nothing to do"
         nimo_panel_close
         nimo_blank
         return 0
@@ -442,7 +442,7 @@ nimo_cmd_zen() {
 
     if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
         nimo_dim "\$ defaults write com.apple.finder CreateDesktop -bool $([ "$want" = 1 ] && echo true || echo false)"
-        nimo_dim "preview only — nothing was changed"
+        nimo_dim "preview only, nothing was changed"
         nimo_blank
         return 0
     fi

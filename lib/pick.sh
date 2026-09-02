@@ -166,7 +166,7 @@ nimo_pick_by_number() {
     local mode="$1" hint="$2" n="$3" answer="" clean="" x
 
     if [ "$mode" = "multi" ]; then
-        printf '  Numbers, separated by spaces — or  all  (enter for none): ' >&2
+        printf '  Numbers, separated by spaces, or  all  (enter for none): ' >&2
     else
         printf '  Which one? 1-%s (enter to cancel): ' "$n" >&2
     fi

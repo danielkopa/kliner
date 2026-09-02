@@ -1141,9 +1141,17 @@ check "and a folded row keeps its name"     "grep -q 'toolTip = yes ? name.strin
 # behind the bar. Each of the three has to be there, in that order, or the
 # page is a figure with no working shown.
 check "home is laid out as cards"            \
-    "grep -q 'final class Card' '$APP/Sources/main.swift' && grep -q 'let card = Card(\"Your disk\")' '$APP/Sources/main.swift'"
-check "each card shows the number, the bar and the table" \
-    "awk '/let card = Card\\(\"Your disk\"\\)/{c=NR} /card.add\\(Figure\\(size\\(free\\)/{f=NR} /card.add\\(Split\\(bands\\)/{s=NR} /card.add\\(Ledger\\(colour: band.colour/{l=NR} END{exit !(c && f && s && l && c<f && f<s && s<l)}' '$APP/Sources/main.swift'"
+    "grep -q 'final class Card' '$APP/Sources/main.swift' && grep -q 'let card = Card(\"What is on your disk\")' '$APP/Sources/main.swift'"
+# The figures across the top, then the bar they came out of, then the table
+# behind the bar. Out of that order it is three unrelated pictures.
+check "the figures sit above the bar, and the bar above the table" \
+    "awk '/across.addArrangedSubview\\(Metric\\(\"Disk\"/{m=NR} /card.add\\(Split\\(bands\\)/{s=NR} /card.add\\(Ledger\\(colour: band.colour/{l=NR} END{exit !(m && s && l && m<s && s<l)}' '$APP/Sources/main.swift'"
+check "a figure with a ceiling gets a meter" \
+    "grep -q 'final class Meter' '$APP/Sources/main.swift' && grep -q 'of: size(total)' '$APP/Sources/main.swift'"
+# One colour at falling strengths, not a palette. A breakdown in five colours
+# is a chart to be decoded.
+check "the breakdown is drawn in one colour" \
+    "grep -q 'static func band(' '$APP/Sources/main.swift' && ! grep -qE '\\.system(Blue|Purple|Pink|Orange|Teal|Indigo|Green)' '$APP/Sources/main.swift'"
 # Proportional widths and a gap between the pieces cannot both be constraints
 # without one of them being broken, so the bar lays itself out.
 check "the bar is cut in proportion, not by eye" \
@@ -1252,8 +1260,16 @@ check "the face drifts while it says hello" "grep -q 'final class Floating' '$AP
 # not only the first, and it leans over whatever has just been written.
 check "the face is on every page of the setup" \
     "grep -q 'let face = mascot ?? Floating()' '$APP/Sources/main.swift' && grep -q 'face.nod()' '$APP/Sources/main.swift'"
-check "and it is drawn in a disc, not loose on the page" \
-    "grep -q 'private let disc = NSView()' '$APP/Sources/main.swift'"
+check "and nothing is drawn behind it"       \
+    "! grep -q 'private let disc = NSView()' '$APP/Sources/main.swift'"
+check "it moves on two clocks that never line up" \
+    "grep -q 'forKey: \"drifting\"' '$APP/Sources/main.swift' && grep -q 'forKey: \"tilting\"' '$APP/Sources/main.swift' && grep -q 'forKey: \"swelling\"' '$APP/Sources/main.swift'"
+# A Mac says "the one before" with two fingers. The setup is four pages and
+# the app is a list of them, so both are somewhere to go.
+check "a sideways push turns the page"       \
+    "grep -q 'final class Pages' '$APP/Sources/main.swift' && grep -q 'func swipedBack' '$APP/Sources/main.swift'"
+check "and a mouse wheel that goes sideways counts too" \
+    "grep -q 'event.phase != \\[\\]' '$APP/Sources/main.swift'"
 # A setup that has grown a page is a setup nobody has read. Stamping which one
 # was read, rather than that one was, is what shows it again.
 check "a setup nobody has seen is shown once more" \
@@ -1267,6 +1283,9 @@ check "every page's buttons are one group of pictures" \
     "grep -q 'symbolic: Bool = true' '$APP/Sources/main.swift' && ! grep -q 'runButton' '$APP/Sources/main.swift'"
 check "and every page says what its button does" \
     "[ \$(grep -c '^ *does: \\\"' '$APP/Sources/main.swift') = 9 ]"
+# He asked for the dash gone from everything anybody reads.
+check "nothing on screen is joined with a dash" \
+    "! grep -qE '\"[^\"]*—[^\"]*\"' '$APP/Sources/main.swift'"
 check "the words live on the tooltips"      \
     "grep -q 'first.toolTip = item.verb' '$APP/Sources/main.swift'"
 # The row of buttons sits opposite the page title, not underneath it, so one
@@ -1288,11 +1307,28 @@ check "and reading it puts the dot out"      \
 # site against them by hand.
 check "every call names its arguments in the order they are declared" \
     "python3 '$ROOT/tools/argorder.py' '$APP/Sources/main.swift'"
-# The waiting ring traces the artwork's own outline, and the artwork reaches
-# 0.528 of its width from the centre. A ring drawn much wider than that is a
-# ring the face sits inside rather than one around it.
-check "the waiting ring is the size of the face"  \
-    "python3 '$ROOT/tools/ringcheck.py' '$APP/Resources/mascot@3x.png' '$APP/Sources/main.swift'"
+# The waiting ring traces the artwork's own outline. Both the outline and how
+# far it reaches are read out of the file, because an outline somebody typed
+# is an outline that drifts away from the drawing, and one measured down the
+# image instead of up it is the drawing upside down.
+check "the waiting ring is the shape in the drawing" \
+    "python3 '$ROOT/tools/outline.py' '$ROOT/assets/app/outline.png' '$APP/Sources/main.swift'"
+check "and it lies on the face, not around it" \
+    "grep -q 'Thinking.path(around: middle, size: Thinking.across)' '$APP/Sources/main.swift'"
+# Once a page has been read, coming back to it draws what it said. Walking a
+# home folder again to be told the same thing is the app wasting your time.
+check "a page you have already opened is not run again" \
+    "grep -q 'if let already = kept\\[index\\]' '$APP/Sources/main.swift'"
+check "and what it said is what comes back"  \
+    "grep -q 'self.kept\\[asked\\] = pieces' '$APP/Sources/main.swift'"
+# The same cards on every page, so moving between them is moving between
+# pages of one thing.
+check "every page is built out of the same cards" \
+    "grep -q 'func put(_ view: NSView' '$APP/Sources/main.swift' && grep -q 'card = Card(title)' '$APP/Sources/main.swift'"
+check "and a page that reports figures puts them on top" \
+    "grep -q 'across.addArrangedSubview(Metric(label' '$APP/Sources/main.swift'"
+check "with the whole of it faint behind it" \
+    "grep -q 'private let track = CAShapeLayer()' '$APP/Sources/main.swift'"
 check "and a preview can never be given --yes" \
     "! grep -qE 'preview.*--yes|--yes.*preview' '$APP/Sources/main.swift'"
 # Every Action literal must carry a symbol, or a row down the side is blank.

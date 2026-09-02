@@ -66,13 +66,13 @@ nimo_cmd_appearance() {
     nimo_panel_close
 
     if [ "$now" = "$want" ]; then
-        nimo_dim "already $want — nothing to do"
+        nimo_dim "already $want, nothing to do"
         nimo_blank
         return 0
     fi
 
     if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
-        nimo_dim "preview only — nothing was changed"
+        nimo_dim "preview only, nothing was changed"
         nimo_blank
         return 0
     fi
@@ -127,7 +127,7 @@ nimo_hide_windows() {
     nimo_panel_close
 
     if [ "$hidden" = "$want" ]; then
-        nimo_dim "already like that — nothing to do"
+        nimo_dim "already like that, nothing to do"
         nimo_blank
         return 0
     fi
@@ -135,7 +135,7 @@ nimo_hide_windows() {
     if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
         nimo_blank
         nimo_win_taskbar_hide "$want"
-        nimo_dim "preview only — nothing was changed"
+        nimo_dim "preview only, nothing was changed"
         nimo_blank
         return 0
     fi
@@ -153,7 +153,7 @@ nimo_hide_windows() {
     nimo_ok "$([ "$want" = 1 ] && echo "Set to slide away." || echo "Set to stay put.")"
     nimo_blank
     nimo_dim "the taskbar reads this when Explorer starts, so it needs a restart"
-    nimo_dim "nothing is lost by that — no files, no icon positions, no windows"
+    nimo_dim "nothing is lost by that, no files, no icon positions, no windows"
     nimo_dim "with unsaved work. Signing out and back in does the same thing."
     nimo_blank
 
@@ -204,14 +204,14 @@ nimo_cmd_hide() {
     nimo_panel_close
 
     if [ "$hidden" = "$want" ]; then
-        nimo_dim "already like that — nothing to do"
+        nimo_dim "already like that, nothing to do"
         nimo_blank
         return 0
     fi
 
     if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
         nimo_dim "\$ defaults write NSGlobalDomain _HIHideMenuBar -bool $([ "$want" = 1 ] && echo true || echo false)"
-        nimo_dim "preview only — nothing was changed"
+        nimo_dim "preview only, nothing was changed"
         nimo_blank
         return 0
     fi

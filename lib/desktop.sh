@@ -253,7 +253,7 @@ nimo_sort_undo() {
     fi
 
     if [ -z "$latest" ] || [ ! -f "$latest" ]; then
-        nimo_dim "nimo has not moved anything here yet — nothing to undo"
+        nimo_dim "nimo has not moved anything here yet, nothing to undo"
         nimo_panel_close
         nimo_blank
         return 0
@@ -316,7 +316,7 @@ nimo_sort_folder() {
     nimo_panel_open "$title"
 
     if [ "$count" -eq 0 ]; then
-        nimo_ok "Nothing to sort — it is already clear."
+        nimo_ok "Nothing to sort, it is already clear."
         nimo_panel_close
         nimo_blank
         return 0
@@ -361,7 +361,7 @@ EOF
     arriving=$(nimo_arriving_count "$src")
     if [ "$arriving" -gt 0 ]; then
         nimo_blank
-        nimo_dim "$(nimo_plural "$arriving" file) still downloading — left alone"
+        nimo_dim "$(nimo_plural "$arriving" file) still downloading, left alone"
     fi
     odd=$(nimo_unnameable_count "$src")
     if [ "$odd" -gt 0 ]; then
@@ -382,7 +382,7 @@ EOF
     nimo_blank
 
     if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
-        nimo_dim "preview only — nothing was moved"
+        nimo_dim "preview only, nothing was moved"
         nimo_blank
         return 0
     fi
@@ -420,7 +420,7 @@ EOF
     nimo_progress_done
 
     nimo_blank
-    nimo_ok "Sorted — $(nimo_plural "$moved" item) filed away"
+    nimo_ok "Sorted, $(nimo_plural "$moved" item) filed away"
     nimo_dim "${root#$HOME/}/"
     [ "$failed" -gt 0 ] && nimo_warn "$failed could not be moved and were left where they are"
     nimo_blank
@@ -482,7 +482,7 @@ EOF
     nimo_panel_open "your screenshots"
 
     if [ "$count" -eq 0 ]; then
-        nimo_ok "No loose screenshots — nothing to gather."
+        nimo_ok "No loose screenshots, nothing to gather."
         nimo_panel_close
         nimo_blank
         return 0
@@ -511,7 +511,7 @@ EOF
     nimo_blank
 
     if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
-        nimo_dim "preview only — nothing was moved"
+        nimo_dim "preview only, nothing was moved"
         nimo_blank
         return 0
     fi
@@ -542,7 +542,7 @@ $found
 EOF
 
     nimo_blank
-    nimo_ok "Gathered — $(nimo_plural "$moved" screenshot) in one place"
+    nimo_ok "Gathered, $(nimo_plural "$moved" screenshot) in one place"
     nimo_dim "Pictures/Screenshots/"
     [ "$failed" -gt 0 ] && nimo_warn "$failed could not be moved"
     nimo_blank

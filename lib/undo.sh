@@ -123,7 +123,7 @@ EOF
 $labels
 EOF
             nimo_blank
-            nimo_dim "preview only — nothing was put back"
+            nimo_dim "preview only, nothing was put back"
             nimo_blank
             return 0
         fi

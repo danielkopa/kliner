@@ -158,7 +158,7 @@ nimo_is_protected() {
 nimo_confirm() {
     [ "${NIMO_ASSUME_YES:-0}" = "1" ] && return 0
     if [ ! -t 0 ]; then
-        nimo_warn "not a terminal — refusing to continue without confirmation (use --yes)"
+        nimo_warn "not a terminal, refusing to continue without confirmation (use --yes)"
         return 1
     fi
     local answer=""

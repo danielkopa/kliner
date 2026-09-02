@@ -49,7 +49,7 @@ nimo_dock_restore() {
     [ -n "$latest" ] || latest=$(nimo_newest "$NIMO_BACKUP_DIR"/dock-*.plist) || latest=""
 
     if [ -z "$latest" ]; then
-        nimo_dim "no dock backup yet — nimo has not changed your dock"
+        nimo_dim "no dock backup yet, nimo has not changed your dock"
         nimo_panel_close
         nimo_blank
         return 0
@@ -104,7 +104,7 @@ nimo_cmd_dock_fast() {
     nimo_blank
 
     if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
-        nimo_dim "preview only — nothing was changed"
+        nimo_dim "preview only, nothing was changed"
         nimo_blank
         return 0
     fi
@@ -170,7 +170,7 @@ INNER
     nimo_total "Pinned" "$(nimo_plural "$count" app)"
     nimo_panel_close
     nimo_blank
-    nimo_dim "unpinning does not uninstall anything — the app stays exactly"
+    nimo_dim "unpinning does not uninstall anything, the app stays exactly"
     nimo_dim "where it is, and  min dock --restore  puts the pins back"
     nimo_blank
 
@@ -187,7 +187,7 @@ INNER
         return 0
     fi
     if [ -z "$wanted" ]; then
-        nimo_dim "nothing ticked — your taskbar is as it was"
+        nimo_dim "nothing ticked, your taskbar is as it was"
         nimo_blank
         return 0
     fi
@@ -265,7 +265,7 @@ nimo_cmd_dock() {
     nimo_panel_open "your dock"
 
     if [ "$count" -eq 0 ]; then
-        nimo_dim "nimo cannot read your dock — nothing was changed"
+        nimo_dim "nimo cannot read your dock, nothing was changed"
         nimo_panel_close
         nimo_blank
         return 1
@@ -318,7 +318,7 @@ EOF
 
     if [ -z "$(printf '%s' "$wanted" | tr -d ' ')" ]; then
         nimo_blank
-        nimo_dim "nothing ticked — your dock is exactly as it was"
+        nimo_dim "nothing ticked, your dock is exactly as it was"
         nimo_blank
         return 0
     fi
@@ -351,7 +351,7 @@ EOF
     dropped=$(nimo_line_count "$drop")
     if [ "$dropped" -eq 0 ]; then
         nimo_blank
-        nimo_dim "those numbers matched nothing — your dock is as it was"
+        nimo_dim "those numbers matched nothing, your dock is as it was"
         nimo_blank
         return 0
     fi
@@ -362,7 +362,7 @@ EOF
         [ -n "$name" ] && nimo_dim "  $name"
     done
     nimo_blank
-    nimo_dim "the apps stay installed — only the dock icons go"
+    nimo_dim "the apps stay installed, only the dock icons go"
     nimo_blank
 
     if ! nimo_confirm "Rebuild your dock without them?"; then
@@ -375,7 +375,7 @@ EOF
     local backup
     backup=$(nimo_dock_backup) || backup=""
     if [ -z "$backup" ]; then
-        nimo_err "could not back up your dock — refusing to change it"
+        nimo_err "could not back up your dock, refusing to change it"
         nimo_blank
         return 1
     fi
@@ -383,7 +383,7 @@ EOF
     printf '%s' "$keep" | nimo_dock_rewrite
 
     nimo_blank
-    nimo_ok "Dock rebuilt — $(nimo_plural "$dropped" app) fewer"
+    nimo_ok "Dock rebuilt, $(nimo_plural "$dropped" app) fewer"
     nimo_dim "backup: $(basename "$backup")   ·   undo with  min dock --restore"
     nimo_blank
     return 0

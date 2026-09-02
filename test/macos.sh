@@ -567,7 +567,7 @@ check "wallpaper marks its own pick"       "printf '%s' \"\$LIST\" | grep -q 'ni
 check "--list sets nothing"                "[ ! -s '$SCRIPTED' ] || ! grep -q 'set picture to' '$SCRIPTED'"
 
 OUT=$(wall set)
-check "wallpaper prefers a solid colour"   "printf '%s' \"\$OUT\" | grep -q 'Wallpaper set — Black'"
+check "wallpaper prefers a solid colour"   "printf '%s' \"\$OUT\" | grep -q 'Wallpaper set, Black'"
 check "wallpaper actually asked the system" "grep -q 'set picture to' '$SCRIPTED'"
 check "it saved what you had before"       "grep -q 'Sonoma Horizon' '$BOX/.nimo/backups/wallpaper.txt'"
 

@@ -156,7 +156,7 @@ nimo_cmd_clean() {
 
     if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
         nimo_blank
-        nimo_dim "preview only — nothing was deleted"
+        nimo_dim "preview only, nothing was deleted"
         nimo_dim "run  min clean  when you want nimo to actually free this up"
         nimo_blank
         return 0

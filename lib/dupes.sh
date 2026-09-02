@@ -127,7 +127,7 @@ EOF
     nimo_total "$(nimo_plural "$groups" file) kept more than once" "$(nimo_human_kb "$wasted")"
     nimo_panel_close
     nimo_dim "$(nimo_human_kb "$wasted") of that is copies you already have"
-    nimo_dim "nimo does not delete any of them — it cannot know which one you meant"
+    nimo_dim "nimo does not delete any of them, it cannot know which one you meant"
     nimo_blank
     return 0
 }

@@ -249,7 +249,7 @@ $targets
 INNER
 
     if [ -z "$found" ]; then
-        nimo_warn "nimo cannot stop \"$NIMO_ONLY\" — it is not one of the ones it can change"
+        nimo_warn "nimo cannot stop \"$NIMO_ONLY\", it is not one of the ones it can change"
         nimo_blank
         return 1
     fi
@@ -375,7 +375,7 @@ INNER
     nimo_panel_close
 
     nimo_blank
-    nimo_dim "nothing here is uninstalled or deleted — a program you stop still"
+    nimo_dim "nothing here is uninstalled or deleted, a program you stop still"
     nimo_dim "starts when you open it yourself"
     nimo_blank
 
@@ -406,7 +406,7 @@ INNER
         return 0
     fi
     if [ -z "$wanted" ]; then
-        nimo_dim "nothing ticked — nothing was changed"
+        nimo_dim "nothing ticked, nothing was changed"
         nimo_blank
         return 0
     fi

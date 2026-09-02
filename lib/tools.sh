@@ -106,7 +106,7 @@ nimo_cmd_top() {
         # One question, and only one: is there anybody here to answer it?
         if ! nimo_pick_capable || [ "${NIMO_LIST:-0}" = "1" ]; then
             nimo_blank
-            nimo_dim "this is only a measurement — nothing here is deleted or changed"
+            nimo_dim "this is only a measurement, nothing here is deleted or changed"
             if [ "$drew" = "0" ]; then
                 nimo_dim "in a terminal you can step into these:  min top"
             fi
@@ -130,7 +130,7 @@ nimo_cmd_top() {
         if ! choice=$(nimo_pick single "↑↓ move   enter look inside   q stop" "$labels") \
            || [ -z "$choice" ]; then
             nimo_blank
-            nimo_dim "nothing was changed — min top only ever measures"
+            nimo_dim "nothing was changed, min top only ever measures"
             nimo_blank
             return 0
         fi
@@ -320,7 +320,7 @@ nimo_cmd_doctor() {
     if [ -n "$where" ]; then
         nimo_fact "nimo" "v$NIMO_VERSION" "$where"
     else
-        nimo_fact "nimo" "v$NIMO_VERSION" "not on your PATH — run ./install.sh"
+        nimo_fact "nimo" "v$NIMO_VERSION" "not on your PATH, run ./install.sh"
     fi
     nimo_panel_close
     nimo_blank

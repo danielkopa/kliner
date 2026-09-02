@@ -49,7 +49,7 @@ nimo_cmd_blank() {
     fi
 
     if [ -d "$target" ]; then
-        nimo_warn "$target is a folder — nimo empties files, not folders"
+        nimo_warn "$target is a folder, nimo empties files, not folders"
         nimo_dim "for a folder full of things:  min clear"
         nimo_blank
         return 1
@@ -59,14 +59,14 @@ nimo_cmd_blank() {
     # points at. `~/notes.txt -> /etc/hosts` passes a guard that only reads
     # the path, and then truncates something nimo has no business touching.
     if [ -L "$target" ]; then
-        nimo_warn "$(basename "$target") is a link — nimo will not empty what it points at"
+        nimo_warn "$(basename "$target") is a link, nimo will not empty what it points at"
         nimo_dim "name the file itself if that is what you meant"
         nimo_blank
         return 1
     fi
 
     if nimo_is_protected "$target"; then
-        nimo_err "that is outside your home folder — nimo will not touch it"
+        nimo_err "that is outside your home folder, nimo will not touch it"
         nimo_blank
         return 1
     fi
@@ -92,7 +92,7 @@ nimo_cmd_blank() {
     nimo_blank
 
     if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
-        nimo_dim "preview only — nothing was emptied"
+        nimo_dim "preview only, nothing was emptied"
         nimo_blank
         return 0
     fi
@@ -119,7 +119,7 @@ nimo_cmd_blank() {
     : > "$target"
 
     nimo_blank
-    nimo_ok "Empty — $(nimo_human_bytes "${bytes:-0}") of it kept"
+    nimo_ok "Empty, $(nimo_human_bytes "${bytes:-0}") of it kept"
     nimo_dim "put it back with  min undo"
     nimo_blank
     return 0
@@ -134,7 +134,7 @@ nimo_blank_undo() {
     [ -n "$latest" ] || latest=$(nimo_newest "$NIMO_UNDO_DIR"/blank-*.tsv) || latest=""
 
     if [ -z "$latest" ] || [ ! -f "$latest" ]; then
-        nimo_dim "nimo has not emptied a file yet — nothing to undo"
+        nimo_dim "nimo has not emptied a file yet, nothing to undo"
         nimo_panel_close
         nimo_blank
         return 0

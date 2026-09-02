@@ -81,7 +81,7 @@ nimo_usage() {
     min clear           pick what should be clear: desktop, dock, downloads …
     min clear desktop   or say it outright
     min wallpaper       flip through the ones your system ships with, live
-    min next            the next one — min prev goes back
+    min next            the next one, min prev goes back
     min setup           a small, sane setup for this computer
     min undo            put anything back
 
@@ -91,8 +91,8 @@ nimo_usage() {
     min downloads       the same, for your downloads
     min screenshots     gather every loose screenshot into one place
     min zen             stop drawing icons on the desktop at all
-    min dark            switch appearance — min light switches back
-    min hide            let the menu bar — or the taskbar — slide away
+    min dark            switch appearance, min light switches back
+    min hide            let the menu bar or the taskbar slide away
     min duplicates      the same file, kept more than once
     min apps            what you installed once and never opened again
     min startup         what launches when you sign in, and what stops
@@ -104,7 +104,7 @@ nimo_usage() {
 
     min clean           scan your computer, then free up space
     min preview         the same scan, without touching anything
-    min top             the biggest things in your home — step into them
+    min top             the biggest things in your home, step into them
     min doctor          how your computer is doing
     min update          pull the newest nimo
     min help            show this
