@@ -1245,6 +1245,11 @@ check "and every page says what its button does" \
     "[ \$(grep -c '^ *does: \\\"' '$APP/Sources/main.swift') = 9 ]"
 check "the words live on the tooltips"      \
     "grep -q 'first.toolTip = item.verb' '$APP/Sources/main.swift'"
+# Swift will not reorder labelled arguments for you. Since nothing here can
+# compile Swift, read the initialisers out of the source and check every call
+# site against them by hand.
+check "every call names its arguments in the order they are declared" \
+    "python3 '$ROOT/tools/argorder.py' '$APP/Sources/main.swift'"
 check "and a preview can never be given --yes" \
     "! grep -qE 'preview.*--yes|--yes.*preview' '$APP/Sources/main.swift'"
 # Every Action literal must carry a symbol, or a row down the side is blank.

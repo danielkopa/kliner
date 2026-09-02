@@ -151,9 +151,9 @@ struct Action {
     let does: String
 
     init(title: String, blurb: String, verb: String, arguments: [String],
-         asks: String?, group: String, symbol: String,
+         asks: String?, group: String, symbol: String, does: String = "play",
          extras: [Extra] = [], reveal: String? = nil, walks: Bool = false,
-         looksOnly: Bool = true, symbolic: Bool = true, does: String = "play") {
+         looksOnly: Bool = true, symbolic: Bool = true) {
         self.title = title; self.blurb = blurb; self.verb = verb
         self.arguments = arguments; self.asks = asks; self.group = group
         self.symbol = symbol; self.extras = extras; self.reveal = reveal
@@ -180,7 +180,7 @@ struct Action {
                              asks: nil,
                              group: "",
                              symbol: "house",
-               does: "arrow.clockwise")
+                             does: "arrow.clockwise")
 
     static let putBack = "Move everything back where it was?\n\nnimo wrote down every move it made, so this is exact."
 
