@@ -1386,7 +1386,7 @@ check "and it says where that page belongs"  \
 # With the list shut the page starts under the buttons, so the name gives way
 # rather than printing over one.
 check "and it never prints over a button"    \
-    "grep -q 'titleLeading.priority = .defaultHigh' '$APP/Sources/main.swift' && grep -q 'titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: seek.trailingAnchor' '$APP/Sources/main.swift'"
+    "grep -q 'titleLeading.priority = .defaultHigh' '$APP/Sources/main.swift' && grep -q 'titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: chrome.trailingAnchor' '$APP/Sources/main.swift'"
 # The page you are on is the dark one in the list. A filled pill behind it as
 # well says the same thing twice.
 check "the list marks the page by weight, not by a box" \
@@ -1485,8 +1485,11 @@ check "proved by the pixels, not by the name" \
 check "the meter fills rather than appearing filled" \
     "grep -q 'forKey: \"filling\"' '$APP/Sources/main.swift'"
 # The way to find a page belongs with the pages.
-check "the search field lives in the row"    \
-    "grep -q 'seek.leadingAnchor.constraint(equalTo: chrome.trailingAnchor' '$APP/Sources/main.swift'"
+# The way to find a page belongs with the pages. In the row along the top it
+# sat between the chrome and the name of the page, which is nothing to do with
+# either.
+check "the search field lives with the list" \
+    "grep -q 'stack.addArrangedSubview(seek)' '$APP/Sources/main.swift' && grep -q 'search.isHidden = narrow' '$APP/Sources/main.swift'"
 # Lists drawn by Kliner, not handed to the menu server: the same rows,
 # hairlines and fills as everything else in the window.
 check "the lists that open are drawn here"   \

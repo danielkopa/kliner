@@ -1264,7 +1264,18 @@ final class Main: NSObject, NSWindowDelegate {
             mark.heightAnchor.constraint(equalToConstant: 22),
             markWidth,
         ])
-        stack.setCustomSpacing(Step.air, after: mark)
+        stack.setCustomSpacing(Step.close, after: mark)
+
+        // The way to find a page belongs with the pages: under the mark, the
+        // width of the list. In the row along the top it sat between the
+        // chrome and the name of the page, which is nothing to do with either.
+        let seek = Seek()
+        seek.onType = { [weak self] words in self?.sieve(words) }
+        seek.onGo = { [weak self] in self?.openFirstMatch() }
+        search = seek
+        stack.addArrangedSubview(seek)
+        seek.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        stack.setCustomSpacing(Step.wide, after: seek)
 
 
         // Five places, each opening on the first of the things it holds. What
@@ -1351,13 +1362,7 @@ final class Main: NSObject, NSWindowDelegate {
         titleLabel.onClick = { [weak self] in self?.offerSiblings() }
         content.addSubview(titleLabel)
 
-        // The way to find a page, in the row along the top after the chrome,
-        // wide enough to type into and out of the way of everything else.
-        let seek = Seek()
-        seek.onType = { [weak self] words in self?.sieve(words) }
-        seek.onGo = { [weak self] in self?.openFirstMatch() }
-        search = seek
-        content.addSubview(seek)
+
 
         // The right of the row is two things. The bell, because something may
         // have happened while you were not looking. And, only on the pages
@@ -1415,7 +1420,7 @@ final class Main: NSObject, NSWindowDelegate {
         // buttons, and a name printed over a button is worse than a name that
         // has moved along.
         titleLeading = titleLabel.leadingAnchor.constraint(equalTo: edge.trailingAnchor,
-                                                           constant: Step.edge)
+                                                           constant: Step.air)
         titleLeading.priority = .defaultHigh
 
         NSLayoutConstraint.activate([
@@ -1453,12 +1458,8 @@ final class Main: NSObject, NSWindowDelegate {
                                               constant: -Step.air),
             buttons.centerYAnchor.constraint(equalTo: chrome.centerYAnchor),
 
-            seek.leadingAnchor.constraint(equalTo: chrome.trailingAnchor, constant: Step.close),
-            seek.centerYAnchor.constraint(equalTo: chrome.centerYAnchor),
-            seek.widthAnchor.constraint(equalToConstant: 260),
-
             titleLeading,
-            titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: seek.trailingAnchor,
+            titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: chrome.trailingAnchor,
                                                 constant: Step.air),
             titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: buttons.leadingAnchor,
                                                  constant: -Step.air),
@@ -3019,6 +3020,8 @@ final class Main: NSObject, NSWindowDelegate {
         }
         for row in rows { row.narrow(narrow) }
         for head in groupLabels { head.isHidden = narrow }
+        // A search field 38 points wide is a search field nobody can type in.
+        search.isHidden = narrow
 
         wordmark.fold(narrow)
         markWidth.constant = narrow ? 38 : 190
