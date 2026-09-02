@@ -41,7 +41,7 @@ def initialisers(lines):
         if head:
             owner = head.group(1)
             continue
-        if not owner or not re.match(r'^    init[?]?\(', line):
+        if not owner or not re.match(r'^    (?:convenience )?init[?]?\(', line):
             continue
 
         text = ''
@@ -68,8 +68,11 @@ def initialisers(lines):
             # with its label left off, and that is not a missing argument.
             if '=' not in one and '->' not in kind:
                 must.append(head[0])
-        found[owner] = (order, must)
-        owner = None
+        # A type can have more than one way in. A call has to match one of
+        # them, not all of them.
+        # Kept, not cleared: a type can declare more than one way in, and the
+        # next `class` or `struct` line is what ends its list.
+        found.setdefault(owner, []).append((order, must))
     return found
 
 
@@ -107,29 +110,34 @@ def main():
     source = open(path).read()
     known = initialisers(source.split('\n'))
 
+    def wrong(order, must, labels):
+        """What is wrong with this call against this initialiser, if anything."""
+        said = []
+        for label in must:
+            if label not in labels:
+                said.append('needs an argument called %s' % label)
+        at = -1
+        for label in labels:
+            if label not in order:
+                said.append('has no argument called %s' % label)
+                continue
+            if order.index(label) < at:
+                said.append('takes %s before %s' % (order[at], label))
+            at = max(at, order.index(label))
+        return said
+
     bad = 0
     seen = 0
     for name in sorted(known):
-        order, must = known[name]
+        ways = known[name]
         for line, labels in calls(source, name):
             seen += 1
-            for label in must:
-                if label not in labels:
-                    print('%s:%d: %s needs an argument called %s'
-                          % (path, line, name, label))
-                    bad += 1
-            at = -1
-            for label in labels:
-                if label not in order:
-                    print('%s:%d: %s has no argument called %s'
-                          % (path, line, name, label))
-                    bad += 1
-                    continue
-                if order.index(label) < at:
-                    print('%s:%d: %s takes %s before %s'
-                          % (path, line, name, order[at], label))
-                    bad += 1
-                at = max(at, order.index(label))
+            trouble = [wrong(order, must, labels) for order, must in ways]
+            if any(not one for one in trouble):
+                continue          # one of the ways in fits
+            for said in min(trouble, key=len):
+                print('%s:%d: %s %s' % (path, line, name, said))
+                bad += 1
     if bad:
         return 1
     print('%d call sites in order' % seen)

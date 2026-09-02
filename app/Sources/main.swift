@@ -27,9 +27,10 @@ enum Words {
     /// The name of the page, once, at the top of it.
     /// The name of the page, in the row along the top, on the same line as
     /// everything else in it. Two weights, because it is written as a trail:
-    /// where you are, in the place it belongs.
-    static let title  = NSFont.systemFont(ofSize: 20, weight: .semibold)
-    static let trail  = NSFont.systemFont(ofSize: 20, weight: .regular)
+    /// where you are, in the place it belongs. Small, because a title bar is
+    /// a title bar and not a headline.
+    static let title  = NSFont.systemFont(ofSize: 14, weight: .semibold)
+    static let trail  = NSFont.systemFont(ofSize: 14, weight: .regular)
     /// The one line that opens the setup.
     static let hero   = NSFont.systemFont(ofSize: 27, weight: .semibold)
     /// A number worth reading across the room. Monospaced digits, so a figure
@@ -60,10 +61,15 @@ enum Step {
     static let page:  CGFloat = 32
     static let edge:  CGFloat = 40
 
-    /// The row across the top of the window. Forty points, so that everything
-    /// in it centred on y = 20 is centred in the row as well, and y = 20 is
-    /// the line macOS puts the three lights on.
-    static let bar:   CGFloat = 40
+    /// The row across the top of the window, and the line everything in it
+    /// stands on.
+    ///
+    /// macOS puts the three lights in a 28 point title bar, 14 across, so
+    /// their middle is at 13. Everything else in the row is put on that line
+    /// and the row is as tall as the title bar, so the row is centred on
+    /// itself and on the lights at the same time.
+    static let bar:   CGFloat = 28
+    static let lights: CGFloat = 13
 }
 
 // MARK: - nimo's colours
@@ -223,8 +229,39 @@ struct Action {
         self.does = does; self.counts = counts
     }
 
-    /// Not one of the things nimo does — the place where you say how it
+    /// One entry in the list down the side. Five places, not nine rows and
+    /// four headings over them: a list you read is a list you can take in at
+    /// a glance, and what is inside a place belongs on the place's own page.
+    struct Place {
+        let title: String
+        let symbol: String
+        /// Which of the things below live here, in the order they appear.
+        let holds: [Int]
+    }
+
+    static let places: [Place] = [
+        Place(title: "Home", symbol: "house", holds: [0]),
+        Place(title: "Desk", symbol: "square.grid.2x2", holds: [1, 2]),
+        Place(title: "Screen", symbol: "display", holds: [3, 4]),
+        Place(title: "Disk", symbol: "internaldrive", holds: [5, 6]),
+        Place(title: "Computer", symbol: "cpu", holds: [7, 8]),
+    ]
+
+    /// Which place a page belongs to.
+    static func place(of index: Int) -> Place? {
+        places.first { $0.holds.contains(index) }
+    }
+
+    /// Not one of the things nimo does, the place where you say how it
     /// should do them.
+    static let help = Action(title: "Help",
+                             blurb: "Every key Kliner answers to.",
+                             verb: "",
+                             arguments: [],
+                             asks: nil,
+                             group: "",
+                             symbol: "questionmark.circle")
+
     static let settings = Action(title: "Settings",
                                  blurb: "How nimo behaves, what it may touch, and where it starts from.",
                                  verb: "",
@@ -835,7 +872,11 @@ final class Row: NSView {
         toolTip = yes ? name.stringValue : nil
     }
 
-    init(_ item: Action, index: Int) {
+    convenience init(_ item: Action, index: Int) {
+        self.init(item.title, symbol: item.symbol, index: index)
+    }
+
+    init(_ title: String, symbol: String, index: Int) {
         self.index = index
         super.init(frame: .zero)
 
@@ -843,7 +884,7 @@ final class Row: NSView {
         wantsLayer = true
         layer?.cornerRadius = 7
 
-        if let picture = NSImage(systemSymbolName: item.symbol, accessibilityDescription: nil) {
+        if let picture = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) {
             picture.isTemplate = true
             icon.image = picture
         }
@@ -851,7 +892,7 @@ final class Row: NSView {
         icon.translatesAutoresizingMaskIntoConstraints = false
         addSubview(icon)
 
-        name.stringValue = item.title
+        name.stringValue = title
         name.lineBreakMode = .byTruncatingTail
         name.translatesAutoresizingMaskIntoConstraints = false
         addSubview(name)
@@ -1061,7 +1102,7 @@ final class Setting: NSView {
 final class Main: NSObject, NSWindowDelegate {
     let window: NSWindow
 
-    private let titleLabel = NSTextField(labelWithString: "")
+    private let titleLabel = Trail()
     private let scroll     = Pages()
     private let report     = NSStackView()
     private var rows: [Row] = []
@@ -1076,6 +1117,8 @@ final class Main: NSObject, NSWindowDelegate {
     private var narrow = false
     private var welcoming = false
     private var step = 0
+    /// Which step was showing, so a page knows which side it is arriving from.
+    private var last = 0
     private var foldButton: Ghost!
     private var backButton: Ghost!
     private var onButton: Ghost!
@@ -1084,6 +1127,8 @@ final class Main: NSObject, NSWindowDelegate {
     private var search: Seek!
     private var bellButton: Bell!
     private var titleLeading: NSLayoutConstraint!
+    private var footStack: NSStackView!
+    private var railLine: NSBox!
     private var mascot: Floating?
 
     /// Which setup has been read. Bumped whenever the setup changes, so a
@@ -1122,6 +1167,7 @@ final class Main: NSObject, NSWindowDelegate {
         _ = window.setFrameAutosaveName("nimo.main")
 
         build()
+        listen()
         if Config.value("welcomed") != Main.setup {
             welcoming = true
             for row in rows { row.choose(false) }
@@ -1130,6 +1176,25 @@ final class Main: NSObject, NSWindowDelegate {
             show(0)
         }
         window.center()
+    }
+
+    /// Up and down move through the list. A window you can only work with a
+    /// mouse is a window somebody has not finished, and arrow keys are not
+    /// something a menu can hold without taking them from every text field in
+    /// the app, so this takes them only when nothing is being typed into and
+    /// no modifier is held.
+    private func listen() {
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self = self, event.window === self.window else { return event }
+            if self.window.firstResponder is NSTextView { return event }
+            guard event.modifierFlags
+                .intersection(.deviceIndependentFlagsMask).isEmpty else { return event }
+            switch event.keyCode {
+            case 125: self.walkList(1);  return nil     // down
+            case 126: self.walkList(-1); return nil     // up
+            default:  return event
+            }
+        }
     }
 
     // MARK: building it
@@ -1187,36 +1252,37 @@ final class Main: NSObject, NSWindowDelegate {
         seek.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         stack.setCustomSpacing(Step.wide, after: seek)
 
-        var lastGroup = ""
-        for (i, item) in Action.all.enumerated() {
-            if item.group != lastGroup, !item.group.isEmpty {
-                lastGroup = item.group
-                if let above = stack.arrangedSubviews.last, i > 0 {
-                    stack.setCustomSpacing(18, after: above)
-                }
-                let head = NSTextField(labelWithString: "  " + item.group)
-                head.font = Words.small
-                head.textColor = Paint.faint
-                groupLabels.append(head)
-                stack.addArrangedSubview(head)
-                stack.setCustomSpacing(6, after: head)
-            }
-
-            let row = Row(item, index: i)
+        // Five places, each opening on the first of the things it holds. What
+        // else is in a place is under the name of the one you are on, which
+        // is one list to read instead of nine rows under four headings.
+        for place in Action.places {
+            guard let first = place.holds.first else { continue }
+            let row = Row(place.title, symbol: place.symbol, index: first)
             row.onClick = { [weak self] which in self?.show(which) }
             stack.addArrangedSubview(row)
             rows.append(row)
-            if i == 0 { stack.setCustomSpacing(20, after: row) }
         }
 
-        // Settings is not one of the things nimo does, so it does not stand in
-        // the same list. It waits at the bottom, under a hairline, where every
-        // Mac keeps its gear.
+        // Settings and Help are not things nimo does, so they do not stand in
+        // the same list. They wait at the bottom, under a hairline, where
+        // every Mac keeps its gear.
+        let feet = NSStackView()
+        feet.orientation = .vertical
+        feet.alignment = .leading
+        feet.spacing = 2
+        feet.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(feet)
+        footStack = feet
+
         settingsRow = Row(Action.settings, index: Action.all.count)
         settingsRow.onClick = { [weak self] _ in self?.show(Action.all.count) }
-        settingsRow.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(settingsRow)
+        feet.addArrangedSubview(settingsRow)
         rows.append(settingsRow)
+
+        let helpRow = Row(Action.help, index: Action.all.count + 1)
+        helpRow.onClick = { [weak self] _ in self?.show(Action.all.count + 1) }
+        feet.addArrangedSubview(helpRow)
+        rows.append(helpRow)
 
         let foot = NSBox()
         foot.boxType = .custom
@@ -1225,9 +1291,9 @@ final class Main: NSObject, NSWindowDelegate {
         foot.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(foot)
         NSLayoutConstraint.activate([
-            foot.leadingAnchor.constraint(equalTo: settingsRow.leadingAnchor, constant: 11),
-            foot.trailingAnchor.constraint(equalTo: settingsRow.trailingAnchor, constant: -11),
-            foot.bottomAnchor.constraint(equalTo: settingsRow.topAnchor, constant: -9),
+            foot.leadingAnchor.constraint(equalTo: feet.leadingAnchor, constant: 11),
+            foot.widthAnchor.constraint(equalTo: settingsRow.widthAnchor, constant: -22),
+            foot.bottomAnchor.constraint(equalTo: feet.topAnchor, constant: -Step.close),
             foot.heightAnchor.constraint(equalToConstant: 1),
         ])
 
@@ -1241,6 +1307,7 @@ final class Main: NSObject, NSWindowDelegate {
         edge.fillColor = Paint.line
         edge.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(edge)
+        railLine = edge
 
         // The chrome, where a Mac puts it: along the top, just past the three
         // lights, so the window has one row of controls and not three corners
@@ -1275,9 +1342,7 @@ final class Main: NSObject, NSWindowDelegate {
         bellButton = bell
         content.addSubview(bell)
 
-        titleLabel.font = Words.title
-        titleLabel.textColor = Paint.ink
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.onClick = { [weak self] in self?.offerSiblings() }
         content.addSubview(titleLabel)
 
         buttons.orientation = .horizontal
@@ -1285,6 +1350,7 @@ final class Main: NSObject, NSWindowDelegate {
         buttons.spacing = 9
         buttons.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(buttons)
+
 
         scroll.onBack = { [weak self] in self?.swipedBack() }
         scroll.onForward = { [weak self] in self?.swipedOn() }
@@ -1324,9 +1390,9 @@ final class Main: NSObject, NSWindowDelegate {
             stack.topAnchor.constraint(equalTo: content.topAnchor, constant: Step.bar + Step.close),
             stackWidth,
 
-            settingsRow.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
-            settingsRow.bottomAnchor.constraint(equalTo: content.bottomAnchor,
-                                                constant: -Step.air),
+            feet.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
+            feet.bottomAnchor.constraint(equalTo: content.bottomAnchor,
+                                         constant: -Step.air),
 
             // The page runs the whole height of the window. The row along the
             // top is not a strip of its own with a colour of its own: it is
@@ -1342,11 +1408,10 @@ final class Main: NSObject, NSWindowDelegate {
             edge.widthAnchor.constraint(equalToConstant: 1),
 
             chromeLeading,
-            // The lights are 12pt across with their centres on y = 20 in a
-            // standard title bar; a 26pt button centred on the same line
-            // starts at 7. Everything else in the row is centred on the same
-            // line, and the row is 40 tall, so the line is its middle.
-            chrome.topAnchor.constraint(equalTo: content.topAnchor, constant: 7),
+            // A 26 point button whose middle is on the lights' line starts at
+            // 13 minus 13. Everything else in the row hangs off this one.
+            chrome.centerYAnchor.constraint(equalTo: content.topAnchor,
+                                            constant: Step.lights),
 
             bell.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -Step.air),
             bell.centerYAnchor.constraint(equalTo: chrome.centerYAnchor),
@@ -1363,7 +1428,8 @@ final class Main: NSObject, NSWindowDelegate {
 
             scroll.leadingAnchor.constraint(equalTo: edge.trailingAnchor),
             scroll.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            scroll.topAnchor.constraint(equalTo: content.topAnchor, constant: Step.bar + Step.close),
+            scroll.topAnchor.constraint(equalTo: content.topAnchor,
+                                        constant: Step.bar + Step.air),
             scroll.bottomAnchor.constraint(equalTo: content.bottomAnchor),
 
             report.leadingAnchor.constraint(equalTo: scroll.contentView.leadingAnchor),
@@ -1424,11 +1490,10 @@ final class Main: NSObject, NSWindowDelegate {
             view.removeFromSuperview()
         }
 
-        // The setup has no page title of its own — the headline is under the
-        // face, where the eye already is.
-        trail("Kliner", "Setup")
-        search.isHidden = true
-        bellButton.isHidden = true
+        // Nothing but the setup, until it is finished. The headline is under
+        // the face, where the eye already is, so there is no page title, and
+        // there is nothing else on the window to read instead.
+        bare(true)
 
         // One face for the whole setup, not four. It stays put and leans over
         // whatever has just been written, which is what makes it read as
@@ -1484,43 +1549,29 @@ final class Main: NSObject, NSWindowDelegate {
         }
 
         // ---- the way through ---------------------------------------------
-        // The same rounded group of pictures the rest of the app uses, in the
-        // same corner, so the setup teaches you where the controls live.
-        let group = NSStackView()
-        group.orientation = .horizontal
-        group.spacing = 0
-        group.wantsLayer = true
-        group.layer?.cornerRadius = 9
-        group.translatesAutoresizingMaskIntoConstraints = false
-        group.effectiveAppearance.performAsCurrentDrawingAppearance {
-            group.layer?.backgroundColor = Paint.picked.cgColor
-        }
-
-        func divide() {
-            let hair = NSBox()
-            hair.boxType = .custom
-            hair.borderWidth = 0
-            hair.fillColor = Paint.line
-            hair.translatesAutoresizingMaskIntoConstraints = false
-            hair.widthAnchor.constraint(equalToConstant: 1).isActive = true
-            hair.heightAnchor.constraint(equalToConstant: 16).isActive = true
-            group.addArrangedSubview(hair)
-        }
+        // On the page, under what it has just said, not up in a row that is
+        // hidden along with everything else. Words, because a picture of a
+        // chevron is a thing to work out and this is somebody's first minute
+        // with the app.
+        let way = NSStackView()
+        way.orientation = .horizontal
+        way.alignment = .centerY
+        way.spacing = Step.tight
+        way.translatesAutoresizingMaskIntoConstraints = false
 
         if step > 0 {
-            let back = Ghost("chevron.left")
-            back.toolTip = "Back"
+            let back = Chip(.quiet)
+            back.set("Back")
             back.onClick = { [weak self] in
                 guard let self = self else { return }
                 self.step -= 1
                 self.drawWelcome()
             }
-            group.addArrangedSubview(back)
-            divide()
+            way.addArrangedSubview(back)
         }
 
-        let on = Ghost(step < 3 ? "chevron.right" : "checkmark")
-        on.toolTip = step < 3 ? "Next" : "Ask macOS, and start"
+        let on = Chip(.strong)
+        on.set(step < 3 ? "Next" : "Ask macOS, and start")
         on.onClick = { [weak self] in
             guard let self = self else { return }
             if self.step < 3 {
@@ -1533,30 +1584,79 @@ final class Main: NSObject, NSWindowDelegate {
             self.finishWelcome()
             self.show(0)
         }
-        group.addArrangedSubview(on)
+        way.addArrangedSubview(on)
 
         if step == 3 {
-            divide()
-            let skip = Ghost("arrow.right.to.line")
-            skip.toolTip = "Skip for now"
+            let skip = Chip(.quiet)
+            skip.set("Skip for now")
             skip.onClick = { [weak self] in
                 self?.finishWelcome()
                 self?.show(0)
             }
-            group.addArrangedSubview(skip)
+            way.addArrangedSubview(skip)
         }
 
-        buttons.addArrangedSubview(group)
+        let holder = NSView()
+        holder.translatesAutoresizingMaskIntoConstraints = false
+        holder.addSubview(way)
+        NSLayoutConstraint.activate([
+            way.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
+            way.topAnchor.constraint(equalTo: holder.topAnchor, constant: Step.wide),
+            way.bottomAnchor.constraint(equalTo: holder.bottomAnchor),
+            way.trailingAnchor.constraint(lessThanOrEqualTo: holder.trailingAnchor),
+        ])
+        line(holder)
 
         line(Dots(of: 4, at: step))
+
+        // The last page has one thing left to do, and the face is what asks
+        // for it. On the pages before it, the thing to learn is that two
+        // fingers turn the page, so the page says so, once, quietly.
+        if step == 3 {
+            face.beckon()
+        } else {
+            line(Nudge())
+        }
+
         settle()
+        slide(step >= last ? 1 : -1)
+        last = step
+    }
+
+    /// The setup, and nothing else. A window that shows you its list, its
+    /// search and its buttons while it is still explaining itself is a window
+    /// asking you to read two things at once.
+    private func bare(_ yes: Bool) {
+        for view: NSView? in [sideStack, footStack, railLine, chrome,
+                              buttons, search, bellButton, titleLabel] {
+            view?.isHidden = yes
+        }
+    }
+
+    /// The page arriving from the side it came from. Going on moves it in from
+    /// the right, going back from the left, which is the only thing that makes
+    /// a set of pages feel like a set rather than a stack of replacements.
+    private func slide(_ way: CGFloat) {
+        report.wantsLayer = true
+        let across = CABasicAnimation(keyPath: "transform.translation.x")
+        across.fromValue = 34 * way
+        across.toValue = 0
+
+        let fade = CABasicAnimation(keyPath: "opacity")
+        fade.fromValue = 0
+        fade.toValue = 1
+
+        let both = CAAnimationGroup()
+        both.animations = [across, fade]
+        both.duration = 0.34
+        both.timingFunction = CAMediaTimingFunction(controlPoints: 0.16, 1, 0.3, 1)
+        report.layer?.add(both, forKey: "arriving")
     }
 
     private func finishWelcome() {
         welcoming = false
         mascot = nil
-        search.isHidden = false
-        bellButton.isHidden = false
+        bare(false)
         // Stamped with which setup was read, not just that one was. A setup
         // that grew a page is a setup nobody has seen, and the old `yes`
         // meant it was never shown again.
@@ -1786,7 +1886,7 @@ final class Main: NSObject, NSWindowDelegate {
     /// opens with three numbers is a page you can read at a glance; a page
     /// that opens with forty rows is a page you have to work through.
     private func stats(_ pieces: [Piece]) -> [NSView] {
-        guard !isSettings else { return [] }
+        guard isPage else { return [] }
         let item = Action.all[chosen]
 
         // The machine's own readings are already figures. Nothing to work out.
@@ -1872,7 +1972,8 @@ final class Main: NSObject, NSWindowDelegate {
         line.append(NSAttributedString(string: page, attributes: [
             .font: Words.title, .foregroundColor: Paint.ink,
         ]))
-        titleLabel.attributedStringValue = line
+        let holds = Action.place(of: chosen)?.holds ?? []
+        titleLabel.set(line, more: holds.count > 1)
 
         // It changes as the page changes, so it fades rather than swapping:
         // two words appearing in place is a flicker, two words arriving is a
@@ -1925,7 +2026,7 @@ final class Main: NSObject, NSWindowDelegate {
             view.removeFromSuperview()
         }
 
-        if chosen == 0 && !isSettings {
+        if chosen == 0, isPage {
             drawHome(pieces)
             settle()
             return
@@ -1934,7 +2035,7 @@ final class Main: NSObject, NSWindowDelegate {
         // What is big is a breakdown of one thing, so it is drawn as one:
         // the bar, then the table the bar came out of, sorted as nimo sorted
         // it. Rows that are folders still open.
-        if !isSettings, Action.all[chosen].walks {
+        if isPage, Action.all[chosen].walks {
             drawBreakdown(pieces)
             settle()
             return
@@ -1943,7 +2044,7 @@ final class Main: NSObject, NSWindowDelegate {
         // nimo lists what it can turn off, then says "nimo only reports
         // these:" and lists the rest. Everything after that sentence belongs
         // to somebody else, so nothing after it gets a button.
-        var stoppable = !isSettings && Action.all[chosen].arguments.first == "startup"
+        var stoppable = isPage && Action.all[chosen].arguments.first == "startup"
 
         // Every page is built the same way, out of the same cards, so moving
         // between them is moving between pages of one thing rather than
@@ -2086,6 +2187,34 @@ final class Main: NSObject, NSWindowDelegate {
     // MARK: using it
 
     private var isSettings: Bool { chosen == Action.all.count }
+    private var isHelp: Bool { chosen == Action.all.count + 1 }
+    private var isPage: Bool { chosen >= 0 && chosen < Action.all.count }
+
+    /// Whatever page an index names, including the two that are not things
+    /// nimo does.
+    private func page(_ index: Int) -> Action {
+        if index == Action.all.count { return Action.settings }
+        if index == Action.all.count + 1 { return Action.help }
+        return Action.all[index]
+    }
+
+    /// The other things in this place, under the name of the one you are on.
+    /// A row of tabs said the same thing twice, once in the trail and once
+    /// under it.
+    private func offerSiblings() {
+        guard let place = Action.place(of: chosen), place.holds.count > 1 else { return }
+        let menu = NSMenu()
+        for which in place.holds {
+            let item = NSMenuItem(title: Action.all[which].title,
+                                  action: #selector(goByNumber(_:)), keyEquivalent: "")
+            item.target = self
+            item.tag = which
+            item.state = which == chosen ? .on : .off
+            menu.addItem(item)
+        }
+        let under = NSPoint(x: 0, y: titleLabel.bounds.height + 4)
+        menu.popUp(positioning: nil, at: under, in: titleLabel)
+    }
 
     // MARK: finding a page, and what has been done
 
@@ -2127,10 +2256,28 @@ final class Main: NSObject, NSWindowDelegate {
     /// Ask this page again. What it said last time is thrown away first, or
     /// the redraw would put the same answer back on the screen.
     @objc func refresh() {
-        guard !welcoming, !isSettings, !busy else { return }
+        guard !welcoming, isPage, !busy else { return }
         kept[chosen] = nil
         seen.remove(chosen)
         show(chosen, remember: false)
+    }
+
+    /// Up and down walk the list, in the order it is drawn: the five places,
+    /// then Settings, then Help. From a page inside a place it walks from the
+    /// place, not from the page, because the place is what the list is
+    /// showing you standing on.
+    private var stops: [Int] {
+        Action.places.compactMap { $0.holds.first }
+            + [Action.all.count, Action.all.count + 1]
+    }
+
+    func walkList(_ way: Int) {
+        guard !welcoming, !busy else { return }
+        let here = Action.place(of: chosen)?.holds.first ?? chosen
+        guard let at = stops.firstIndex(of: here) else { return }
+        let next = at + way
+        guard next >= 0, next < stops.count else { return }
+        show(stops[next])
     }
 
     /// The introduction, from the beginning, whenever it is wanted.
@@ -2138,6 +2285,7 @@ final class Main: NSObject, NSWindowDelegate {
         guard !busy else { return }
         welcoming = true
         step = 0
+        last = 0
         mascot = nil
         for row in rows { row.choose(false) }
         drawWelcome()
@@ -2235,13 +2383,12 @@ final class Main: NSObject, NSWindowDelegate {
     }
 
     private func show(_ index: Int, remember: Bool = true) {
-        guard index >= 0, index <= Action.all.count else { return }
+        guard index >= 0, index <= Action.all.count + 1 else { return }
         if welcoming {
             welcoming = false
             mascot = nil
             Config.set("welcomed", Main.setup)
-            search.isHidden = false
-            bellButton.isHidden = false
+            bare(false)
         }
         if remember, index != chosen {
             behind.append(chosen)
@@ -2251,15 +2398,26 @@ final class Main: NSObject, NSWindowDelegate {
         walked = []
         showArrows()
 
-        for (i, row) in rows.enumerated() { row.choose(i == index) }
+        // A row is lit when the page you are on lives in it, not only when it
+        // is the page the row opens: Downloads is inside Desk, and Desk is
+        // what the list should be showing you standing on.
+        for row in rows {
+            row.choose(row.index == index
+                       || Action.place(of: row.index)?.holds.contains(index) == true)
+        }
 
-        let item = index == Action.all.count ? Action.settings : Action.all[index]
-        trail(item.group.isEmpty ? "Kliner" : item.group,
+        let item = page(index)
+        trail(Action.place(of: index)?.title ?? "Kliner",
               index == 0 ? "Home" : item.title)
         fitButtons()
 
         if isSettings {
             drawSettings()
+            return
+        }
+
+        if isHelp {
+            drawHelp()
             return
         }
 
@@ -2293,7 +2451,7 @@ final class Main: NSObject, NSWindowDelegate {
             buttons.removeArrangedSubview(view)
             view.removeFromSuperview()
         }
-        guard !isSettings else { return }
+        guard isPage else { return }
 
         let item = Action.all[chosen]
 
@@ -2416,6 +2574,52 @@ final class Main: NSObject, NSWindowDelegate {
         var arguments = ["top"]
         if !walked.isEmpty { arguments.append(walked.joined(separator: "/")) }
         launch(arguments)
+    }
+
+    /// Every key Kliner answers to, in the order somebody would reach for
+    /// them. A window you can only work with a mouse is a window somebody
+    /// has not finished.
+    private func drawHelp() {
+        for view in report.arrangedSubviews {
+            report.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
+
+        func card(_ title: String, _ keys: [(String, String)]) {
+            let box = Card(title)
+            box.add(Ledger(colour: nil, name: "What it does",
+                           share: "", size: "Key", head: true))
+            for (what, key) in keys {
+                box.add(Ledger(colour: nil, name: what, share: "", size: key))
+            }
+            line(box)
+            gap(Step.close)
+        }
+
+        card("Getting about", [
+            ("The place above", "↑"),
+            ("The place below", "↓"),
+            ("Back where you came from", "⌘["),
+            ("Forward again", "⌘]"),
+            ("Hide the list", "⌘B"),
+            ("Search the list", "⌘K"),
+        ])
+
+        card("On the page", [
+            ("Ask this page again", "⌘R"),
+            ("Show the introduction", "⌘F"),
+            ("Settings", "⌘,"),
+            ("A sideways push turns the page", "two fingers"),
+        ])
+
+        card("What Kliner will not do", [
+            ("Ask for an administrator", "never"),
+            ("Touch the network", "never"),
+            ("Read outside your home folder", "never"),
+            ("Delete anything it cannot put back", "never"),
+        ])
+
+        settle()
     }
 
     // MARK: settings
@@ -2919,6 +3123,7 @@ final class Floating: NSView {
     required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
 
     private var pending: Timer?
+    private var asking = false
     deinit { pending?.invalidate() }
 
     override func viewDidChangeEffectiveAppearance() {
@@ -2959,8 +3164,40 @@ final class Floating: NSView {
 
         // It blinks on arrival, because a thing that moves and does not blink
         // is a picture being dragged about.
+        guard !asking else { return }
         pending?.invalidate()
         step(["mascot-half", "mascot-blink", "mascot-half", "mascot"], 0)
+    }
+
+    /// The last page, where there is one thing left to do. The face stops
+    /// drifting and starts asking: a bigger bob on a quicker clock, and its
+    /// eyes go round and stay round. A button that throbs on a page this
+    /// quiet is shouting; a face that looks up at you is not.
+    func beckon() {
+        face.layer?.removeAnimation(forKey: "drifting")
+        face.layer?.removeAnimation(forKey: "tilting")
+        pending?.invalidate()
+        face.image = NSImage(named: "mascot-round")
+        face.image?.isTemplate = true
+        asking = true
+
+        let hop = CABasicAnimation(keyPath: "transform.translation.y")
+        hop.fromValue = -3
+        hop.toValue = 7
+        hop.duration = 0.62
+        hop.autoreverses = true
+        hop.repeatCount = .infinity
+        hop.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        face.layer?.add(hop, forKey: "asking")
+
+        let tip = CABasicAnimation(keyPath: "transform.rotation.z")
+        tip.fromValue = -0.09
+        tip.toValue = 0.09
+        tip.duration = 0.95
+        tip.autoreverses = true
+        tip.repeatCount = .infinity
+        tip.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        face.layer?.add(tip, forKey: "tipping")
     }
 
     /// Never still: up and down on one clock, leaning on another that does not
@@ -2989,7 +3226,7 @@ final class Floating: NSView {
         pending?.invalidate()
         pending = Timer.scheduledTimer(withTimeInterval: Double.random(in: 2...5),
                                        repeats: false) { [weak self] _ in
-            guard let self = self, self.window != nil else { return }
+            guard let self = self, self.window != nil, !self.asking else { return }
             self.step(["mascot-half", "mascot-blink", "mascot-half", "mascot"], 0)
         }
     }
@@ -3218,14 +3455,14 @@ final class Bell: NSView {
         addSubview(dot)
 
         NSLayoutConstraint.activate([
-            widthAnchor.constraint(equalToConstant: 30),
-            heightAnchor.constraint(equalToConstant: 30),
+            widthAnchor.constraint(equalToConstant: 26),
+            heightAnchor.constraint(equalToConstant: 26),
             icon.centerXAnchor.constraint(equalTo: centerXAnchor),
             icon.centerYAnchor.constraint(equalTo: centerYAnchor),
-            icon.widthAnchor.constraint(equalToConstant: 15),
-            icon.heightAnchor.constraint(equalToConstant: 15),
-            dot.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -6),
-            dot.topAnchor.constraint(equalTo: topAnchor, constant: 6),
+            icon.widthAnchor.constraint(equalToConstant: 14),
+            icon.heightAnchor.constraint(equalToConstant: 14),
+            dot.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
+            dot.topAnchor.constraint(equalTo: topAnchor, constant: 4),
             dot.widthAnchor.constraint(equalToConstant: 7),
             dot.heightAnchor.constraint(equalToConstant: 7),
         ])
@@ -3265,6 +3502,156 @@ final class Bell: NSView {
 }
 
 // MARK: - cards, and the breakdowns inside them
+
+/// Where you are, along the top: the place it belongs to, quietly, then the
+/// page itself. When the place holds more than one page it is also the way to
+/// the others, which is why there is no second row of tabs under it: the name
+/// of the thing you are looking at is the obvious place to change it.
+final class Trail: NSView {
+    var onClick: (() -> Void)?
+
+    private let label = NSTextField(labelWithString: "")
+    private let arrow = NSImageView()
+    private var trailing: NSLayoutConstraint!
+    private var more = false
+    private var hovering = false
+
+    init() {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+        layer?.cornerRadius = 6
+
+        label.lineBreakMode = .byTruncatingTail
+        label.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(label)
+
+        if let picture = NSImage(systemSymbolName: "chevron.down",
+                                 accessibilityDescription: nil) {
+            picture.isTemplate = true
+            arrow.image = picture
+        }
+        arrow.contentTintColor = Paint.faint
+        arrow.isHidden = true
+        arrow.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(arrow)
+
+        trailing = arrow.trailingAnchor.constraint(equalTo: trailingAnchor,
+                                                   constant: -Step.tight)
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 22),
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Step.tight),
+            label.centerYAnchor.constraint(equalTo: centerYAnchor),
+            arrow.leadingAnchor.constraint(equalTo: label.trailingAnchor, constant: 5),
+            arrow.centerYAnchor.constraint(equalTo: centerYAnchor),
+            arrow.widthAnchor.constraint(equalToConstant: 9),
+            arrow.heightAnchor.constraint(equalToConstant: 9),
+            trailing,
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+
+    func set(_ line: NSAttributedString, more others: Bool) {
+        label.attributedStringValue = line
+        more = others
+        arrow.isHidden = !others
+        trailing.constant = others ? -Step.tight : -5
+        repaint()
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        for area in trackingAreas { removeTrackingArea(area) }
+        addTrackingArea(NSTrackingArea(rect: .zero,
+                                       options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+                                       owner: self, userInfo: nil))
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        guard more else { return nil }
+        return bounds.contains(convert(point, from: superview)) ? self : nil
+    }
+
+    override func mouseEntered(with event: NSEvent) { hovering = true;  repaint() }
+    override func mouseExited(with event: NSEvent)  { hovering = false; repaint() }
+    override func mouseDown(with event: NSEvent)    { if more { onClick?() } }
+    override func resetCursorRects() {
+        if more { addCursorRect(bounds, cursor: .pointingHand) }
+    }
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        repaint()
+    }
+
+    private func repaint() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            ease(self.layer, to: self.hovering && self.more ? Paint.hover : NSColor.clear)
+        }
+    }
+}
+
+/// The one thing the setup teaches that is not written anywhere else: two
+/// fingers turn the page. A line of words nobody reads, with a chevron that
+/// keeps setting off to the left and giving up, which is what the gesture
+/// looks like.
+final class Nudge: NSView {
+    private let arrow = NSImageView()
+
+    init() {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+
+        let said = NSTextField(labelWithString: "Swipe with two fingers, or press Next")
+        said.font = Words.small
+        said.textColor = Paint.faint
+        said.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(said)
+
+        if let picture = NSImage(systemSymbolName: "chevron.left",
+                                 accessibilityDescription: nil) {
+            picture.isTemplate = true
+            arrow.image = picture
+        }
+        arrow.contentTintColor = Paint.faint
+        arrow.wantsLayer = true
+        arrow.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(arrow)
+
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 34),
+            said.leadingAnchor.constraint(equalTo: leadingAnchor),
+            said.centerYAnchor.constraint(equalTo: centerYAnchor),
+            arrow.leadingAnchor.constraint(equalTo: said.trailingAnchor, constant: Step.close),
+            arrow.centerYAnchor.constraint(equalTo: centerYAnchor),
+            arrow.widthAnchor.constraint(equalToConstant: 10),
+            arrow.heightAnchor.constraint(equalToConstant: 10),
+            arrow.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard window != nil, arrow.layer?.animation(forKey: "nudging") == nil else { return }
+
+        let go = CAKeyframeAnimation(keyPath: "transform.translation.x")
+        go.values = [0, -7, 0, 0, 0]
+        go.keyTimes = [0, 0.24, 0.44, 0.8, 1]
+        go.duration = 2.1
+        go.repeatCount = .infinity
+        go.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        arrow.layer?.add(go, forKey: "nudging")
+
+        let fade = CAKeyframeAnimation(keyPath: "opacity")
+        fade.values = [0.45, 1, 0.45, 0.45, 0.45]
+        fade.keyTimes = [0, 0.24, 0.44, 0.8, 1]
+        fade.duration = 2.1
+        fade.repeatCount = .infinity
+        arrow.layer?.add(fade, forKey: "showing")
+    }
+}
 
 /// One thing worth doing, as a line you can act on: a mark saying whether it
 /// still wants doing, what it is, how much of it there is, and the one button
@@ -4264,34 +4651,43 @@ final class Thinking: NSView {
         face.layer?.add(fade, forKey: "fading")
     }
 
-    /// The same movement the wordmark makes, in the same steps.
+    /// The same movement the wordmark makes, in the same steps. Every step
+    /// holds for as long as it says, including the last, so the bar always
+    /// takes the same time to play.
     private func close(_ steps: [(String, Double)], then: @escaping () -> Void) {
         guard let (name, wait) = steps.first else { then(); return }
         let picture = NSImage(named: name)
         picture?.isTemplate = true
         face.image = picture
-        if steps.count == 1 { then(); return }
         DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
-            self?.close(Array(steps.dropFirst()), then: then)
+            guard let self = self else { return }
+            if steps.count == 1 { then(); return }
+            self.close(Array(steps.dropFirst()), then: then)
         }
     }
 
-    /// A face waiting does what the mark does when you look at it: shuts,
-    /// goes round, goes to a pair of dashes, shuts again, and comes back. It
-    /// is the difference between a thing that is working and a picture of a
-    /// thing that is working.
+    /// One bar, played over and over at the same tempo.
+    ///
+    /// It used to wait an unpredictable number of seconds and then play an
+    /// unpredictable sequence, which reads as a thing twitching. A face that
+    /// is thinking keeps time: shut, open, round, dashes, shut, and a rest,
+    /// always the same length, so it becomes a rhythm you stop noticing and
+    /// start being reassured by.
+    private static let turn: [(String, Double)] = [
+        ("mascot-half", 0.06), ("mascot-blink", 0.08), ("mascot-half", 0.06),
+        ("mascot", 0.70),
+        ("mascot-round", 0.50),
+        ("mascot-dash", 0.50),
+        ("mascot-half", 0.06), ("mascot-blink", 0.08), ("mascot-half", 0.06),
+        ("mascot", 0.90),
+    ]
+
     private func blinkLater() {
         pending?.invalidate()
-        pending = Timer.scheduledTimer(withTimeInterval: Double.random(in: 0.9...2.0),
-                                       repeats: false) { [weak self] _ in
+        guard window != nil else { return }
+        close(Thinking.turn) { [weak self] in
             guard let self = self, self.window != nil else { return }
-            self.close([("mascot-half", 0.06), ("mascot-blink", 0.07),
-                        ("mascot-round", 0.40),
-                        ("mascot-dash", 0.34),
-                        ("mascot-blink", 0.07), ("mascot-half", 0.06),
-                        ("mascot", 0)]) {
-                self.blinkLater()
-            }
+            self.blinkLater()
         }
     }
 }

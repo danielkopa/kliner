@@ -1051,7 +1051,7 @@ MISSING=$(awk '
       while (match(t, /#selector\(Main\.[a-zA-Z_]+/)) {
         call = substr(t, RSTART, RLENGTH); t = substr(t, RSTART + RLENGTH)
         sub(/.*Main\./, "", call); want[call] = 1 } }
-    END { for (n in want) if (!(n in have)) print n }' "$APP/Sources/main.swift")
+    END { for (n in want) if (!(n in have) && n != "init") print n }' "$APP/Sources/main.swift")
 check "every method the file calls, the file defines" "[ -z '$MISSING' ]"
 check "no class overrides init(coder:) twice" "[ -z '$DOUBLE' ]"
 # Slicing a block out and writing a new one back can leave both. A name that
@@ -1096,8 +1096,18 @@ check "every page can undo itself"          "[ \$(grep -c 'Put this back' '$APP/
 check "you can step into a folder"          "grep -q 'func walkInto' '$APP/Sources/main.swift' && grep -q 'walks: true' '$APP/Sources/main.swift'"
 check "and step back out of it"             "grep -q 'func walkUp' '$APP/Sources/main.swift'"
 check "a page can open its folder in Finder" "grep -q 'inFileViewerRootedAtPath' '$APP/Sources/main.swift'"
-check "the groups are told apart by a line, not a word" \
-    "grep -q 'item.group != lastGroup' '$APP/Sources/main.swift'"
+# Five places, not nine rows under four headings. What is inside a place is
+# on the place's own page, as tabs across the top of it.
+check "the list down the side is five places" \
+    "grep -q 'static let places: \\[Place\\]' '$APP/Sources/main.swift' && [ \$(grep -c '^        Place(title:' '$APP/Sources/main.swift') = 5 ]"
+# A row of tabs said the same thing twice, once in the trail and once under
+# it. The name of the thing you are looking at is where you change it.
+check "and a place holding two things offers both" \
+    "grep -q 'func offerSiblings' '$APP/Sources/main.swift' && grep -q 'final class Trail' '$APP/Sources/main.swift' && ! grep -q 'final class Tab' '$APP/Sources/main.swift'"
+check "the row is lit for the page inside it" \
+    "grep -q 'Action.place(of: row.index)?.holds.contains(index)' '$APP/Sources/main.swift'"
+check "help sits under settings, with the keys" \
+    "grep -q 'func drawHelp' '$APP/Sources/main.swift' && grep -q 'static let help = Action' '$APP/Sources/main.swift'"
 check "it can ask macOS for what it needs"  "grep -q 'askForEverything' '$APP/Sources/main.swift'"
 check "and it never claims to grant itself access" \
     "grep -q 'enum Access' '$APP/Sources/main.swift' && grep -q 'Privacy_AllFiles' '$APP/Sources/main.swift'"
@@ -1253,6 +1263,18 @@ check "arriving on Wallpaper does not change it" \
 check "the eye looks about when it opens"   "grep -q '\"-left\" : \"-right\"' '$APP/Sources/main.swift'"
 # Shut, round, a pair of dashes, shut again, and back to the quotes. A face
 # with one expression is a picture; a face with three is somebody.
+# The setup is the only thing on the window until it is finished, it arrives
+# from the side it came from, and the last button asks to be pressed.
+check "the setup shows nothing but itself"   \
+    "grep -q 'func bare(' '$APP/Sources/main.swift' && grep -q 'bare(true)' '$APP/Sources/main.swift' && grep -q 'bare(false)' '$APP/Sources/main.swift'"
+check "and its pages arrive from the side"   \
+    "grep -q 'func slide(' '$APP/Sources/main.swift' && grep -q 'slide(step >= last ? 1 : -1)' '$APP/Sources/main.swift'"
+# The face is what asks, not the button. On the pages before it, the thing to
+# learn is that two fingers turn the page, so the page says so, once.
+check "and the face asks for the last press" \
+    "grep -q 'func beckon()' '$APP/Sources/main.swift' && grep -q 'face.beckon()' '$APP/Sources/main.swift'"
+check "and the pages before it teach the swipe" \
+    "grep -q 'final class Nudge' '$APP/Sources/main.swift' && grep -q 'line(Nudge())' '$APP/Sources/main.swift'"
 check "and it has more than one face to wear" \
     "grep -q '(\"-round\", 0.42)' '$APP/Sources/main.swift' && [ -f '$APP/Resources/mascot-round@3x.png' ] && [ -f '$APP/Resources/wordmark-dash@3x.png' ]"
 check "the first time, it introduces itself" \
@@ -1310,7 +1332,7 @@ check "the page's name is in the row as well" \
 # Written as a trail: where you are, in the place it belongs, one label and
 # two weights so it reads as one line.
 check "and it says where that page belongs"  \
-    "grep -q 'func trail(' '$APP/Sources/main.swift' && grep -q 'titleLabel.attributedStringValue = line' '$APP/Sources/main.swift'"
+    "grep -q 'func trail(' '$APP/Sources/main.swift' && grep -q 'titleLabel.set(line, more:' '$APP/Sources/main.swift'"
 # With the list shut the page starts under the buttons, so the name gives way
 # rather than printing over one.
 check "and it never prints over a button"    \
@@ -1342,8 +1364,16 @@ check "and the introduction shown again"     \
 # is a spinner wearing a costume.
 check "the waiting has two arcs, not one"    \
     "grep -q 'private let trail = CAShapeLayer()' '$APP/Sources/main.swift' && grep -q 'send(trail, length: 0.34' '$APP/Sources/main.swift'"
-check "and the face waiting wears the same faces" \
-    "grep -q '(\"mascot-round\", 0.40)' '$APP/Sources/main.swift'"
+# A face that is thinking keeps time. It used to wait a random number of
+# seconds and then run a random sequence, which reads as a thing twitching.
+check "and the face waiting keeps time"      \
+    "grep -q 'static let turn: \\[(String, Double)\\]' '$APP/Sources/main.swift' && ! sed -n '/^final class Thinking/,/^}/p' '$APP/Sources/main.swift' | grep -q 'random'"
+# Up and down walk the list, which is the last thing in the window that only
+# a mouse could reach.
+check "the list answers the arrow keys"      \
+    "grep -q 'func walkList' '$APP/Sources/main.swift' && grep -q 'case 125:' '$APP/Sources/main.swift'"
+check "but not while something is being typed into" \
+    "grep -q 'firstResponder is NSTextView' '$APP/Sources/main.swift'"
 # The outline is drawn at the size the face is drawn, so a face that scales is
 # a face that leaves its own outline behind.
 check "the waiting face does not shrink out of its outline" \
@@ -1395,7 +1425,7 @@ check "and none of them names its own corner" \
     "! grep -qE 'layer\\?.cornerRadius = 1[02]$' '$APP/Sources/main.swift'"
 # The eyes move, not the mark. A layer slid sideways is the whole word walking.
 check "only the eyes look sideways"          \
-    "! grep -q 'transform.translation.x' '$APP/Sources/main.swift' && grep -q '\"-right\"' '$APP/Sources/main.swift'"
+    "! sed -n '/^final class Wordmark/,/^}/p' '$APP/Sources/main.swift' | grep -q 'transform' && grep -q '\"-right\"' '$APP/Sources/main.swift'"
 check "and the frames are drawn from the art" \
     "python3 '$ROOT/tools/glance.py' '$APP/Resources' >/dev/null"
 # Proved by the pixels: the looking frames differ from the one they came from
