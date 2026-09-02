@@ -1074,8 +1074,10 @@ check "and every page is on the keyboard"   \
     "grep -q 'func goByNumber' '$APP/Sources/main.swift' && grep -q 'keyEquivalent: \\\",\\\"' '$APP/Sources/main.swift'"
 check "the menu is built after the window it points at" \
     "grep -A2 'func applicationDidFinishLaunching' '$APP/Sources/main.swift' | grep -q 'main = Main()'"
+# A terminal in the window would be an NSTextView built and filled. The type
+# also turns up in NSTextFieldDelegate's signature, which is not one.
 check "there is no terminal left in the window" \
-    "! grep -q 'NSTextView' '$APP/Sources/main.swift'"
+    "! grep -qE 'NSTextView\\(|documentView = .*NSTextView' '$APP/Sources/main.swift'"
 check "what nimo said is laid out as text"  "grep -q 'final class Said' '$APP/Sources/main.swift'"
 check "there is nothing shouting on the page" \
     "! grep -q 'Paint.accent' '$APP/Sources/main.swift'"
@@ -1135,10 +1137,21 @@ check "the eyes in the wordmark blink"      \
 check "the list folds down to its pictures"  \
     "grep -q 'func foldSide' '$APP/Sources/main.swift' && grep -q 'func narrow' '$APP/Sources/main.swift'"
 check "and a folded row keeps its name"     "grep -q 'toolTip = yes ? name.stringValue' '$APP/Sources/main.swift'"
-check "home draws the disk, and what it would be" \
-    "grep -q 'final class Disk' '$APP/Sources/main.swift' && grep -q 'after freeing it up' '$APP/Sources/main.swift'"
-check "the figures sit under the picture"    \
-    "awk '/let disk = Disk\\(/{d=NR} /let figuresRow = NSStackView/{f=NR} END{exit !(d && f && d < f)}' '$APP/Sources/main.swift'"
+# Home is cards now: the number, the bar it came out of, then the table
+# behind the bar. Each of the three has to be there, in that order, or the
+# page is a figure with no working shown.
+check "home is laid out as cards"            \
+    "grep -q 'final class Card' '$APP/Sources/main.swift' && grep -q 'let card = Card(\"Your disk\")' '$APP/Sources/main.swift'"
+check "each card shows the number, the bar and the table" \
+    "awk '/let card = Card\\(\"Your disk\"\\)/{c=NR} /card.add\\(Figure\\(size\\(free\\)/{f=NR} /card.add\\(Split\\(bands\\)/{s=NR} /card.add\\(Ledger\\(colour: band.colour/{l=NR} END{exit !(c && f && s && l && c<f && f<s && s<l)}' '$APP/Sources/main.swift'"
+# Proportional widths and a gap between the pieces cannot both be constraints
+# without one of them being broken, so the bar lays itself out.
+check "the bar is cut in proportion, not by eye" \
+    "grep -q 'room \\* CGFloat(parts\\[i\\].share / whole)' '$APP/Sources/main.swift'"
+check "what is big is a breakdown too"       \
+    "grep -q 'func drawBreakdown' '$APP/Sources/main.swift' && grep -q 'Everything else' '$APP/Sources/main.swift'"
+check "and its folders still open"           \
+    "grep -q 'walkable: one.folder' '$APP/Sources/main.swift'"
 check "sizes are read back into numbers"    "grep -q 'func bytes' '$APP/Sources/main.swift'"
 check "no paragraph under every title"      "! grep -q 'blurbLabel' '$APP/Sources/main.swift'"
 check "the window is glass, in two weights"  \
@@ -1231,10 +1244,21 @@ check "the welcome is four pages, not one"  \
     "grep -q 'Dots(of: 4, at: step)' '$APP/Sources/main.swift' && grep -q 'case 3:' '$APP/Sources/main.swift'"
 check "and it asks for access on the last one, not the first" \
     "awk '/switch step/{a=NR} /Word.ask\\(\\)/{b=NR} END{exit !(a && b && a < b)}' '$APP/Sources/main.swift'"
-check "you can walk back through it"        "grep -q 'self?.step -= 1' '$APP/Sources/main.swift'"
+check "you can walk back through it"        "grep -q 'self.step -= 1' '$APP/Sources/main.swift'"
 check "or skip the asking"                  "grep -q 'Skip for now' '$APP/Sources/main.swift'"
 check "and only the first time"             "grep -q 'Config.set(\\\"welcomed\\\"' '$APP/Sources/main.swift'"
 check "the face drifts while it says hello" "grep -q 'final class Floating' '$APP/Sources/main.swift'"
+# The setup is the app introducing itself, so the face is in it on every page,
+# not only the first, and it leans over whatever has just been written.
+check "the face is on every page of the setup" \
+    "grep -q 'let face = mascot ?? Floating()' '$APP/Sources/main.swift' && grep -q 'face.nod()' '$APP/Sources/main.swift'"
+check "and it is drawn in a disc, not loose on the page" \
+    "grep -q 'private let disc = NSView()' '$APP/Sources/main.swift'"
+# A setup that has grown a page is a setup nobody has read. Stamping which one
+# was read, rather than that one was, is what shows it again.
+check "a setup nobody has seen is shown once more" \
+    "grep -q 'static let setup = ' '$APP/Sources/main.swift' && grep -q 'Config.value(\"welcomed\") != Main.setup' '$APP/Sources/main.swift'"
+check "and it can be asked for again"        "grep -q 'Show it again' '$APP/Sources/main.swift'"
 check "it can say when a job is done"       \
     "grep -q 'enum Word' '$APP/Sources/main.swift' && grep -q 'UNUserNotificationCenter' '$APP/Sources/main.swift'"
 check "but only for runs that changed something" \
@@ -1245,11 +1269,30 @@ check "and every page says what its button does" \
     "[ \$(grep -c '^ *does: \\\"' '$APP/Sources/main.swift') = 9 ]"
 check "the words live on the tooltips"      \
     "grep -q 'first.toolTip = item.verb' '$APP/Sources/main.swift'"
+# The row of buttons sits opposite the page title, not underneath it, so one
+# line across the top says what the page is and what it can do.
+check "and the row sits opposite the title, on the right" \
+    "grep -q 'buttons.trailingAnchor.constraint(equalTo: content.trailingAnchor' '$APP/Sources/main.swift' && grep -q 'buttons.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor)' '$APP/Sources/main.swift'"
+check "a click cannot be eaten by the picture inside a button" \
+    "[ \$(grep -c 'override func hitTest' '$APP/Sources/main.swift') -ge 6 ]"
+check "there is a way to search from the keyboard" \
+    "grep -q 'final class Seek' '$APP/Sources/main.swift' && grep -q 'keyEquivalent: \"k\"' '$APP/Sources/main.swift'"
+check "and typing narrows the list rather than covering it" \
+    "grep -q 'func sieve' '$APP/Sources/main.swift' && grep -q 'rows\\[i\\].isHidden' '$APP/Sources/main.swift'"
+check "the bell says when something happened" \
+    "grep -q 'final class Bell' '$APP/Sources/main.swift' && grep -q 'self.bellButton.unread = true' '$APP/Sources/main.swift'"
+check "and reading it puts the dot out"      \
+    "grep -A1 'func showActivity' '$APP/Sources/main.swift' | grep -q 'bellButton.unread = false'"
 # Swift will not reorder labelled arguments for you. Since nothing here can
 # compile Swift, read the initialisers out of the source and check every call
 # site against them by hand.
 check "every call names its arguments in the order they are declared" \
     "python3 '$ROOT/tools/argorder.py' '$APP/Sources/main.swift'"
+# The waiting ring traces the artwork's own outline, and the artwork reaches
+# 0.528 of its width from the centre. A ring drawn much wider than that is a
+# ring the face sits inside rather than one around it.
+check "the waiting ring is the size of the face"  \
+    "python3 '$ROOT/tools/ringcheck.py' '$APP/Resources/mascot@3x.png' '$APP/Sources/main.swift'"
 check "and a preview can never be given --yes" \
     "! grep -qE 'preview.*--yes|--yes.*preview' '$APP/Sources/main.swift'"
 # Every Action literal must carry a symbol, or a row down the side is blank.
