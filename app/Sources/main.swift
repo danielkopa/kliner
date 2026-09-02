@@ -146,15 +146,19 @@ struct Action {
     let looksOnly: Bool
     /// Draw this page's buttons as one group of pictures.
     let symbolic: Bool
+    /// The picture for the big button. The row down the side says what the
+    /// page is; this says what pressing it does.
+    let does: String
 
     init(title: String, blurb: String, verb: String, arguments: [String],
          asks: String?, group: String, symbol: String,
          extras: [Extra] = [], reveal: String? = nil, walks: Bool = false,
-         looksOnly: Bool = true, symbolic: Bool = false) {
+         looksOnly: Bool = true, symbolic: Bool = true, does: String = "play") {
         self.title = title; self.blurb = blurb; self.verb = verb
         self.arguments = arguments; self.asks = asks; self.group = group
         self.symbol = symbol; self.extras = extras; self.reveal = reveal
         self.walks = walks; self.looksOnly = looksOnly; self.symbolic = symbolic
+        self.does = does
     }
 
     /// Not one of the things nimo does — the place where you say how it
@@ -175,7 +179,8 @@ struct Action {
                              arguments: ["doctor"],
                              asks: nil,
                              group: "",
-                             symbol: "house")
+                             symbol: "house",
+               does: "arrow.clockwise")
 
     static let putBack = "Move everything back where it was?\n\nnimo wrote down every move it made, so this is exact."
 
@@ -189,7 +194,9 @@ struct Action {
                asks: "Move everything on your desktop into Desktop/Tidy, sorted by what it is?\n\nNothing is deleted. Put this back reverses it.",
                group: "Your desk",
                symbol: "square.grid.2x2",
-               extras: [Extra(title: "Put this back", arguments: ["desktop", "--undo"], asks: putBack)],
+               does: "tray.and.arrow.down",
+               extras: [Extra(title: "Put this back", arguments: ["desktop", "--undo"], asks: putBack,
+                              symbol: "arrow.uturn.backward")],
                reveal: "Desktop"),
 
         Action(title: "Downloads",
@@ -199,7 +206,9 @@ struct Action {
                asks: "Sort your downloads into Downloads/Tidy?\n\nNothing is deleted. Put this back reverses it.",
                group: "Your desk",
                symbol: "arrow.down.circle",
-               extras: [Extra(title: "Put this back", arguments: ["downloads", "--undo"], asks: putBack)],
+               does: "tray.and.arrow.down",
+               extras: [Extra(title: "Put this back", arguments: ["downloads", "--undo"], asks: putBack,
+                              symbol: "arrow.uturn.backward")],
                reveal: "Downloads"),
 
         Action(title: "Wallpaper",
@@ -209,6 +218,7 @@ struct Action {
                asks: nil,
                group: "Your screen",
                symbol: "photo",
+               does: "chevron.right",
                extras: [Extra(title: "Previous", arguments: ["prev"], asks: nil,
                               symbol: "chevron.left"),
                         Extra(title: "The one I had", arguments: ["wallpaper", "--restore"],
@@ -221,7 +231,8 @@ struct Action {
                arguments: ["startup", "--list"],
                asks: nil,
                group: "Your screen",
-               symbol: "power"),
+               symbol: "power",
+               does: "arrow.clockwise"),
 
         Action(title: "What is big",
                blurb: "The folders in your home that are taking up the room. Click one to look inside it.",
@@ -230,6 +241,7 @@ struct Action {
                asks: nil,
                group: "Your disk",
                symbol: "chart.bar",
+               does: "arrow.clockwise",
                walks: true),
 
         Action(title: "Free up space",
@@ -239,7 +251,8 @@ struct Action {
                asks: "Delete the caches and temporary files nimo found?\n\nYour own files are never touched.",
                group: "Your disk",
                symbol: "sparkles",
-               extras: [Extra(title: "Only look", arguments: ["preview"], asks: nil)]),
+               does: "sparkles",
+               extras: [Extra(title: "Only look", arguments: ["preview"], asks: nil, symbol: "eye")]),
 
         Action(title: "How it is",
                blurb: "Disk, memory, uptime, battery — how your computer is doing right now.",
@@ -247,7 +260,8 @@ struct Action {
                arguments: ["doctor"],
                asks: nil,
                group: "Your computer",
-               symbol: "waveform.path.ecg"),
+               symbol: "waveform.path.ecg",
+               does: "arrow.clockwise"),
 
         Action(title: "Put it all back",
                blurb: "Everything nimo has done, reversed, newest first. This is why nothing here is frightening.",
@@ -256,7 +270,9 @@ struct Action {
                asks: "Reverse everything nimo has done, newest first?",
                group: "Your computer",
                symbol: "arrow.uturn.backward",
-               extras: [Extra(title: "Only look", arguments: ["undo", "--all", "--dry-run"], asks: nil)]),
+               does: "arrow.uturn.backward",
+               extras: [Extra(title: "Only look", arguments: ["undo", "--all", "--dry-run"], asks: nil,
+                              symbol: "eye")]),
     ]
 }
 
@@ -963,7 +979,6 @@ final class Main: NSObject, NSWindowDelegate {
     let window: NSWindow
 
     private let titleLabel = NSTextField(labelWithString: "")
-    private var runButton: Chip!
     private let scroll     = NSScrollView()
     private let report     = NSStackView()
     private var rows: [Row] = []
@@ -1148,9 +1163,6 @@ final class Main: NSObject, NSWindowDelegate {
         titleLabel.textColor = Paint.ink
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(titleLabel)
-
-        runButton = Chip(.strong)
-        runButton.onClick = { [weak self] in self?.go() }
 
         buttons.orientation = .horizontal
         buttons.alignment = .centerY
@@ -1673,65 +1685,64 @@ final class Main: NSObject, NSWindowDelegate {
 
         let item = Action.all[chosen]
 
-        if item.symbolic {
-            // One group, three pictures, a hairline between them. Next is the
-            // lit one because it is the thing you came to press.
-            let group = NSStackView()
-            group.orientation = .horizontal
-            group.spacing = 0
-            group.wantsLayer = true
-            group.layer?.cornerRadius = 9
-            group.translatesAutoresizingMaskIntoConstraints = false
-            group.effectiveAppearance.performAsCurrentDrawingAppearance {
-                group.layer?.backgroundColor = Paint.picked.cgColor
-            }
-
-            let next = Ghost("chevron.right")
-            next.onClick = { [weak self] in self?.go() }
-            next.toolTip = item.verb
-            next.isEnabled = !busy
-            group.addArrangedSubview(next)
-
-            for (i, extra) in item.extras.enumerated() {
-                let hair = NSBox()
-                hair.boxType = .custom
-                hair.borderWidth = 0
-                hair.fillColor = Paint.line
-                hair.translatesAutoresizingMaskIntoConstraints = false
-                hair.widthAnchor.constraint(equalToConstant: 1).isActive = true
-                hair.heightAnchor.constraint(equalToConstant: 16).isActive = true
-                group.addArrangedSubview(hair)
-
-                let button = Ghost(extra.symbol ?? "circle")
-                button.toolTip = extra.title
-                button.isEnabled = !busy
-                button.onClick = { [weak self] in self?.runExtra(i) }
-                group.addArrangedSubview(button)
-            }
-
-            buttons.addArrangedSubview(group)
-            if item.reveal != nil {
-                buttons.addArrangedSubview(quiet("Show in Finder") {
-                    [weak self] in self?.revealFolder()
-                })
-            }
-            return
+        // One group, one picture each, a hairline between them, and the words
+        // on the tooltips. The page title already says what you are looking
+        // at; three sentences of buttons under it said it again.
+        let group = NSStackView()
+        group.orientation = .horizontal
+        group.spacing = 0
+        group.wantsLayer = true
+        group.layer?.cornerRadius = 9
+        group.translatesAutoresizingMaskIntoConstraints = false
+        group.effectiveAppearance.performAsCurrentDrawingAppearance {
+            group.layer?.backgroundColor = Paint.picked.cgColor
         }
 
-        runButton.set(item.verb, live: !busy)
-        buttons.addArrangedSubview(runButton)
+        func hairline() {
+            let hair = NSBox()
+            hair.boxType = .custom
+            hair.borderWidth = 0
+            hair.fillColor = Paint.line
+            hair.translatesAutoresizingMaskIntoConstraints = false
+            hair.widthAnchor.constraint(equalToConstant: 1).isActive = true
+            hair.heightAnchor.constraint(equalToConstant: 16).isActive = true
+            group.addArrangedSubview(hair)
+        }
+
+        let first = Ghost(item.does)
+        first.onClick = { [weak self] in self?.go() }
+        first.toolTip = item.verb
+        first.isEnabled = !busy
+        group.addArrangedSubview(first)
 
         if !walked.isEmpty {
-            buttons.addArrangedSubview(quiet("Back") { [weak self] in self?.walkUp() })
+            hairline()
+            let up = Ghost("arrow.up.left")
+            up.toolTip = "Back out of this folder"
+            up.isEnabled = !busy
+            up.onClick = { [weak self] in self?.walkUp() }
+            group.addArrangedSubview(up)
         }
 
         for (i, extra) in item.extras.enumerated() {
-            buttons.addArrangedSubview(quiet(extra.title) { [weak self] in self?.runExtra(i) })
+            hairline()
+            let button = Ghost(extra.symbol ?? "circle")
+            button.toolTip = extra.title
+            button.isEnabled = !busy
+            button.onClick = { [weak self] in self?.runExtra(i) }
+            group.addArrangedSubview(button)
         }
 
         if item.reveal != nil {
-            buttons.addArrangedSubview(quiet("Show in Finder") { [weak self] in self?.revealFolder() })
+            hairline()
+            let finder = Ghost("folder")
+            finder.toolTip = "Show in Finder"
+            finder.isEnabled = !busy
+            finder.onClick = { [weak self] in self?.revealFolder() }
+            group.addArrangedSubview(finder)
         }
+
+        buttons.addArrangedSubview(group)
     }
 
     private func quiet(_ words: String, _ then: @escaping () -> Void) -> Chip {
@@ -1959,7 +1970,7 @@ final class Main: NSObject, NSWindowDelegate {
         guard !busy else { return }
         busy = true
         seen.insert(chosen)
-        runButton.set(item.verb, live: false)
+        fitButtons()
         waiting()
 
         // Only after somebody has said yes does --yes go anywhere near nimo,
@@ -1977,7 +1988,7 @@ final class Main: NSObject, NSWindowDelegate {
         guard !busy else { return }
         busy = true
         seen.insert(chosen)
-        runButton.set(Action.all[chosen].verb, live: false)
+        fitButtons()
         waiting()
         spin(arguments)
     }

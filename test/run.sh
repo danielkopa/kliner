@@ -1239,7 +1239,12 @@ check "it can say when a job is done"       \
     "grep -q 'enum Word' '$APP/Sources/main.swift' && grep -q 'UNUserNotificationCenter' '$APP/Sources/main.swift'"
 check "but only for runs that changed something" \
     "grep -q 'arguments.contains(\\\"--yes\\\")' '$APP/Sources/main.swift'"
-check "wallpaper is a row of pictures"      "grep -q 'symbolic: true' '$APP/Sources/main.swift'"
+check "every page's buttons are one group of pictures" \
+    "grep -q 'symbolic: Bool = true' '$APP/Sources/main.swift' && ! grep -q 'runButton' '$APP/Sources/main.swift'"
+check "and every page says what its button does" \
+    "[ \$(grep -c '^ *does: \\\"' '$APP/Sources/main.swift') = 9 ]"
+check "the words live on the tooltips"      \
+    "grep -q 'first.toolTip = item.verb' '$APP/Sources/main.swift'"
 check "and a preview can never be given --yes" \
     "! grep -qE 'preview.*--yes|--yes.*preview' '$APP/Sources/main.swift'"
 # Every Action literal must carry a symbol, or a row down the side is blank.
