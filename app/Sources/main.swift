@@ -1373,7 +1373,7 @@ final class Main: NSObject, NSWindowDelegate {
         // holding three more buttons — was noise.
         let bell = Bell()
         bell.onClick = { [weak self] in self?.showActivity() }
-        bell.toolTip = "What Kliner has done"
+        bell.toolTip = "Kliner"
         bellButton = bell
 
         let doIt = Chip(.strong)
@@ -1384,7 +1384,7 @@ final class Main: NSObject, NSWindowDelegate {
         buttons.alignment = .centerY
         buttons.spacing = Step.tight
         buttons.translatesAutoresizingMaskIntoConstraints = false
-        for view in [bell, doIt] as [NSView] {
+        for view in [doIt, bell] as [NSView] {
             buttons.addArrangedSubview(view)
         }
         content.addSubview(buttons)
@@ -1890,24 +1890,31 @@ final class Main: NSObject, NSWindowDelegate {
     private func drawBreakdown(_ pieces: [Piece]) {
         var named: [(name: String, size: Double, folder: Bool)] = []
         var rest: [Piece] = []
+        let asBytes = inBytes(pieces)
+        let item = isPage ? Action.all[chosen] : nil
 
         for piece in pieces {
             guard case .row(let label, let value, _, _, _) = piece,
-                  !label.isEmpty, let much = bytes(value) else {
+                  !label.isEmpty, let much = weigh(value) else {
                 rest.append(piece)
                 continue
             }
             named.append((name: label, size: much, folder: label.hasSuffix("/")))
         }
 
+        /// Bytes read as bytes; everything else reads as a plain count.
+        func amount(_ much: Double) -> String {
+            asBytes ? size(much) : String(Int(much.rounded()))
+        }
+
         let whole = named.reduce(0) { $0 + $1.size }
         if whole > 0 {
-            let card = Card(walked.isEmpty ? "Your home folder"
-                                           : walked.joined(separator: "/"))
+            let card = Card(!walked.isEmpty ? walked.joined(separator: "/")
+                            : (item.map { $0.title } ?? "Your home folder"))
 
-            card.add(Figure(size(whole),
+            card.add(Figure(amount(whole),
                             caption: walked.isEmpty
-                                ? "across \(named.count) folders in your home"
+                                ? "across \(named.count) \(asBytes ? "folders" : "kinds")"
                                 : "across \(named.count) inside \(walked.last ?? "")"))
 
             // Seven strengths of the one colour, then everything after that
@@ -1927,16 +1934,18 @@ final class Main: NSObject, NSWindowDelegate {
                 bars.append((name: "Everything else", share: tail,
                              colour: Paint.band(shown)))
             }
-            card.add(Bars(named.map { (name: $0.name, size: $0.size) }), gap: Step.tight)
+            card.add(Bars(named.map { (name: $0.name, size: $0.size) }, bytes: asBytes),
+                     gap: Step.tight)
             card.add(Split(bars), gap: Step.air)
 
             card.add(Ledger(colour: nil, name: "What is in it",
-                            share: "Share", size: "Size", head: true), gap: Step.air)
+                            share: "Share", size: asBytes ? "Size" : "How many",
+                            head: true), gap: Step.air)
             for (i, one) in named.enumerated() {
                 let row = Ledger(colour: shades[i],
                                  name: one.name,
                                  share: "\(Int((one.size / whole * 100).rounded()))%",
-                                 size: size(one.size),
+                                 size: amount(one.size),
                                  walkable: one.folder)
                 if one.folder {
                     let inside = String(one.name.dropLast())
@@ -1968,13 +1977,35 @@ final class Main: NSObject, NSWindowDelegate {
         }
     }
 
-    /// How many of a page's rows carry a size. Two is enough to be a
+    /// What a row is worth, as a number, whether nimo counted it in bytes or
+    /// in things. Desktop and Downloads come back as kinds with a count each
+    /// ("Images  42 items"), which is as much a breakdown as a list of folder
+    /// sizes is, and it should be drawn like one.
+    private func weigh(_ value: String) -> Double? {
+        if let much = bytes(value) { return much }
+        let first = value.split(separator: " ").first.map(String.init) ?? ""
+        guard let many = Double(first.replacingOccurrences(of: ",", with: "")),
+              many > 0 else { return nil }
+        return many
+    }
+
+    /// Whether a page's numbers are sizes on a disk or counts of things.
+    private func inBytes(_ pieces: [Piece]) -> Bool {
+        for piece in pieces {
+            guard case .row(let label, let value, _, _, _) = piece,
+                  !label.isEmpty, weigh(value) != nil else { continue }
+            return bytes(value) != nil
+        }
+        return true
+    }
+
+    /// How many of a page's rows carry a number. Two is enough to be a
     /// breakdown; one is a fact.
     private func sized(_ pieces: [Piece]) -> Int {
         var count = 0
         for piece in pieces {
             guard case .row(let label, let value, _, _, _) = piece,
-                  !label.isEmpty, bytes(value) != nil else { continue }
+                  !label.isEmpty, weigh(value) != nil else { continue }
             count += 1
         }
         return count
@@ -2009,24 +2040,32 @@ final class Main: NSObject, NSWindowDelegate {
         for piece in pieces {
             guard case .row(let label, let value, _, _, _) = piece,
                   !label.isEmpty else { continue }
-            listed.append((name: label, size: bytes(value)))
+            listed.append((name: label, size: weigh(value)))
         }
         guard listed.count > 1 else { return [] }
 
-        var out: [NSView] = [Metric(item.title, note: item.counts,
+        let asBytes = inBytes(pieces)
+        func amount(_ much: Double) -> String {
+            asBytes ? size(much) : String(Int(much.rounded()))
+        }
+
+        var out: [NSView] = [Metric(item.title,
+                                    note: asBytes ? item.counts : "Kinds of thing in it",
                                     big: String(listed.count))]
 
-        let sized = listed.compactMap { $0.size }
-        guard sized.count > 1 else { return out }
+        let weighed = listed.compactMap { $0.size }
+        guard weighed.count > 1 else { return out }
 
-        let whole = sized.reduce(0, +)
-        out.append(Metric("Together", note: "How much room they take",
-                          big: size(whole)))
+        let whole = weighed.reduce(0, +)
+        out.append(Metric("Together",
+                          note: asBytes ? "How much room they take"
+                                        : "How many there are altogether",
+                          big: amount(whole)))
 
         if let big = listed.max(by: { ($0.size ?? 0) < ($1.size ?? 0) }),
            let much = big.size, whole > 0 {
-            out.append(Metric("Biggest", note: big.name, big: size(much),
-                              of: size(whole), part: much / whole))
+            out.append(Metric("Biggest", note: big.name, big: amount(much),
+                              of: amount(whole), part: much / whole))
         }
         return out
     }
@@ -2427,32 +2466,83 @@ final class Main: NSObject, NSWindowDelegate {
     /// The bell: everything Kliner has done that it could still put back,
     /// newest first, as a menu under the bell itself. Reading it is what puts
     /// the dot out.
+    /// Everything that used to be spread along the row, in one list under the
+    /// one thing left in that corner: what this page can do, what Kliner has
+    /// done, and the keys.
     func showActivity() {
         bellButton.unread = false
-        Sheet.open([Sheet.Line("Looking…")], under: bellButton, wide: 300)
+        Sheet.open(here() + [Sheet.Line.over("Recently"), Sheet.Line("Looking…")],
+                   under: bellButton, wide: 320)
 
         DispatchQueue.global(qos: .userInitiated).async {
             let result = Nimo.run(["undo", "--all", "--dry-run"])
             let pieces = Report.parse(result.text)
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
-                var lines: [Sheet.Line] = []
+                var done: [Sheet.Line] = []
                 for piece in pieces {
-                    guard lines.count < 8,
+                    guard done.count < 5,
                           case .row(let label, let value, _, _, _) = piece,
                           !label.isEmpty else { continue }
-                    lines.append(Sheet.Line(label, note: value.isEmpty ? nil : value))
+                    done.append(Sheet.Line(label, note: value.isEmpty ? nil : value))
                 }
-                if lines.isEmpty {
-                    lines = [Sheet.Line("Kliner has not changed anything yet.")]
+                if done.isEmpty {
+                    done = [Sheet.Line("Nothing changed yet")]
                 } else {
-                    lines.append(Sheet.Line("Put it all back…") { [weak self] in
+                    done.append(Sheet.Line("Put it all back…") { [weak self] in
                         self?.openUndo()
                     })
                 }
-                Sheet.open(lines, under: self.bellButton, wide: 320)
+                Sheet.open(self.here()
+                           + [Sheet.Line.over("Recently")] + done
+                           + self.keys(),
+                           under: self.bellButton, wide: 320)
             }
         }
+    }
+
+    /// What the page you are on can do, named.
+    private func here() -> [Sheet.Line] {
+        guard isPage else { return [] }
+        let item = Action.all[chosen]
+        var lines: [Sheet.Line] = [.over(item.title)]
+
+        if item.asks != nil || !item.looksOnly {
+            lines.append(Sheet.Line(item.verb) { [weak self] in self?.go() })
+        } else {
+            lines.append(Sheet.Line("Ask again", note: "⌘R") { [weak self] in
+                self?.refresh()
+            })
+        }
+        if !walked.isEmpty {
+            lines.append(Sheet.Line("Back out") { [weak self] in self?.walkUp() })
+        } else if item.reveal != nil {
+            lines.append(Sheet.Line("Look inside") { [weak self] in
+                self?.walked = [item.reveal ?? ""]
+                self?.walkHere()
+            })
+        }
+        for (i, extra) in item.extras.enumerated() {
+            lines.append(Sheet.Line(extra.title) { [weak self] in self?.runExtra(i) })
+        }
+        if item.reveal != nil {
+            lines.append(Sheet.Line("Show in Finder") { [weak self] in
+                self?.revealFolder()
+            })
+        }
+        return lines
+    }
+
+    /// The keys, where somebody looking for them would look.
+    private func keys() -> [Sheet.Line] {
+        [.over("Keys"),
+         Sheet.Line("Search the list", note: "⌘K"),
+         Sheet.Line("Ask this page again", note: "⌘R"),
+         Sheet.Line("Show the introduction", note: "⌘F"),
+         Sheet.Line("Hide the list", note: "⌘B"),
+         Sheet.Line("Everything, in one page", note: "Help") { [weak self] in
+             self?.show(Action.all.count + 1)
+         }]
     }
 
     @objc func openUndo() {
@@ -3568,15 +3658,20 @@ enum Sheet {
         let title: String
         let note: String?
         let on: Bool
+        let head: Bool
         let pick: (() -> Void)?
 
         init(_ title: String, note: String? = nil, on: Bool = false,
-             pick: (() -> Void)? = nil) {
+             head: Bool = false, pick: (() -> Void)? = nil) {
             self.title = title
             self.note = note
             self.on = on
+            self.head = head
             self.pick = pick
         }
+
+        /// A word over a group of lines, so one list can hold three things.
+        static func over(_ title: String) -> Line { Line(title, head: true) }
     }
 
     /// The one that is open, so opening another closes it.
@@ -3598,7 +3693,29 @@ enum Sheet {
                                         bottom: Step.tight, right: Step.tight)
         stack.translatesAutoresizingMaskIntoConstraints = false
 
-        for line in lines {
+        for (i, line) in lines.enumerated() {
+            if line.head {
+                let over = NSTextField(labelWithString: line.title)
+                over.font = Words.small
+                over.textColor = Paint.faint
+                over.translatesAutoresizingMaskIntoConstraints = false
+                let holder = NSView()
+                holder.translatesAutoresizingMaskIntoConstraints = false
+                holder.addSubview(over)
+                NSLayoutConstraint.activate([
+                    over.leadingAnchor.constraint(equalTo: holder.leadingAnchor,
+                                                  constant: Step.tight),
+                    over.trailingAnchor.constraint(lessThanOrEqualTo: holder.trailingAnchor),
+                    over.topAnchor.constraint(equalTo: holder.topAnchor,
+                                              constant: i == 0 ? 2 : Step.close),
+                    over.bottomAnchor.constraint(equalTo: holder.bottomAnchor, constant: -2),
+                ])
+                stack.addArrangedSubview(holder)
+                holder.widthAnchor.constraint(equalTo: stack.widthAnchor,
+                                              constant: -Step.air).isActive = true
+                continue
+            }
+
             let row = Pick(line.title, note: line.note, on: line.on)
             if let chosen = line.pick {
                 row.onClick = {
@@ -3752,9 +3869,13 @@ final class Seek: NSView, NSTextFieldDelegate {
     }
 }
 
-/// The bell, with the dot that says something happened while you were not
-/// looking. The dot is not decoration: it goes on when Kliner has done
-/// something since you last opened it, and off the moment you have.
+/// Kliner, in the corner of the row, with the dot that says something
+/// happened while you were not looking.
+///
+/// It is the one thing in that corner and it holds everything that used to be
+/// spread along the row: what this page can do, what Kliner has done, and the
+/// keys. The dot is not decoration: it goes on when Kliner has done something
+/// since you last looked, and off the moment you have.
 final class Bell: NSView {
     var onClick: (() -> Void)?
 
@@ -3772,10 +3893,10 @@ final class Bell: NSView {
         wantsLayer = true
         layer?.cornerRadius = 8
 
-        if let picture = NSImage(systemSymbolName: "bell", accessibilityDescription: nil) {
-            picture.isTemplate = true
-            icon.image = picture
-        }
+        let picture = NSImage(named: "mascot")
+        picture?.isTemplate = true
+        icon.image = picture
+        icon.imageScaling = .scaleProportionallyUpOrDown
         icon.translatesAutoresizingMaskIntoConstraints = false
         addSubview(icon)
 
@@ -3791,10 +3912,10 @@ final class Bell: NSView {
             heightAnchor.constraint(equalToConstant: 26),
             icon.centerXAnchor.constraint(equalTo: centerXAnchor),
             icon.centerYAnchor.constraint(equalTo: centerYAnchor),
-            icon.widthAnchor.constraint(equalToConstant: 14),
-            icon.heightAnchor.constraint(equalToConstant: 14),
-            dot.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
-            dot.topAnchor.constraint(equalTo: topAnchor, constant: 4),
+            icon.widthAnchor.constraint(equalToConstant: 17),
+            icon.heightAnchor.constraint(equalToConstant: 17),
+            dot.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -2),
+            dot.topAnchor.constraint(equalTo: topAnchor, constant: 2),
             dot.widthAnchor.constraint(equalToConstant: 7),
             dot.heightAnchor.constraint(equalToConstant: 7),
         ])
@@ -3816,13 +3937,29 @@ final class Bell: NSView {
         bounds.contains(convert(point, from: superview)) ? self : nil
     }
 
-    override func mouseEntered(with event: NSEvent) { hovering = true;  repaint() }
     override func mouseExited(with event: NSEvent)  { hovering = false; repaint() }
     override func mouseDown(with event: NSEvent)    { onClick?() }
     override func resetCursorRects()                { addCursorRect(bounds, cursor: .pointingHand) }
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         repaint()
+    }
+
+    /// He blinks when you point at him, the way the mark down the side does.
+    override func mouseEntered(with event: NSEvent) {
+        hovering = true
+        repaint()
+        wear(["mascot-half", "mascot-blink", "mascot-half", "mascot"], 0)
+    }
+
+    private func wear(_ faces: [String], _ i: Int) {
+        guard i < faces.count else { return }
+        let picture = NSImage(named: faces[i])
+        picture?.isTemplate = true
+        icon.image = picture
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) { [weak self] in
+            self?.wear(faces, i + 1)
+        }
     }
 
     private func repaint() {
@@ -4150,12 +4287,14 @@ enum Panel {
 /// constraints without one of them being broken.
 final class Bars: NSView {
     private let parts: [(name: String, size: Double)]
+    private let asBytes: Bool
     private var poles: [NSView] = []
     private var names: [NSTextField] = []
     private var grown = false
 
-    init(_ parts: [(name: String, size: Double)]) {
+    init(_ parts: [(name: String, size: Double)], bytes asBytes: Bool = true) {
         self.parts = Array(parts.prefix(12))
+        self.asBytes = asBytes
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
@@ -4165,7 +4304,8 @@ final class Bars: NSView {
             pole.wantsLayer = true
             pole.layer?.cornerRadius = 3
             pole.layer?.backgroundColor = Paint.band(min(i, 6)).cgColor
-            pole.toolTip = "\(part.name)  \(size(part.size))"
+            pole.toolTip = asBytes ? "\(part.name)  \(size(part.size))"
+                                   : "\(part.name)  \(Int(part.size.rounded()))"
             addSubview(pole)
             poles.append(pole)
 

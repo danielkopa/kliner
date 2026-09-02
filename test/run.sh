@@ -1301,8 +1301,14 @@ check "and the face plays it out at the end" \
     "grep -q 'func curtain()' '$APP/Sources/main.swift' && grep -A3 'bare(false)' '$APP/Sources/main.swift' | grep -q 'curtain()' && ! grep -q 'labelWithString: \"Welcome\"' '$APP/Sources/main.swift'"
 # One page shape, whichever page you are on: anything that came back as a
 # list of things with a size each is drawn as a breakdown.
-check "every page with sizes is drawn the same way" \
+check "every page with numbers is drawn the same way" \
     "grep -q 'if isPage, sized(pieces) > 1 {' '$APP/Sources/main.swift' && grep -q 'func sized(' '$APP/Sources/main.swift'"
+# Desktop and Downloads come back as kinds with a count each, which is as much
+# a breakdown as a list of folder sizes is, and it gets drawn like one.
+check "counts count as well as sizes"        \
+    "grep -q 'func weigh(' '$APP/Sources/main.swift' && grep -q 'func inBytes(' '$APP/Sources/main.swift'"
+check "and a count is not written as a size" \
+    "grep -q 'asBytes ? size(much) : String(Int(much.rounded()))' '$APP/Sources/main.swift'"
 # A folder is something to look inside, not something to hand to the Finder.
 check "a folder on a page can be looked into" \
     "grep -q 'walked = \\[folder, name\\]' '$APP/Sources/main.swift' && grep -q 'offer(\"Look inside\")' '$APP/Sources/main.swift'"
@@ -1434,6 +1440,12 @@ check "there is a way to search from the keyboard" \
     "grep -q 'final class Seek' '$APP/Sources/main.swift' && grep -q 'keyEquivalent: \"k\"' '$APP/Sources/main.swift'"
 check "and typing narrows the list rather than covering it" \
     "grep -q 'func sieve' '$APP/Sources/main.swift' && grep -q 'rows\\[i\\].isHidden' '$APP/Sources/main.swift'"
+# One thing in the corner of the row, and it holds everything that used to be
+# spread along it: what this page can do, what Kliner has done, and the keys.
+check "Kliner sits in the corner and holds the rest" \
+    "grep -q 'NSImage(named: \"mascot\")' '$APP/Sources/main.swift' && grep -q 'func here()' '$APP/Sources/main.swift' && grep -q 'func keys()' '$APP/Sources/main.swift'"
+check "and one list holds all three"          \
+    "grep -q 'static func over(' '$APP/Sources/main.swift' && grep -q 'Sheet.Line.over(\"Recently\")' '$APP/Sources/main.swift'"
 check "the bell says when something happened" \
     "grep -q 'final class Bell' '$APP/Sources/main.swift' && grep -q 'self.bellButton.unread = true' '$APP/Sources/main.swift'"
 check "and reading it puts the dot out"      \
