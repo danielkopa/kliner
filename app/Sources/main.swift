@@ -25,7 +25,11 @@ import UserNotifications
 /// point size.
 enum Words {
     /// The name of the page, once, at the top of it.
-    static let title  = NSFont.systemFont(ofSize: 28, weight: .semibold)
+    /// The name of the page, in the row along the top, on the same line as
+    /// everything else in it. Two weights, because it is written as a trail:
+    /// where you are, in the place it belongs.
+    static let title  = NSFont.systemFont(ofSize: 20, weight: .semibold)
+    static let trail  = NSFont.systemFont(ofSize: 20, weight: .regular)
     /// The one line that opens the setup.
     static let hero   = NSFont.systemFont(ofSize: 27, weight: .semibold)
     /// A number worth reading across the room. Monospaced digits, so a figure
@@ -56,9 +60,10 @@ enum Step {
     static let page:  CGFloat = 32
     static let edge:  CGFloat = 40
 
-    /// The row across the top of the window. Everything in it is centred on
-    /// the same line as the three lights, which macOS puts at y = 20.
-    static let bar:   CGFloat = 44
+    /// The row across the top of the window. Forty points, so that everything
+    /// in it centred on y = 20 is centred in the row as well, and y = 20 is
+    /// the line macOS puts the three lights on.
+    static let bar:   CGFloat = 40
 }
 
 // MARK: - nimo's colours
@@ -715,6 +720,16 @@ final class Wordmark: NSImageView {
     private let smallHalf = NSImage(named: "mascot-half")
     private let smallShut = NSImage(named: "mascot-blink")
 
+    /// The eyes moved, and nothing else. Drawn frames, because the art is a
+    /// flat picture: sliding the layer sideways slid the whole word with it,
+    /// and a word that shuffles about is not a glance.
+    ///
+    /// The quotes sit at the end of the word with a letter right behind them,
+    /// so the wordmark can only look outward. The face has room either side.
+    private let peek      = NSImage(named: "wordmark-right")
+    private let smallLeft  = NSImage(named: "mascot-left")
+    private let smallRight = NSImage(named: "mascot-right")
+
     private var pending: Timer?
     private var folded = false
     private var stage = 0            // 0 open, 1 halfway, 2 shut
@@ -723,7 +738,8 @@ final class Wordmark: NSImageView {
         super.init(frame: .zero)
         // Every one of them is a template: macOS draws the shape in the colour
         // of the text beside it, so the face is never a black blob.
-        for picture in [open, half, shut, small, smallHalf, smallShut] {
+        for picture in [open, half, shut, small, smallHalf, smallShut,
+                        peek, smallLeft, smallRight] {
             picture?.isTemplate = true
         }
         imageScaling = .scaleProportionallyUpOrDown
@@ -788,14 +804,18 @@ final class Wordmark: NSImageView {
 
     /// A blink that ends with a small look sideways. Two points is nothing on
     /// its own and everything at this size: it turns a shutter into a glance.
+    ///
+    /// It is a frame, not a transform. Moving the layer moved the whole mark,
+    /// which is the face walking rather than the eyes going.
     private func glance() {
-        wantsLayer = true
-        let look = CAKeyframeAnimation(keyPath: "transform.translation.x")
-        look.values = [0, Bool.random() ? 2.0 : -2.0, 0]
-        look.keyTimes = [0, 0.45, 1]
-        look.duration = 0.5
-        look.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-        layer?.add(look, forKey: "glance")
+        guard stage == 0, window != nil else { return }
+        let aside = folded ? (Bool.random() ? smallLeft : smallRight) : peek
+        guard let looking = aside else { return }
+        image = looking
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) { [weak self] in
+            guard let self = self, self.stage == 0 else { return }
+            self.wake()
+        }
     }
 
     private func run(_ steps: [(Int, Double)], then: @escaping () -> Void) {
@@ -1087,9 +1107,7 @@ final class Main: NSObject, NSWindowDelegate {
     private var chromeLeading: NSLayoutConstraint!
     private var search: Seek!
     private var bellButton: Bell!
-    private var crumbChip: NSTextField!
-    private var crumbName: NSTextField!
-    private var chipWidth: NSLayoutConstraint!
+    private var titleLeading: NSLayoutConstraint!
     private var mascot: Floating?
 
     /// Which setup has been read. Bumped whenever the setup changes, so a
@@ -1154,12 +1172,6 @@ final class Main: NSObject, NSWindowDelegate {
         pane.material = .contentBackground
         pane.blendingMode = .withinWindow
         pane.state = .followsWindowActiveState
-        pane.wantsLayer = true
-        pane.layer?.masksToBounds = true
-        pane.layer?.cornerRadius = 12
-        // Only the corner that is not against the window's own edge. A radius
-        // on all four would leave three little notches of desktop showing.
-        pane.layer?.maskedCorners = [.layerMinXMaxYCorner]
         pane.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(pane)
 
@@ -1244,15 +1256,9 @@ final class Main: NSObject, NSWindowDelegate {
         ])
 
         // ---- the page ----------------------------------------------------
-        // Two hairlines and nothing else: one under the row along the top, one
-        // between the list and the work. Everything else is paper.
-        let across = NSBox()
-        across.boxType = .custom
-        across.borderWidth = 0
-        across.fillColor = Paint.line
-        across.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(across)
-
+        // One hairline in the whole window, between the list and the work.
+        // The row along the top is not a strip of its own: it is the top of
+        // the two surfaces, so it needs no line under it and no line in it.
         let edge = NSBox()
         edge.boxType = .custom
         edge.borderWidth = 0
@@ -1284,40 +1290,14 @@ final class Main: NSObject, NSWindowDelegate {
         chrome.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(chrome)
 
-        // What Kliner has been doing, at the far end of the top row.
+        // The name of the page, in the row along the top, where the page
+        // begins. It is the only large thing in the window, and it is on the
+        // same line as everything you can do to the page it names.
         let bell = Bell()
         bell.onClick = { [weak self] in self?.showActivity() }
         bell.toolTip = "What Kliner has done"
         bellButton = bell
         content.addSubview(bell)
-
-        // Where you are, on the same line as everything you can do about it:
-        // the group this page belongs to as a chip, then the page's own name
-        // beside it, starting where the page starts.
-        let chip = NSTextField(labelWithString: "Kliner")
-        chip.font = Words.tiny
-        chip.textColor = Paint.muted
-        chip.alignment = .center
-        chip.wantsLayer = true
-        chip.layer?.cornerRadius = 6
-        chip.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(chip)
-        crumbChip = chip
-
-        let here = NSTextField(labelWithString: "")
-        here.font = Words.small
-        here.textColor = Paint.muted
-        here.lineBreakMode = .byTruncatingTail
-        here.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(here)
-        crumbName = here
-
-        let split = NSBox()
-        split.boxType = .custom
-        split.borderWidth = 0
-        split.fillColor = Paint.line
-        split.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(split)
 
         titleLabel.font = Words.title
         titleLabel.textColor = Paint.ink
@@ -1354,75 +1334,60 @@ final class Main: NSObject, NSWindowDelegate {
         // The last light ends at x = 72; four points of air after it.
         chromeLeading = chrome.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 76)
         stackWidth = stack.widthAnchor.constraint(equalToConstant: 214)
-        chipWidth = chip.widthAnchor.constraint(equalToConstant: 56)
+
+        // Where the page's name wants to start: where the page starts. It is
+        // only a want, because with the list shut the page starts under the
+        // buttons, and a name printed over a button is worse than a name that
+        // has moved along.
+        titleLeading = titleLabel.leadingAnchor.constraint(equalTo: edge.trailingAnchor,
+                                                           constant: Step.edge)
+        titleLeading.priority = .defaultHigh
 
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: Step.air),
-            stack.topAnchor.constraint(equalTo: across.bottomAnchor, constant: Step.wide),
+            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: Step.bar + Step.close),
             stackWidth,
 
             settingsRow.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
             settingsRow.bottomAnchor.constraint(equalTo: content.bottomAnchor,
                                                 constant: -Step.air),
 
-            // The page is a surface of its own, starting where the row along
-            // the top ends, with the one corner that is not against an edge
-            // of the window rounded off.
+            // The page runs the whole height of the window. The row along the
+            // top is not a strip of its own with a colour of its own: it is
+            // the top of the two surfaces, and the window is quieter for it.
             pane.leadingAnchor.constraint(equalTo: edge.trailingAnchor),
             pane.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            pane.topAnchor.constraint(equalTo: across.bottomAnchor),
+            pane.topAnchor.constraint(equalTo: content.topAnchor),
             pane.bottomAnchor.constraint(equalTo: content.bottomAnchor),
 
-            across.leadingAnchor.constraint(equalTo: content.leadingAnchor),
-            across.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            across.topAnchor.constraint(equalTo: content.topAnchor, constant: Step.bar),
-            across.heightAnchor.constraint(equalToConstant: 1),
-
             railWidth,
-            edge.topAnchor.constraint(equalTo: across.bottomAnchor),
+            edge.topAnchor.constraint(equalTo: content.topAnchor),
             edge.bottomAnchor.constraint(equalTo: content.bottomAnchor),
             edge.widthAnchor.constraint(equalToConstant: 1),
 
             chromeLeading,
             // The lights are 12pt across with their centres on y = 20 in a
             // standard title bar; a 26pt button centred on the same line
-            // starts at 7.
+            // starts at 7. Everything else in the row is centred on the same
+            // line, and the row is 40 tall, so the line is its middle.
             chrome.topAnchor.constraint(equalTo: content.topAnchor, constant: 7),
 
-            // One row across the top of the window holds everything that is
-            // not the page: what the page can do, the way to find a page, and
-            // the bell. The page below it is only the page.
             bell.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -Step.air),
             bell.centerYAnchor.constraint(equalTo: chrome.centerYAnchor),
 
-            split.trailingAnchor.constraint(equalTo: bell.leadingAnchor, constant: -Step.close),
-            split.centerYAnchor.constraint(equalTo: chrome.centerYAnchor),
-            split.widthAnchor.constraint(equalToConstant: 1),
-            split.heightAnchor.constraint(equalToConstant: 16),
-
-            buttons.trailingAnchor.constraint(equalTo: split.leadingAnchor, constant: -Step.close),
+            buttons.trailingAnchor.constraint(equalTo: bell.leadingAnchor, constant: -Step.tight),
             buttons.centerYAnchor.constraint(equalTo: chrome.centerYAnchor),
-            buttons.leadingAnchor.constraint(greaterThanOrEqualTo: chrome.trailingAnchor,
-                                             constant: Step.air),
 
-            chip.leadingAnchor.constraint(equalTo: edge.trailingAnchor, constant: Step.air),
-            chip.centerYAnchor.constraint(equalTo: chrome.centerYAnchor),
-            chip.heightAnchor.constraint(equalToConstant: 20),
-            chipWidth,
-
-            here.leadingAnchor.constraint(equalTo: chip.trailingAnchor, constant: Step.close),
-            here.centerYAnchor.constraint(equalTo: chrome.centerYAnchor),
-            here.trailingAnchor.constraint(lessThanOrEqualTo: buttons.leadingAnchor,
-                                            constant: -Step.close),
-
-            titleLabel.leadingAnchor.constraint(equalTo: edge.trailingAnchor, constant: Step.edge),
-            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: content.trailingAnchor,
-                                                 constant: -Step.edge),
-            titleLabel.topAnchor.constraint(equalTo: across.bottomAnchor, constant: Step.edge),
+            titleLeading,
+            titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: chrome.trailingAnchor,
+                                                constant: Step.air),
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: buttons.leadingAnchor,
+                                                 constant: -Step.air),
+            titleLabel.centerYAnchor.constraint(equalTo: chrome.centerYAnchor),
 
             scroll.leadingAnchor.constraint(equalTo: edge.trailingAnchor),
             scroll.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            scroll.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: Step.wide),
+            scroll.topAnchor.constraint(equalTo: content.topAnchor, constant: Step.bar + Step.close),
             scroll.bottomAnchor.constraint(equalTo: content.bottomAnchor),
 
             report.leadingAnchor.constraint(equalTo: scroll.contentView.leadingAnchor),
@@ -1485,8 +1450,7 @@ final class Main: NSObject, NSWindowDelegate {
 
         // The setup has no page title of its own — the headline is under the
         // face, where the eye already is.
-        titleLabel.stringValue = ""
-        crumb("Kliner", "Setup")
+        trail("Kliner", "Setup")
         search.isHidden = true
         bellButton.isHidden = true
 
@@ -1918,28 +1882,32 @@ final class Main: NSObject, NSWindowDelegate {
         return (rest.isEmpty ? "Right now" : rest.capitalized, first, nil, nil)
     }
 
-    /// Where you are, along the top: the group as a chip, the page beside it.
-    /// The chip is as wide as the word in it, plus the same air either side.
-    private func crumb(_ group: String, _ page: String) {
+    /// Where you are, written as a trail: the group it belongs to, quietly,
+    /// then the page itself. One label, two weights, so it reads as one line
+    /// rather than as two labels that happen to be next to each other.
+    private func trail(_ group: String, _ page: String) {
+        let line = NSMutableAttributedString()
+        line.append(NSAttributedString(string: group, attributes: [
+            .font: Words.trail, .foregroundColor: Paint.muted,
+        ]))
+        line.append(NSAttributedString(string: "  /  ", attributes: [
+            .font: Words.trail, .foregroundColor: Paint.faint,
+        ]))
+        line.append(NSAttributedString(string: page, attributes: [
+            .font: Words.title, .foregroundColor: Paint.ink,
+        ]))
+        titleLabel.attributedStringValue = line
+
         // It changes as the page changes, so it fades rather than swapping:
         // two words appearing in place is a flicker, two words arriving is a
         // move from one page to another.
-        for label in [crumbChip, crumbName] {
-            guard let field = label else { continue }
-            field.wantsLayer = true
-            let show = CABasicAnimation(keyPath: "opacity")
-            show.fromValue = 0
-            show.toValue = 1
-            show.duration = 0.22
-            show.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            field.layer?.add(show, forKey: "arriving")
-        }
-        crumbChip.stringValue = group
-        crumbName.stringValue = page
-        chipWidth.constant = ceil(crumbChip.intrinsicContentSize.width) + Step.air
-        crumbChip.effectiveAppearance.performAsCurrentDrawingAppearance {
-            self.crumbChip.layer?.backgroundColor = Paint.hover.cgColor
-        }
+        titleLabel.wantsLayer = true
+        let show = CABasicAnimation(keyPath: "opacity")
+        show.fromValue = 0
+        show.toValue = 1
+        show.duration = 0.22
+        show.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        titleLabel.layer?.add(show, forKey: "arriving")
     }
 
     /// Air between the cards. A stack view's own spacing would put the same
@@ -2310,8 +2278,8 @@ final class Main: NSObject, NSWindowDelegate {
         for (i, row) in rows.enumerated() { row.choose(i == index) }
 
         let item = index == Action.all.count ? Action.settings : Action.all[index]
-        titleLabel.stringValue = index == 0 ? "Your Mac, right now" : item.title
-        crumb(item.group.isEmpty ? "Kliner" : item.group, item.title)
+        trail(item.group.isEmpty ? "Kliner" : item.group,
+              index == 0 ? "Home" : item.title)
         fitButtons()
 
         if isSettings {
@@ -3455,6 +3423,29 @@ func leaded(_ text: String, _ font: NSFont, _ colour: NSColor) -> NSAttributedSt
     ])
 }
 
+/// Every panel in the window is the same panel: the same corner, the same
+/// hairline, the same fill, the same air inside it. A window where one box is
+/// rounded a little more than the next is a window somebody assembled rather
+/// than drew.
+enum Panel {
+    static let round: CGFloat = 12
+    static let pad: CGFloat = Step.air
+
+    static func dress(_ view: NSView) {
+        view.wantsLayer = true
+        view.layer?.cornerRadius = round
+        view.layer?.borderWidth = 1
+        paint(view)
+    }
+
+    static func paint(_ view: NSView) {
+        view.effectiveAppearance.performAsCurrentDrawingAppearance {
+            view.layer?.backgroundColor = Paint.hover.withAlphaComponent(0.4).cgColor
+            view.layer?.borderColor = Paint.line.cgColor
+        }
+    }
+}
+
 /// A meter drawn as ticks rather than as one bar. It reads at a glance like a
 /// bar and it counts like a number, which is what a figure with a ceiling
 /// wants: you can see it is about two thirds without being told.
@@ -3545,9 +3536,7 @@ final class Metric: NSView {
          of whole: String? = nil, part: Double? = nil) {
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
-        wantsLayer = true
-        layer?.cornerRadius = 10
-        layer?.borderWidth = 1
+        Panel.dress(self)
 
         let title = NSTextField(labelWithString: name)
         title.font = Words.strong
@@ -3569,10 +3558,10 @@ final class Metric: NSView {
         addSubview(number)
 
         NSLayoutConstraint.activate([
-            title.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Step.air),
+            title.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Panel.pad),
             title.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor,
                                             constant: -Step.close),
-            title.topAnchor.constraint(equalTo: topAnchor, constant: Step.air),
+            title.topAnchor.constraint(equalTo: topAnchor, constant: Panel.pad),
 
             under.leadingAnchor.constraint(equalTo: title.leadingAnchor),
             under.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor,
@@ -3599,7 +3588,7 @@ final class Metric: NSView {
             ])
         } else {
             number.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor,
-                                             constant: -Step.air).isActive = true
+                                             constant: -Panel.pad).isActive = true
         }
 
         if let share = part {
@@ -3607,9 +3596,9 @@ final class Metric: NSView {
             addSubview(meter)
             NSLayoutConstraint.activate([
                 meter.leadingAnchor.constraint(equalTo: title.leadingAnchor),
-                meter.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Step.air),
+                meter.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Panel.pad),
                 meter.topAnchor.constraint(equalTo: number.bottomAnchor, constant: Step.close),
-                meter.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -Step.air),
+                meter.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -Panel.pad),
             ])
         } else {
             number.bottomAnchor.constraint(equalTo: bottomAnchor,
@@ -3627,10 +3616,7 @@ final class Metric: NSView {
     }
 
     private func paint() {
-        effectiveAppearance.performAsCurrentDrawingAppearance {
-            self.layer?.backgroundColor = Paint.hover.withAlphaComponent(0.4).cgColor
-            self.layer?.borderColor = Paint.line.cgColor
-        }
+        Panel.paint(self)
     }
 }
 
@@ -3645,9 +3631,7 @@ final class Card: NSView {
     init(_ title: String, trailing: NSView? = nil) {
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
-        wantsLayer = true
-        layer?.cornerRadius = 12
-        layer?.borderWidth = 1
+        Panel.dress(self)
 
         let name = NSTextField(labelWithString: title)
         name.font = Words.strong
@@ -3662,19 +3646,20 @@ final class Card: NSView {
         addSubview(body)
 
         NSLayoutConstraint.activate([
-            name.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 18),
-            name.topAnchor.constraint(equalTo: topAnchor, constant: 16),
-            body.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 18),
-            body.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -18),
-            body.topAnchor.constraint(equalTo: name.bottomAnchor, constant: 12),
-            body.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -16),
+            name.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Panel.pad),
+            name.topAnchor.constraint(equalTo: topAnchor, constant: Panel.pad),
+            body.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Panel.pad),
+            body.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Panel.pad),
+            body.topAnchor.constraint(equalTo: name.bottomAnchor, constant: Step.close),
+            body.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -Panel.pad),
         ])
 
         if let control = trailing {
             control.translatesAutoresizingMaskIntoConstraints = false
             addSubview(control)
             NSLayoutConstraint.activate([
-                control.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+                control.trailingAnchor.constraint(equalTo: trailingAnchor,
+                                                  constant: -Step.close),
                 control.centerYAnchor.constraint(equalTo: name.centerYAnchor),
                 control.leadingAnchor.constraint(greaterThanOrEqualTo: name.trailingAnchor,
                                                  constant: 12),
@@ -3718,10 +3703,7 @@ final class Card: NSView {
     }
 
     private func paint() {
-        effectiveAppearance.performAsCurrentDrawingAppearance {
-            self.layer?.backgroundColor = Paint.hover.withAlphaComponent(0.4).cgColor
-            self.layer?.borderColor = Paint.line.cgColor
-        }
+        Panel.paint(self)
     }
 }
 

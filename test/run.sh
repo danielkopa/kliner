@@ -1298,11 +1298,19 @@ check "the words live on the tooltips"      \
 # One row across the top holds everything that is not the page. The page under
 # it is only the page.
 check "and the row lives in the top bar"     \
-    "grep -q 'buttons.trailingAnchor.constraint(equalTo: split.leadingAnchor' '$APP/Sources/main.swift' && grep -q 'buttons.centerYAnchor.constraint(equalTo: chrome.centerYAnchor)' '$APP/Sources/main.swift'"
-# Where you are, on the same line as everything you can do about it, starting
-# where the page starts.
-check "and says where you are on the same line" \
-    "grep -q 'func crumb(' '$APP/Sources/main.swift' && grep -q 'chip.leadingAnchor.constraint(equalTo: edge.trailingAnchor' '$APP/Sources/main.swift'"
+    "grep -q 'buttons.trailingAnchor.constraint(equalTo: bell.leadingAnchor' '$APP/Sources/main.swift' && grep -q 'buttons.centerYAnchor.constraint(equalTo: chrome.centerYAnchor)' '$APP/Sources/main.swift'"
+# The name of the page is in that row, on the same line as everything you can
+# do to it, and there is no second copy of it below.
+check "the page's name is in the row as well" \
+    "grep -q 'titleLabel.centerYAnchor.constraint(equalTo: chrome.centerYAnchor)' '$APP/Sources/main.swift'"
+# Written as a trail: where you are, in the place it belongs, one label and
+# two weights so it reads as one line.
+check "and it says where that page belongs"  \
+    "grep -q 'func trail(' '$APP/Sources/main.swift' && grep -q 'titleLabel.attributedStringValue = line' '$APP/Sources/main.swift'"
+# With the list shut the page starts under the buttons, so the name gives way
+# rather than printing over one.
+check "and it never prints over a button"    \
+    "grep -q 'titleLeading.priority = .defaultHigh' '$APP/Sources/main.swift' && grep -q 'titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: chrome.trailingAnchor' '$APP/Sources/main.swift'"
 # The page you are on is the dark one in the list. A filled pill behind it as
 # well says the same thing twice.
 check "the list marks the page by weight, not by a box" \
@@ -1311,8 +1319,12 @@ check "paragraphs have room between their lines" \
     "grep -q 'lineHeightMultiple' '$APP/Sources/main.swift' && grep -q 'func leaded' '$APP/Sources/main.swift'"
 check "and the work stops at a readable width" \
     "grep -q 'static let column: CGFloat' '$APP/Sources/main.swift' && grep -q 'lessThanOrEqualToConstant: Main.column' '$APP/Sources/main.swift'"
-check "the page is a surface under the top row" \
-    "grep -q 'pane.topAnchor.constraint(equalTo: across.bottomAnchor)' '$APP/Sources/main.swift' && grep -q 'layerMinXMaxYCorner' '$APP/Sources/main.swift'"
+# The row along the top is not a strip with a colour of its own: it is the top
+# of the two surfaces, so it needs no line under it and no line inside it.
+check "the row along the top is not a strip of its own" \
+    "grep -q 'pane.topAnchor.constraint(equalTo: content.topAnchor)' '$APP/Sources/main.swift'"
+check "with no line under it and none inside it" \
+    "! grep -q 'across.heightAnchor.constraint(equalToConstant: 1)' '$APP/Sources/main.swift' && ! grep -q 'split.widthAnchor.constraint(equalToConstant: 1)' '$APP/Sources/main.swift'"
 # Home is a list of things to do, not four numbers and a shrug.
 check "home says what to do about it"        \
     "grep -q 'final class Job' '$APP/Sources/main.swift' && grep -q 'let list = Card(\"What to do\")' '$APP/Sources/main.swift'"
@@ -1365,6 +1377,21 @@ check "and every page puts its figures on top" \
     "grep -q 'func stats(_ pieces' '$APP/Sources/main.swift' && grep -q 'for box in stats(pieces)' '$APP/Sources/main.swift'"
 check "and every page says what one of its rows is" \
     "[ \$(grep -c '^ *counts: \"' '$APP/Sources/main.swift') = 8 ]"
+# Every panel in the window is the same panel: same corner, same hairline,
+# same fill, same air inside it.
+check "every panel in the window is the same panel" \
+    "grep -q 'enum Panel {' '$APP/Sources/main.swift' && [ \$(grep -c 'Panel.dress(self)' '$APP/Sources/main.swift') -ge 2 ]"
+check "and none of them names its own corner" \
+    "! grep -qE 'layer\\?.cornerRadius = 1[02]$' '$APP/Sources/main.swift'"
+# The eyes move, not the mark. A layer slid sideways is the whole word walking.
+check "only the eyes look sideways"          \
+    "! grep -q 'transform.translation.x' '$APP/Sources/main.swift' && grep -q 'wordmark-right' '$APP/Sources/main.swift'"
+check "and the frames are drawn from the art" \
+    "python3 '$ROOT/tools/glance.py' '$APP/Resources' >/dev/null"
+# Proved by the pixels: the looking frames differ from the one they came from
+# in one small place near the top, and nowhere else.
+check "proved by the pixels, not by the name" \
+    "python3 '$ROOT/tools/glance.py' '$APP/Resources' --check"
 check "the meter fills rather than appearing filled" \
     "grep -q 'forKey: \"filling\"' '$APP/Sources/main.swift'"
 # The way to find a page belongs with the pages.
