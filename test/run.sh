@@ -1339,8 +1339,15 @@ check "nothing on screen is joined with a dash" \
 # rather than a row of pictures nobody can tell apart.
 check "the page ends on the thing it is for" \
     "grep -q 'primary.set(item.verb, live: !busy)' '$APP/Sources/main.swift'"
-check "and everything else is behind one button" \
-    "grep -q 'func offerExtras' '$APP/Sources/main.swift' && grep -q 'Ghost(\"ellipsis\")' '$APP/Sources/main.swift'"
+# A page that only reads has no button: opening it reads it, and Cmd-R reads
+# it again. "Look again" beside a page that had just looked was a button for
+# the sake of having one.
+check "and only the pages that do something have one" \
+    "grep -q 'let acts = item.asks != nil || !item.looksOnly' '$APP/Sources/main.swift'"
+# The other things a page can do belong on the page, next to what they act on,
+# with their names showing.
+check "the rest are named, on the page"      \
+    "grep -q 'func others()' '$APP/Sources/main.swift' && ! grep -q 'ellipsis' '$APP/Sources/main.swift'"
 # The row of buttons sits opposite the page title, not underneath it, so one
 # line across the top says what the page is and what it can do.
 # One row across the top holds everything that is not the page. The page under
@@ -1471,8 +1478,10 @@ check "the search field lives in the row"    \
 # hairlines and fills as everything else in the window.
 check "the lists that open are drawn here"   \
     "grep -q 'enum Sheet {' '$APP/Sources/main.swift' && ! grep -q 'menu.popUp' '$APP/Sources/main.swift'"
-check "and the choice looks like a choice"   \
-    "grep -q 'final class Pill' '$APP/Sources/main.swift' && grep -q 'pagePill.set(item.title)' '$APP/Sources/main.swift'"
+# The trail is already the way to switch pages inside a place. A second
+# control saying the same thing beside it is one control too many.
+check "and there is one way to switch, not two" \
+    "grep -q 'Sheet.open(lines, under: titleLabel' '$APP/Sources/main.swift' && ! grep -q 'pagePill' '$APP/Sources/main.swift'"
 # One colour, not two: with the list hidden but the rail where it was, the
 # setup was a wide dark page beside a strip of a different dark.
 check "the setup is one surface, not two"    \

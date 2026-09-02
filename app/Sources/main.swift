@@ -1131,9 +1131,6 @@ final class Main: NSObject, NSWindowDelegate {
     private var titleLeading: NSLayoutConstraint!
     private var footStack: NSStackView!
     private var railLine: NSBox!
-    private var statusLabel: NSTextField!
-    private var pagePill: Pill!
-    private var moreButton: Ghost!
     private var primary: Chip!
     private var mascot: Floating?
 
@@ -1365,28 +1362,17 @@ final class Main: NSObject, NSWindowDelegate {
         search = seek
         content.addSubview(seek)
 
-        // The right of the row, in the order a Mac reads it: how things stand,
-        // the choice to make, the bell, everything else this page can do, and
-        // last, on its own, the one thing the page is for.
-        let said = NSTextField(labelWithString: "")
-        said.font = Words.small
-        said.textColor = Paint.muted
-        said.lineBreakMode = .byTruncatingTail
-        statusLabel = said
-
-        let choose = Pill(nil)
-        choose.onClick = { [weak self] in self?.offerSiblings() }
-        pagePill = choose
-
+        // The right of the row is two things. The bell, because something may
+        // have happened while you were not looking. And, only on the pages
+        // that do something, the one thing that page is for.
+        //
+        // Everything else that was here — a count the page already shows, a
+        // second way to switch pages when the trail is already one, a button
+        // holding three more buttons — was noise.
         let bell = Bell()
         bell.onClick = { [weak self] in self?.showActivity() }
         bell.toolTip = "What Kliner has done"
         bellButton = bell
-
-        let more = Ghost("ellipsis")
-        more.toolTip = "Everything else this page can do"
-        more.onClick = { [weak self] in self?.offerExtras() }
-        moreButton = more
 
         let doIt = Chip(.strong)
         doIt.onClick = { [weak self] in self?.go() }
@@ -1396,7 +1382,7 @@ final class Main: NSObject, NSWindowDelegate {
         buttons.alignment = .centerY
         buttons.spacing = Step.tight
         buttons.translatesAutoresizingMaskIntoConstraints = false
-        for view in [said, choose, bell, more, doIt] as [NSView] {
+        for view in [bell, doIt] as [NSView] {
             buttons.addArrangedSubview(view)
         }
         content.addSubview(buttons)
@@ -2125,6 +2111,8 @@ final class Main: NSObject, NSWindowDelegate {
             view.removeFromSuperview()
         }
 
+        others()
+
         if chosen == 0, isPage {
             drawHome(pieces)
             settle()
@@ -2316,7 +2304,7 @@ final class Main: NSObject, NSWindowDelegate {
                        note: Action.all[which].counts,
                        on: which == chosen) { [weak self] in self?.show(which) }
         }
-        Sheet.open(lines, under: pagePill.isHidden ? titleLabel : pagePill, wide: 280)
+        Sheet.open(lines, under: titleLabel, wide: 280)
     }
 
     // MARK: finding a page, and what has been done
@@ -2541,63 +2529,66 @@ final class Main: NSObject, NSWindowDelegate {
     /// which of them are there at all, so the row never jumps about while a
     /// page loads.
     private func fitButtons() {
-        let here = isPage ? Action.all[chosen] : nil
-
-        // How things stand, in a few words, from what the page last said.
-        var stands = ""
-        if let item = here, let said = kept[chosen] {
-            var rows = 0
-            for piece in said {
-                if case .row(let label, _, _, _, _) = piece, !label.isEmpty { rows += 1 }
-            }
-            if rows > 0 { stands = "\(rows) \(item.counts)" }
+        // A page that only reads has no button: opening it reads it, and Cmd-R
+        // reads it again. "Look again" beside a page that had just looked was
+        // a button for the sake of having one.
+        guard isPage else {
+            primary.isHidden = true
+            return
         }
-        statusLabel.stringValue = stands
-        statusLabel.isHidden = stands.isEmpty
-
-        // The choice, where there is one to make.
-        let holds = Action.place(of: chosen)?.holds ?? []
-        pagePill.isHidden = holds.count < 2
-        if let item = here, holds.count > 1 { pagePill.set(item.title) }
-
-        // Everything else this page can do, behind one button rather than a
-        // row of pictures nobody can tell apart.
-        moreButton.isHidden = here == nil || extras().isEmpty
-        moreButton.isEnabled = !busy
-
-        // And the one thing the page is for.
-        primary.isHidden = here == nil
-        if let item = here { primary.set(item.verb, live: !busy) }
+        let item = Action.all[chosen]
+        let acts = item.asks != nil || !item.looksOnly
+        primary.isHidden = !acts
+        if acts { primary.set(item.verb, live: !busy) }
     }
 
-    /// Everything this page can do that is not the one thing it is for.
-    private func extras() -> [Sheet.Line] {
-        guard isPage else { return [] }
+    /// Everything this page can do that is not the one thing it is for, as a
+    /// row of quiet words along the top of the page itself.
+    ///
+    /// They were in the top row, behind a button holding three buttons. They
+    /// belong here: next to the thing they act on, with their names showing.
+    private func others() {
+        guard isPage else { return }
         let item = Action.all[chosen]
-        var lines: [Sheet.Line] = []
+
+        let row = NSStackView()
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = Step.tight
+        row.translatesAutoresizingMaskIntoConstraints = false
+
+        func offer(_ title: String, _ act: @escaping () -> Void) {
+            let chip = Chip(.quiet)
+            chip.set(title, live: !busy)
+            chip.onClick = act
+            row.addArrangedSubview(chip)
+        }
 
         if !walked.isEmpty {
-            lines.append(Sheet.Line("Back out of this folder",
-                                    note: walked.joined(separator: "/")) { [weak self] in
-                                        self?.walkUp()
-                                    })
+            offer("Back out") { [weak self] in self?.walkUp() }
         }
         for (i, extra) in item.extras.enumerated() {
-            lines.append(Sheet.Line(extra.title) { [weak self] in self?.runExtra(i) })
+            offer(extra.title) { [weak self] in self?.runExtra(i) }
         }
-        if let folder = item.reveal {
-            lines.append(Sheet.Line("Show in Finder", note: folder) { [weak self] in
-                self?.revealFolder()
-            })
+        if item.reveal != nil {
+            offer("Show in Finder") { [weak self] in self?.revealFolder() }
         }
-        return lines
+
+        guard !row.arrangedSubviews.isEmpty else { return }
+
+        let holder = NSView()
+        holder.translatesAutoresizingMaskIntoConstraints = false
+        holder.addSubview(row)
+        NSLayoutConstraint.activate([
+            row.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
+            row.topAnchor.constraint(equalTo: holder.topAnchor),
+            row.bottomAnchor.constraint(equalTo: holder.bottomAnchor, constant: -Step.close),
+            row.trailingAnchor.constraint(lessThanOrEqualTo: holder.trailingAnchor),
+        ])
+        line(holder)
     }
 
-    private func offerExtras() {
-        let lines = extras()
-        guard !lines.isEmpty else { return }
-        Sheet.open(lines, under: moreButton, wide: 260)
-    }
+
 
     private func quiet(_ words: String, _ then: @escaping () -> Void) -> Chip {
         let chip = Chip(.quiet)
@@ -3421,114 +3412,6 @@ final class Pages: NSScrollView {
     /// round a Mac does.
     private func answer(_ delta: CGFloat) {
         if delta > 0 { onBack?() } else { onForward?() }
-    }
-}
-
-/// A control shaped like the thing it is: rounded, filled, a word and a
-/// chevron. Used where there is a choice to make, so the choice looks like a
-/// choice and not like a label somebody made clickable.
-final class Pill: NSView {
-    var onClick: (() -> Void)?
-
-    private let icon = NSImageView()
-    private let label = NSTextField(labelWithString: "")
-    private let arrow = NSImageView()
-    private var width: NSLayoutConstraint!
-    private var hovering = false
-
-    init(_ symbol: String?) {
-        super.init(frame: .zero)
-        translatesAutoresizingMaskIntoConstraints = false
-        wantsLayer = true
-        layer?.cornerRadius = 8
-        layer?.borderWidth = 1
-
-        var left: NSLayoutXAxisAnchor = leadingAnchor
-        var pad = Step.close
-        if let name = symbol,
-           let picture = NSImage(systemSymbolName: name, accessibilityDescription: nil) {
-            picture.isTemplate = true
-            icon.image = picture
-            icon.translatesAutoresizingMaskIntoConstraints = false
-            addSubview(icon)
-            NSLayoutConstraint.activate([
-                icon.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Step.tight),
-                icon.centerYAnchor.constraint(equalTo: centerYAnchor),
-                icon.widthAnchor.constraint(equalToConstant: 12),
-                icon.heightAnchor.constraint(equalToConstant: 12),
-            ])
-            left = icon.trailingAnchor
-            pad = 5
-        }
-
-        label.font = Words.small
-        label.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(label)
-
-        if let picture = NSImage(systemSymbolName: "chevron.down",
-                                 accessibilityDescription: nil) {
-            picture.isTemplate = true
-            arrow.image = picture
-        }
-        arrow.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(arrow)
-
-        width = widthAnchor.constraint(equalToConstant: 90)
-        NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 24),
-            width,
-            label.leadingAnchor.constraint(equalTo: left, constant: pad),
-            label.centerYAnchor.constraint(equalTo: centerYAnchor),
-            arrow.leadingAnchor.constraint(equalTo: label.trailingAnchor, constant: 5),
-            arrow.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Step.tight),
-            arrow.centerYAnchor.constraint(equalTo: centerYAnchor),
-            arrow.widthAnchor.constraint(equalToConstant: 8),
-            arrow.heightAnchor.constraint(equalToConstant: 8),
-        ])
-
-        repaint()
-    }
-
-    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
-
-    /// As wide as the word in it, plus the picture, the chevron and the air
-    /// either side. A control that is always the same width is a control that
-    /// is the wrong width for everything but one word.
-    func set(_ words: String) {
-        label.stringValue = words
-        let text = ceil(label.intrinsicContentSize.width)
-        width.constant = text + (icon.image == nil ? 0 : 17) + 34
-    }
-
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        for area in trackingAreas { removeTrackingArea(area) }
-        addTrackingArea(NSTrackingArea(rect: .zero,
-                                       options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
-                                       owner: self, userInfo: nil))
-    }
-
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        bounds.contains(convert(point, from: superview)) ? self : nil
-    }
-
-    override func mouseEntered(with event: NSEvent) { hovering = true;  repaint() }
-    override func mouseExited(with event: NSEvent)  { hovering = false; repaint() }
-    override func mouseDown(with event: NSEvent)    { onClick?() }
-    override func resetCursorRects()                { addCursorRect(bounds, cursor: .pointingHand) }
-    override func viewDidChangeEffectiveAppearance() {
-        super.viewDidChangeEffectiveAppearance()
-        repaint()
-    }
-
-    private func repaint() {
-        label.textColor = Paint.ink
-        icon.contentTintColor = Paint.muted
-        arrow.contentTintColor = Paint.faint
-        effectiveAppearance.performAsCurrentDrawingAppearance {
-            self.layer?.borderColor = Paint.line.cgColor
-            ease(self.layer, to: self.hovering ? Paint.hover : Paint.hover.withAlphaComponent(0.4))
-        }
     }
 }
 
