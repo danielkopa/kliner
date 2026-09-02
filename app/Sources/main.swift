@@ -983,7 +983,7 @@ final class Main: NSObject, NSWindowDelegate {
         stack.addArrangedSubview(mark)
         markWidth = mark.widthAnchor.constraint(equalToConstant: 190)
         NSLayoutConstraint.activate([
-            mark.heightAnchor.constraint(equalToConstant: 21),
+            mark.heightAnchor.constraint(equalToConstant: 22),
             markWidth,
         ])
         stack.setCustomSpacing(26, after: mark)
