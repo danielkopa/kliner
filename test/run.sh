@@ -1227,6 +1227,12 @@ check "arriving on Wallpaper does not change it" \
 check "the eye looks about when it opens"   "grep -q 'func glance' '$APP/Sources/main.swift'"
 check "the first time, it introduces itself" \
     "grep -q 'func drawWelcome' '$APP/Sources/main.swift' && grep -q 'welcomed' '$APP/Sources/main.swift'"
+check "the welcome is four pages, not one"  \
+    "grep -q 'Dots(of: 4, at: step)' '$APP/Sources/main.swift' && grep -q 'case 3:' '$APP/Sources/main.swift'"
+check "and it asks for access on the last one, not the first" \
+    "awk '/switch step/{a=NR} /Word.ask\\(\\)/{b=NR} END{exit !(a && b && a < b)}' '$APP/Sources/main.swift'"
+check "you can walk back through it"        "grep -q 'self?.step -= 1' '$APP/Sources/main.swift'"
+check "or skip the asking"                  "grep -q 'Skip for now' '$APP/Sources/main.swift'"
 check "and only the first time"             "grep -q 'Config.set(\\\"welcomed\\\"' '$APP/Sources/main.swift'"
 check "the face drifts while it says hello" "grep -q 'final class Floating' '$APP/Sources/main.swift'"
 check "it can say when a job is done"       \

@@ -977,6 +977,7 @@ final class Main: NSObject, NSWindowDelegate {
     private var groupLabels: [NSTextField] = []
     private var narrow = false
     private var welcoming = false
+    private var step = 0
     private var foldButton: Ghost!
     private var backButton: Ghost!
     private var onButton: Ghost!
@@ -1013,9 +1014,8 @@ final class Main: NSObject, NSWindowDelegate {
         build()
         if Config.value("welcomed") == nil {
             welcoming = true
-            drawWelcome()
-            titleLabel.stringValue = "Hello"
             for row in rows { row.choose(false) }
+            drawWelcome()          // each step sets its own title
         } else {
             show(0)
         }
@@ -1254,9 +1254,10 @@ final class Main: NSObject, NSWindowDelegate {
     /// Home is doctor's own reading, laid out as four figures and a short
     /// list of what is worth doing about them. Nothing new is measured for
     /// it — it is the same numbers, arranged for a person arriving.
-    /// The first time, and only the first time. Three lines about what this
-    /// is, one button that asks macOS for what it needs, and the face drifting
-    /// about above them.
+    /// The first time, and only the first time: four pages that say what this
+    /// is and what it will not do, and *then* ask macOS for anything. Being
+    /// asked for your Desktop by a window you have not read yet is how an app
+    /// gets refused.
     private func drawWelcome() {
         for view in report.arrangedSubviews {
             report.removeArrangedSubview(view)
@@ -1267,36 +1268,83 @@ final class Main: NSObject, NSWindowDelegate {
             view.removeFromSuperview()
         }
 
-        line(Floating())
+        switch step {
+        case 0:
+            titleLabel.stringValue = "Hello"
+            line(Floating())
+            words("Kliner tidies the parts of a Mac that quietly get away from you.",
+                  size: 15, weight: .medium, colour: Paint.ink, top: 4, bottom: 10)
+            words("Eighty things on the desktop. Three hundred in Downloads. A wallpaper you never chose.",
+                  size: 13.5, weight: .regular, colour: Paint.muted, top: 0, bottom: 6)
 
-        words("Kliner tidies the parts of a Mac that get away from you.",
-              size: 15, weight: .medium, colour: Paint.ink, top: 6, bottom: 10)
-        words("Everything it does, it writes down. Put it all back reverses any of it.",
-              size: 13.5, weight: .regular, colour: Paint.muted, top: 0, bottom: 4)
-        words("It never leaves your home folder, never asks for an administrator, and never uses the network.",
-              size: 13.5, weight: .regular, colour: Paint.muted, top: 0, bottom: 18)
+        case 1:
+            titleLabel.stringValue = "What it does"
+            for item in Action.all where item.title != "Home" {
+                line(Told(item.symbol, item.title, item.blurb))
+            }
 
-        let start = Chip(.strong)
-        start.set("Let macOS know")
-        start.onClick = { [weak self] in
+        case 2:
+            titleLabel.stringValue = "Nothing is lost"
+            line(Told("arrow.uturn.backward", "It writes down every move",
+                      "Put it all back reverses any of it, newest first."))
+            line(Told("house", "It stays in your home folder",
+                      "Nothing outside it is read, moved or removed."))
+            line(Told("lock.open", "It never asks for an administrator",
+                      "And it never uses the network."))
+            line(Told("questionmark.circle", "It asks before it changes anything",
+                      "Every page shows you what it would do first."))
+
+        case 3:
+            titleLabel.stringValue = "One last thing"
+            words("macOS decides what an app may read, not the app.",
+                  size: 15, weight: .medium, colour: Paint.ink, top: 4, bottom: 8)
+            words("Left alone it asks once per folder, over and over. Full Disk Access is the one switch that ends that — and Kliner still only reads inside your home.",
+                  size: 13.5, weight: .regular, colour: Paint.muted, top: 0, bottom: 14)
+            line(Told("folder", "Your folders", "Desktop, Downloads, Pictures, Documents."))
+            line(Told("externaldrive", "Full Disk Access", "Optional. It only stops the asking."))
+
+        default:
+            break
+        }
+
+        // ---- the way through ---------------------------------------------
+        if step > 0 {
+            buttons.addArrangedSubview(quiet("Back") { [weak self] in
+                self?.step -= 1
+                self?.drawWelcome()
+            })
+        }
+
+        let on = Chip(.strong)
+        on.set(step < 3 ? "Next" : "Ask macOS, and start")
+        on.onClick = { [weak self] in
             guard let self = self else { return }
+            if self.step < 3 {
+                self.step += 1
+                self.drawWelcome()
+                return
+            }
             Word.ask()
             self.askForEverything()
-            Config.set("welcomed", "yes")
-            self.welcoming = false
+            self.finishWelcome()
             self.show(0)
         }
-        let holder = NSView()
-        holder.translatesAutoresizingMaskIntoConstraints = false
-        holder.addSubview(start)
-        NSLayoutConstraint.activate([
-            start.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
-            start.topAnchor.constraint(equalTo: holder.topAnchor),
-            start.bottomAnchor.constraint(equalTo: holder.bottomAnchor, constant: -10),
-        ])
-        line(holder)
+        buttons.addArrangedSubview(on)
 
+        if step == 3 {
+            buttons.addArrangedSubview(quiet("Skip for now") { [weak self] in
+                self?.finishWelcome()
+                self?.show(0)
+            })
+        }
+
+        line(Dots(of: 4, at: step))
         settle()
+    }
+
+    private func finishWelcome() {
+        welcoming = false
+        Config.set("welcomed", "yes")
     }
 
     private func drawHome(_ pieces: [Piece]) {
@@ -2111,6 +2159,90 @@ final class Disk: NSView {
     }
 
     required init?(coder: NSCoder) { fatalError("nimo has no nib") }
+}
+
+// MARK: - a line with a picture beside it
+
+/// A picture, a name, and one line under it. What the welcome is made of.
+final class Told: NSView {
+    init(_ symbol: String, _ name: String, _ note: String) {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+
+        let icon = NSImageView()
+        if let picture = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) {
+            picture.isTemplate = true
+            icon.image = picture
+        }
+        icon.contentTintColor = Paint.muted
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(icon)
+
+        let title = NSTextField(labelWithString: name)
+        title.font = NSFont.systemFont(ofSize: 13.5, weight: .medium)
+        title.textColor = Paint.ink
+        title.lineBreakMode = .byTruncatingTail
+        title.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(title)
+
+        let under = Wrapping(labelWithString: note)
+        under.font = NSFont.systemFont(ofSize: 12.5, weight: .regular)
+        under.textColor = Paint.faint
+        under.maximumNumberOfLines = 2
+        under.lineBreakMode = .byWordWrapping
+        under.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(under)
+
+        NSLayoutConstraint.activate([
+            icon.leadingAnchor.constraint(equalTo: leadingAnchor),
+            icon.topAnchor.constraint(equalTo: topAnchor, constant: 11),
+            icon.widthAnchor.constraint(equalToConstant: 16),
+            icon.heightAnchor.constraint(equalToConstant: 16),
+            title.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 14),
+            title.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
+            title.topAnchor.constraint(equalTo: topAnchor, constant: 9),
+            under.leadingAnchor.constraint(equalTo: title.leadingAnchor),
+            under.trailingAnchor.constraint(equalTo: trailingAnchor),
+            under.topAnchor.constraint(equalTo: title.bottomAnchor, constant: 2),
+            under.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -9),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+}
+
+/// Where you are in the welcome. Four dots, one of them lit.
+final class Dots: NSView {
+    init(of many: Int, at here: Int) {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+
+        var last: NSView?
+        for i in 0..<many {
+            let dot = NSView()
+            dot.wantsLayer = true
+            dot.layer?.cornerRadius = 3
+            dot.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(dot)
+            dot.effectiveAppearance.performAsCurrentDrawingAppearance {
+                dot.layer?.backgroundColor = (i == here ? Paint.ink : Paint.picked).cgColor
+            }
+            NSLayoutConstraint.activate([
+                dot.widthAnchor.constraint(equalToConstant: i == here ? 18 : 6),
+                dot.heightAnchor.constraint(equalToConstant: 6),
+                dot.centerYAnchor.constraint(equalTo: centerYAnchor),
+                dot.leadingAnchor.constraint(equalTo: last?.trailingAnchor ?? leadingAnchor,
+                                             constant: last == nil ? 0 : 6),
+            ])
+            last = dot
+        }
+
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 40),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
 }
 
 // MARK: - the face, drifting
