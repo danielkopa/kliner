@@ -1298,7 +1298,21 @@ check "the words live on the tooltips"      \
 # One row across the top holds everything that is not the page. The page under
 # it is only the page.
 check "and the row lives in the top bar"     \
-    "grep -q 'buttons.trailingAnchor.constraint(equalTo: seek.leadingAnchor' '$APP/Sources/main.swift' && grep -q 'buttons.centerYAnchor.constraint(equalTo: chrome.centerYAnchor)' '$APP/Sources/main.swift'"
+    "grep -q 'buttons.trailingAnchor.constraint(equalTo: split.leadingAnchor' '$APP/Sources/main.swift' && grep -q 'buttons.centerYAnchor.constraint(equalTo: chrome.centerYAnchor)' '$APP/Sources/main.swift'"
+# Where you are, on the same line as everything you can do about it, starting
+# where the page starts.
+check "and says where you are on the same line" \
+    "grep -q 'func crumb(' '$APP/Sources/main.swift' && grep -q 'chip.leadingAnchor.constraint(equalTo: edge.trailingAnchor' '$APP/Sources/main.swift'"
+# The page you are on is the dark one in the list. A filled pill behind it as
+# well says the same thing twice.
+check "the list marks the page by weight, not by a box" \
+    "! grep -q 'if chosen { background = Paint.picked }' '$APP/Sources/main.swift'"
+check "paragraphs have room between their lines" \
+    "grep -q 'lineHeightMultiple' '$APP/Sources/main.swift' && grep -q 'func leaded' '$APP/Sources/main.swift'"
+check "and the work stops at a readable width" \
+    "grep -q 'static let column: CGFloat' '$APP/Sources/main.swift' && grep -q 'lessThanOrEqualToConstant: Main.column' '$APP/Sources/main.swift'"
+check "the page is a surface under the top row" \
+    "grep -q 'pane.topAnchor.constraint(equalTo: across.bottomAnchor)' '$APP/Sources/main.swift' && grep -q 'layerMinXMaxYCorner' '$APP/Sources/main.swift'"
 # Home is a list of things to do, not four numbers and a shrug.
 check "home says what to do about it"        \
     "grep -q 'final class Job' '$APP/Sources/main.swift' && grep -q 'let list = Card(\"What to do\")' '$APP/Sources/main.swift'"
