@@ -202,16 +202,20 @@ struct Action {
     /// The picture for the big button. The row down the side says what the
     /// page is; this says what pressing it does.
     let does: String
+    /// What one of this page's rows is, in a word. It is the caption under the
+    /// count at the top of the page, and every page has one, so every page can
+    /// say how many of them there are.
+    let counts: String
 
     init(title: String, blurb: String, verb: String, arguments: [String],
          asks: String?, group: String, symbol: String, does: String = "play",
-         extras: [Extra] = [], reveal: String? = nil, walks: Bool = false,
-         looksOnly: Bool = true, symbolic: Bool = true) {
+         counts: String = "things", extras: [Extra] = [], reveal: String? = nil,
+         walks: Bool = false, looksOnly: Bool = true, symbolic: Bool = true) {
         self.title = title; self.blurb = blurb; self.verb = verb
         self.arguments = arguments; self.asks = asks; self.group = group
         self.symbol = symbol; self.extras = extras; self.reveal = reveal
         self.walks = walks; self.looksOnly = looksOnly; self.symbolic = symbolic
-        self.does = does
+        self.does = does; self.counts = counts
     }
 
     /// Not one of the things nimo does — the place where you say how it
@@ -248,6 +252,7 @@ struct Action {
                group: "Your desk",
                symbol: "square.grid.2x2",
                does: "tray.and.arrow.down",
+               counts: "things on your desktop",
                extras: [Extra(title: "Put this back", arguments: ["desktop", "--undo"], asks: putBack,
                               symbol: "arrow.uturn.backward")],
                reveal: "Desktop"),
@@ -260,6 +265,7 @@ struct Action {
                group: "Your desk",
                symbol: "arrow.down.circle",
                does: "tray.and.arrow.down",
+               counts: "things in Downloads",
                extras: [Extra(title: "Put this back", arguments: ["downloads", "--undo"], asks: putBack,
                               symbol: "arrow.uturn.backward")],
                reveal: "Downloads"),
@@ -272,6 +278,7 @@ struct Action {
                group: "Your screen",
                symbol: "photo",
                does: "chevron.right",
+               counts: "wallpapers your Mac ships with",
                extras: [Extra(title: "Previous", arguments: ["prev"], asks: nil,
                               symbol: "chevron.left"),
                         Extra(title: "The one I had", arguments: ["wallpaper", "--restore"],
@@ -285,7 +292,8 @@ struct Action {
                asks: nil,
                group: "Your screen",
                symbol: "power",
-               does: "arrow.clockwise"),
+               does: "arrow.clockwise",
+               counts: "things that launch themselves"),
 
         Action(title: "What is big",
                blurb: "The folders in your home that are taking up the room. Click one to look inside it.",
@@ -295,6 +303,7 @@ struct Action {
                group: "Your disk",
                symbol: "chart.bar",
                does: "arrow.clockwise",
+               counts: "folders in your home",
                walks: true),
 
         Action(title: "Free up space",
@@ -305,6 +314,7 @@ struct Action {
                group: "Your disk",
                symbol: "sparkles",
                does: "sparkles",
+               counts: "caches your apps rebuild",
                extras: [Extra(title: "Only look", arguments: ["preview"], asks: nil, symbol: "eye")]),
 
         Action(title: "How it is",
@@ -314,7 +324,8 @@ struct Action {
                asks: nil,
                group: "Your computer",
                symbol: "waveform.path.ecg",
-               does: "arrow.clockwise"),
+               does: "arrow.clockwise",
+               counts: "readings"),
 
         Action(title: "Put it all back",
                blurb: "Everything nimo has done, reversed, newest first. This is why nothing here is frightening.",
@@ -324,6 +335,7 @@ struct Action {
                group: "Your computer",
                symbol: "arrow.uturn.backward",
                does: "arrow.uturn.backward",
+               counts: "changes Kliner can reverse",
                extras: [Extra(title: "Only look", arguments: ["undo", "--all", "--dry-run"], asks: nil,
                               symbol: "eye")]),
     ]
@@ -1174,7 +1186,18 @@ final class Main: NSObject, NSWindowDelegate {
             mark.heightAnchor.constraint(equalToConstant: 22),
             markWidth,
         ])
-        stack.setCustomSpacing(26, after: mark)
+        stack.setCustomSpacing(Step.air, after: mark)
+
+        // The way to find a page belongs with the pages, not squeezed into the
+        // row along the top: full width, under the mark, where every app of
+        // this shape puts it.
+        let seek = Seek()
+        seek.onType = { [weak self] words in self?.sieve(words) }
+        seek.onGo = { [weak self] in self?.openFirstMatch() }
+        search = seek
+        stack.addArrangedSubview(seek)
+        seek.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        stack.setCustomSpacing(Step.wide, after: seek)
 
         var lastGroup = ""
         for (i, item) in Action.all.enumerated() {
@@ -1261,15 +1284,7 @@ final class Main: NSObject, NSWindowDelegate {
         chrome.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(chrome)
 
-        // Along the same line, in the page half of the window: the way to
-        // find a page without reading the list, and the way to see what
-        // Kliner has been doing.
-        let seek = Seek()
-        seek.onType = { [weak self] words in self?.sieve(words) }
-        seek.onGo = { [weak self] in self?.openFirstMatch() }
-        search = seek
-        content.addSubview(seek)
-
+        // What Kliner has been doing, at the far end of the top row.
         let bell = Bell()
         bell.onClick = { [weak self] in self?.showActivity() }
         bell.toolTip = "What Kliner has done"
@@ -1380,11 +1395,7 @@ final class Main: NSObject, NSWindowDelegate {
             bell.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -Step.air),
             bell.centerYAnchor.constraint(equalTo: chrome.centerYAnchor),
 
-            seek.trailingAnchor.constraint(equalTo: bell.leadingAnchor, constant: -Step.hair),
-            seek.centerYAnchor.constraint(equalTo: chrome.centerYAnchor),
-            seek.widthAnchor.constraint(equalToConstant: 176),
-
-            split.trailingAnchor.constraint(equalTo: seek.leadingAnchor, constant: -Step.close),
+            split.trailingAnchor.constraint(equalTo: bell.leadingAnchor, constant: -Step.close),
             split.centerYAnchor.constraint(equalTo: chrome.centerYAnchor),
             split.widthAnchor.constraint(equalToConstant: 1),
             split.heightAnchor.constraint(equalToConstant: 16),
@@ -1475,6 +1486,7 @@ final class Main: NSObject, NSWindowDelegate {
         // The setup has no page title of its own — the headline is under the
         // face, where the eye already is.
         titleLabel.stringValue = ""
+        crumb("Kliner", "Setup")
         search.isHidden = true
         bellButton.isHidden = true
 
@@ -1826,6 +1838,57 @@ final class Main: NSObject, NSWindowDelegate {
         }
     }
 
+    /// The figures that stand across the top of a page.
+    ///
+    /// Every page gets them, not only the ones reporting on the machine: how
+    /// many of whatever this page lists, how much room they take together
+    /// where that can be worked out, and which one is the biggest. A page that
+    /// opens with three numbers is a page you can read at a glance; a page
+    /// that opens with forty rows is a page you have to work through.
+    private func stats(_ pieces: [Piece]) -> [NSView] {
+        guard !isSettings else { return [] }
+        let item = Action.all[chosen]
+
+        // The machine's own readings are already figures. Nothing to work out.
+        if item.arguments.first == "doctor" {
+            var out: [NSView] = []
+            for piece in pieces {
+                guard out.count < 4,
+                      case .row(let label, let value, _, _, _) = piece,
+                      !label.isEmpty, !value.isEmpty,
+                      let read = reading(value) else { continue }
+                out.append(Metric(label, note: read.note, big: read.big,
+                                  of: read.ceiling, part: read.share))
+            }
+            return out
+        }
+
+        var listed: [(name: String, size: Double?)] = []
+        for piece in pieces {
+            guard case .row(let label, let value, _, _, _) = piece,
+                  !label.isEmpty else { continue }
+            listed.append((name: label, size: bytes(value)))
+        }
+        guard listed.count > 1 else { return [] }
+
+        var out: [NSView] = [Metric(item.title, note: item.counts,
+                                    big: String(listed.count))]
+
+        let sized = listed.compactMap { $0.size }
+        guard sized.count > 1 else { return out }
+
+        let whole = sized.reduce(0, +)
+        out.append(Metric("Together", note: "How much room they take",
+                          big: size(whole)))
+
+        if let big = listed.max(by: { ($0.size ?? 0) < ($1.size ?? 0) }),
+           let much = big.size, whole > 0 {
+            out.append(Metric("Biggest", note: big.name, big: size(much),
+                              of: size(whole), part: much / whole))
+        }
+        return out
+    }
+
     /// One of nimo's rows, read as a figure worth standing at the top of a
     /// page: the number, what it is measured against if anything, and how far
     /// along that it is.
@@ -1858,6 +1921,19 @@ final class Main: NSObject, NSWindowDelegate {
     /// Where you are, along the top: the group as a chip, the page beside it.
     /// The chip is as wide as the word in it, plus the same air either side.
     private func crumb(_ group: String, _ page: String) {
+        // It changes as the page changes, so it fades rather than swapping:
+        // two words appearing in place is a flicker, two words arriving is a
+        // move from one page to another.
+        for label in [crumbChip, crumbName] {
+            guard let field = label else { continue }
+            field.wantsLayer = true
+            let show = CABasicAnimation(keyPath: "opacity")
+            show.fromValue = 0
+            show.toValue = 1
+            show.duration = 0.22
+            show.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            field.layer?.add(show, forKey: "arriving")
+        }
         crumbChip.stringValue = group
         crumbName.stringValue = page
         chipWidth.constant = ceil(crumbChip.intrinsicContentSize.width) + Step.air
@@ -1963,19 +2039,7 @@ final class Main: NSObject, NSWindowDelegate {
         across.alignment = .top
         across.spacing = 12
         across.translatesAutoresizingMaskIntoConstraints = false
-        // Only where nimo is reporting on the machine. On a page listing your
-        // files the first four rows are four files, and four files across the
-        // top of a page are not a reading of anything.
-        if !isSettings, Action.all[chosen].arguments.first == "doctor" {
-            for piece in pieces {
-                guard across.arrangedSubviews.count < 4,
-                      case .row(let label, let value, _, _, _) = piece,
-                      !label.isEmpty, !value.isEmpty,
-                      let read = reading(value) else { continue }
-                across.addArrangedSubview(Metric(label, note: read.note, big: read.big,
-                                                 of: read.ceiling, part: read.share))
-            }
-        }
+        for box in stats(pieces) { across.addArrangedSubview(box) }
         if across.arrangedSubviews.count > 1 {
             line(across)
             gap(14)
@@ -2042,7 +2106,7 @@ final class Main: NSObject, NSWindowDelegate {
             view.wantsLayer = true
 
             let rise = CABasicAnimation(keyPath: "transform.translation.y")
-            rise.fromValue = -7          // AppKit's y grows upward, so this falls
+            rise.fromValue = -10         // AppKit's y grows upward, so this falls
             rise.toValue = 0
 
             let fade = CABasicAnimation(keyPath: "opacity")
@@ -2051,10 +2115,12 @@ final class Main: NSObject, NSWindowDelegate {
 
             let both = CAAnimationGroup()
             both.animations = [rise, fade]
-            both.duration = 0.28
-            both.beginTime = start + Double(min(i, 14)) * 0.018
+            both.duration = 0.34
+            both.beginTime = start + Double(min(i, 14)) * 0.022
             both.fillMode = .backwards
-            both.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            // Out fast, in slow: the curve a thing settling makes, rather than
+            // the curve a thing being placed makes.
+            both.timingFunction = CAMediaTimingFunction(controlPoints: 0.16, 1, 0.3, 1)
             view.layer?.add(both, forKey: "arriving")
         }
     }
@@ -2654,6 +2720,8 @@ final class Main: NSObject, NSWindowDelegate {
         }
         for row in rows { row.narrow(narrow) }
         for head in groupLabels { head.isHidden = narrow }
+        // A search field 38 points wide is a search field nobody can type in.
+        search.isHidden = narrow
         wordmark.fold(narrow)
         markWidth.constant = narrow ? 38 : 190
         stackWidth.constant = narrow ? 38 : 214
@@ -3393,6 +3461,7 @@ func leaded(_ text: String, _ font: NSFont, _ colour: NSColor) -> NSAttributedSt
 final class Meter: NSView {
     private var filled: [NSView] = []
     private let part: Double
+    private var filling = false
 
     init(_ part: Double, ticks: Int = 30) {
         self.part = min(1, max(0, part))
@@ -3429,6 +3498,30 @@ final class Meter: NSView {
                     (i < lit ? Paint.band(0) : Paint.band(6)).cgColor
             }
         }
+    }
+
+    /// The lit ticks arrive one after another, left to right, once. A meter
+    /// that fills is a meter you watch reach its number; a meter that is
+    /// simply there is a picture of one.
+    private func fill() {
+        guard !filling else { return }
+        filling = true
+        let lit = Int((Double(filled.count) * part).rounded())
+        for (i, tick) in filled.enumerated() where i < lit {
+            let show = CABasicAnimation(keyPath: "opacity")
+            show.fromValue = 0
+            show.toValue = 1
+            show.duration = 0.18
+            show.beginTime = CACurrentMediaTime() + Double(i) * 0.012
+            show.fillMode = .backwards
+            show.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            tick.layer?.add(show, forKey: "filling")
+        }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window != nil { fill() }
     }
 
     override func layout() {
@@ -3475,29 +3568,21 @@ final class Metric: NSView {
         number.translatesAutoresizingMaskIntoConstraints = false
         addSubview(number)
 
-        let rule = NSBox()
-        rule.boxType = .custom
-        rule.borderWidth = 0
-        rule.fillColor = Paint.line
-        rule.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(rule)
-
         NSLayoutConstraint.activate([
-            title.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
-            title.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -14),
-            title.topAnchor.constraint(equalTo: topAnchor, constant: 13),
+            title.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Step.air),
+            title.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor,
+                                            constant: -Step.close),
+            title.topAnchor.constraint(equalTo: topAnchor, constant: Step.air),
 
             under.leadingAnchor.constraint(equalTo: title.leadingAnchor),
-            under.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -14),
+            under.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor,
+                                            constant: -Step.close),
             under.topAnchor.constraint(equalTo: title.bottomAnchor, constant: 2),
 
-            rule.leadingAnchor.constraint(equalTo: leadingAnchor),
-            rule.trailingAnchor.constraint(equalTo: trailingAnchor),
-            rule.topAnchor.constraint(equalTo: under.bottomAnchor, constant: 12),
-            rule.heightAnchor.constraint(equalToConstant: 1),
-
+            // Air, not a rule. A line between the name of a figure and the
+            // figure is a line between a thing and itself.
             number.leadingAnchor.constraint(equalTo: title.leadingAnchor),
-            number.topAnchor.constraint(equalTo: rule.bottomAnchor, constant: 12),
+            number.topAnchor.constraint(equalTo: under.bottomAnchor, constant: Step.wide),
         ])
 
         if let ceiling = whole {
@@ -3507,14 +3592,14 @@ final class Metric: NSView {
             ofIt.translatesAutoresizingMaskIntoConstraints = false
             addSubview(ofIt)
             NSLayoutConstraint.activate([
-                ofIt.leadingAnchor.constraint(equalTo: number.trailingAnchor, constant: 6),
+                ofIt.leadingAnchor.constraint(equalTo: number.trailingAnchor, constant: Step.tight),
                 ofIt.lastBaselineAnchor.constraint(equalTo: number.lastBaselineAnchor),
                 ofIt.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor,
-                                               constant: -12),
+                                               constant: -Step.close),
             ])
         } else {
             number.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor,
-                                             constant: -14).isActive = true
+                                             constant: -Step.air).isActive = true
         }
 
         if let share = part {
@@ -3522,12 +3607,13 @@ final class Metric: NSView {
             addSubview(meter)
             NSLayoutConstraint.activate([
                 meter.leadingAnchor.constraint(equalTo: title.leadingAnchor),
-                meter.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
-                meter.topAnchor.constraint(equalTo: number.bottomAnchor, constant: 10),
-                meter.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -14),
+                meter.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Step.air),
+                meter.topAnchor.constraint(equalTo: number.bottomAnchor, constant: Step.close),
+                meter.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -Step.air),
             ])
         } else {
-            number.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -20).isActive = true
+            number.bottomAnchor.constraint(equalTo: bottomAnchor,
+                                           constant: -Step.wide).isActive = true
         }
 
         paint()

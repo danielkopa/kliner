@@ -1359,8 +1359,21 @@ check "and what it said is what comes back"  \
 # pages of one thing.
 check "every page is built out of the same cards" \
     "grep -q 'func put(_ view: NSView' '$APP/Sources/main.swift' && grep -q 'card = Card(title)' '$APP/Sources/main.swift'"
-check "and a page that reports figures puts them on top" \
-    "grep -q 'across.addArrangedSubview(Metric(label' '$APP/Sources/main.swift'"
+# Every page, not only the ones reporting on the machine: how many of whatever
+# it lists, how much room they take, and which one is the biggest.
+check "and every page puts its figures on top" \
+    "grep -q 'func stats(_ pieces' '$APP/Sources/main.swift' && grep -q 'for box in stats(pieces)' '$APP/Sources/main.swift'"
+check "and every page says what one of its rows is" \
+    "[ \$(grep -c '^ *counts: \"' '$APP/Sources/main.swift') = 8 ]"
+check "the meter fills rather than appearing filled" \
+    "grep -q 'forKey: \"filling\"' '$APP/Sources/main.swift'"
+# The way to find a page belongs with the pages.
+check "the search field lives with the list"  \
+    "grep -q 'stack.addArrangedSubview(seek)' '$APP/Sources/main.swift' && grep -q 'search.isHidden = narrow' '$APP/Sources/main.swift'"
+# A line between the name of a figure and the figure is a line between a thing
+# and itself.
+check "a figure is not fenced off from its name" \
+    "! grep -q 'rule.topAnchor.constraint(equalTo: under.bottomAnchor' '$APP/Sources/main.swift'"
 check "with the whole of it faint behind it" \
     "grep -q 'private let track = CAShapeLayer()' '$APP/Sources/main.swift'"
 check "and a preview can never be given --yes" \
