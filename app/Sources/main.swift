@@ -45,8 +45,6 @@ enum Words {
     static let small  = NSFont.systemFont(ofSize: 12, weight: .regular)
     /// A label on a control, and nothing else.
     static let tiny   = NSFont.systemFont(ofSize: 11, weight: .medium)
-    /// The one word the setup opens with, and nothing else in the app.
-    static let big    = NSFont.systemFont(ofSize: 64, weight: .semibold)
 
     /// A figure in a table, which has to line up with the figure above it.
     static let column = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
@@ -1176,7 +1174,6 @@ final class Main: NSObject, NSWindowDelegate {
         listen()
         if Config.value("welcomed") != Main.setup {
             welcoming = true
-            step = -1
             for row in rows { row.choose(false) }
             drawWelcome()          // each step sets its own title
         } else {
@@ -1548,44 +1545,6 @@ final class Main: NSObject, NSWindowDelegate {
             words(text, Words.hero, Paint.ink, top: Step.hair, bottom: Step.hair)
         }
 
-        // Before the first page, the word on its own. It holds for a moment,
-        // and then it goes and the setup is there: an app that says hello
-        // before it starts explaining itself.
-        if step < 0 {
-            let big = Wrapping(labelWithString: "Welcome")
-            big.font = Words.big
-            big.textColor = Paint.ink
-            big.translatesAutoresizingMaskIntoConstraints = false
-            line(big)
-
-            let under = Wrapping(labelWithString: "Let me show you what I do.")
-            under.font = Words.head
-            under.textColor = Paint.muted
-            under.translatesAutoresizingMaskIntoConstraints = false
-            line(under)
-
-            report.wantsLayer = true
-            let rise = CABasicAnimation(keyPath: "transform.translation.y")
-            rise.fromValue = -18
-            rise.toValue = 0
-            let show = CABasicAnimation(keyPath: "opacity")
-            show.fromValue = 0
-            show.toValue = 1
-            let both = CAAnimationGroup()
-            both.animations = [rise, show]
-            both.duration = 0.7
-            both.timingFunction = CAMediaTimingFunction(controlPoints: 0.16, 1, 0.3, 1)
-            report.layer?.add(both, forKey: "arriving")
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.9) { [weak self] in
-                guard let self = self, self.welcoming, self.step < 0 else { return }
-                self.step = 0
-                self.last = 0
-                self.drawWelcome()
-            }
-            return
-        }
-
         switch step {
         case 0:
             headline("Hello. I am Kliner.")
@@ -1686,7 +1645,7 @@ final class Main: NSObject, NSWindowDelegate {
         ])
         line(holder)
 
-        line(Dots(of: 4, at: max(0, step)))
+        line(Dots(of: 4, at: step))
 
         // The last page has one thing left to do, and the face is what asks
         // for it. On the pages before it, the thing to learn is that two
@@ -1737,10 +1696,55 @@ final class Main: NSObject, NSWindowDelegate {
         report.layer?.add(both, forKey: "arriving")
     }
 
+    /// The way out of the setup: the face, big, over the whole window, growing
+    /// and fading as the app arrives underneath it. It is the last thing the
+    /// setup does rather than the first thing it does, because a splash before
+    /// anything has happened is a thing to sit through.
+    private func curtain() {
+        guard let over = window.contentView else { return }
+        let big = NSImageView()
+        let picture = NSImage(named: "mascot")
+        picture?.isTemplate = true
+        big.image = picture
+        big.contentTintColor = Paint.ink
+        big.imageScaling = .scaleProportionallyUpOrDown
+        big.wantsLayer = true
+        big.translatesAutoresizingMaskIntoConstraints = false
+        over.addSubview(big)
+        NSLayoutConstraint.activate([
+            big.centerXAnchor.constraint(equalTo: over.centerXAnchor),
+            big.centerYAnchor.constraint(equalTo: over.centerYAnchor),
+            big.widthAnchor.constraint(equalToConstant: 180),
+            big.heightAnchor.constraint(equalToConstant: 180),
+        ])
+        over.layoutSubtreeIfNeeded()
+
+        let grow = CABasicAnimation(keyPath: "transform.scale")
+        grow.fromValue = 0.72
+        grow.toValue = 2.4
+
+        let go = CABasicAnimation(keyPath: "opacity")
+        go.fromValue = 1
+        go.toValue = 0
+
+        let both = CAAnimationGroup()
+        both.animations = [grow, go]
+        both.duration = 0.72
+        both.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 0.9, 0.3, 1)
+        both.fillMode = .forwards
+        both.isRemovedOnCompletion = false
+        big.layer?.add(both, forKey: "leaving")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            big.removeFromSuperview()
+        }
+    }
+
     private func finishWelcome() {
         welcoming = false
         mascot = nil
         bare(false)
+        curtain()
         // Stamped with which setup was read, not just that one was. A setup
         // that grew a page is a setup nobody has seen, and the old `yes`
         // meant it was never shown again.
@@ -1963,6 +1967,18 @@ final class Main: NSObject, NSWindowDelegate {
         }
     }
 
+    /// How many of a page's rows carry a size. Two is enough to be a
+    /// breakdown; one is a fact.
+    private func sized(_ pieces: [Piece]) -> Int {
+        var count = 0
+        for piece in pieces {
+            guard case .row(let label, let value, _, _, _) = piece,
+                  !label.isEmpty, bytes(value) != nil else { continue }
+            count += 1
+        }
+        return count
+    }
+
     /// The figures that stand across the top of a page.
     ///
     /// Every page gets them, not only the ones reporting on the machine: how
@@ -2119,10 +2135,11 @@ final class Main: NSObject, NSWindowDelegate {
             return
         }
 
-        // What is big is a breakdown of one thing, so it is drawn as one:
-        // the bar, then the table the bar came out of, sorted as nimo sorted
-        // it. Rows that are folders still open.
-        if isPage, Action.all[chosen].walks {
+        // Anything that came back as a list of things with a size each is a
+        // breakdown, and every breakdown is drawn the same way: the figures,
+        // the bars, the bar cut into shares, then the table all three came
+        // out of. One page shape, whichever page you are on.
+        if isPage, sized(pieces) > 1 {
             drawBreakdown(pieces)
             settle()
             return
@@ -2375,7 +2392,7 @@ final class Main: NSObject, NSWindowDelegate {
     @objc func replaySetup() {
         guard !busy else { return }
         welcoming = true
-        step = -1
+        step = 0
         last = 0
         mascot = nil
         for row in rows { row.choose(false) }
@@ -2566,6 +2583,13 @@ final class Main: NSObject, NSWindowDelegate {
 
         if !walked.isEmpty {
             offer("Back out") { [weak self] in self?.walkUp() }
+        } else if let folder = item.reveal {
+            // Every page about a folder can be looked into, measured, the same
+            // way What is big is: this is where that starts.
+            offer("Look inside") { [weak self] in
+                self?.walked = [folder]
+                self?.walkHere()
+            }
         }
         for (i, extra) in item.extras.enumerated() {
             offer(extra.title) { [weak self] in self?.runExtra(i) }
@@ -2637,7 +2661,15 @@ final class Main: NSObject, NSWindowDelegate {
         let base = files.homeDirectoryForCurrentUser.appendingPathComponent(folder)
 
         let plain = base.appendingPathComponent(name)
-        if files.fileExists(atPath: plain.path) {
+        var folderly: ObjCBool = false
+        if files.fileExists(atPath: plain.path, isDirectory: &folderly) {
+            // A folder is something to look inside, not something to hand to
+            // the Finder and be done with.
+            if folderly.boolValue {
+                walked = [folder, name]
+                walkHere()
+                return
+            }
             NSWorkspace.shared.open(plain)
             return
         }
@@ -2669,6 +2701,13 @@ final class Main: NSObject, NSWindowDelegate {
 
     private func walkUp() {
         if !walked.isEmpty { walked.removeLast() }
+        // Stepped all the way back out of a folder page, the page itself is
+        // what you wanted, not a measurement of your whole home.
+        if walked.isEmpty, isPage, Action.all[chosen].reveal != nil {
+            kept[chosen] = nil
+            show(chosen, remember: false)
+            return
+        }
         walkHere()
     }
 
@@ -3898,7 +3937,7 @@ final class Nudge: NSView {
         said.translatesAutoresizingMaskIntoConstraints = false
         addSubview(said)
 
-        if let picture = NSImage(systemSymbolName: "chevron.left",
+        if let picture = NSImage(systemSymbolName: "chevron.right",
                                  accessibilityDescription: nil) {
             picture.isTemplate = true
             arrow.image = picture
@@ -3926,8 +3965,9 @@ final class Nudge: NSView {
         super.viewDidMoveToWindow()
         guard window != nil, arrow.layer?.animation(forKey: "nudging") == nil else { return }
 
+        // Toward the page it is taking you, not away from it.
         let go = CAKeyframeAnimation(keyPath: "transform.translation.x")
-        go.values = [0, -7, 0, 0, 0]
+        go.values = [0, 7, 0, 0, 0]
         go.keyTimes = [0, 0.24, 0.44, 0.8, 1]
         go.duration = 2.1
         go.repeatCount = .infinity

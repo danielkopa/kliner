@@ -1294,10 +1294,23 @@ check "and it has more than one face to wear" \
 check "the first time, it introduces itself" \
     "grep -q 'func drawWelcome' '$APP/Sources/main.swift' && grep -q 'welcomed' '$APP/Sources/main.swift'"
 check "the welcome is four pages, not one"  \
-    "grep -q 'Dots(of: 4, at: max(0, step))' '$APP/Sources/main.swift' && grep -q 'case 3:' '$APP/Sources/main.swift'"
-# And a word on its own before them, which goes by itself.
-check "and it opens with a word on its own"  \
-    "grep -q 'labelWithString: \"Welcome\"' '$APP/Sources/main.swift' && grep -q 'step = -1' '$APP/Sources/main.swift'"
+    "grep -q 'Dots(of: 4, at: step)' '$APP/Sources/main.swift' && grep -q 'case 3:' '$APP/Sources/main.swift'"
+# A splash before anything has happened is a thing to sit through. The face
+# plays the setup out instead, once, over the app arriving underneath it.
+check "and the face plays it out at the end" \
+    "grep -q 'func curtain()' '$APP/Sources/main.swift' && grep -A3 'bare(false)' '$APP/Sources/main.swift' | grep -q 'curtain()' && ! grep -q 'labelWithString: \"Welcome\"' '$APP/Sources/main.swift'"
+# One page shape, whichever page you are on: anything that came back as a
+# list of things with a size each is drawn as a breakdown.
+check "every page with sizes is drawn the same way" \
+    "grep -q 'if isPage, sized(pieces) > 1 {' '$APP/Sources/main.swift' && grep -q 'func sized(' '$APP/Sources/main.swift'"
+# A folder is something to look inside, not something to hand to the Finder.
+check "a folder on a page can be looked into" \
+    "grep -q 'walked = \\[folder, name\\]' '$APP/Sources/main.swift' && grep -q 'offer(\"Look inside\")' '$APP/Sources/main.swift'"
+check "and stepping back out returns to the page" \
+    "grep -q 'if walked.isEmpty, isPage, Action.all\\[chosen\\].reveal != nil {' '$APP/Sources/main.swift'"
+# The hint points at the page it is taking you to.
+check "the swipe hint points forward"        \
+    "grep -q 'systemSymbolName: \"chevron.right\"' '$APP/Sources/main.swift' && grep -q 'go.values = \\[0, 7, 0, 0, 0\\]' '$APP/Sources/main.swift'"
 check "and it asks for access on the last one, not the first" \
     "awk '/switch step/{a=NR} /Word.ask\\(\\)/{b=NR} END{exit !(a && b && a < b)}' '$APP/Sources/main.swift'"
 check "you can walk back through it"        "grep -q 'self.step -= 1' '$APP/Sources/main.swift'"
