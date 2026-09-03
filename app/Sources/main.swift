@@ -1123,6 +1123,8 @@ final class Main: NSObject, NSWindowDelegate {
     /// The rows on the asking page, so each can be told what macOS said
     /// without the page being drawn again underneath them.
     private var dots: Dots?
+    private var showing: Places?
+    private var undoing: Undoing?
     private var asking: [Told] = []
     /// What macOS said, kept so the page can be drawn again with the answers
     /// still on it. Drawing it again is what puts the way on underneath.
@@ -1615,38 +1617,34 @@ final class Main: NSObject, NSWindowDelegate {
             words(text, Words.hero, Paint.ink, top: Step.hair, bottom: Step.hair)
         }
 
+        showing = nil
+        undoing = nil
+
         switch step {
         case 0:
             headline("Hello. I am Kliner.")
-            words("I tidy the parts of a Mac that quietly get away from you: eighty things on the desktop, three hundred in Downloads, a wallpaper you never chose.",
-                  Words.body, Paint.muted, top: 0, bottom: Step.close)
-            line(Told("hand.wave", "Four short pages",
-                      "Then I ask macOS for what I need, and not before."))
+            words("I tidy the parts of a Mac that quietly get away from you. Nothing I do is deleted, and none of it is permanent.",
+                  Words.body, Paint.muted, top: 0, bottom: Step.tight)
 
         case 1:
-            headline("Here is what I do.")
-            words("Every one of these is a page down the left. Nothing on them runs until you press it.",
-                  Words.body, Paint.muted, top: 0, bottom: Step.close)
-            for item in Action.all where item.title != "Home" {
-                line(Told(item.symbol, item.title, item.blurb))
-            }
+            headline("Five places.")
+            words("Your desk, your screen, your disk, your computer. Nothing on any of them runs until you press it.",
+                  Words.body, Paint.muted, top: 0, bottom: Step.tight)
+            let five = Places()
+            line(five)
+            showing = five
 
         case 2:
             headline("Nothing you have is lost.")
-            words("This is the part worth reading. It is why none of the buttons are frightening.",
-                  Words.body, Paint.muted, top: 0, bottom: Step.close)
-            line(Told("arrow.uturn.backward", "I write down every move",
-                      "Put it all back reverses any of it, newest first."))
-            line(Told("house", "I stay inside your home folder",
-                      "Nothing outside it is read, moved or removed."))
-            line(Told("lock.open", "I never ask for an administrator",
-                      "And I never touch the network."))
-            line(Told("questionmark.circle", "I ask before I change anything",
-                      "Every page shows you what it would do first."))
+            words("Everything I move is written down first, so Put it all back reverses any of it. I stay inside your home folder, I never ask for an administrator, and I never touch the network.",
+                  Words.body, Paint.muted, top: 0, bottom: Step.tight)
+            let back = Undoing()
+            line(back)
+            undoing = back
 
-        case 4:
+        case 3:
             headline("Asking macOS.")
-            words("One at a time, and only when you have answered does the next one come up. macOS puts each question on the screen; I do not, and I cannot answer any of them for you.",
+            words("macOS decides what I may read, not me. One at a time, and only when you have answered does the next one come up.",
                   Words.body, Paint.muted, top: 0, bottom: Step.close)
             asking = []
             for (i, gate) in Main.gates.enumerated() {
@@ -1657,14 +1655,6 @@ final class Main: NSObject, NSWindowDelegate {
                 line(row)
                 asking.append(row)
             }
-
-        case 3:
-            headline("One last thing, and it is yours to decide.")
-            words("macOS decides what an app may read, not the app. Left alone it asks once per folder, over and over. Full Disk Access is the single switch that ends that, and I still only read inside your home.",
-                  Words.body, Paint.muted, top: 0, bottom: Step.close)
-            line(Told("folder", "Your folders", "Desktop, Downloads, Pictures, Documents."))
-            line(Told("externaldrive", "Full Disk Access", "Optional. It only stops the asking."))
-            line(Told("bell", "Notifications", "One line when a job finishes. Nothing else."))
 
         default:
             break
@@ -1683,7 +1673,7 @@ final class Main: NSObject, NSWindowDelegate {
 
         // Nothing to press while macOS is asking: the page is the rows, and
         // the way on appears when the last of them has an answer.
-        if step > 0, step < 4 {
+        if step > 0, step < 3 {
             let back = Chip(.quiet)
             back.set("Back")
             back.onClick = { [weak self] in
@@ -1694,17 +1684,17 @@ final class Main: NSObject, NSWindowDelegate {
             way.addArrangedSubview(back)
         }
 
-        if step < 4 {
+        if step < 3 {
             let on = Chip(.strong)
-            on.set(step < 3 ? "Next" : "Ask macOS")
+            on.set(step < 2 ? "Next" : "Ask macOS")
             on.onClick = { [weak self] in
                 guard let self = self else { return }
-                if self.step < 3 {
+                if self.step < 2 {
                     self.step += 1
                     self.drawWelcome()
                     return
                 }
-                self.step = 4
+                self.step = 3
                 self.asked = false
                 self.answers = []
                 self.drawWelcome()
@@ -1721,7 +1711,7 @@ final class Main: NSObject, NSWindowDelegate {
             way.addArrangedSubview(start)
         }
 
-        if step == 3 {
+        if step == 2 {
             let skip = Chip(.quiet)
             skip.set("Skip for now")
             skip.onClick = { [weak self] in
@@ -1742,7 +1732,7 @@ final class Main: NSObject, NSWindowDelegate {
         ])
         line(holder)
 
-        let count = dots ?? Dots(of: 5, at: step)
+        let count = dots ?? Dots(of: 4, at: step)
         dots = count
         line(count)
         count.move(to: step)
@@ -1750,7 +1740,7 @@ final class Main: NSObject, NSWindowDelegate {
         // The last page has one thing left to do, and the face is what asks
         // for it. On the pages before it, the thing to learn is that two
         // fingers turn the page, so the page says so, once, quietly.
-        if step >= 3 {
+        if step >= 2 {
             face.beckon()
         } else {
             face.relax()
@@ -1764,6 +1754,10 @@ final class Main: NSObject, NSWindowDelegate {
         // somebody turning to the next thing.
         let side: CGFloat = firstLook ? 0 : (step >= last ? 1 : -1)
         teach(side, first: firstLook)
+        // The picture on a page counts itself in after the words that
+        // introduce it, rather than sliding in with them as one more row.
+        showing?.play(after: firstLook ? 0.62 : 0.30)
+        undoing?.play(after: firstLook ? 0.62 : 0.30)
         if firstLook {
             face.arrive()
         } else if side == 0 {
@@ -1793,6 +1787,7 @@ final class Main: NSObject, NSWindowDelegate {
             // The face is the one thing on the page that does not arrive: it
             // was already here. It gets its own move, and on the very first
             // page it comes up out of nothing before anything is written.
+            if view === showing || view === undoing { continue }
             if view === mascot || view === dots {
                 guard first else { continue }
                 let show = CABasicAnimation(keyPath: "opacity")
@@ -1813,15 +1808,22 @@ final class Main: NSObject, NSWindowDelegate {
             across.toValue = 0
 
             let rise = CABasicAnimation(keyPath: "transform.translation.y")
-            rise.fromValue = way == 0 ? -14 : -5
+            rise.fromValue = placed == 0 ? -18 : (way == 0 ? -14 : -5)
             rise.toValue = 0
 
             let fade = CABasicAnimation(keyPath: "opacity")
             fade.fromValue = 0
             fade.toValue = 1
 
+            // The headline lands; everything under it slides in behind. A page
+            // where every line does the same thing has no first beat, and a
+            // page explaining something is nothing but beats.
+            let swell = CAKeyframeAnimation(keyPath: "transform.scale")
+            swell.values = [0.94, 1.02, 1]
+            swell.keyTimes = [0, 0.7, 1]
+
             let all = CAAnimationGroup()
-            all.animations = [across, rise, fade]
+            all.animations = placed == 0 ? [rise, swell, fade] : [across, rise, fade]
             all.duration = 0.52
             // The words wait for the face on the first page, and for the head
             // to have started moving on every page after it.
@@ -2635,6 +2637,8 @@ final class Main: NSObject, NSWindowDelegate {
         asking = []
         answers = []
         dots = nil
+        showing = nil
+        undoing = nil
         mascot = nil
         for row in rows { row.choose(false) }
         drawWelcome()
@@ -2648,7 +2652,7 @@ final class Main: NSObject, NSWindowDelegate {
         if welcoming {
             // Not out of the asking page: macOS is part way through a list of
             // questions and walking away from it leaves half of them unasked.
-            guard step > 0, step < 4 else { return }
+            guard step > 0, step < 3 else { return }
             step -= 1
             drawWelcome()
             return
@@ -2658,7 +2662,7 @@ final class Main: NSObject, NSWindowDelegate {
 
     func swipedOn() {
         if welcoming {
-            guard step < 3 else { return }
+            guard step < 2 else { return }
             step += 1
             drawWelcome()
             return
@@ -3311,8 +3315,8 @@ final class Main: NSObject, NSWindowDelegate {
     /// as somebody going through them with you rather than four prompts
     /// arriving at once.
     private func askNext(_ i: Int) {
-        guard welcoming, step == 4, i < asking.count else {
-            if welcoming, step == 4 {
+        guard welcoming, step == 3, i < asking.count else {
+            if welcoming, step == 3 {
                 asked = true
                 drawWelcome()
             }
@@ -3324,7 +3328,7 @@ final class Main: NSObject, NSWindowDelegate {
         row.say("asking macOS now…", mark: "hourglass")
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.09) { [weak self] in
-            guard let self = self, self.welcoming, self.step == 4 else { return }
+            guard let self = self, self.welcoming, self.step == 3 else { return }
 
             func settled(_ yes: Bool) {
                 let note = yes ? "allowed" : "not allowed. Settings can change it later"
@@ -3685,6 +3689,188 @@ final class Told: NSView {
     }
 
     required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+}
+
+/// The five places, as five things rather than five sentences.
+///
+/// This page used to be eight rows of text saying what each page does, which
+/// is a wall to read in somebody's first minute. The list itself is the
+/// answer: five marks, each landing a beat after the one before it, with the
+/// word under it. Nobody reads a wall; everybody counts five things.
+final class Places: NSView {
+    private var tiles: [NSView] = []
+
+    init() {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+
+        var last: NSView?
+        for place in Action.places {
+            let tile = NSView()
+            tile.wantsLayer = true
+            tile.layer?.cornerRadius = 13
+            tile.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(tile)
+
+            let mark = NSImageView()
+            if let picture = NSImage(systemSymbolName: place.symbol,
+                                     accessibilityDescription: nil) {
+                picture.isTemplate = true
+                mark.image = picture
+            }
+            mark.contentTintColor = Paint.ink
+            mark.translatesAutoresizingMaskIntoConstraints = false
+            tile.addSubview(mark)
+
+            let name = NSTextField(labelWithString: place.title)
+            name.font = Words.tiny
+            name.textColor = Paint.muted
+            name.alignment = .center
+            name.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(name)
+
+            tile.effectiveAppearance.performAsCurrentDrawingAppearance {
+                tile.layer?.backgroundColor = Paint.hover.withAlphaComponent(0.5).cgColor
+            }
+
+            NSLayoutConstraint.activate([
+                tile.widthAnchor.constraint(equalToConstant: 54),
+                tile.heightAnchor.constraint(equalToConstant: 54),
+                tile.topAnchor.constraint(equalTo: topAnchor, constant: Step.tight),
+                tile.leadingAnchor.constraint(equalTo: last?.trailingAnchor ?? leadingAnchor,
+                                              constant: last == nil ? 0 : Step.close),
+                mark.centerXAnchor.constraint(equalTo: tile.centerXAnchor),
+                mark.centerYAnchor.constraint(equalTo: tile.centerYAnchor),
+                mark.widthAnchor.constraint(equalToConstant: 22),
+                mark.heightAnchor.constraint(equalToConstant: 22),
+                name.centerXAnchor.constraint(equalTo: tile.centerXAnchor),
+                name.topAnchor.constraint(equalTo: tile.bottomAnchor, constant: 7),
+            ])
+            tiles.append(tile)
+            last = tile
+        }
+
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 96),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+
+    /// Counted out, not shown. Each one arrives small and overshoots, a
+    /// twelfth of a second behind the last.
+    func play(after wait: Double) {
+        let start = CACurrentMediaTime() + wait
+        for (i, tile) in tiles.enumerated() {
+            tile.wantsLayer = true
+
+            let swell = CAKeyframeAnimation(keyPath: "transform.scale")
+            swell.values = [0.2, 1.16, 0.96, 1]
+            swell.keyTimes = [0, 0.62, 0.84, 1]
+
+            let rise = CABasicAnimation(keyPath: "transform.translation.y")
+            rise.fromValue = -14
+            rise.toValue = 0
+
+            let fade = CABasicAnimation(keyPath: "opacity")
+            fade.fromValue = 0
+            fade.toValue = 1
+
+            let all = CAAnimationGroup()
+            all.animations = [swell, rise, fade]
+            all.duration = 0.54
+            all.beginTime = start + Double(i) * 0.085
+            all.fillMode = .backwards
+            all.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 1.1, 0.3, 1)
+            tile.layer?.add(all, forKey: "counting")
+        }
+    }
+}
+
+/// What "nothing is lost" looks like, instead of four lines saying it.
+///
+/// Three things leave the pile, go into the folder, and come back out to
+/// exactly where they were, over and over. It is the one promise the whole
+/// app rests on and it is the one thing a picture can say faster than a
+/// sentence can.
+final class Undoing: NSView {
+    private var things: [CALayer] = []
+    private let folder = CALayer()
+
+    init() {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+
+        folder.cornerRadius = 5
+        folder.borderWidth = 1.5
+        layer?.addSublayer(folder)
+
+        for _ in 0..<3 {
+            let thing = CALayer()
+            thing.cornerRadius = 3
+            layer?.addSublayer(thing)
+            things.append(thing)
+        }
+
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 78),
+        ])
+        paint()
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        paint()
+    }
+
+    private func paint() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            self.folder.borderColor = Paint.faint.cgColor
+            self.folder.backgroundColor = NSColor.clear.cgColor
+            for thing in self.things { thing.backgroundColor = Paint.ink.cgColor }
+        }
+    }
+
+    /// Frames, not constraints: these are three squares and a box moving
+    /// about, and Auto Layout has nothing to say about that.
+    override func layout() {
+        super.layout()
+        let middle = bounds.height / 2
+        folder.frame = CGRect(x: 168, y: middle - 21, width: 46, height: 38)
+        for (i, thing) in things.enumerated() {
+            thing.frame = CGRect(x: CGFloat(i) * 34, y: middle - 11, width: 22, height: 22)
+        }
+    }
+
+    func play(after wait: Double) {
+        layoutSubtreeIfNeeded()
+        let start = CACurrentMediaTime() + wait
+        let into = folder.frame.midX
+
+        for (i, thing) in things.enumerated() {
+            let home = thing.frame.midX
+
+            let across = CAKeyframeAnimation(keyPath: "position.x")
+            // there, held, and back to exactly where it was
+            across.values = [home, into, into, home, home]
+            across.keyTimes = [0, 0.26, 0.52, 0.78, 1]
+
+            let small = CAKeyframeAnimation(keyPath: "transform.scale")
+            small.values = [1, 0.55, 0.55, 1, 1]
+            small.keyTimes = [0, 0.26, 0.52, 0.78, 1]
+
+            let both = CAAnimationGroup()
+            both.animations = [across, small]
+            both.duration = 3.4
+            both.beginTime = start + Double(i) * 0.16
+            both.repeatCount = .infinity
+            both.timingFunction = CAMediaTimingFunction(controlPoints: 0.5, 0, 0.2, 1)
+            thing.add(both, forKey: "going")
+        }
+    }
 }
 
 /// Where you are in the welcome. Four dots, one of them lit.
