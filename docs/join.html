@@ -47,6 +47,9 @@ body{
 .brand{position:absolute;top:32px;left:32px;display:flex;align-items:center;gap:9px;
        text-decoration:none;color:var(--ink);z-index:3}
 .brand svg{width:29px;height:29px;display:block;overflow:visible}
+/* A blink is the eyes closing, not fading, so they need a line to close onto:
+   the middle of the pair, measured off the drawing. */
+.kliner-eyes{transform-box:view-box;transform-origin:51.28px 40.61px}
 .brand .kliner-body{fill:var(--ink)}
 .brand .kliner-eye{fill:var(--ground)}
 .wordmark{font-size:19px;font-weight:500;letter-spacing:-.04em;line-height:1}
@@ -113,6 +116,8 @@ form{display:flex;gap:8px;width:100%;max-width:632px;padding:0 0}
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
   color:var(--ink);text-align:left}
 .app-frame{display:flex;height:410px}
+.app.is-shot{line-height:0}
+.app.is-shot img{display:block;width:760px;height:auto}
 
 /* the rail */
 .rail{width:178px;flex:0 0 auto;background:#f6f6f7;border-right:.5px solid #e2e2e5;
@@ -395,37 +400,57 @@ form{display:flex;gap:8px;width:100%;max-width:632px;padding:0 0}
     });
   });
 
-  /* ---- the eyes follow the pointer, and blink, the way they do in the app ---- */
-  var eyes = document.getElementById("eyes");
+  /* ---- the eyes follow the pointer and close, the way they do in the app ---- */
   var still = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-  if (eyes && !still.matches) {
+  function alive(root, follows) {
+    var eyes = root && root.querySelector(".kliner-eyes");
+    if (!eyes || still.matches) { return; }
+
     var look = { x: 0, y: 0 }, want = { x: 0, y: 0 };
+    var openness = 1, shut = 0;
 
-    window.addEventListener("pointermove", function (event) {
-      var box = eyes.getBoundingClientRect();
-      var dx = (event.clientX - (box.left + box.width / 2)) / window.innerWidth;
-      var dy = (event.clientY - (box.top + box.height / 2)) / window.innerHeight;
-      want.x = Math.max(-1, Math.min(1, dx * 2)) * 2.2;
-      want.y = Math.max(-1, Math.min(1, dy * 2)) * 1.6;
-    }, { passive: true });
+    if (follows) {
+      window.addEventListener("pointermove", function (event) {
+        var box = eyes.getBoundingClientRect();
+        var dx = (event.clientX - (box.left + box.width / 2)) / window.innerWidth;
+        var dy = (event.clientY - (box.top + box.height / 2)) / window.innerHeight;
+        want.x = Math.max(-1, Math.min(1, dx * 2)) * 2.2;
+        want.y = Math.max(-1, Math.min(1, dy * 2)) * 1.6;
+      }, { passive: true });
+    }
 
-    (function drift() {
+    (function draw() {
       look.x += (want.x - look.x) * 0.08;
       look.y += (want.y - look.y) * 0.08;
-      eyes.style.transform = "translate(" + look.x.toFixed(2) + "px," + look.y.toFixed(2) + "px)";
-      window.requestAnimationFrame(drift);
+      /* Shutting is quicker than opening — that is what makes it read as a blink
+         rather than a dimmer. What is left at the bottom is the dash the app
+         draws when Kliner has his eyes closed. */
+      openness += ((1 - shut) - openness) * (shut ? 0.5 : 0.3);
+      var lid = 0.06 + 0.94 * openness;
+      eyes.style.transform =
+        "translate(" + look.x.toFixed(2) + "px," + look.y.toFixed(2) + "px) scaleY(" + lid.toFixed(3) + ")";
+      window.requestAnimationFrame(draw);
     })();
 
-    (function blink() {
+    function close(times) {
+      shut = 1;
       window.setTimeout(function () {
-        eyes.style.transition = "opacity .09s ease";
-        eyes.style.opacity = "0";
-        window.setTimeout(function () { eyes.style.opacity = "1"; }, 95);
-        blink();
-      }, 2600 + Math.random() * 4200);
+        shut = 0;
+        if (times > 1) { window.setTimeout(function () { close(times - 1); }, 120); }
+      }, 85);
+    }
+
+    (function wait() {
+      window.setTimeout(function () {
+        close(Math.random() < 0.18 ? 2 : 1);   // now and then, twice
+        wait();
+      }, 2400 + Math.random() * 4000);
     })();
   }
+
+  alive(document.querySelector(".brand"), true);
+  alive(document.querySelector(".corner .face"), false);
 
   /* ---- the window is shown whole, so it takes the room that is left ---- */
   var showcase = document.querySelector(".showcase");
