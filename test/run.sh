@@ -1108,7 +1108,7 @@ check "the row is lit for the page inside it" \
     "grep -q 'Action.place(of: row.index)?.holds.contains(index)' '$APP/Sources/main.swift'"
 check "help sits under settings, with the keys" \
     "grep -q 'func drawHelp' '$APP/Sources/main.swift' && grep -q 'static let help = Action' '$APP/Sources/main.swift'"
-check "it can ask macOS for what it needs"  "grep -q 'askForEverything' '$APP/Sources/main.swift'"
+check "it can ask macOS for what it needs"  "grep -q 'func askForFolders' '$APP/Sources/main.swift' && grep -q 'func askNext' '$APP/Sources/main.swift'"
 check "and it never claims to grant itself access" \
     "grep -q 'enum Access' '$APP/Sources/main.swift' && grep -q 'Privacy_AllFiles' '$APP/Sources/main.swift'"
 check "settings are the same file nimo reads" \
@@ -1297,8 +1297,8 @@ check "and it has more than one face to wear" \
     "grep -q '(\"-round\", 0.42)' '$APP/Sources/main.swift' && [ -f '$APP/Resources/mascot-round@3x.png' ] && [ -f '$APP/Resources/wordmark-dash@3x.png' ]"
 check "the first time, it introduces itself" \
     "grep -q 'func drawWelcome' '$APP/Sources/main.swift' && grep -q 'welcomed' '$APP/Sources/main.swift'"
-check "the welcome is four pages, not one"  \
-    "grep -q 'Dots(of: 4, at: step)' '$APP/Sources/main.swift' && grep -q 'case 3:' '$APP/Sources/main.swift'"
+check "the welcome is five pages, not one"  \
+    "grep -q 'Dots(of: 5, at: step)' '$APP/Sources/main.swift' && grep -q 'case 4:' '$APP/Sources/main.swift'"
 # A splash before anything has happened is a thing to sit through. The face
 # plays the setup out instead, once, over the app arriving underneath it.
 check "and the face plays it out at the end" \
@@ -1322,7 +1322,17 @@ check "and stepping back out returns to the page" \
 check "the swipe hint points forward"        \
     "grep -q 'systemSymbolName: \"chevron.right\"' '$APP/Sources/main.swift' && grep -q 'go.values = \\[0, 7, 0, 0, 0\\]' '$APP/Sources/main.swift'"
 check "and it asks for access on the last one, not the first" \
-    "awk '/switch step/{a=NR} /Word.ask\\(\\)/{b=NR} END{exit !(a && b && a < b)}' '$APP/Sources/main.swift'"
+    "awk '/switch step/{a=NR} /func askNext/{b=NR} END{exit !(a && b && a < b)}' '$APP/Sources/main.swift'"
+# macOS does not come back until somebody has answered, so the row has to say
+# it is asking before the ask, on a later turn of the runloop.
+check "and it asks for them one at a time"   \
+    "grep -q 'row.say(\"asking macOS now' '$APP/Sources/main.swift' && grep -q 'self?.askNext(i + 1)' '$APP/Sources/main.swift'"
+check "and waits for each answer before the next" \
+    "grep -q 'private static let gates' '$APP/Sources/main.swift' && grep -q 'Word.ask { yes in settled(yes) }' '$APP/Sources/main.swift'"
+# Nothing to press while macOS is asking; the way on appears when the last of
+# them has an answer.
+check "and the way on waits for the last of them" \
+    "grep -q '} else if asked {' '$APP/Sources/main.swift'"
 check "you can walk back through it"        "grep -q 'self.step -= 1' '$APP/Sources/main.swift'"
 check "or skip the asking"                  "grep -q 'Skip for now' '$APP/Sources/main.swift'"
 check "and only the first time"             "grep -q 'Config.set(\\\"welcomed\\\"' '$APP/Sources/main.swift'"
@@ -1393,10 +1403,13 @@ check "the page's name is in the row as well" \
 # two weights so it reads as one line.
 check "and it says where that page belongs"  \
     "grep -q 'func trail(' '$APP/Sources/main.swift' && grep -q 'titleLabel.set(line, more:' '$APP/Sources/main.swift'"
-# With the list shut the page starts under the buttons, so the name gives way
-# rather than printing over one.
+# The name belongs in the middle of the page it names.
+check "and it sits in the middle of that page" \
+    "grep -q 'titleCentre = titleLabel.centerXAnchor.constraint(equalTo: pane.centerXAnchor)' '$APP/Sources/main.swift' && grep -q 'titleCentre.priority = .defaultHigh' '$APP/Sources/main.swift'"
+# In a window too narrow to have a middle the want gives way and the name goes
+# back to starting where the page starts, rather than printing over a button.
 check "and it never prints over a button"    \
-    "grep -q 'titleLeading.priority = .defaultHigh' '$APP/Sources/main.swift' && grep -q 'titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: chrome.trailingAnchor' '$APP/Sources/main.swift'"
+    "grep -q 'titleLeading.priority = .defaultLow' '$APP/Sources/main.swift' && grep -q 'titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: chrome.trailingAnchor' '$APP/Sources/main.swift'"
 # The page you are on is the dark one in the list. A filled pill behind it as
 # well says the same thing twice.
 check "the list marks the page by weight, not by a box" \
@@ -1405,12 +1418,20 @@ check "paragraphs have room between their lines" \
     "grep -q 'lineHeightMultiple' '$APP/Sources/main.swift' && grep -q 'func leaded' '$APP/Sources/main.swift'"
 check "and the work stops at a readable width" \
     "grep -q 'static let column: CGFloat' '$APP/Sources/main.swift' && grep -q 'lessThanOrEqualToConstant: Main.column' '$APP/Sources/main.swift'"
-# The row along the top is not a strip with a colour of its own: it is the top
-# of the two surfaces, so it needs no line under it and no line inside it.
-check "the row along the top is not a strip of its own" \
+# The row along the top takes no colour of its own — the page runs the whole
+# height of the window underneath it — but it is a header, so it has a line.
+check "the page runs the whole height of the window" \
     "grep -q 'pane.topAnchor.constraint(equalTo: content.topAnchor)' '$APP/Sources/main.swift'"
-check "with no line under it and none inside it" \
-    "! grep -q 'across.heightAnchor.constraint(equalToConstant: 1)' '$APP/Sources/main.swift' && ! grep -q 'split.widthAnchor.constraint(equalToConstant: 1)' '$APP/Sources/main.swift'"
+check "the row along the top has a line under it" \
+    "grep -q 'under.heightAnchor.constraint(equalToConstant: 1)' '$APP/Sources/main.swift' && grep -q 'scroll.topAnchor.constraint(equalTo: under.bottomAnchor' '$APP/Sources/main.swift'"
+# The list is its own surface. A line drawn over both turns the window into a
+# grid of boxes, so this one stops where the list ends.
+check "and that line stops at the list" \
+    "grep -q 'under.leadingAnchor.constraint(equalTo: edge.trailingAnchor)' '$APP/Sources/main.swift'"
+check "and the setup shows neither line" \
+    "grep -q 'railLine, barLine, chrome' '$APP/Sources/main.swift'"
+check "with no second line inside the row" \
+    "! grep -q 'split.widthAnchor.constraint(equalToConstant: 1)' '$APP/Sources/main.swift'"
 # Home is a list of things to do, not four numbers and a shrug.
 check "home says what to do about it"        \
     "grep -q 'final class Job' '$APP/Sources/main.swift' && grep -q 'let list = Card(\"What to do\")' '$APP/Sources/main.swift'"
@@ -1469,7 +1490,18 @@ check "a click cannot be eaten by the picture inside a button" \
 check "there is a way to search from the keyboard" \
     "grep -q 'final class Seek' '$APP/Sources/main.swift' && grep -q 'keyEquivalent: \"k\"' '$APP/Sources/main.swift'"
 check "and typing narrows the list rather than covering it" \
-    "grep -q 'func sieve' '$APP/Sources/main.swift' && grep -q 'rows\\[i\\].isHidden' '$APP/Sources/main.swift'"
+    "grep -q 'func sieve' '$APP/Sources/main.swift' && grep -q 'row.isHidden = !(want.isEmpty || found)' '$APP/Sources/main.swift'"
+# The list is five places, not nine pages. Walking Action.all through rows[i]
+# ran off the end of a seven-row list on the first letter typed.
+check "and it narrows the rows there are, not the pages there are" \
+    "! grep -q 'rows\\[i\\]' '$APP/Sources/main.swift' && grep -q 'guard let place = Action.place(of: row.index)' '$APP/Sources/main.swift'"
+# The setup used to empty the button row and never fill it again, so every
+# page after the introduction had no button on it for the rest of the session.
+check "the setup never empties the button row" \
+    "! grep -q 'for view in buttons.arrangedSubviews' '$APP/Sources/main.swift'"
+# A face made as the argument to the call that places it has no window yet.
+check "the waiting face starts blinking once it has a window" \
+    "sed -n '/^final class Thinking/,/^}/p' '$APP/Sources/main.swift' | grep -q 'override func viewDidMoveToWindow'"
 # One thing in the corner of the row, and it holds everything that used to be
 # spread along it: what this page can do, what Kliner has done, and the keys.
 check "Kliner holds the rest of it"          \

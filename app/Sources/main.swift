@@ -503,9 +503,13 @@ final class Wrapping: NSTextField {
 /// so for us, once you have allowed it — and if you have not, nothing here
 /// complains about it.
 enum Word {
-    static func ask() {
+    /// The answer comes back on whatever thread macOS feels like, so it is
+    /// handed on from the main one — the setup page draws itself with it.
+    static func ask(_ then: @escaping (Bool) -> Void = { _ in }) {
         UNUserNotificationCenter.current()
-            .requestAuthorization(options: [.alert, .sound]) { _, _ in }
+            .requestAuthorization(options: [.alert, .sound]) { yes, _ in
+                DispatchQueue.main.async { then(yes) }
+            }
     }
 
     static func say(_ headline: String, _ detail: String) {
@@ -1116,9 +1120,20 @@ final class Main: NSObject, NSWindowDelegate {
     private var groupLabels: [NSTextField] = []
     private var narrow = false
     private var welcoming = false
+    /// The rows on the asking page, so each can be told what macOS said
+    /// without the page being drawn again underneath them.
+    private var asking: [Told] = []
+    /// What macOS said, kept so the page can be drawn again with the answers
+    /// still on it. Drawing it again is what puts the way on underneath.
+    private var answers: [(String, String, Bool)] = []
+    private var asked = false
     private var step = 0
     /// Which step was showing, so a page knows which side it is arriving from.
     private var last = 0
+    /// Which side the next page comes in from: -1 the left, 1 the right, 0
+    /// straight down. Going back is going left, whatever number the page you
+    /// are going back to happens to have.
+    private var came: CGFloat = 0
     private var foldButton: Ghost!
     private var backButton: Ghost!
     private var onButton: Ghost!
@@ -1126,8 +1141,10 @@ final class Main: NSObject, NSWindowDelegate {
     private var chromeLeading: NSLayoutConstraint!
     private var search: Seek!
     private var titleLeading: NSLayoutConstraint!
+    private var titleCentre: NSLayoutConstraint!
     private var footStack: NSStackView!
     private var railLine: NSBox!
+    private var barLine: NSBox!
     private var primary: Chip!
     private var helper: Helper!
     /// What Kliner was asked to do, in order, one at a time.
@@ -1140,7 +1157,21 @@ final class Main: NSObject, NSWindowDelegate {
 
     /// Which setup has been read. Bumped whenever the setup changes, so a
     /// setup nobody has seen is shown once more rather than never again.
-    static let setup = "2"
+    static let setup = "3"
+
+    /// What macOS decides about, in the order it is asked. Notifications are
+    /// last on purpose: a banner is the smallest thing to be asked for, and
+    /// asking for it first teaches nothing about the folders.
+    private static func inHome(_ name: String) -> URL {
+        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(name)
+    }
+    private static let gates: [(String, String, URL?)] = [
+        ("menubar.dock.rectangle", "Your desktop", Access.desktop),
+        ("arrow.down.circle", "Your downloads", Access.downloads),
+        ("photo", "Your pictures", inHome("Pictures")),
+        ("doc.text", "Your documents", inHome("Documents")),
+        ("bell", "Notifications", nil),
+    ]
     private var behind: [Int] = []          // pages you came from
     private var ahead: [Int] = []           // pages you came back from
     private var walked: [String] = []       // how far into your home you have clicked
@@ -1341,6 +1372,18 @@ final class Main: NSObject, NSWindowDelegate {
         content.addSubview(edge)
         railLine = edge
 
+        // And one across, under the row along the top, so the page has a
+        // header rather than a name floating over its first line. It stops at
+        // the list, because the list is its own surface and a line drawn over
+        // both of them turns the window into a grid of boxes.
+        let under = NSBox()
+        under.boxType = .custom
+        under.borderWidth = 0
+        under.fillColor = Paint.line
+        under.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(under)
+        barLine = under
+
         // The chrome, where a Mac puts it: along the top, just past the three
         // lights, so the window has one row of controls and not three corners
         // of them.
@@ -1419,13 +1462,15 @@ final class Main: NSObject, NSWindowDelegate {
         chromeLeading = chrome.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 76)
         stackWidth = stack.widthAnchor.constraint(equalToConstant: 214)
 
-        // Where the page's name wants to start: where the page starts. It is
-        // only a want, because with the list shut the page starts under the
-        // buttons, and a name printed over a button is worse than a name that
-        // has moved along.
+        // The name belongs in the middle of the page it names. That is what
+        // it wants; what it must do is stay off the buttons at either end, so
+        // in a window too narrow to have a middle the want gives way and the
+        // name goes back to starting where the page starts.
+        titleCentre = titleLabel.centerXAnchor.constraint(equalTo: pane.centerXAnchor)
+        titleCentre.priority = .defaultHigh
         titleLeading = titleLabel.leadingAnchor.constraint(equalTo: edge.trailingAnchor,
                                                            constant: Step.air)
-        titleLeading.priority = .defaultHigh
+        titleLeading.priority = .defaultLow
 
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: Step.air),
@@ -1462,6 +1507,7 @@ final class Main: NSObject, NSWindowDelegate {
                                               constant: -Step.air),
             buttons.centerYAnchor.constraint(equalTo: chrome.centerYAnchor),
 
+            titleCentre,
             titleLeading,
             titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: chrome.trailingAnchor,
                                                 constant: Step.air),
@@ -1474,10 +1520,18 @@ final class Main: NSObject, NSWindowDelegate {
             sitting.bottomAnchor.constraint(equalTo: content.bottomAnchor,
                                             constant: -Step.wide),
 
+            // The row is as tall as the list's own head start, so both
+            // surfaces begin saying something at the same height.
+            under.leadingAnchor.constraint(equalTo: edge.trailingAnchor),
+            under.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            under.topAnchor.constraint(equalTo: content.topAnchor,
+                                       constant: Step.bar + Step.close),
+            under.heightAnchor.constraint(equalToConstant: 1),
+
             scroll.leadingAnchor.constraint(equalTo: edge.trailingAnchor),
             scroll.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            scroll.topAnchor.constraint(equalTo: content.topAnchor,
-                                        constant: Step.bar + Step.air),
+            scroll.topAnchor.constraint(equalTo: under.bottomAnchor,
+                                        constant: Step.air),
             scroll.bottomAnchor.constraint(equalTo: content.bottomAnchor),
 
             report.leadingAnchor.constraint(equalTo: scroll.contentView.leadingAnchor),
@@ -1533,11 +1587,6 @@ final class Main: NSObject, NSWindowDelegate {
             report.removeArrangedSubview(view)
             view.removeFromSuperview()
         }
-        for view in buttons.arrangedSubviews {
-            buttons.removeArrangedSubview(view)
-            view.removeFromSuperview()
-        }
-
         // Nothing but the setup, until it is finished. The headline is under
         // the face, where the eye already is, so there is no page title, and
         // there is nothing else on the window to read instead.
@@ -1584,6 +1633,20 @@ final class Main: NSObject, NSWindowDelegate {
             line(Told("questionmark.circle", "I ask before I change anything",
                       "Every page shows you what it would do first."))
 
+        case 4:
+            headline("Asking macOS.")
+            words("One at a time, and only when you have answered does the next one come up. macOS puts each question on the screen; I do not, and I cannot answer any of them for you.",
+                  Words.body, Paint.muted, top: 0, bottom: Step.close)
+            asking = []
+            for (i, gate) in Main.gates.enumerated() {
+                let row = Told(gate.0, gate.1, "waiting its turn")
+                if i < answers.count {
+                    row.say(answers[i].0, mark: answers[i].1, settled: answers[i].2)
+                }
+                line(row)
+                asking.append(row)
+            }
+
         case 3:
             headline("One last thing, and it is yours to decide.")
             words("macOS decides what an app may read, not the app. Left alone it asks once per folder, over and over. Full Disk Access is the single switch that ends that, and I still only read inside your home.",
@@ -1607,7 +1670,9 @@ final class Main: NSObject, NSWindowDelegate {
         way.spacing = Step.tight
         way.translatesAutoresizingMaskIntoConstraints = false
 
-        if step > 0 {
+        // Nothing to press while macOS is asking: the page is the rows, and
+        // the way on appears when the last of them has an answer.
+        if step > 0, step < 4 {
             let back = Chip(.quiet)
             back.set("Back")
             back.onClick = { [weak self] in
@@ -1618,21 +1683,32 @@ final class Main: NSObject, NSWindowDelegate {
             way.addArrangedSubview(back)
         }
 
-        let on = Chip(.strong)
-        on.set(step < 3 ? "Next" : "Ask macOS, and start")
-        on.onClick = { [weak self] in
-            guard let self = self else { return }
-            if self.step < 3 {
-                self.step += 1
+        if step < 4 {
+            let on = Chip(.strong)
+            on.set(step < 3 ? "Next" : "Ask macOS")
+            on.onClick = { [weak self] in
+                guard let self = self else { return }
+                if self.step < 3 {
+                    self.step += 1
+                    self.drawWelcome()
+                    return
+                }
+                self.step = 4
+                self.asked = false
+                self.answers = []
                 self.drawWelcome()
-                return
+                self.askNext(0)
             }
-            Word.ask()
-            self.askForEverything()
-            self.finishWelcome()
-            self.show(0)
+            way.addArrangedSubview(on)
+        } else if asked {
+            let start = Chip(.strong)
+            start.set("Start")
+            start.onClick = { [weak self] in
+                self?.finishWelcome()
+                self?.show(0)
+            }
+            way.addArrangedSubview(start)
         }
-        way.addArrangedSubview(on)
 
         if step == 3 {
             let skip = Chip(.quiet)
@@ -1655,12 +1731,12 @@ final class Main: NSObject, NSWindowDelegate {
         ])
         line(holder)
 
-        line(Dots(of: 4, at: step))
+        line(Dots(of: 5, at: step))
 
         // The last page has one thing left to do, and the face is what asks
         // for it. On the pages before it, the thing to learn is that two
         // fingers turn the page, so the page says so, once, quietly.
-        if step == 3 {
+        if step >= 3 {
             face.beckon()
         } else {
             line(Nudge())
@@ -1711,7 +1787,7 @@ final class Main: NSObject, NSWindowDelegate {
     /// search and its buttons while it is still explaining itself is a window
     /// asking you to read two things at once.
     private func bare(_ yes: Bool) {
-        for view: NSView? in [sideStack, footStack, railLine, chrome,
+        for view: NSView? in [sideStack, footStack, railLine, barLine, chrome,
                               buttons, search, titleLabel, helper] {
             view?.isHidden = yes
         }
@@ -2350,6 +2426,12 @@ final class Main: NSObject, NSWindowDelegate {
     /// the rest come in together, because nobody wants to watch a list deal
     /// itself out.
     private func settle() {
+        // The side is spent on the page it was set for. A page nobody
+        // navigated to — the answer coming back after a run — falls from
+        // above, which is what a result does.
+        let way = came
+        came = 0
+
         report.layoutSubtreeIfNeeded()
         let start = CACurrentMediaTime()
 
@@ -2357,15 +2439,19 @@ final class Main: NSObject, NSWindowDelegate {
             view.wantsLayer = true
 
             let rise = CABasicAnimation(keyPath: "transform.translation.y")
-            rise.fromValue = -10         // AppKit's y grows upward, so this falls
+            rise.fromValue = way == 0 ? -10 : 0   // AppKit's y grows upward
             rise.toValue = 0
+
+            let across = CABasicAnimation(keyPath: "transform.translation.x")
+            across.fromValue = 30 * way
+            across.toValue = 0
 
             let fade = CABasicAnimation(keyPath: "opacity")
             fade.fromValue = 0
             fade.toValue = 1
 
             let both = CAAnimationGroup()
-            both.animations = [rise, fade]
+            both.animations = way == 0 ? [rise, fade] : [across, fade]
             both.duration = 0.34
             both.beginTime = start + Double(min(i, 14)) * 0.022
             both.fillMode = .backwards
@@ -2432,11 +2518,18 @@ final class Main: NSObject, NSWindowDelegate {
                 .joined(separator: " ").lowercased()
             if want.isEmpty || hay.contains(want) { matches.append(i) }
         }
-        for i in 0..<Action.all.count {
-            rows[i].isHidden = !(want.isEmpty || matches.contains(i))
+        // The list is five places, not nine pages, so what is walked here is
+        // the rows there are. A place stays if anything it holds matched.
+        // Counting the pages and indexing the rows with that count ran off
+        // the end of a seven-row list on the first letter typed, which took
+        // the window with it.
+        for row in rows {
+            guard let place = Action.place(of: row.index) else { continue }
+            let found = place.holds.contains { matches.contains($0) }
+            row.isHidden = !(want.isEmpty || found)
         }
-        // Settings is under a hairline of its own and is not one of the things
-        // being searched, so it stays where it is.
+        // Settings and Help are under a hairline of their own and are not one
+        // of the things being searched, so they stay where they are.
         for head in groupLabels { head.isHidden = !want.isEmpty }
     }
 
@@ -2487,6 +2580,9 @@ final class Main: NSObject, NSWindowDelegate {
         welcoming = true
         step = 0
         last = 0
+        asked = false
+        asking = []
+        answers = []
         mascot = nil
         for row in rows { row.choose(false) }
         drawWelcome()
@@ -2498,7 +2594,9 @@ final class Main: NSObject, NSWindowDelegate {
     /// from, which is what the same gesture means in every other Mac app.
     func swipedBack() {
         if welcoming {
-            guard step > 0 else { return }
+            // Not out of the asking page: macOS is part way through a list of
+            // questions and walking away from it leaves half of them unasked.
+            guard step > 0, step < 4 else { return }
             step -= 1
             drawWelcome()
             return
@@ -2722,12 +2820,14 @@ final class Main: NSObject, NSWindowDelegate {
     @objc func goBack() {
         guard let last = behind.popLast() else { return }
         ahead.append(chosen)
+        came = -1
         show(last, remember: false)
     }
 
     @objc func goForward() {
         guard let next = ahead.popLast() else { return }
         behind.append(chosen)
+        came = 1
         show(next, remember: false)
     }
 
@@ -2748,6 +2848,9 @@ final class Main: NSObject, NSWindowDelegate {
             behind.append(chosen)
             ahead = []
         }
+        // Nobody set a side, so the side is the way you are travelling through
+        // the list: down it is forward, up it is back.
+        if came == 0, index != chosen { came = index > chosen ? 1 : -1 }
         chosen = index
         walked = []
         showArrows()
@@ -3079,7 +3182,7 @@ final class Main: NSObject, NSWindowDelegate {
         let openFolders = Access.may(Access.desktop) && Access.may(Access.downloads)
         line(Setting(openFolders ? "Your folders" : "Your folders, not yet",
                      control: quiet(openFolders ? "Check again" : "Ask") {
-                         [weak self] in self?.askForEverything()
+                         [weak self] in self?.askForFolders()
                      }))
 
         line(Setting("Changing your wallpaper",
@@ -3136,14 +3239,57 @@ final class Main: NSObject, NSWindowDelegate {
         Access.settings("Privacy_AllFiles")
     }
 
-    private func askForEverything() {
-        Access.may(Access.desktop)
-        Access.may(Access.downloads)
-        Access.may(FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Pictures"))
-        Access.may(FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Documents"))
+    /// The same asking, from Settings rather than from the setup. There is no
+    /// page of rows to keep up with here, so it asks for the lot and then says
+    /// where it got to by drawing the page again.
+    private func askForFolders() {
+        for gate in Main.gates {
+            guard let folder = gate.2 else { continue }
+            Access.may(folder)
+        }
         drawSettings()
+    }
+
+    /// One permission at a time, with the page saying which one is up.
+    ///
+    /// macOS puts its own question on the screen and does not come back until
+    /// somebody has answered it, so the row has to say it is asking *before*
+    /// the ask, on a later turn of the runloop — otherwise the window never
+    /// gets a chance to draw the word. That wait is also what makes this read
+    /// as somebody going through them with you rather than four prompts
+    /// arriving at once.
+    private func askNext(_ i: Int) {
+        guard welcoming, step == 4, i < asking.count else {
+            if welcoming, step == 4 {
+                asked = true
+                drawWelcome()
+            }
+            return
+        }
+
+        let row = asking[i]
+        let gate = Main.gates[i]
+        row.say("asking macOS now…", mark: "hourglass")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.09) { [weak self] in
+            guard let self = self, self.welcoming, self.step == 4 else { return }
+
+            func settled(_ yes: Bool) {
+                let note = yes ? "allowed" : "not allowed. Settings can change it later"
+                let mark = yes ? "checkmark.circle" : "circle.slash"
+                if i == self.answers.count { self.answers.append((note, mark, yes)) }
+                row.say(note, mark: mark, settled: yes)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.34) { [weak self] in
+                    self?.askNext(i + 1)
+                }
+            }
+
+            guard let folder = gate.2 else {
+                Word.ask { yes in settled(yes) }
+                return
+            }
+            settled(Access.may(folder))
+        }
     }
 
     @objc private func loginChanged(_ sender: NSSwitch) {
@@ -3427,11 +3573,28 @@ final class Disk: NSView {
 
 /// A picture, a name, and one line under it. What the welcome is made of.
 final class Told: NSView {
+    private let icon = NSImageView()
+    private let under: Wrapping
+
+    /// The line underneath, said again. The setup asks macOS one folder at a
+    /// time and each row has to keep up, so a row is written once and then
+    /// told what has happened to it.
+    func say(_ note: String, mark: String? = nil, settled: Bool = false) {
+        under.stringValue = note
+        under.textColor = settled ? Paint.body : Paint.faint
+        guard let mark = mark,
+              let picture = NSImage(systemSymbolName: mark, accessibilityDescription: nil)
+        else { return }
+        picture.isTemplate = true
+        icon.image = picture
+        icon.contentTintColor = settled ? Paint.ink : Paint.faint
+    }
+
     init(_ symbol: String, _ name: String, _ note: String) {
+        under = Wrapping(labelWithString: note)
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
 
-        let icon = NSImageView()
         if let picture = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) {
             picture.isTemplate = true
             icon.image = picture
@@ -3447,7 +3610,6 @@ final class Told: NSView {
         title.translatesAutoresizingMaskIntoConstraints = false
         addSubview(title)
 
-        let under = Wrapping(labelWithString: note)
         under.font = Words.small
         under.textColor = Paint.faint
         under.maximumNumberOfLines = 2
@@ -3909,16 +4071,49 @@ enum Sheet {
                                        constant: -Step.air).isActive = true
         }
 
+        stack.widthAnchor.constraint(equalToConstant: wide).isActive = true
+
         let holder = NSView()
         holder.translatesAutoresizingMaskIntoConstraints = false
-        holder.addSubview(stack)
-        NSLayoutConstraint.activate([
-            holder.widthAnchor.constraint(equalToConstant: wide),
-            stack.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: holder.trailingAnchor),
-            stack.topAnchor.constraint(equalTo: holder.topAnchor),
-            stack.bottomAnchor.constraint(equalTo: holder.bottomAnchor),
-        ])
+
+        // How tall it is allowed to be: what the window can hold, less the
+        // room its own edges want. Everything Kliner can do, everything this
+        // page can do, everything he has done and the keys is a long list, and
+        // a long list with no ceiling opened past the top of the window and
+        // out over the desktop. Past the ceiling it scrolls instead.
+        let ceiling = max(260, (view.window?.contentView?.bounds.height ?? 620) - Step.edge * 3)
+        let wants = stack.fittingSize.height
+
+        if wants > ceiling {
+            let scroller = NSScrollView()
+            scroller.hasVerticalScroller = true
+            scroller.autohidesScrollers = true
+            scroller.borderType = .noBorder
+            scroller.drawsBackground = false
+            scroller.contentView = TopClip()
+            scroller.translatesAutoresizingMaskIntoConstraints = false
+            scroller.documentView = stack
+            holder.addSubview(scroller)
+            NSLayoutConstraint.activate([
+                holder.widthAnchor.constraint(equalToConstant: wide),
+                holder.heightAnchor.constraint(equalToConstant: ceiling),
+                scroller.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
+                scroller.trailingAnchor.constraint(equalTo: holder.trailingAnchor),
+                scroller.topAnchor.constraint(equalTo: holder.topAnchor),
+                scroller.bottomAnchor.constraint(equalTo: holder.bottomAnchor),
+                stack.leadingAnchor.constraint(equalTo: scroller.contentView.leadingAnchor),
+                stack.topAnchor.constraint(equalTo: scroller.contentView.topAnchor),
+            ])
+        } else {
+            holder.addSubview(stack)
+            NSLayoutConstraint.activate([
+                holder.widthAnchor.constraint(equalToConstant: wide),
+                stack.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
+                stack.trailingAnchor.constraint(equalTo: holder.trailingAnchor),
+                stack.topAnchor.constraint(equalTo: holder.topAnchor),
+                stack.bottomAnchor.constraint(equalTo: holder.bottomAnchor),
+            ])
+        }
 
         let inside = NSViewController()
         inside.view = holder
@@ -3938,6 +4133,29 @@ enum Sheet {
             if mine.midY < room.bounds.height / 3 { side = .maxY }
         }
         sheet.show(relativeTo: view.bounds, of: view, preferredEdge: side)
+
+        // The list arrives the way the page does: each line a moment after the
+        // one before it, from the side the list opened on. A panel that simply
+        // appears whole is the thing that reads as a menu dropped on the
+        // window rather than something Kliner is handing you.
+        stack.layoutSubtreeIfNeeded()
+        let start = CACurrentMediaTime() + 0.03
+        for (i, row) in stack.arrangedSubviews.enumerated() {
+            row.wantsLayer = true
+            let rise = CABasicAnimation(keyPath: "transform.translation.y")
+            rise.fromValue = side == .maxY ? -8 : 8
+            rise.toValue = 0
+            let fade = CABasicAnimation(keyPath: "opacity")
+            fade.fromValue = 0
+            fade.toValue = 1
+            let both = CAAnimationGroup()
+            both.animations = [rise, fade]
+            both.duration = 0.26
+            both.beginTime = start + Double(min(i, 12)) * 0.018
+            both.fillMode = .backwards
+            both.timingFunction = CAMediaTimingFunction(controlPoints: 0.16, 1, 0.3, 1)
+            row.layer?.add(both, forKey: "arriving")
+        }
     }
 }
 
@@ -5382,7 +5600,15 @@ final class Thinking: NSView {
         layer?.addSublayer(trail)
         layer?.addSublayer(ring)
         breathe()
-        blinkLater()
+    }
+
+    /// The blinking starts when the face is in a window, not when it is made.
+    /// It is made as the argument to the call that puts it on the page, so at
+    /// that moment it has no window, and asking for one there stopped the
+    /// whole sequence before its first turn.
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window != nil { blinkLater() } else { pending?.invalidate() }
     }
 
     required init?(coder: NSCoder) { fatalError("nimo has no nib") }
