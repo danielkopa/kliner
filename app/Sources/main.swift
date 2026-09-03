@@ -1762,14 +1762,14 @@ final class Main: NSObject, NSWindowDelegate {
         // page arriving. Those used to be one animation, and one animation is
         // why every page of the setup read as a new screen instead of
         // somebody turning to the next thing.
-        let way: CGFloat = firstLook ? 0 : (step >= last ? 1 : -1)
-        teach(way, first: firstLook)
+        let side: CGFloat = firstLook ? 0 : (step >= last ? 1 : -1)
+        teach(side, first: firstLook)
         if firstLook {
             face.arrive()
-        } else if way == 0 {
+        } else if side == 0 {
             face.nod()
         } else {
-            face.lean(way)
+            face.lean(side)
         }
         last = step
     }
@@ -4601,6 +4601,11 @@ final class Nudge: NSView {
 /// middle of the page and then goes and sits down there, so the thing that
 /// was working and the thing you hand work to are plainly the same thing.
 final class Helper: NSView {
+    /// How wide he sits in the corner. Big enough to be somebody standing
+    /// there rather than a badge on the glass, and everything else in here is
+    /// worked out from it rather than written down twice.
+    static let across: CGFloat = 58
+
     var onClick: (() -> Void)?
 
     /// The dot is not decoration: it goes on when Kliner has done something
@@ -4621,7 +4626,7 @@ final class Helper: NSView {
         wantsLayer = true
 
         disc.wantsLayer = true
-        disc.layer?.cornerRadius = 22
+        disc.layer?.cornerRadius = Helper.across / 2
         disc.layer?.borderWidth = 1
         disc.translatesAutoresizingMaskIntoConstraints = false
         addSubview(disc)
@@ -4634,27 +4639,27 @@ final class Helper: NSView {
         disc.addSubview(face)
 
         dot.wantsLayer = true
-        dot.layer?.cornerRadius = 4
+        dot.layer?.cornerRadius = 4.5
         dot.layer?.backgroundColor = NSColor.systemRed.cgColor
         dot.isHidden = true
         dot.translatesAutoresizingMaskIntoConstraints = false
         addSubview(dot)
 
         NSLayoutConstraint.activate([
-            widthAnchor.constraint(equalToConstant: 44),
-            heightAnchor.constraint(equalToConstant: 44),
+            widthAnchor.constraint(equalToConstant: Helper.across),
+            heightAnchor.constraint(equalToConstant: Helper.across),
             dot.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -1),
             dot.topAnchor.constraint(equalTo: topAnchor, constant: 1),
-            dot.widthAnchor.constraint(equalToConstant: 8),
-            dot.heightAnchor.constraint(equalToConstant: 8),
+            dot.widthAnchor.constraint(equalToConstant: 9),
+            dot.heightAnchor.constraint(equalToConstant: 9),
             disc.leadingAnchor.constraint(equalTo: leadingAnchor),
             disc.trailingAnchor.constraint(equalTo: trailingAnchor),
             disc.topAnchor.constraint(equalTo: topAnchor),
             disc.bottomAnchor.constraint(equalTo: bottomAnchor),
             face.centerXAnchor.constraint(equalTo: disc.centerXAnchor),
             face.centerYAnchor.constraint(equalTo: disc.centerYAnchor),
-            face.widthAnchor.constraint(equalToConstant: 24),
-            face.heightAnchor.constraint(equalToConstant: 24),
+            face.widthAnchor.constraint(equalToConstant: Helper.across * 0.58),
+            face.heightAnchor.constraint(equalToConstant: Helper.across * 0.58),
         ])
 
         toolTip = "Give Kliner something to do"
@@ -4745,12 +4750,23 @@ final class Helper: NSView {
         disc.layer?.add(up, forKey: "breathing")
     }
 
+    /// Blinking on its own is a thing twitching. Every so often he looks off
+    /// to one side and back instead, which is what somebody waiting to be
+    /// given something to do actually does.
+    private static let idle: [[String]] = [
+        ["mascot-half", "mascot-blink", "mascot-half", "mascot"],
+        ["mascot-half", "mascot-blink", "mascot-half", "mascot"],
+        ["mascot-left", "mascot-left", "mascot", "mascot"],
+        ["mascot-right", "mascot-right", "mascot-half", "mascot"],
+        ["mascot-round", "mascot-round", "mascot-half", "mascot"],
+    ]
+
     private func blinkLater() {
         pending?.invalidate()
-        pending = Timer.scheduledTimer(withTimeInterval: Double.random(in: 5...11),
+        pending = Timer.scheduledTimer(withTimeInterval: Double.random(in: 3.5...8),
                                        repeats: false) { [weak self] _ in
             guard let self = self, self.window != nil, !self.hovering else { return }
-            self.wear(["mascot-half", "mascot-blink", "mascot-half", "mascot"], 0)
+            self.wear(Helper.idle.randomElement() ?? Helper.idle[0], 0)
         }
     }
 
@@ -4759,7 +4775,11 @@ final class Helper: NSView {
         let picture = NSImage(named: faces[i])
         picture?.isTemplate = true
         face.image = picture
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) { [weak self] in
+        // A blink is two frames of nothing; a look to the side is held. Same
+        // list, told apart by whether the frame repeats itself.
+        let held = i + 1 < faces.count && faces[i + 1] == faces[i]
+        DispatchQueue.main.asyncAfter(deadline: .now() + (held ? 0.34 : 0.07)) {
+            [weak self] in
             self?.wear(faces, i + 1)
         }
     }
@@ -5511,7 +5531,6 @@ final class Ledger: NSView {
         layer?.cornerRadius = 6
 
         let ink = head ? Paint.faint : Paint.body
-        let type: CGFloat = head ? 11.5 : 13
 
         var left: NSLayoutXAxisAnchor = leadingAnchor
         var pad: CGFloat = 8

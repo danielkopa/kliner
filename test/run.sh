@@ -1286,7 +1286,7 @@ check "the setup shows nothing but itself"   \
 # coming in from the side it was going, further apart, so it reads as somebody
 # laying things out rather than a page appearing.
 check "and its pages are laid out, not just shown" \
-    "grep -q 'func teach(' '$APP/Sources/main.swift' && grep -q 'let way: CGFloat = firstLook ? 0 : (step >= last ? 1 : -1)' '$APP/Sources/main.swift'"
+    "grep -q 'func teach(' '$APP/Sources/main.swift' && grep -q 'let side: CGFloat = firstLook ? 0 : (step >= last ? 1 : -1)' '$APP/Sources/main.swift'"
 # The face was already here. Animating it along with the words is what made
 # every page of the setup read as a new screen rather than the next thing.
 check "and the face does not arrive with the words" \
@@ -1300,7 +1300,7 @@ check "and he stops asking when you walk back off it" \
     "grep -q 'func relax()' '$APP/Sources/main.swift' && grep -q 'face.relax()' '$APP/Sources/main.swift'"
 # Going back is going left, so the head is thrown to the right and springs home.
 check "going back throws the head the other way" \
-    "sed -n '/^final class Floating/,/^}/p' '$APP/Sources/main.swift' | grep -q 'func lean(_ way: CGFloat)' && grep -q 'let side = -way \* 30' '$APP/Sources/main.swift' && grep -q 'face.lean(way)' '$APP/Sources/main.swift'"
+    "sed -n '/^final class Floating/,/^}/p' '$APP/Sources/main.swift' | grep -q 'func lean(_ way: CGFloat)' && grep -q 'let side = -way \* 30' '$APP/Sources/main.swift' && grep -q 'face.lean(side)' '$APP/Sources/main.swift'"
 # Two animations on one key fight rather than add, and drift already turns him.
 check "and it squashes rather than turning"  \
     "sed -n '/func lean(_ way/,/^    }/p' '$APP/Sources/main.swift' | grep -q 'transform.scale.x' && ! sed -n '/func lean(_ way/,/^    }/p' '$APP/Sources/main.swift' | grep -q 'rotation.z'"
@@ -1418,6 +1418,11 @@ check "and the row lives in the top bar"     \
 # window comes out missing. That shipped once.
 check "nothing is pinned to its own contents" \
     "python3 '$ROOT/tools/loopcheck.py' '$APP/Sources/main.swift'"
+# `let way = NSStackView()` at the top of a function and `let way: CGFloat` at
+# the bottom of the same one is a compile error, and it is invisible when the
+# two are four hundred lines apart. That cost a build.
+check "and no name is declared twice in one scope" \
+    "python3 '$ROOT/tools/shadow.py' '$APP/Sources/main.swift'"
 check "and the trail never says the same word twice" \
     "grep -q 'trail(place == name ? \"Kliner\" : place, name)' '$APP/Sources/main.swift'"
 # The name of the page is in that row, on the same line as everything you can
