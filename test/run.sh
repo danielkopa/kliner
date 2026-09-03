@@ -1286,7 +1286,32 @@ check "the setup shows nothing but itself"   \
 # coming in from the side it was going, further apart, so it reads as somebody
 # laying things out rather than a page appearing.
 check "and its pages are laid out, not just shown" \
-    "grep -q 'func teach(' '$APP/Sources/main.swift' && grep -q 'teach(step >= last ? 1 : -1)' '$APP/Sources/main.swift'"
+    "grep -q 'func teach(' '$APP/Sources/main.swift' && grep -q 'let way: CGFloat = firstLook ? 0 : (step >= last ? 1 : -1)' '$APP/Sources/main.swift'"
+# The face was already here. Animating it along with the words is what made
+# every page of the setup read as a new screen rather than the next thing.
+check "and the face does not arrive with the words" \
+    "grep -q 'if view === mascot || view === dots {' '$APP/Sources/main.swift' && grep -q 'guard first else { continue }' '$APP/Sources/main.swift'"
+# A row of dots that redraws does not tell you which way you just went.
+check "and how far in you are stretches, not redraws" \
+    "grep -q 'func move(to next: Int)' '$APP/Sources/main.swift' && grep -q 'count.move(to: step)' '$APP/Sources/main.swift'"
+# Beckoning steps aside for leaning, so coming back off the last page has to
+# put him down again or he keeps the round eyes on a page asking nothing.
+check "and he stops asking when you walk back off it" \
+    "grep -q 'func relax()' '$APP/Sources/main.swift' && grep -q 'face.relax()' '$APP/Sources/main.swift'"
+# Going back is going left, so the head is thrown to the right and springs home.
+check "going back throws the head the other way" \
+    "sed -n '/^final class Floating/,/^}/p' '$APP/Sources/main.swift' | grep -q 'func lean(_ way: CGFloat)' && grep -q 'let side = -way \* 30' '$APP/Sources/main.swift' && grep -q 'face.lean(way)' '$APP/Sources/main.swift'"
+# Two animations on one key fight rather than add, and drift already turns him.
+check "and it squashes rather than turning"  \
+    "sed -n '/func lean(_ way/,/^    }/p' '$APP/Sources/main.swift' | grep -q 'transform.scale.x' && ! sed -n '/func lean(_ way/,/^    }/p' '$APP/Sources/main.swift' | grep -q 'rotation.z'"
+check "and he comes up out of nothing the first time" \
+    "grep -q 'func arrive()' '$APP/Sources/main.swift' && grep -q 'face.arrive()' '$APP/Sources/main.swift'"
+# init runs before the window is ordered front, so an opening drawn there
+# plays to an empty screen and you are shown its last frame.
+check "and the opening waits for the window to be on screen" \
+    "grep -q 'func open()' '$APP/Sources/main.swift' && grep -q 'main.open()' '$APP/Sources/main.swift' && ! sed -n '/^        build()/,/^    }/p' '$APP/Sources/main.swift' | grep -q 'drawWelcome()'"
+check "and the window fades up rather than being there" \
+    "grep -q 'window.alphaValue = 0' '$APP/Sources/main.swift' && grep -q 'window.animator().alphaValue = 1' '$APP/Sources/main.swift'"
 # The face is what asks, not the button. On the pages before it, the thing to
 # learn is that two fingers turn the page, so the page says so, once.
 check "and the face asks for the last press" \

@@ -1122,6 +1122,7 @@ final class Main: NSObject, NSWindowDelegate {
     private var welcoming = false
     /// The rows on the asking page, so each can be told what macOS said
     /// without the page being drawn again underneath them.
+    private var dots: Dots?
     private var asking: [Told] = []
     /// What macOS said, kept so the page can be drawn again with the answers
     /// still on it. Drawing it again is what puts the way on underneath.
@@ -1209,6 +1210,17 @@ final class Main: NSObject, NSWindowDelegate {
 
         build()
         listen()
+        window.center()
+    }
+
+    /// What the window shows, once it is actually on the screen.
+    ///
+    /// This used to happen in init, which runs before the window has been
+    /// ordered front. The whole opening — the face coming up out of nothing,
+    /// the words landing one at a time — played to an empty screen, and what
+    /// you were finally shown was the last frame of it. Every complaint about
+    /// the start was a complaint about never having seen it.
+    func open() {
         if Config.value("welcomed") != Main.setup {
             welcoming = true
             for row in rows { row.choose(false) }
@@ -1216,7 +1228,6 @@ final class Main: NSObject, NSWindowDelegate {
         } else {
             show(0)
         }
-        window.center()
     }
 
     /// Home again, quietly, every half minute.
@@ -1596,9 +1607,9 @@ final class Main: NSObject, NSWindowDelegate {
         // whatever has just been written, which is what makes it read as
         // somebody showing you round.
         let face = mascot ?? Floating()
+        let firstLook = mascot == nil
         mascot = face
         line(face)
-        face.nod()
 
         func headline(_ text: String) {
             words(text, Words.hero, Paint.ink, top: Step.hair, bottom: Step.hair)
@@ -1731,7 +1742,10 @@ final class Main: NSObject, NSWindowDelegate {
         ])
         line(holder)
 
-        line(Dots(of: 5, at: step))
+        let count = dots ?? Dots(of: 5, at: step)
+        dots = count
+        line(count)
+        count.move(to: step)
 
         // The last page has one thing left to do, and the face is what asks
         // for it. On the pages before it, the thing to learn is that two
@@ -1739,10 +1753,24 @@ final class Main: NSObject, NSWindowDelegate {
         if step >= 3 {
             face.beckon()
         } else {
+            face.relax()
             line(Nudge())
         }
 
-        teach(step >= last ? 1 : -1)
+        // Which side this page is coming from, and which way the head is
+        // thrown by it. The head moves on its own clock; the words are the
+        // page arriving. Those used to be one animation, and one animation is
+        // why every page of the setup read as a new screen instead of
+        // somebody turning to the next thing.
+        let way: CGFloat = firstLook ? 0 : (step >= last ? 1 : -1)
+        teach(way, first: firstLook)
+        if firstLook {
+            face.arrive()
+        } else if way == 0 {
+            face.nod()
+        } else {
+            face.lean(way)
+        }
         last = step
     }
 
@@ -1754,19 +1782,38 @@ final class Main: NSObject, NSWindowDelegate {
     /// it coming in from the side it was going, further apart than the app's
     /// own rhythm, so it reads as somebody laying things out one at a time
     /// rather than a page appearing.
-    private func teach(_ way: CGFloat) {
+    private func teach(_ way: CGFloat, first: Bool) {
         report.layoutSubtreeIfNeeded()
-        let start = CACurrentMediaTime() + 0.04
+        let start = CACurrentMediaTime() + 0.05
+        var placed = 0
 
-        for (i, view) in report.arrangedSubviews.enumerated() {
+        for view in report.arrangedSubviews {
             view.wantsLayer = true
 
+            // The face is the one thing on the page that does not arrive: it
+            // was already here. It gets its own move, and on the very first
+            // page it comes up out of nothing before anything is written.
+            if view === mascot || view === dots {
+                guard first else { continue }
+                let show = CABasicAnimation(keyPath: "opacity")
+                show.fromValue = 0
+                show.toValue = 1
+                show.duration = 0.3
+                show.fillMode = .backwards
+                view.layer?.add(show, forKey: "arriving")
+                continue
+            }
+
+            // Out of the side you are travelling from, and up a little, so a
+            // line lands rather than slides. The first line lands on its own;
+            // everything under it follows a beat behind, close enough to read
+            // as one movement and far enough apart to be counted.
             let across = CABasicAnimation(keyPath: "transform.translation.x")
-            across.fromValue = 26 * way
+            across.fromValue = 34 * way
             across.toValue = 0
 
             let rise = CABasicAnimation(keyPath: "transform.translation.y")
-            rise.fromValue = i == 0 ? -12 : 0
+            rise.fromValue = way == 0 ? -14 : -5
             rise.toValue = 0
 
             let fade = CABasicAnimation(keyPath: "opacity")
@@ -1775,11 +1822,15 @@ final class Main: NSObject, NSWindowDelegate {
 
             let all = CAAnimationGroup()
             all.animations = [across, rise, fade]
-            all.duration = 0.46
-            all.beginTime = start + Double(min(i, 8)) * 0.075
+            all.duration = 0.52
+            // The words wait for the face on the first page, and for the head
+            // to have started moving on every page after it.
+            all.beginTime = start + (first ? 0.34 : 0.10)
+                + Double(min(placed, 9)) * 0.062
             all.fillMode = .backwards
-            all.timingFunction = CAMediaTimingFunction(controlPoints: 0.16, 1, 0.3, 1)
+            all.timingFunction = CAMediaTimingFunction(controlPoints: 0.16, 1.05, 0.3, 1)
             view.layer?.add(all, forKey: "arriving")
+            placed += 1
         }
     }
 
@@ -2583,6 +2634,7 @@ final class Main: NSObject, NSWindowDelegate {
         asked = false
         asking = []
         answers = []
+        dots = nil
         mascot = nil
         for row in rows { row.choose(false) }
         drawWelcome()
@@ -3637,7 +3689,12 @@ final class Told: NSView {
 
 /// Where you are in the welcome. Four dots, one of them lit.
 final class Dots: NSView {
-    init(of many: Int, at here: Int) {
+    private var pills: [NSView] = []
+    private var widths: [NSLayoutConstraint] = []
+    private var here = 0
+
+    init(of many: Int, at start: Int) {
+        here = start
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
 
@@ -3649,21 +3706,51 @@ final class Dots: NSView {
             dot.translatesAutoresizingMaskIntoConstraints = false
             addSubview(dot)
             dot.effectiveAppearance.performAsCurrentDrawingAppearance {
-                dot.layer?.backgroundColor = (i == here ? Paint.ink : Paint.picked).cgColor
+                dot.layer?.backgroundColor = (i == start ? Paint.ink : Paint.picked).cgColor
             }
+            let wide = dot.widthAnchor.constraint(equalToConstant: i == start ? 18 : 6)
             NSLayoutConstraint.activate([
-                dot.widthAnchor.constraint(equalToConstant: i == here ? 18 : 6),
+                wide,
                 dot.heightAnchor.constraint(equalToConstant: 6),
                 dot.centerYAnchor.constraint(equalTo: centerYAnchor),
                 dot.leadingAnchor.constraint(equalTo: last?.trailingAnchor ?? leadingAnchor,
                                              constant: last == nil ? 0 : 6),
             ])
+            pills.append(dot)
+            widths.append(wide)
             last = dot
         }
 
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: 40),
         ])
+    }
+
+    /// The one that is lit stretches into the new place rather than the row
+    /// being drawn again with a different dot filled in. A row of dots that
+    /// redraws does not tell you which way you just went; one that stretches
+    /// does, and it is the only thing on the page that says how far in you are.
+    func move(to next: Int) {
+        guard next != here, next >= 0, next < pills.count else { return }
+        here = next
+        // Held as a plain view so the group lays it out without reaching back
+        // through self, which is what the suite reads to know a helper has not
+        // gone missing.
+        let row: NSView = self
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.34
+            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 0.9, 0.25, 1)
+            context.allowsImplicitAnimation = true
+            for (i, wide) in self.widths.enumerated() {
+                wide.animator().constant = i == self.here ? 18 : 6
+            }
+            for (i, dot) in self.pills.enumerated() {
+                dot.effectiveAppearance.performAsCurrentDrawingAppearance {
+                    ease(dot.layer, to: i == self.here ? Paint.ink : Paint.picked)
+                }
+            }
+            row.layoutSubtreeIfNeeded()
+        }
     }
 
     required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
@@ -3752,6 +3839,67 @@ final class Floating: NSView {
         step(["mascot-half", "mascot-blink", "mascot-half", "mascot"], 0)
     }
 
+    /// The page changed under him, so the head goes with it, and only the
+    /// head. Going back is going left, so the head is thrown to the right and
+    /// springs home; forward throws it the other way. Moving the head and the
+    /// words together is the whole page lurching, which is what it was doing.
+    ///
+    /// No rotation in here on purpose: drift is already turning him on that
+    /// key, and two animations on one key fight rather than add. This squashes
+    /// instead, which is what a thing being pulled about actually does.
+    func lean(_ way: CGFloat) {
+        guard way != 0, !asking else { return }
+        let side = -way * 30
+
+        let across = CAKeyframeAnimation(keyPath: "transform.translation.x")
+        across.values = [side, side * 0.30, -side * 0.09, side * 0.02, 0]
+        across.keyTimes = [0, 0.40, 0.68, 0.86, 1]
+        across.duration = 0.60
+        across.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 0.9, 0.25, 1)
+        face.layer?.add(across, forKey: "leaning")
+
+        let wide = CAKeyframeAnimation(keyPath: "transform.scale.x")
+        wide.values = [1.13, 0.96, 1.02, 1]
+        wide.keyTimes = [0, 0.44, 0.74, 1]
+        wide.duration = 0.60
+        wide.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        face.layer?.add(wide, forKey: "stretching")
+
+        let tall = CAKeyframeAnimation(keyPath: "transform.scale.y")
+        tall.values = [0.88, 1.04, 0.99, 1]
+        tall.keyTimes = [0, 0.44, 0.74, 1]
+        tall.duration = 0.60
+        tall.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        face.layer?.add(tall, forKey: "squashing")
+
+        pending?.invalidate()
+        step(["mascot-half", "mascot-blink", "mascot-half", "mascot"], 0)
+    }
+
+    /// The first time anybody sees him: up out of nothing, overshooting, and
+    /// then the words. Every page after this one he is already here, so this
+    /// happens once.
+    func arrive() {
+        let swell = CAKeyframeAnimation(keyPath: "transform.scale")
+        swell.values = [0.35, 1.14, 0.97, 1]
+        swell.keyTimes = [0, 0.62, 0.85, 1]
+        swell.duration = 0.72
+        swell.timingFunction = CAMediaTimingFunction(controlPoints: 0.16, 1.1, 0.3, 1)
+        face.layer?.add(swell, forKey: "arriving")
+
+        let show = CABasicAnimation(keyPath: "opacity")
+        show.fromValue = 0
+        show.toValue = 1
+        show.duration = 0.42
+        face.layer?.add(show, forKey: "showing")
+
+        pending?.invalidate()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            guard let self = self, !self.asking else { return }
+            self.step(["mascot-half", "mascot-blink", "mascot-half", "mascot"], 0)
+        }
+    }
+
     /// The last page, where there is one thing left to do. The face stops
     /// drifting and starts asking: a bigger bob on a quicker clock, and its
     /// eyes go round and stay round. A button that throbs on a page this
@@ -3781,6 +3929,22 @@ final class Floating: NSView {
         tip.repeatCount = .infinity
         tip.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
         face.layer?.add(tip, forKey: "tipping")
+    }
+
+    /// Back off the last page, so he stops asking. Without this he kept the
+    /// round eyes and the bigger bob on a page that was not asking for
+    /// anything, and would not lean when the page changed either, because
+    /// leaning steps aside for asking.
+    func relax() {
+        guard asking else { return }
+        asking = false
+        face.layer?.removeAnimation(forKey: "asking")
+        face.layer?.removeAnimation(forKey: "tipping")
+        let awake = NSImage(named: "mascot")
+        awake?.isTemplate = true
+        face.image = awake
+        drift()
+        blinkLater()
     }
 
     /// Never still: up and down on one clock, leaning on another that does not
@@ -5909,8 +6073,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The window first: the menu points at it, so it has to exist.
         main = Main()
         NSApp.mainMenu = buildMenu()
-        main.window.makeKeyAndOrderFront(nil)
+
+        // On the screen before it has anything to say, so that what it has to
+        // say is watched rather than missed. It fades up rather than being
+        // there, which is the difference between an app arriving and an app
+        // having been dropped on the desktop.
+        let window = main.window
+        window.alphaValue = 0
+        window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.28
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            window.animator().alphaValue = 1
+        }
+        main.open()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ app: NSApplication) -> Bool { true }
