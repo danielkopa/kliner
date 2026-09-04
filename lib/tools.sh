@@ -292,6 +292,18 @@ nimo_cmd_doctor() {
         fi
     fi
 
+    # Everything above is a handful of reads and is instant. Everything below
+    # walks the caches, which on a full disk is tens of seconds. With --fast
+    # doctor stops here, so something that wants a face on the screen now can
+    # ask twice: once for this, and again for the rest.
+    if [ "${NIMO_FAST:-0}" = "1" ]; then
+        nimo_blank
+        nimo_fact "nimo" "v$NIMO_VERSION" "$(command -v min 2>/dev/null || true)"
+        nimo_panel_close
+        nimo_blank
+        return 0
+    fi
+
     nimo_blank
     nimo_progress "adding up what could be freed …"
     nimo_register_targets

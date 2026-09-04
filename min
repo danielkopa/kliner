@@ -122,6 +122,7 @@ nimo_usage() {
         --random        let nimo pick the wallpaper
         --menu          pick from a list with the arrow keys
         --fast          with min dock: no wait, and a quick slide
+                        with min doctor: the instant half, without the scan
         --by WHAT       sort by kind (default), letter, or date
         --list          list the setup groups
         --all           with min undo: reverse everything, newest first

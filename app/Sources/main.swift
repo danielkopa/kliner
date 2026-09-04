@@ -2820,13 +2820,52 @@ final class Main: NSObject, NSWindowDelegate {
     }
 
     /// While nimo is off doing the thing, the page holds its face.
+    /// While Kliner is off doing the thing, the page holds his face — in the
+    /// middle of it, saying what he is doing.
+    ///
+    /// It used to be the face alone, left-aligned at the top of an otherwise
+    /// empty page. Reading a full disk takes tens of seconds, and for those
+    /// seconds the first screen of the app was a small grey shape in the
+    /// corner of a dark rectangle with no words on it. That is not a page
+    /// loading, that is a page broken.
     private func waiting() {
         for view in report.arrangedSubviews {
             report.removeArrangedSubview(view)
             view.removeFromSuperview()
         }
-        line(Thinking())
+
+        let holder = NSView()
+        holder.translatesAutoresizingMaskIntoConstraints = false
+
+        let face = Thinking()
+        holder.addSubview(face)
+
+        let said = NSTextField(labelWithString: waitingWords())
+        said.font = Words.body
+        said.textColor = Paint.muted
+        said.alignment = .center
+        said.translatesAutoresizingMaskIntoConstraints = false
+        holder.addSubview(said)
+
+        NSLayoutConstraint.activate([
+            face.centerXAnchor.constraint(equalTo: holder.centerXAnchor),
+            face.topAnchor.constraint(equalTo: holder.topAnchor, constant: Step.edge * 2),
+            said.centerXAnchor.constraint(equalTo: holder.centerXAnchor),
+            said.topAnchor.constraint(equalTo: face.bottomAnchor, constant: Step.close),
+            said.leadingAnchor.constraint(greaterThanOrEqualTo: holder.leadingAnchor),
+            said.trailingAnchor.constraint(lessThanOrEqualTo: holder.trailingAnchor),
+            said.bottomAnchor.constraint(equalTo: holder.bottomAnchor, constant: -Step.edge),
+        ])
+        line(holder)
         settle()
+    }
+
+    /// What he is actually doing, in the page's own words.
+    private func waitingWords() -> String {
+        guard isPage else { return "One moment." }
+        let item = Action.all[chosen]
+        if chosen == 0 { return "Reading your Mac. The disk takes the longest." }
+        return "\(item.verb) …"
     }
 
     // MARK: using it
@@ -3764,6 +3803,14 @@ final class Main: NSObject, NSWindowDelegate {
     /// page that flickers.
     private func run(_ item: Action, preview: Bool = false, quietly: Bool = false) {
         guard !busy else { return }
+        // Home in two halves. Everything on it but one figure is a handful of
+        // reads and is instant; the junk figure walks every cache on the disk
+        // and takes tens of seconds. Asking for the lot meant the first screen
+        // of the app was a face on an empty page for all of them. So it asks
+        // for the instant half, draws that, and asks again for the rest.
+        if !preview, item.arguments.first == "doctor", kept[chosen] == nil {
+            filling = true
+        }
         busy = true
         seen.insert(chosen)
         fitButtons()
@@ -3775,13 +3822,28 @@ final class Main: NSObject, NSWindowDelegate {
 
         // Only after somebody has said yes does --yes go anywhere near nimo,
         // and a preview cannot be given it at all.
-        let arguments: [String]
+        var arguments: [String]
         if preview {
             arguments = item.arguments + ["--dry-run"]
         } else {
             arguments = item.asks == nil ? item.arguments : item.arguments + ["--yes"]
         }
+        if filling { arguments += ["--fast"] }
         spin(arguments)
+    }
+
+    /// True while the instant half of Home is in flight, so what comes back is
+    /// drawn and then asked again in full.
+    private var filling = false
+
+    /// The rest of Home, once the instant half is on the screen. Quietly: the
+    /// page is already drawn and nobody is waiting on a face.
+    private func fillIn() {
+        guard chosen == 0, isPage, !busy, !welcoming else { return }
+        busy = true
+        waited = false
+        fitButtons()
+        spin(Action.all[0].arguments)
     }
 
     private func launch(_ arguments: [String]) {
@@ -3835,6 +3897,19 @@ final class Main: NSObject, NSWindowDelegate {
                 self.busy = false
                 self.fitButtons()
                 self.settleHelper()
+
+                // The instant half of Home is on the screen; now ask for the
+                // rest of it. The page stays where it is while that runs.
+                if self.filling {
+                    self.filling = false
+                    if self.chosen == 0, !pieces.isEmpty {
+                        self.kept[asked] = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                            [weak self] in self?.fillIn()
+                        }
+                        return
+                    }
+                }
                 self.carryOn()
             }
         }

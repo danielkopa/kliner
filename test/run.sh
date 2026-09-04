@@ -1525,6 +1525,16 @@ check "and a bar's name is cut by its width, not by a count" \
 # nothing held it, so it stayed grey and unclickable after the run finished.
 check "the quiet actions come back when the run ends" \
     "grep -q 'private var offered: \\[Chip\\]' '$APP/Sources/main.swift' && grep -q 'private func wake()' '$APP/Sources/main.swift' && grep -q 'offered.append(chip)' '$APP/Sources/main.swift'"
+# Reading a full disk takes tens of seconds, and for those seconds the first
+# screen was a small grey shape in the corner of a dark rectangle, no words.
+check "the waiting face is in the middle and says what it is doing" \
+    "grep -q 'private func waitingWords()' '$APP/Sources/main.swift' && grep -q 'face.centerXAnchor.constraint(equalTo: holder.centerXAnchor)' '$APP/Sources/main.swift'"
+# Everything on Home but one figure is instant; the junk figure walks every
+# cache on the disk. Asking for the lot meant waiting for all of it.
+check "doctor can answer its instant half alone" \
+    "grep -q 'NIMO_FAST:-0' '$ROOT/lib/tools.sh' && bash '$MIN' doctor --fast -q --no-color | grep -q 'your computer'"
+check "and home asks for that half first"    \
+    "grep -q 'private var filling = false' '$APP/Sources/main.swift' && grep -q 'if filling { arguments += \[\"--fast\"\] }' '$APP/Sources/main.swift' && grep -q 'private func fillIn()' '$APP/Sources/main.swift'"
 # The row of buttons sits opposite the page title, not underneath it, so one
 # line across the top says what the page is and what it can do.
 # One row across the top holds everything that is not the page. The page under
