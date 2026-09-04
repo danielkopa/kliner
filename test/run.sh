@@ -1390,7 +1390,31 @@ check "the welcome is four pages, not one"  \
 # Eight rows of text saying what each page does is a wall to read in somebody's
 # first minute. Five marks that land one after another is the same answer.
 check "and he walks the places rather than listing them" \
-    "grep -q 'final class Walk' '$APP/Sources/main.swift' && grep -q 'Walk(Action.places)' '$APP/Sources/main.swift' && ! sed -n '/switch step {/,/^        default:/p' '$APP/Sources/main.swift' | grep -q 'for item in Action.all where'"
+    "grep -q 'final class Walk' '$APP/Sources/main.swift' && grep -q 'Walk(Action.places)' '$APP/Sources/main.swift'"
+# The setup asks and sets the app up out of the answers, rather than being
+# four pages about what the app is. All three of the flows this follows are
+# forms.
+check "the setup asks rather than explains"  \
+    "grep -q 'final class Ask' '$APP/Sources/main.swift' && grep -q 'what should I call you' '$APP/Sources/main.swift' && grep -q 'What should I start with' '$APP/Sources/main.swift'"
+check "and what it is told is written down"  \
+    "grep -q 'Config.set(\"name\", callMe)' '$APP/Sources/main.swift' && grep -q 'Config.set(\"start\", startWith)' '$APP/Sources/main.swift' && grep -q 'Config.set(\"tidy\", folder)' '$APP/Sources/main.swift'"
+# ~/.nimo/config is the CLI's own file, so an answer changes what min does too.
+check "into the same file the CLI reads"     \
+    "grep -q 'tidy)  case' '$ROOT/lib/core.sh' && grep -q 'NIMO_TIDY_DIR_NAME' '$ROOT/lib/desktop.sh'"
+# A folder to sort into is a name, not a route, in both halves of Kliner.
+check "and a folder name is refused the same way in both" \
+    "grep -q 'folder.contains(\"/\")' '$APP/Sources/main.swift'"
+# Landing on Home after answering "what should I start with" is the app not
+# having listened.
+# A setup that asks you something and then never uses it is a form for its
+# own sake.
+check "and the name it asked for is used"    \
+    "grep -q 'Config.value(\"name\")' '$APP/Sources/main.swift' && grep -q 'Good morning' '$APP/Sources/main.swift'"
+check "and it opens where you said to start" \
+    "grep -q 'func openStart()' '$APP/Sources/main.swift' && grep -q 'show(Main.page(for: wanted))' '$APP/Sources/main.swift'"
+# Walking back to a question showed the default again rather than the answer.
+check "and an answer survives walking back to it" \
+    "grep -q 'private func harvest()' '$APP/Sources/main.swift' && grep -q 'drawWelcome() {\n        harvest()' '$APP/Sources/main.swift' || grep -q 'harvest()' '$APP/Sources/main.swift'"
 # Somebody walking along a row and stopping at each thing is somebody showing
 # you round. A row that simply appears is a page being shown to you.
 check "and each mark lights as he reaches it" \

@@ -1073,6 +1073,156 @@ final class Chip: NSView {
 
 // MARK: - one setting
 
+/// A labelled line to type on, the way every one of those flows asks for
+/// anything: the label above it in small grey, the field under it, and a word
+/// of help beneath when the field needs one.
+///
+/// The setup is a form now. It was four pages of prose about what Kliner is,
+/// which is a thing to sit through; these ask you three questions and set the
+/// app up out of the answers.
+final class Ask: NSView {
+    private let field = NSTextField()
+    private let note = NSTextField(labelWithString: "")
+
+    var text: String {
+        get { field.stringValue.trimmingCharacters(in: .whitespaces) }
+        set { field.stringValue = newValue }
+    }
+
+    init(_ label: String, hint: String, note detail: String = "", wide: CGFloat = 320) {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+
+        let name = NSTextField(labelWithString: label)
+        name.font = Words.small
+        name.textColor = Paint.muted
+        name.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(name)
+
+        field.placeholderString = hint
+        field.font = Words.body
+        field.textColor = Paint.ink
+        field.focusRingType = .none
+        field.isBezeled = false
+        field.drawsBackground = true
+        field.wantsLayer = true
+        field.layer?.cornerRadius = 9
+        field.layer?.borderWidth = 1
+        field.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(field)
+
+        note.stringValue = detail
+        note.font = Words.small
+        note.textColor = Paint.faint
+        note.isHidden = detail.isEmpty
+        note.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(note)
+
+        NSLayoutConstraint.activate([
+            name.leadingAnchor.constraint(equalTo: leadingAnchor),
+            name.topAnchor.constraint(equalTo: topAnchor),
+            field.leadingAnchor.constraint(equalTo: leadingAnchor),
+            field.topAnchor.constraint(equalTo: name.bottomAnchor, constant: 7),
+            field.widthAnchor.constraint(equalToConstant: wide),
+            field.heightAnchor.constraint(equalToConstant: 34),
+            note.leadingAnchor.constraint(equalTo: leadingAnchor),
+            note.topAnchor.constraint(equalTo: field.bottomAnchor, constant: 7),
+            note.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
+            note.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+        paint()
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        paint()
+    }
+
+    private func paint() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            self.field.layer?.backgroundColor = Paint.hover.withAlphaComponent(0.4).cgColor
+            self.field.layer?.borderColor = Paint.line.cgColor
+        }
+    }
+
+    func focus() { window?.makeFirstResponder(field) }
+}
+
+/// One answer among a few, as a row you press rather than a menu you open.
+/// Three choices in a menu is three clicks to see two words.
+final class Choice: NSView {
+    private let mark = NSView()
+    private var picked = false
+    var onPick: (() -> Void)?
+
+    let value: String
+
+    init(_ value: String, title: String, note: String) {
+        self.value = value
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        Panel.dress(self)
+
+        mark.wantsLayer = true
+        mark.layer?.cornerRadius = 7
+        mark.layer?.borderWidth = 1.5
+        mark.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(mark)
+
+        let name = NSTextField(labelWithString: title)
+        name.font = Words.strong
+        name.textColor = Paint.ink
+        name.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(name)
+
+        let under = NSTextField(labelWithString: note)
+        under.font = Words.small
+        under.textColor = Paint.faint
+        under.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(under)
+
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 56),
+            mark.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
+            mark.centerYAnchor.constraint(equalTo: centerYAnchor),
+            mark.widthAnchor.constraint(equalToConstant: 14),
+            mark.heightAnchor.constraint(equalToConstant: 14),
+            name.leadingAnchor.constraint(equalTo: mark.trailingAnchor, constant: 13),
+            name.topAnchor.constraint(equalTo: topAnchor, constant: 11),
+            name.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -14),
+            under.leadingAnchor.constraint(equalTo: name.leadingAnchor),
+            under.topAnchor.constraint(equalTo: name.bottomAnchor, constant: 2),
+            under.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -14),
+        ])
+        choose(false)
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+
+    func choose(_ yes: Bool) {
+        picked = yes
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            self.layer?.borderColor = yes ? Paint.ink.cgColor : Paint.line.cgColor
+            ease(self.layer, to: yes ? Paint.hover.withAlphaComponent(0.5) : NSColor.clear)
+            self.mark.layer?.borderColor = yes ? Paint.ink.cgColor : Paint.line.cgColor
+            self.mark.layer?.backgroundColor = yes ? Paint.ink.cgColor : NSColor.clear.cgColor
+        }
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        bounds.contains(convert(point, from: superview)) ? self : nil
+    }
+
+    override func mouseDown(with event: NSEvent) { onPick?() }
+    override func resetCursorRects() { addCursorRect(bounds, cursor: .pointingHand) }
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        choose(picked)
+    }
+}
+
 final class Setting: NSView {
     init(_ label: String, control: NSView) {
         super.init(frame: .zero)
@@ -1130,6 +1280,16 @@ final class Main: NSObject, NSWindowDelegate {
     private var asideWords: Wrapping!
     private var onward: NSStackView!
     private var marker: Marker?
+    /// What the setup has been told. Written to ~/.nimo/config when it
+    /// finishes, which is the same file the CLI reads, so answering these
+    /// changes what both of them do.
+    private var callMe = ""
+    private var startWith = "desktop"
+    private var tidyName = "Tidy"
+    private var atLogin = false
+    private var nameField: Ask?
+    private var tidyField: Ask?
+    private var choices: [Choice] = []
     private var showing: Walk?
     private var undoing: Undoing?
     private var asking: [Told] = []
@@ -1167,7 +1327,7 @@ final class Main: NSObject, NSWindowDelegate {
 
     /// Which setup has been read. Bumped whenever the setup changes, so a
     /// setup nobody has seen is shown once more rather than never again.
-    static let setup = "3"
+    static let setup = "4"
 
     /// What macOS decides about, in the order it is asked. Notifications are
     /// last on purpose: a banner is the smallest thing to be asked for, and
@@ -1175,6 +1335,24 @@ final class Main: NSObject, NSWindowDelegate {
     private static func inHome(_ name: String) -> URL {
         FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(name)
     }
+    /// Which page an answer opens. Matched on the page's own arguments, so a
+    /// page added later needs nothing changed here as well.
+    static func page(for start: String) -> Int {
+        for (i, item) in Action.all.enumerated()
+            where item.arguments.first == start { return i }
+        for (i, item) in Action.all.enumerated()
+            where item.title == "What is big" && start == "disk" { return i }
+        return 0
+    }
+
+    /// What Home can open on. The value is the page's own first argument, so
+    /// nothing has to be translated between here and the list down the side.
+    static let starts: [(String, String, String)] = [
+        ("desktop", "My desktop", "Sorted into one folder by what things are."),
+        ("downloads", "My downloads", "The same, for the folder everything lands in."),
+        ("disk", "Whatever is taking the room", "The big things first, and what is safe to clear."),
+    ]
+
     private static let gates: [(String, String, URL?)] = [
         ("menubar.dock.rectangle", "Your desktop", Access.desktop),
         ("arrow.down.circle", "Your downloads", Access.downloads),
@@ -1646,6 +1824,7 @@ final class Main: NSObject, NSWindowDelegate {
     /// asked for your Desktop by a window you have not read yet is how an app
     /// gets refused.
     private func drawWelcome() {
+        harvest()
         for view in report.arrangedSubviews {
             report.removeArrangedSubview(view)
             view.removeFromSuperview()
@@ -1684,28 +1863,59 @@ final class Main: NSObject, NSWindowDelegate {
 
         switch step {
         case 0:
-            headline("Hello. I am Kliner.")
-            words("I tidy the parts of a Mac that quietly get away from you. Nothing I do is deleted, and none of it is permanent.",
-                  Words.body, Paint.muted, top: 0, bottom: Step.tight)
+            headline("First, what should I call you?")
+            words("It goes at the top of Home and nowhere else. Kliner has no account, and nothing about you leaves this Mac.",
+                  Words.body, Paint.muted, top: 0, bottom: Step.air)
+            let who = Ask("Your name", hint: "Daniel",
+                          note: "Leave it blank and Home simply says hello.")
+            who.text = callMe.isEmpty ? NSFullUserName() : callMe
+            line(who)
+            nameField = who
 
         case 1:
-            headline("Five places.")
-            words("Your desk, your screen, your disk, your computer. Nothing on any of them runs until you press it.",
-                  Words.body, Paint.muted, top: 0, bottom: Step.tight)
+            headline("What should I start with?")
+            words("Kliner takes you straight there when this is done. The other four are down the side whenever you want them.",
+                  Words.body, Paint.muted, top: 0, bottom: Step.air)
             let five = Walk(Action.places)
             line(five)
             showing = five
 
+            choices = []
+            for (value, title, note) in Main.starts {
+                let one = Choice(value, title: title, note: note)
+                one.choose(value == startWith)
+                one.onPick = { [weak self] in self?.pick(value) }
+                line(one)
+                choices.append(one)
+            }
+
         case 2:
-            headline("Nothing you have is lost.")
-            words("I stay inside your home folder, I never ask for an administrator, and I never touch the network.",
-                  Words.body, Paint.muted, top: 0, bottom: Step.tight)
+            headline("Where should things go?")
+            words("Kliner never deletes. Everything it moves goes into one folder beside where it was, and Put it all back empties that folder again.",
+                  Words.body, Paint.muted, top: 0, bottom: Step.air)
+            let named = Ask("Folder name", hint: "Tidy",
+                            note: "So a sorted desktop becomes Desktop/\(tidyName.isEmpty ? "Tidy" : tidyName).",
+                            wide: 220)
+            named.text = tidyName
+            line(named)
+            tidyField = named
+
+            // The folder this page is naming, with things going into it and
+            // coming back out. It is the page's own subject, moving.
             let back = Undoing()
             line(back)
             undoing = back
 
+            if Login.possible {
+                let toggle = NSSwitch()
+                toggle.state = atLogin ? .on : .off
+                toggle.target = self
+                toggle.action = #selector(loginWanted(_:))
+                line(Setting("Open Kliner when this Mac starts", control: toggle))
+            }
+
         case 3:
-            headline("Asking macOS.")
+            headline("One last thing, and it is yours to decide.")
             words("macOS decides what I may read, not me. One at a time, and only when you have answered does the next one come up.",
                   Words.body, Paint.muted, top: 0, bottom: Step.close)
             asking = []
@@ -1766,10 +1976,7 @@ final class Main: NSObject, NSWindowDelegate {
         if step == 2 {
             let skip = Chip(.quiet)
             skip.set("Skip for now")
-            skip.onClick = { [weak self] in
-                self?.finishWelcome()
-                self?.show(0)
-            }
+            skip.onClick = { [weak self] in self?.openStart() }
             onward.addArrangedSubview(skip)
         }
 
@@ -1793,10 +2000,7 @@ final class Main: NSObject, NSWindowDelegate {
         } else if asked {
             let start = Chip(.strong)
             start.set("Start")
-            start.onClick = { [weak self] in
-                self?.finishWelcome()
-                self?.show(0)
-            }
+            start.onClick = { [weak self] in self?.openStart() }
             onward.addArrangedSubview(start)
         }
 
@@ -1967,6 +2171,7 @@ final class Main: NSObject, NSWindowDelegate {
     }
 
     private func finishWelcome() {
+        keep()
         welcoming = false
         mascot = nil
         bare(false)
@@ -2001,6 +2206,14 @@ final class Main: NSObject, NSWindowDelegate {
         func count(_ key: String) -> Int {
             Int(figures[key]?.components(separatedBy: " ").first ?? "") ?? 0
         }
+
+        // The one place the name goes. A setup that asks you something and
+        // then never uses it is a form for its own sake.
+        let hour = Calendar.current.component(.hour, from: Date())
+        let part = hour < 12 ? "Good morning" : (hour < 18 ? "Good afternoon" : "Good evening")
+        let called = (Config.value("name") ?? "").trimmingCharacters(in: .whitespaces)
+        words(called.isEmpty ? "\(part)." : "\(part), \(called).",
+              Words.hero, Paint.ink, top: Step.hair, bottom: Step.tight)
 
         // ---- how things stand ------------------------------------------------
         let across = NSStackView()
@@ -3362,6 +3575,60 @@ final class Main: NSObject, NSWindowDelegate {
         alert.addButton(withTitle: "Not now")
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         Access.settings("Privacy_AllFiles")
+    }
+
+    /// Done, and straight to the thing you said to start with. Landing on
+    /// Home after answering "what should I start with" is the app not having
+    /// listened.
+    private func openStart() {
+        let wanted = startWith
+        finishWelcome()
+        show(Main.page(for: wanted))
+    }
+
+    /// Whatever was typed on the page being left, before that page goes.
+    /// Without this, walking back to a question showed you the default again
+    /// rather than the answer you had already given it.
+    private func harvest() {
+        if let said = nameField?.text { callMe = said }
+        if let said = tidyField?.text { tidyName = said }
+        nameField = nil
+        tidyField = nil
+    }
+
+    /// One of the three, and the other two let go of it.
+    private func pick(_ value: String) {
+        startWith = value
+        for one in choices { one.choose(one.value == value) }
+    }
+
+    @objc private func loginWanted(_ sender: NSSwitch) {
+        atLogin = sender.state == .on
+    }
+
+    /// What the setup was told, written where both halves of Kliner read it.
+    ///
+    /// ~/.nimo/config is the CLI's own file: it is read, never sourced, and
+    /// every line the app does not recognise is left exactly where it was. So
+    /// answering these three questions changes what `min` does as well.
+    private func keep() {
+        harvest()
+        Config.set("name", callMe)
+        Config.set("start", startWith)
+
+        // A folder to sort into is a name, not a route, and the CLI refuses a
+        // value with a separator in it. Refusing it here too means the two of
+        // them never disagree about where things went.
+        let folder = tidyName.trimmingCharacters(in: .whitespaces)
+        if !folder.isEmpty, !folder.contains("/"), !folder.contains(".."), folder != "." {
+            Config.set("tidy", folder)
+        } else {
+            tidyName = "Tidy"
+        }
+
+        if Login.possible, atLogin != Login.on {
+            _ = Login.set(atLogin)
+        }
     }
 
     /// The same asking, from Settings rather than from the setup. There is no
