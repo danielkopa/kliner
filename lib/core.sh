@@ -154,6 +154,25 @@ nimo_is_protected() {
     esac
 }
 
+# Reading is not moving, but "nimo stays inside your home folder" has to be
+# true of what it looks at as well as what it touches. nimo_is_protected
+# cannot answer this one: it refuses $HOME itself, because nothing may be
+# moved onto the home folder, and $HOME is exactly where looking starts.
+nimo_inside_home() {
+    local p home
+    case "${HOME:-}" in
+        /?*) ;;
+        *)   return 1 ;;
+    esac
+    p=$(nimo_norm_path "${1:-}")
+    home=$(nimo_norm_path "$HOME")
+    [ "$p" = "$home" ] && return 0
+    case "$p" in
+        "$home"/*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 # nimo_confirm <question>  -> 0 = yes
 nimo_confirm() {
     [ "${NIMO_ASSUME_YES:-0}" = "1" ] && return 0
@@ -284,7 +303,14 @@ nimo_read_config() {
             jobs)  case "$value" in ''|*[!0-9]*) ;; *) NIMO_JOBS="$value" ;; esac ;;
             color) case "$value" in auto|always|never) NIMO_COLOR="$value" ;; esac ;;
             animation) case "$value" in auto|never|off|no) NIMO_ANIMATE=never ;; esac ;;
-            tidy)  NIMO_TIDY_DIR_NAME="$value" ;;
+            # A name, not a route. This is spliced straight onto the desktop
+            # to make the folder things are sorted into, so a value holding a
+            # separator or a dot segment sends every file nimo moves outside
+            # the home folder — through the one guard nimo has.
+            tidy)  case "$value" in
+                       ''|*/*|*\\*|.|..|*..*) ;;
+                       *) NIMO_TIDY_DIR_NAME="$value" ;;
+                   esac ;;
         esac
     done < "$file"
     return 0
@@ -302,7 +328,8 @@ nimo_free_file() {
     # glob and the newest is taken from the end, so the extra copy has to sort
     # *after* the plain name. "-" sorts before "." and would come out first;
     # "_" sorts after it and comes out last, which is what newest means here.
-    while [ -e "$try" ] && [ "$n" -lt 100 ]; do
+    # -L as well: a broken symlink is still a name that is taken.
+    while { [ -e "$try" ] || [ -L "$try" ]; } && [ "$n" -lt 100 ]; do
         try="${base}_${n}${ext}"
         n=$((n + 1))
     done

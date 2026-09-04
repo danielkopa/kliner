@@ -125,9 +125,13 @@ nimo_kind_set() {
 }
 
 # A destination that does not step on anything already there.
+# -e is false for a symlink whose target is gone, and a broken symlink is
+# still something sitting in that folder. Without the -L a move landed on top
+# of one and took it away, with the log saying the move had gone somewhere
+# empty — so undo put the file back and the link was simply gone.
 nimo_free_name() {
     local dir="$1" name="$2" base ext try n
-    if [ ! -e "$dir/$name" ]; then
+    if [ ! -e "$dir/$name" ] && [ ! -L "$dir/$name" ]; then
         printf '%s/%s' "$dir" "$name"
         return 0
     fi
@@ -138,7 +142,7 @@ nimo_free_name() {
     n=2
     while [ "$n" -lt 500 ]; do
         try="$dir/$base $n$ext"
-        [ -e "$try" ] || { printf '%s' "$try"; return 0; }
+        [ -e "$try" ] || [ -L "$try" ] || { printf '%s' "$try"; return 0; }
         n=$((n + 1))
     done
     printf '%s/%s %s%s' "$dir" "$base" "$$" "$ext"

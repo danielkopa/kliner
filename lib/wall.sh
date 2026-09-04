@@ -600,10 +600,18 @@ nimo_wall_browse() {
 # one, and it is what is left when the surgical way cannot work — the picture
 # has been deleted, or your Mac will not take orders. nimo keeps both, so it
 # has an answer either way.
+# Spent, not destroyed. This was the one place in nimo that deleted its own
+# record of what it had done, which is the thing nimo says it never does, and
+# it took the whole-store backup with it — so after one restore there was no
+# trace nimo had ever touched the wallpaper.
 nimo_wall_forget() {
-    rm -f "$NIMO_BACKUP_DIR/wallpaper.txt" \
-          "$NIMO_BACKUP_DIR/$NIMO_WALL_AT" \
-          "$NIMO_BACKUP_DIR/wallpaper-store.plist" 2>/dev/null
+    local kept
+    for kept in "$NIMO_BACKUP_DIR/wallpaper.txt" \
+                "$NIMO_BACKUP_DIR/$NIMO_WALL_AT" \
+                "$NIMO_BACKUP_DIR/wallpaper-store.plist"; do
+        [ -e "$kept" ] || continue
+        nimo_undo_spend "$kept"
+    done
 }
 
 nimo_wall_restore() {

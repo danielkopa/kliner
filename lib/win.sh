@@ -51,13 +51,24 @@ nimo_win_path() {
 
 # reg query prints:      ValueName    REG_DWORD    0x1
 # and nothing useful at all when the value is not there.
+# Counting whitespace-separated fields is wrong twice over. A value name may
+# hold spaces — `OneDrive Standalone Update Task` is sitting in most people's
+# Run key — and so may the data. Blanking the first two fields turned that
+# name into two fields and put the rest of the name into the value, so what
+# nimo wrote down as the prior value was wrong and `min startup --undo`
+# replayed the wrong thing back into the registry.
+#
+# reg query separates its three columns with four spaces, so the type is the
+# only landmark: everything after the first `    REG_TYPE    ` is the data,
+# exactly as it stands, runs of spaces and all.
 nimo_reg_read() {
-    local out line
+    local out line type
     out=$(nimo_reg query "$1" /v "$2" 2>/dev/null) || return 1
     line=$(printf '%s\n' "$out" | grep -i "    REG_" | head -1)
     [ -n "$line" ] || return 1
-    printf '%s' "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' \
-        | awk '{ $1 = ""; $2 = ""; sub(/^[[:space:]]+/, ""); print }'
+    type=$(printf '%s' "$line" | grep -o 'REG_[A-Z_]*' | head -1)
+    [ -n "$type" ] || return 1
+    printf '%s' "${line#*    $type    }" | sed -e 's/[[:space:]]*$//'
 }
 
 nimo_reg_type() {

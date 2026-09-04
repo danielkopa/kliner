@@ -105,6 +105,26 @@ nimo_cmd_blank() {
     fi
 
     mkdir -p "$NIMO_BLANK_STORE" "$NIMO_UNDO_DIR" 2>/dev/null
+    # The log is one tab-separated line per file. A name holding a tab or a
+    # newline splits that line into fields nothing can read back, so the copy
+    # is kept, the file is emptied, and undo can never find its way home.
+    # Refusing the name is the only honest answer; every other command that
+    # writes this log refuses it too.
+    #
+    # The newline has to be written out as one. Command substitution eats
+    # trailing newlines, so $(printf '\n') is the empty string and the pattern
+    # *""* matches every name there is.
+    local tab
+    tab=$(printf '\t')
+    case "$target" in
+        *"$tab"*|*"
+"*)
+            nimo_err "nimo cannot write that name down, so it will not empty it"
+            nimo_blank
+            return 1
+            ;;
+    esac
+
     local keep log
     keep=$(nimo_free_file "$NIMO_BLANK_STORE/$(date +%Y%m%d-%H%M%S)-$(basename "$target")" "")
     if ! cp "$target" "$keep" 2>/dev/null; then
@@ -140,10 +160,19 @@ nimo_blank_undo() {
         return 0
     fi
 
-    local file keep back=0
+    local file keep back=0 held=0
     while IFS=$'\t' read -r file keep; do
         [ -n "${file:-}" ] || continue
         [ -f "${keep:-}" ] || continue
+        # nimo left this file empty. Anything in it now was put there since,
+        # and putting the old contents back over it would destroy work with no
+        # second undo behind it. Every other replay in nimo checks the same
+        # way before it moves; this one did not.
+        if [ -s "$file" ]; then
+            held=$((held + 1))
+            nimo_warn "$(basename "$file") has been written to since, left alone"
+            continue
+        fi
         if cp "$keep" "$file" 2>/dev/null; then
             back=$((back + 1))
             nimo_ok "$(basename "$file") has its contents again"
@@ -152,7 +181,11 @@ nimo_blank_undo() {
         fi
     done < "$latest"
 
-    [ "$back" -eq 0 ] && nimo_dim "nothing to put back"
+    if [ "$back" -eq 0 ] && [ "$held" -eq 0 ]; then
+        nimo_dim "nothing to put back"
+    elif [ "$held" -gt 0 ]; then
+        nimo_dim "$held left alone; the kept copies are still in $NIMO_BLANK_STORE"
+    fi
     nimo_panel_close
     nimo_blank
     return 0

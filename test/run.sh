@@ -453,6 +453,58 @@ check "word for word"                     "grep -q 'quick brown fox' '$BOX/Docum
 check "an empty file is a calm answer"    ": > '$BOX/Documents/notes.txt'; min blank '$BOX/Documents/notes.txt' -q --no-color | grep -q 'Already empty'"
 rm -rf "$BOX/Documents/notes.txt" "$BOX/.nimo"
 
+# nimo left this file empty. Anything in it now was put there since, and the
+# kept copy going back over it destroys work with no second undo behind it.
+mkdir -p "$BOX/Documents"
+printf 'the original\n' > "$BOX/Documents/again.txt"
+min blank "$BOX/Documents/again.txt" -y -q --no-color >/dev/null 2>&1
+printf 'written afterwards\n' > "$BOX/Documents/again.txt"
+min undo --all -y -q --no-color >/dev/null 2>&1
+check "undo leaves a file written since alone" \
+    "grep -q 'written afterwards' '$BOX/Documents/again.txt'"
+check "and says so rather than saying nothing" \
+    "grep -q 'has been written to since, left alone' '$ROOT/lib/blank.sh'"
+rm -rf "$BOX/Documents/again.txt" "$BOX/.nimo"
+
+# The log is one tab-separated line per file, so a name holding a tab splits
+# it into fields nothing can read back: the copy is kept, the file is emptied,
+# and undo can never find its way home.
+TABBED="$BOX/Documents/od$(printf '\t')d.txt"
+printf 'xy\n' > "$TABBED"
+TABOUT=$(min blank "$TABBED" -y -q --no-color 2>&1)
+check "blank refuses a name it cannot write down" \
+    "printf '%s' \"\$TABOUT\" | grep -q 'cannot write that name down'"
+check "and leaves that file exactly as it was" \
+    "[ \$(wc -c < \"\$TABBED\") -eq 3 ]"
+rm -f "$TABBED"
+
+# A folder to sort into is a name, not a route. Spliced onto the desktop, a
+# value with a separator in it sends every moved file outside the home folder.
+check "the tidy folder cannot be a route"  \
+    "grep -q \"''|\\*/\\*|\" '$ROOT/lib/core.sh'"
+check "and reading is held inside home too" \
+    "grep -q 'nimo_inside_home()' '$ROOT/lib/core.sh' && grep -q 'nimo_inside_home \"\$where\"' '$ROOT/lib/tools.sh'"
+
+# min menu dispatched to a function defined further down the file, so it was
+# not there yet and the command exited 127.
+check "min menu is defined before it is dispatched to" \
+    "awk '/^nimo_menu_then_run\\(\\)/{d=NR} /^if . -n ..NIMO_COMMAND/{u=NR} END{exit !(d && u && d < u)}' '$ROOT/min'"
+
+# A preview changes nothing, and an empty log left in the backups folder is a
+# change. min startup and min dock both got this right.
+check "a setup preview leaves no log behind" \
+    "grep -q 'NIMO_SETUP_LOG=\"\"' '$ROOT/lib/setup.sh'"
+
+# This was the one place in nimo that deleted its own record of what it had
+# done, which is the thing nimo says it never does.
+check "the wallpaper record is spent, not deleted" \
+    "grep -q 'nimo_undo_spend \"\$kept\"' '$ROOT/lib/wall.sh' && ! grep -q 'rm -f \"\$NIMO_BACKUP_DIR/wallpaper.txt\"' '$ROOT/lib/wall.sh'"
+
+# -e is false for a symlink whose target is gone, and a broken symlink is
+# still a name that is taken.
+check "a broken link still counts as something there" \
+    "grep -q '\\[ ! -L \"\$dir/\$name\" \\]' '$ROOT/lib/desktop.sh' && grep -q '\\[ -L \"\$try\" \\]' '$ROOT/lib/core.sh'"
+
 check "dock --fast is a macOS thing"      "[ \"\$(uname -s)\" = Darwin ] || min dock --fast -q --no-color | grep -q 'macOS'"
 
 # ---- the same file, more than once --------------------------------------

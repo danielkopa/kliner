@@ -291,9 +291,14 @@ nimo_cmd_setup() {
     fi
 
     NIMO_RESTART_FINDER=0; NIMO_RESTART_DOCK=0; NIMO_RESTART_UI=0; NIMO_RESTART_EXPLORER=0
-    mkdir -p "$NIMO_BACKUP_DIR" 2>/dev/null
-    NIMO_SETUP_LOG=$(nimo_free_file "$NIMO_BACKUP_DIR/setup-$(date +%Y%m%d-%H%M%S)" .tsv)
-    : > "$NIMO_SETUP_LOG"
+    # A preview changes nothing, and an empty log left behind in the backups
+    # folder is a change. min startup and min dock both got this right.
+    NIMO_SETUP_LOG=""
+    if [ "${NIMO_DRY_RUN:-0}" != "1" ]; then
+        mkdir -p "$NIMO_BACKUP_DIR" 2>/dev/null
+        NIMO_SETUP_LOG=$(nimo_free_file "$NIMO_BACKUP_DIR/setup-$(date +%Y%m%d-%H%M%S)" .tsv)
+        : > "$NIMO_SETUP_LOG"
+    fi
     i=0
     while [ "$i" -lt "$NIMO_G_N" ]; do
         if nimo_group_selected "${NIMO_G_ID[$i]}"; then

@@ -28,6 +28,13 @@ nimo_cmd_duplicates() {
     if [ -n "$where" ]; then
         roots="$HOME/$where"
         [ -d "$where" ] && roots="$where"
+        # Reading every file in a folder to hash it is still reading, and nimo
+        # reads inside your home folder only.
+        if ! nimo_inside_home "$roots"; then
+            nimo_err "nimo only looks inside your home folder"
+            nimo_blank
+            return 1
+        fi
     else
         roots="$HOME/Desktop
 $HOME/Downloads

@@ -321,11 +321,6 @@ nimo_dispatch() {
     esac
 }
 
-if [ -n "$NIMO_COMMAND" ]; then
-    nimo_dispatch "$NIMO_COMMAND"
-    exit $?
-fi
-
 # `min --menu`, and the fallback for `min` on a terminal that cannot prompt
 nimo_menu_then_run() {
     nimo_logo
@@ -343,6 +338,12 @@ nimo_menu_then_run() {
     printf '\n'
     return 0
 }
+
+if [ -n "$NIMO_COMMAND" ]; then
+    nimo_dispatch "$NIMO_COMMAND"
+    exit $?
+fi
+
 
 if [ "$NIMO_MENU" = "1" ]; then
     nimo_menu_then_run

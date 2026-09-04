@@ -95,6 +95,15 @@ nimo_cmd_top() {
         fi
     fi
 
+    # Stepping through the list is already held to your home folder. Naming a
+    # folder on the command line was not, so `min top /etc` measured /etc and
+    # listed what was in it before the first step pulled it back.
+    if ! nimo_inside_home "$where"; then
+        nimo_err "nimo only looks inside your home folder"
+        nimo_blank
+        return 1
+    fi
+
     nimo_header
 
     while :; do
