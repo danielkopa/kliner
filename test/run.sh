@@ -1342,10 +1342,21 @@ check "and its pages are laid out, not just shown" \
 # The face was already here. Animating it along with the words is what made
 # every page of the setup read as a new screen rather than the next thing.
 check "and the face does not arrive with the words" \
-    "grep -q 'if view === mascot || view === dots {' '$APP/Sources/main.swift' && grep -q 'guard first else { continue }' '$APP/Sources/main.swift'"
+    "grep -q 'if view === marker {' '$APP/Sources/main.swift' && grep -q 'guard first else { continue }' '$APP/Sources/main.swift'"
 # A row of dots that redraws does not tell you which way you just went.
-check "and how far in you are stretches, not redraws" \
-    "grep -q 'func move(to next: Int)' '$APP/Sources/main.swift' && grep -q 'count.move(to: step)' '$APP/Sources/main.swift'"
+# Four dots at the bottom were a decoration you had to count. All three flows
+# this follows put the step at the top of the working pane and write it out.
+check "and how far in you are is written, not drawn" \
+    "grep -q 'final class Marker' '$APP/Sources/main.swift' && grep -q 'count.say(step)' '$APP/Sources/main.swift' && ! grep -q 'final class Dots' '$APP/Sources/main.swift'"
+# The rail stays through the whole setup: brand and a line about it down one
+# side, the step on the other. Folding it away made a different app for four
+# pages and then yours.
+check "and the rail is not folded away for it" \
+    "grep -q 'railLine?.isHidden = false' '$APP/Sources/main.swift' && grep -q 'aside?.isHidden = !yes' '$APP/Sources/main.swift'"
+# Back in the bottom-left of the pane, the one thing to press in the
+# bottom-right, rather than both floating in the middle of the page.
+check "and the way through sits in the corners" \
+    "grep -q 'onward.bottomAnchor.constraint(equalTo: content.bottomAnchor' '$APP/Sources/main.swift' || grep -q 'ahead.bottomAnchor.constraint(equalTo: content.bottomAnchor' '$APP/Sources/main.swift'"
 # Beckoning steps aside for leaning, so coming back off the last page has to
 # put him down again or he keeps the round eyes on a page asking nothing.
 check "and he stops asking when you walk back off it" \
@@ -1375,7 +1386,7 @@ check "and it has more than one face to wear" \
 check "the first time, it introduces itself" \
     "grep -q 'func drawWelcome' '$APP/Sources/main.swift' && grep -q 'welcomed' '$APP/Sources/main.swift'"
 check "the welcome is four pages, not one"  \
-    "grep -q 'Dots(of: 4, at: step)' '$APP/Sources/main.swift' && grep -q 'case 3:' '$APP/Sources/main.swift'"
+    "grep -q 'Marker(of: 4)' '$APP/Sources/main.swift' && grep -q 'case 3:' '$APP/Sources/main.swift'"
 # Eight rows of text saying what each page does is a wall to read in somebody's
 # first minute. Five marks that land one after another is the same answer.
 check "and he walks the places rather than listing them" \
@@ -1434,7 +1445,11 @@ check "the face drifts while it says hello" "grep -q 'final class Floating' '$AP
 # The setup is the app introducing itself, so the face is in it on every page,
 # not only the first, and it leans over whatever has just been written.
 check "the face is on every page of the setup" \
-    "grep -q 'let face = mascot ?? Floating()' '$APP/Sources/main.swift' && grep -q 'face.nod()' '$APP/Sources/main.swift'"
+    "grep -q 'let face = mascot ?? Floating(size: 56)' '$APP/Sources/main.swift' && grep -q 'face.nod()' '$APP/Sources/main.swift'"
+# It stands in the rail rather than on the page, so the page is the step and
+# nothing else, the way all three of these flows are built.
+check "and it stands in the rail, not on the page" \
+    "grep -q 'aside.insertArrangedSubview(face, at: 0)' '$APP/Sources/main.swift'"
 check "and nothing is drawn behind it"       \
     "! sed -n '/^final class Floating/,/^}/p' '$APP/Sources/main.swift' | grep -q 'private let disc'"
 check "it moves on two clocks that never line up" \
@@ -1527,8 +1542,8 @@ check "the row along the top has a line under it" \
 # grid of boxes, so this one stops where the list ends.
 check "and that line stops at the list" \
     "grep -q 'under.leadingAnchor.constraint(equalTo: edge.trailingAnchor)' '$APP/Sources/main.swift'"
-check "and the setup shows neither line" \
-    "grep -q 'railLine, barLine, chrome' '$APP/Sources/main.swift'"
+check "and the setup keeps the one down the side" \
+    "grep -q 'railLine?.isHidden = false' '$APP/Sources/main.swift' && grep -q 'barLine, chrome' '$APP/Sources/main.swift'"
 check "with no second line inside the row" \
     "! grep -q 'split.widthAnchor.constraint(equalToConstant: 1)' '$APP/Sources/main.swift'"
 # Home is a list of things to do, not four numbers and a shrug.
@@ -1675,8 +1690,10 @@ check "and there is one way to switch, not two" \
     "grep -q 'Sheet.open(lines, under: titleLabel' '$APP/Sources/main.swift' && ! grep -q 'pagePill' '$APP/Sources/main.swift'"
 # One colour, not two: with the list hidden but the rail where it was, the
 # setup was a wide dark page beside a strip of a different dark.
-check "the setup is one surface, not two"    \
-    "grep -q 'railWidth.constant = yes ? 0' '$APP/Sources/main.swift'"
+# It used to fold the rail away and take the whole window, which is a
+# different app for four pages and then yours.
+check "the setup keeps the window it is in"  \
+    "grep -q 'railWidth.constant = narrow && !yes ? 70 : 246' '$APP/Sources/main.swift'"
 # A line between the name of a figure and the figure is a line between a thing
 # and itself.
 check "a figure is not fenced off from its name" \

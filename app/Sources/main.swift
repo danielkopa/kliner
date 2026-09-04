@@ -1122,7 +1122,14 @@ final class Main: NSObject, NSWindowDelegate {
     private var welcoming = false
     /// The rows on the asking page, so each can be told what macOS said
     /// without the page being drawn again underneath them.
-    private var dots: Dots?
+    /// The setup's own furniture: the face and the line about it down the
+    /// rail, and the two buttons in the corners of the pane. Taken off the
+    /// scrolling page, because a page that scrolls cannot hold anything in a
+    /// corner, and all three flows this follows put them in one.
+    private var aside: NSStackView!
+    private var asideWords: Wrapping!
+    private var onward: NSStackView!
+    private var marker: Marker?
     private var showing: Walk?
     private var undoing: Undoing?
     private var asking: [Told] = []
@@ -1449,6 +1456,39 @@ final class Main: NSObject, NSWindowDelegate {
         helper = sitting
         content.addSubview(sitting)
 
+        // The rail during the setup: the face, and under it at the bottom the
+        // one line about what this is. Open Analytics parks a quote down
+        // there, Kaelor parks its welcome; the corner of the rail is where a
+        // thing that is not the step itself belongs.
+        let side = NSStackView()
+        side.orientation = .vertical
+        side.alignment = .leading
+        side.spacing = Step.close
+        side.isHidden = true
+        side.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(side)
+        aside = side
+
+        let told = Wrapping(labelWithString: "")
+        told.maximumNumberOfLines = 0
+        told.lineBreakMode = .byWordWrapping
+        told.translatesAutoresizingMaskIntoConstraints = false
+        side.addArrangedSubview(told)
+        told.widthAnchor.constraint(equalTo: side.widthAnchor).isActive = true
+        asideWords = told
+
+        // Back on the left of the pane's bottom edge, the one thing to press
+        // on the right of it. Not floating in the middle of the page under
+        // whatever the page happens to be showing.
+        let ahead = NSStackView()
+        ahead.orientation = .horizontal
+        ahead.alignment = .centerY
+        ahead.spacing = Step.tight
+        ahead.isHidden = true
+        ahead.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(ahead)
+        onward = ahead
+
         scroll.onBack = { [weak self] in self?.swipedBack() }
         scroll.onForward = { [weak self] in self?.swipedOn() }
         scroll.contentView = TopClip()
@@ -1527,6 +1567,16 @@ final class Main: NSObject, NSWindowDelegate {
             titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: buttons.leadingAnchor,
                                                  constant: -Step.air),
             titleLabel.centerYAnchor.constraint(equalTo: chrome.centerYAnchor),
+
+            side.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: Step.air),
+            side.trailingAnchor.constraint(equalTo: edge.leadingAnchor, constant: -Step.air),
+            side.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -Step.wide),
+
+            ahead.leadingAnchor.constraint(equalTo: edge.trailingAnchor, constant: Step.edge),
+            ahead.trailingAnchor.constraint(equalTo: content.trailingAnchor,
+                                            constant: -Step.edge),
+            ahead.bottomAnchor.constraint(equalTo: content.bottomAnchor,
+                                          constant: -Step.wide),
 
             sitting.trailingAnchor.constraint(equalTo: content.trailingAnchor,
                                               constant: -Step.wide),
@@ -1607,14 +1657,26 @@ final class Main: NSObject, NSWindowDelegate {
 
         // One face for the whole setup, not four. It stays put and leans over
         // whatever has just been written, which is what makes it read as
-        // somebody showing you round.
-        let face = mascot ?? Floating()
+        // somebody showing you round. It lives in the rail rather than on the
+        // page, so the page is the step and nothing else.
+        let face = mascot ?? Floating(size: 56)
         let firstLook = mascot == nil
         mascot = face
-        line(face)
+        if face.superview !== aside {
+            aside.insertArrangedSubview(face, at: 0)
+        }
+        asideWords.attributedStringValue =
+            leaded("Four short pages, then I ask macOS for what I need. Nothing runs on your Mac until you press something.",
+                   Words.small, Paint.faint)
+
+        // How far in you are, at the top of the pane where the step is.
+        let count = marker ?? Marker(of: 4)
+        marker = count
+        line(count)
+        count.say(step)
 
         func headline(_ text: String) {
-            words(text, Words.hero, Paint.ink, top: Step.hair, bottom: Step.hair)
+            words(text, Words.hero, Paint.ink, top: Step.close, bottom: Step.hair)
         }
 
         showing = nil
@@ -1671,8 +1733,16 @@ final class Main: NSObject, NSWindowDelegate {
         way.spacing = Step.tight
         way.translatesAutoresizingMaskIntoConstraints = false
 
-        // Nothing to press while macOS is asking: the page is the rows, and
-        // the way on appears when the last of them has an answer.
+        // Nothing to press while macOS is asking: the pane is the rows, and
+        // the way on appears when the last of them has an answer. Back sits in
+        // the bottom-left corner of the pane and the one thing to press in the
+        // bottom-right, rather than both floating in the middle of the page
+        // under whatever the page happens to be showing.
+        for view in onward.arrangedSubviews {
+            onward.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
+
         if step > 0, step < 3 {
             let back = Chip(.quiet)
             back.set("Back")
@@ -1681,7 +1751,26 @@ final class Main: NSObject, NSWindowDelegate {
                 self.step -= 1
                 self.drawWelcome()
             }
-            way.addArrangedSubview(back)
+            onward.addArrangedSubview(back)
+        }
+
+        // The slack between the two corners. A bare view has no size of its
+        // own, so with the row pinned to both edges of the pane it is the one
+        // thing that can grow, and it pushes Back left and the rest right.
+        let slack = NSView()
+        slack.translatesAutoresizingMaskIntoConstraints = false
+        slack.setContentHuggingPriority(.init(1), for: .horizontal)
+        slack.setContentCompressionResistancePriority(.init(1), for: .horizontal)
+        onward.addArrangedSubview(slack)
+
+        if step == 2 {
+            let skip = Chip(.quiet)
+            skip.set("Skip for now")
+            skip.onClick = { [weak self] in
+                self?.finishWelcome()
+                self?.show(0)
+            }
+            onward.addArrangedSubview(skip)
         }
 
         if step < 3 {
@@ -1700,7 +1789,7 @@ final class Main: NSObject, NSWindowDelegate {
                 self.drawWelcome()
                 self.askNext(0)
             }
-            way.addArrangedSubview(on)
+            onward.addArrangedSubview(on)
         } else if asked {
             let start = Chip(.strong)
             start.set("Start")
@@ -1708,34 +1797,8 @@ final class Main: NSObject, NSWindowDelegate {
                 self?.finishWelcome()
                 self?.show(0)
             }
-            way.addArrangedSubview(start)
+            onward.addArrangedSubview(start)
         }
-
-        if step == 2 {
-            let skip = Chip(.quiet)
-            skip.set("Skip for now")
-            skip.onClick = { [weak self] in
-                self?.finishWelcome()
-                self?.show(0)
-            }
-            way.addArrangedSubview(skip)
-        }
-
-        let holder = NSView()
-        holder.translatesAutoresizingMaskIntoConstraints = false
-        holder.addSubview(way)
-        NSLayoutConstraint.activate([
-            way.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
-            way.topAnchor.constraint(equalTo: holder.topAnchor, constant: Step.wide),
-            way.bottomAnchor.constraint(equalTo: holder.bottomAnchor),
-            way.trailingAnchor.constraint(lessThanOrEqualTo: holder.trailingAnchor),
-        ])
-        line(holder)
-
-        let count = dots ?? Dots(of: 4, at: step)
-        dots = count
-        line(count)
-        count.move(to: step)
 
         // The last page has one thing left to do, and the face is what asks
         // for it. On the pages before it, the thing to learn is that two
@@ -1746,6 +1809,7 @@ final class Main: NSObject, NSWindowDelegate {
             face.relax()
             line(Nudge())
         }
+
 
         // Which side this page is coming from, and which way the head is
         // thrown by it. The head moves on its own clock; the words are the
@@ -1784,11 +1848,12 @@ final class Main: NSObject, NSWindowDelegate {
         for view in report.arrangedSubviews {
             view.wantsLayer = true
 
-            // The face is the one thing on the page that does not arrive: it
-            // was already here. It gets its own move, and on the very first
-            // page it comes up out of nothing before anything is written.
+            // What was already here does not arrive again. The face is in the
+            // rail and moves on its own clock; the step marker at the top of
+            // the pane is furniture and holds still; a demonstration counts
+            // itself in after the words that introduce it.
             if view === showing || view === undoing { continue }
-            if view === mascot || view === dots {
+            if view === marker {
                 guard first else { continue }
                 let show = CABasicAnimation(keyPath: "opacity")
                 show.fromValue = 0
@@ -1840,15 +1905,20 @@ final class Main: NSObject, NSWindowDelegate {
     /// search and its buttons while it is still explaining itself is a window
     /// asking you to read two things at once.
     private func bare(_ yes: Bool) {
-        for view: NSView? in [sideStack, footStack, railLine, barLine, chrome,
+        for view: NSView? in [sideStack, footStack, barLine, chrome,
                               buttons, search, titleLabel, helper] {
             view?.isHidden = yes
         }
+        // The rail itself stays. It used to be folded away and the setup took
+        // the whole window, which is a different app for four pages and then
+        // yours. Kaelor and Open Analytics both keep their two panes through
+        // the whole of it: the brand and a line about it down one side, the
+        // step on the other. The window already had that shape.
+        railLine?.isHidden = false
+        aside?.isHidden = !yes
+        onward?.isHidden = !yes
         Sheet.hide()
-        // And one colour, not two. With the list hidden but the rail still
-        // where it was, the window was a wide dark page beside a strip of a
-        // different dark, which is the first thing you saw.
-        railWidth.constant = yes ? 0 : (narrow ? 70 : 246)
+        railWidth.constant = narrow && !yes ? 70 : 246
         window.contentView?.layoutSubtreeIfNeeded()
     }
 
@@ -2636,7 +2706,6 @@ final class Main: NSObject, NSWindowDelegate {
         asked = false
         asking = []
         answers = []
-        dots = nil
         showing = nil
         undoing = nil
         mascot = nil
@@ -4114,73 +4183,79 @@ final class Undoing: NSView {
     }
 }
 
-/// Where you are in the welcome. Four dots, one of them lit.
-final class Dots: NSView {
-    private var pills: [NSView] = []
-    private var widths: [NSLayoutConstraint] = []
-    private var here = 0
+/// How far in you are, said rather than drawn: a ring that fills as you go
+/// and the words beside it.
+///
+/// Four dots at the bottom of the page were a decoration you had to count.
+/// Every one of the three flows this was taken from puts the step at the top
+/// of the working pane and writes it out, because "Step 2 of 4" is read in one
+/// glance and four dots are not.
+final class Marker: NSView {
+    private let ring = CAShapeLayer()
+    private let done = CAShapeLayer()
+    private let label = NSTextField(labelWithString: "")
+    private let many: Int
 
-    init(of many: Int, at start: Int) {
-        here = start
+    init(of count: Int) {
+        many = max(1, count)
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
 
-        var last: NSView?
-        for i in 0..<many {
-            let dot = NSView()
-            dot.wantsLayer = true
-            dot.layer?.cornerRadius = 3
-            dot.translatesAutoresizingMaskIntoConstraints = false
-            addSubview(dot)
-            dot.effectiveAppearance.performAsCurrentDrawingAppearance {
-                dot.layer?.backgroundColor = (i == start ? Paint.ink : Paint.picked).cgColor
-            }
-            let wide = dot.widthAnchor.constraint(equalToConstant: i == start ? 18 : 6)
-            NSLayoutConstraint.activate([
-                wide,
-                dot.heightAnchor.constraint(equalToConstant: 6),
-                dot.centerYAnchor.constraint(equalTo: centerYAnchor),
-                dot.leadingAnchor.constraint(equalTo: last?.trailingAnchor ?? leadingAnchor,
-                                             constant: last == nil ? 0 : 6),
-            ])
-            pills.append(dot)
-            widths.append(wide)
-            last = dot
+        for arc in [ring, done] {
+            arc.fillColor = NSColor.clear.cgColor
+            arc.lineWidth = 1.6
+            arc.lineCap = .round
+            layer?.addSublayer(arc)
         }
+
+        label.font = Words.small
+        label.textColor = Paint.faint
+        label.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(label)
 
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 40),
+            heightAnchor.constraint(equalToConstant: 20),
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 24),
+            label.centerYAnchor.constraint(equalTo: centerYAnchor),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
         ])
-    }
-
-    /// The one that is lit stretches into the new place rather than the row
-    /// being drawn again with a different dot filled in. A row of dots that
-    /// redraws does not tell you which way you just went; one that stretches
-    /// does, and it is the only thing on the page that says how far in you are.
-    func move(to next: Int) {
-        guard next != here, next >= 0, next < pills.count else { return }
-        here = next
-        // Held as a plain view so the group lays it out without reaching back
-        // through self, which is what the suite reads to know a helper has not
-        // gone missing.
-        let row: NSView = self
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.34
-            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 0.9, 0.25, 1)
-            context.allowsImplicitAnimation = true
-            for (i, wide) in self.widths.enumerated() {
-                wide.animator().constant = i == self.here ? 18 : 6
-            }
-            for (i, dot) in self.pills.enumerated() {
-                dot.effectiveAppearance.performAsCurrentDrawingAppearance {
-                    ease(dot.layer, to: i == self.here ? Paint.ink : Paint.picked)
-                }
-            }
-            row.layoutSubtreeIfNeeded()
-        }
+        paint()
     }
 
     required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        paint()
+    }
+
+    private func paint() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            self.ring.strokeColor = Paint.line.cgColor
+            self.done.strokeColor = Paint.ink.cgColor
+        }
+    }
+
+    override func layout() {
+        super.layout()
+        // Drawn as an arc that begins at the top and goes round clockwise,
+        // rather than a circle turned a quarter afterwards: rotating the layer
+        // turns it about the middle of this whole view, not about the ring.
+        let middle = CGPoint(x: 8, y: bounds.height / 2)
+        let round = CGMutablePath()
+        round.addArc(center: middle, radius: 7,
+                     startAngle: .pi / 2, endAngle: .pi / 2 - .pi * 2, clockwise: true)
+        ring.frame = bounds
+        done.frame = bounds
+        ring.path = round
+        done.path = round
+    }
+
+    func say(_ step: Int) {
+        label.stringValue = "Step \(min(step + 1, many)) of \(many)"
+        done.strokeEnd = CGFloat(min(step + 1, many)) / CGFloat(many)
+    }
 }
 
 // MARK: - the face, drifting
