@@ -1009,8 +1009,12 @@ final class Chip: NSView {
 
     required init?(coder: NSCoder) { fatalError("nimo has no nib") }
 
+    /// What it says, so it can be told again without being told what it says.
+    private(set) var words = ""
+
     func set(_ words: String, live able: Bool = true) {
         live = able
+        self.words = words
         label.stringValue = words
         // The pill is as wide as the words in it, plus the same air either side.
         let padding: CGFloat = kind == .strong ? 20 : 16
@@ -1366,6 +1370,11 @@ final class Main: NSObject, NSWindowDelegate {
 
     private var chosen = 0
     private var busy = false
+    /// The row of quiet actions under the top bar. It is built once with
+    /// whether Kliner was busy at that moment, and nothing held on to it, so
+    /// when the run finished the row stayed grey and stayed unclickable until
+    /// the page was drawn again. That is most of "nothing works".
+    private var offered: [Chip] = []
     private var seen: Set<Int> = []
     /// What each page last said. Coming back to a page you have already opened
     /// redraws that, rather than walking your home folder again to be told the
@@ -2357,6 +2366,14 @@ final class Main: NSObject, NSWindowDelegate {
             named.append((name: label, size: much, folder: label.hasSuffix("/")))
         }
 
+        // Biggest first. Everything downstream draws a ladder — the bars fall
+        // left to right, the colour falls with them, the table reads down in
+        // the same order — and all three of those were being handed the order
+        // the CLI happened to print in. So the tallest bar sat on the far
+        // right in the faintest shade, and the chart read as broken because
+        // it was: three ladders, none of them agreeing.
+        named.sort { $0.size > $1.size }
+
         /// Bytes read as bytes; everything else reads as a plain count.
         func amount(_ much: Double) -> String {
             asBytes ? size(much) : String(Int(much.rounded()))
@@ -3259,6 +3276,13 @@ final class Main: NSObject, NSWindowDelegate {
         let acts = item.asks != nil || !item.looksOnly
         primary.isHidden = !acts
         if acts { primary.set(item.verb, live: !busy) }
+        wake()
+    }
+
+    /// The quiet actions follow the one button: alive when Kliner is not busy,
+    /// grey while it is, and back again the moment it stops.
+    private func wake() {
+        for chip in offered { chip.set(chip.words, live: !busy) }
     }
 
     /// Everything this page can do that is not the one thing it is for, as a
@@ -3276,11 +3300,13 @@ final class Main: NSObject, NSWindowDelegate {
         row.spacing = Step.tight
         row.translatesAutoresizingMaskIntoConstraints = false
 
+        offered = []
         func offer(_ title: String, _ act: @escaping () -> Void) {
             let chip = Chip(.quiet)
             chip.set(title, live: !busy)
             chip.onClick = act
             row.addArrangedSubview(chip)
+            offered.append(chip)
         }
 
         if !walked.isEmpty {
@@ -5742,7 +5768,9 @@ final class Bars: NSView {
 
             // The name under its own bar, cut to what fits rather than turned
             // on its side: a chart you have to tilt your head at is a chart.
-            let under = NSTextField(labelWithString: String(part.name.prefix(9)))
+            // Cut by the label, which stops at a width and marks it; cutting
+            // the string itself at nine letters gave "Screensho".
+            let under = NSTextField(labelWithString: part.name)
             under.font = Words.small
             under.textColor = Paint.faint
             under.alignment = .center

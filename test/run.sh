@@ -1514,6 +1514,17 @@ check "and only the pages that do something have one" \
 # with their names showing.
 check "the rest are named, on the page"      \
     "grep -q 'func others()' '$APP/Sources/main.swift' && ! grep -q 'ellipsis' '$APP/Sources/main.swift'"
+# Three ladders — the bars falling left to right, the colour falling with
+# them, the table reading down — all handed the order the CLI printed in.
+check "the breakdown is drawn biggest first"  \
+    "grep -q 'named.sort { \$0.size > \$1.size }' '$APP/Sources/main.swift'"
+# A name cut at nine letters gave "Screensho".
+check "and a bar's name is cut by its width, not by a count" \
+    "! grep -q 'part.name.prefix(9)' '$APP/Sources/main.swift'"
+# The row was built once with whether Kliner was busy at that moment, and
+# nothing held it, so it stayed grey and unclickable after the run finished.
+check "the quiet actions come back when the run ends" \
+    "grep -q 'private var offered: \\[Chip\\]' '$APP/Sources/main.swift' && grep -q 'private func wake()' '$APP/Sources/main.swift' && grep -q 'offered.append(chip)' '$APP/Sources/main.swift'"
 # The row of buttons sits opposite the page title, not underneath it, so one
 # line across the top says what the page is and what it can do.
 # One row across the top holds everything that is not the page. The page under
