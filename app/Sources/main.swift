@@ -1123,7 +1123,7 @@ final class Main: NSObject, NSWindowDelegate {
     /// The rows on the asking page, so each can be told what macOS said
     /// without the page being drawn again underneath them.
     private var dots: Dots?
-    private var showing: Places?
+    private var showing: Walk?
     private var undoing: Undoing?
     private var asking: [Told] = []
     /// What macOS said, kept so the page can be drawn again with the answers
@@ -1630,13 +1630,13 @@ final class Main: NSObject, NSWindowDelegate {
             headline("Five places.")
             words("Your desk, your screen, your disk, your computer. Nothing on any of them runs until you press it.",
                   Words.body, Paint.muted, top: 0, bottom: Step.tight)
-            let five = Places()
+            let five = Walk(Action.places)
             line(five)
             showing = five
 
         case 2:
             headline("Nothing you have is lost.")
-            words("Everything I move is written down first, so Put it all back reverses any of it. I stay inside your home folder, I never ask for an administrator, and I never touch the network.",
+            words("I stay inside your home folder, I never ask for an administrator, and I never touch the network.",
                   Words.body, Paint.muted, top: 0, bottom: Step.tight)
             let back = Undoing()
             line(back)
@@ -3691,135 +3691,80 @@ final class Told: NSView {
     required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
 }
 
-/// The five places, as five things rather than five sentences.
+/// Kliner walks the five places and each one lights up as he reaches it.
 ///
-/// This page used to be eight rows of text saying what each page does, which
-/// is a wall to read in somebody's first minute. The list itself is the
-/// answer: five marks, each landing a beat after the one before it, with the
-/// word under it. Nobody reads a wall; everybody counts five things.
-final class Places: NSView {
-    private var tiles: [NSView] = []
-
-    init() {
-        super.init(frame: .zero)
-        translatesAutoresizingMaskIntoConstraints = false
-
-        var last: NSView?
-        for place in Action.places {
-            let tile = NSView()
-            tile.wantsLayer = true
-            tile.layer?.cornerRadius = 13
-            tile.translatesAutoresizingMaskIntoConstraints = false
-            addSubview(tile)
-
-            let mark = NSImageView()
-            if let picture = NSImage(systemSymbolName: place.symbol,
-                                     accessibilityDescription: nil) {
-                picture.isTemplate = true
-                mark.image = picture
-            }
-            mark.contentTintColor = Paint.ink
-            mark.translatesAutoresizingMaskIntoConstraints = false
-            tile.addSubview(mark)
-
-            let name = NSTextField(labelWithString: place.title)
-            name.font = Words.tiny
-            name.textColor = Paint.muted
-            name.alignment = .center
-            name.translatesAutoresizingMaskIntoConstraints = false
-            addSubview(name)
-
-            tile.effectiveAppearance.performAsCurrentDrawingAppearance {
-                tile.layer?.backgroundColor = Paint.hover.withAlphaComponent(0.5).cgColor
-            }
-
-            NSLayoutConstraint.activate([
-                tile.widthAnchor.constraint(equalToConstant: 54),
-                tile.heightAnchor.constraint(equalToConstant: 54),
-                tile.topAnchor.constraint(equalTo: topAnchor, constant: Step.tight),
-                tile.leadingAnchor.constraint(equalTo: last?.trailingAnchor ?? leadingAnchor,
-                                              constant: last == nil ? 0 : Step.close),
-                mark.centerXAnchor.constraint(equalTo: tile.centerXAnchor),
-                mark.centerYAnchor.constraint(equalTo: tile.centerYAnchor),
-                mark.widthAnchor.constraint(equalToConstant: 22),
-                mark.heightAnchor.constraint(equalToConstant: 22),
-                name.centerXAnchor.constraint(equalTo: tile.centerXAnchor),
-                name.topAnchor.constraint(equalTo: tile.bottomAnchor, constant: 7),
-            ])
-            tiles.append(tile)
-            last = tile
-        }
-
-        NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 96),
-        ])
-    }
-
-    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
-
-    /// Counted out, not shown. Each one arrives small and overshoots, a
-    /// twelfth of a second behind the last.
-    func play(after wait: Double) {
-        let start = CACurrentMediaTime() + wait
-        for (i, tile) in tiles.enumerated() {
-            tile.wantsLayer = true
-
-            let swell = CAKeyframeAnimation(keyPath: "transform.scale")
-            swell.values = [0.2, 1.16, 0.96, 1]
-            swell.keyTimes = [0, 0.62, 0.84, 1]
-
-            let rise = CABasicAnimation(keyPath: "transform.translation.y")
-            rise.fromValue = -14
-            rise.toValue = 0
-
-            let fade = CABasicAnimation(keyPath: "opacity")
-            fade.fromValue = 0
-            fade.toValue = 1
-
-            let all = CAAnimationGroup()
-            all.animations = [swell, rise, fade]
-            all.duration = 0.54
-            all.beginTime = start + Double(i) * 0.085
-            all.fillMode = .backwards
-            all.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 1.1, 0.3, 1)
-            tile.layer?.add(all, forKey: "counting")
-        }
-    }
-}
-
-/// What "nothing is lost" looks like, instead of four lines saying it.
+/// This page was eight rows of prose, then five marks that appeared. Both of
+/// those are a page being shown to you. Somebody walking along a row and
+/// stopping at each thing is somebody showing you round, and that is the
+/// difference between reading an introduction and being given one.
 ///
-/// Three things leave the pile, go into the folder, and come back out to
-/// exactly where they were, over and over. It is the one promise the whole
-/// app rests on and it is the one thing a picture can say faster than a
-/// sentence can.
-final class Undoing: NSView {
-    private var things: [CALayer] = []
-    private let folder = CALayer()
+/// Everything in here is placed by frame rather than by constraint: it is a
+/// figure walking past some marks, and Auto Layout has nothing to say about
+/// that.
+final class Walk: NSView {
+    private let face = NSImageView()
+    private var marks: [NSView] = []
+    private var names: [NSTextField] = []
+    private var pending: [DispatchWorkItem] = []
 
-    init() {
+    private static let side: CGFloat = 54
+    private static let gap: CGFloat = 16
+    private static let him: CGFloat = 44
+    /// How long a step between two marks takes, and how long he stands at one.
+    private static let leg = 0.52
+    private static let hold = 0.42
+
+    init(_ places: [Action.Place]) {
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
 
-        folder.cornerRadius = 5
-        folder.borderWidth = 1.5
-        layer?.addSublayer(folder)
+        for place in places {
+            let mark = NSView()
+            mark.wantsLayer = true
+            mark.layer?.cornerRadius = 13
+            addSubview(mark)
 
-        for _ in 0..<3 {
-            let thing = CALayer()
-            thing.cornerRadius = 3
-            layer?.addSublayer(thing)
-            things.append(thing)
+            let glyph = NSImageView()
+            if let picture = NSImage(systemSymbolName: place.symbol,
+                                     accessibilityDescription: nil) {
+                picture.isTemplate = true
+                glyph.image = picture
+            }
+            glyph.contentTintColor = Paint.muted
+            mark.addSubview(glyph)
+
+            let name = NSTextField(labelWithString: place.title)
+            name.font = Words.tiny
+            name.textColor = Paint.faint
+            name.alignment = .center
+            addSubview(name)
+
+            marks.append(mark)
+            names.append(name)
         }
 
+        let awake = NSImage(named: "mascot")
+        awake?.isTemplate = true
+        face.image = awake
+        face.imageScaling = .scaleProportionallyUpOrDown
+        face.wantsLayer = true
+        addSubview(face)
+
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 78),
+            heightAnchor.constraint(equalToConstant: 124),
         ])
         paint()
     }
 
     required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+
+    deinit { stop() }
+
+    private func stop() {
+        for item in pending { item.cancel() }
+        pending = []
+    }
 
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
@@ -3827,49 +3772,345 @@ final class Undoing: NSView {
     }
 
     private func paint() {
+        face.contentTintColor = Paint.ink
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            self.folder.borderColor = Paint.faint.cgColor
-            self.folder.backgroundColor = NSColor.clear.cgColor
-            for thing in self.things { thing.backgroundColor = Paint.ink.cgColor }
+            for mark in self.marks {
+                mark.layer?.backgroundColor = Paint.hover.withAlphaComponent(0.5).cgColor
+            }
         }
     }
 
-    /// Frames, not constraints: these are three squares and a box moving
-    /// about, and Auto Layout has nothing to say about that.
+    /// Where the row of marks begins, so the walk and the layout agree.
+    private var start: CGFloat {
+        let side = Walk.side, gap = Walk.gap
+        let all = CGFloat(marks.count) * side + CGFloat(max(0, marks.count - 1)) * gap
+        return (bounds.width - all) / 2
+    }
+
     override func layout() {
         super.layout()
-        let middle = bounds.height / 2
-        folder.frame = CGRect(x: 168, y: middle - 21, width: 46, height: 38)
-        for (i, thing) in things.enumerated() {
-            thing.frame = CGRect(x: CGFloat(i) * 34, y: middle - 11, width: 22, height: 22)
+        let side = Walk.side, gap = Walk.gap
+        let left = start
+        for (i, mark) in marks.enumerated() {
+            let x = left + CGFloat(i) * (side + gap)
+            // AppKit's y grows up, so the marks sit above and he walks under.
+            mark.frame = CGRect(x: x, y: 54, width: side, height: side)
+            names[i].frame = CGRect(x: x - 10, y: 36, width: side + 20, height: 15)
+        }
+        face.frame = CGRect(x: left - 66, y: 0, width: Walk.him, height: Walk.him)
+    }
+
+    /// He sets off, stops at each mark in turn, and turns to face you at the
+    /// end of the row.
+    func play(after wait: Double) {
+        stop()
+        layoutSubtreeIfNeeded()
+        guard !marks.isEmpty else { return }
+
+        let leg = Walk.leg, hold = Walk.hold
+        let total = Double(marks.count) * (leg + hold)
+        let home = face.frame.origin.x
+        var stops: [CGFloat] = [0]
+        var times: [Double] = [0]
+        var clock = 0.0
+
+        for i in 0..<marks.count {
+            let x = start + CGFloat(i) * (Walk.side + Walk.gap)
+                  + (Walk.side - Walk.him) / 2 - home
+            clock += leg
+            stops.append(x); times.append(clock / total)
+            clock += hold
+            stops.append(x); times.append(clock / total)
+        }
+
+        let across = CAKeyframeAnimation(keyPath: "transform.translation.x")
+        across.values = stops
+        across.keyTimes = times.map { NSNumber(value: $0) }
+        across.duration = total
+        across.beginTime = CACurrentMediaTime() + wait
+        across.fillMode = .both
+        across.isRemovedOnCompletion = false
+        // Eased at every stop, not only at the ends, so each leg is a walk to
+        // somewhere rather than one long slide with pauses cut into it.
+        across.timingFunctions = Array(
+            repeating: CAMediaTimingFunction(name: .easeInEaseOut),
+            count: max(1, stops.count - 1))
+        face.layer?.add(across, forKey: "walking")
+
+        // Up and down while the feet are moving. Without it he hovers across
+        // the page, which is a picture being dragged, not somebody walking.
+        let bob = CABasicAnimation(keyPath: "transform.translation.y")
+        bob.fromValue = 0
+        bob.toValue = 5
+        bob.duration = 0.17
+        bob.autoreverses = true
+        bob.repeatCount = Float(total / 0.34)
+        bob.beginTime = CACurrentMediaTime() + wait
+        bob.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        face.layer?.add(bob, forKey: "bobbing")
+
+        for i in 0..<marks.count {
+            // He looks the way he is going, and faces you when he stops.
+            at(wait + Double(i) * (leg + hold)) { [weak self] in
+                self?.wear("mascot-right")
+            }
+            at(wait + Double(i) * (leg + hold) + leg) { [weak self] in
+                self?.wear("mascot")
+                self?.light(i)
+            }
         }
     }
 
-    func play(after wait: Double) {
-        layoutSubtreeIfNeeded()
-        let start = CACurrentMediaTime() + wait
-        let into = folder.frame.midX
+    private func at(_ when: Double, _ then: @escaping () -> Void) {
+        let item = DispatchWorkItem(block: then)
+        pending.append(item)
+        DispatchQueue.main.asyncAfter(deadline: .now() + when, execute: item)
+    }
 
-        for (i, thing) in things.enumerated() {
-            let home = thing.frame.midX
+    private func wear(_ named: String) {
+        let picture = NSImage(named: named)
+        picture?.isTemplate = true
+        face.image = picture
+    }
 
-            let across = CAKeyframeAnimation(keyPath: "position.x")
-            // there, held, and back to exactly where it was
-            across.values = [home, into, into, home, home]
-            across.keyTimes = [0, 0.26, 0.52, 0.78, 1]
-
-            let small = CAKeyframeAnimation(keyPath: "transform.scale")
-            small.values = [1, 0.55, 0.55, 1, 1]
-            small.keyTimes = [0, 0.26, 0.52, 0.78, 1]
-
-            let both = CAAnimationGroup()
-            both.animations = [across, small]
-            both.duration = 3.4
-            both.beginTime = start + Double(i) * 0.16
-            both.repeatCount = .infinity
-            both.timingFunction = CAMediaTimingFunction(controlPoints: 0.5, 0, 0.2, 1)
-            thing.add(both, forKey: "going")
+    /// The mark he has arrived at takes the ink, and gives a little under him.
+    private func light(_ i: Int) {
+        guard i < marks.count else { return }
+        let mark = marks[i]
+        mark.effectiveAppearance.performAsCurrentDrawingAppearance {
+            ease(mark.layer, to: Paint.picked)
         }
+        if let glyph = mark.subviews.first as? NSImageView {
+            glyph.contentTintColor = Paint.ink
+        }
+        names[i].textColor = Paint.body
+
+        let swell = CAKeyframeAnimation(keyPath: "transform.scale")
+        swell.values = [1, 1.14, 0.97, 1]
+        swell.keyTimes = [0, 0.42, 0.74, 1]
+        swell.duration = 0.42
+        swell.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 1.1, 0.3, 1)
+        mark.layer?.add(swell, forKey: "arrived")
+    }
+
+    /// The glyph is centred by hand for the same reason everything else here
+    /// is: this is a drawing, not a form.
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        for mark in marks {
+            guard let glyph = mark.subviews.first else { continue }
+            glyph.frame = CGRect(x: (Walk.side - 22) / 2, y: (Walk.side - 22) / 2,
+                                 width: 22, height: 22)
+        }
+        if window == nil { stop() }
+    }
+}
+
+/// Kliner takes three things away and brings them back to where they were.
+///
+/// This is the one promise the whole app rests on, and it was four rows of
+/// prose saying so. Then it was three squares moving on their own, which is a
+/// diagram. Him walking over, taking them, putting them in the folder, and
+/// walking them back out to exactly where they started is the promise being
+/// kept in front of you, on a loop, and it needs no sentence at all.
+final class Undoing: NSView {
+    private let face = NSImageView()
+    private var things: [NSView] = []
+    private let folder = NSView()
+    private let caption = NSTextField(labelWithString: "")
+    private var pending: [DispatchWorkItem] = []
+    private var running = false
+
+    private static let him: CGFloat = 40
+    private static let box: CGFloat = 20
+
+    init() {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+
+        folder.wantsLayer = true
+        folder.layer?.cornerRadius = 7
+        folder.layer?.borderWidth = 1.5
+        addSubview(folder)
+
+        for _ in 0..<3 {
+            let thing = NSView()
+            thing.wantsLayer = true
+            thing.layer?.cornerRadius = 4
+            addSubview(thing)
+            things.append(thing)
+        }
+
+        let awake = NSImage(named: "mascot")
+        awake?.isTemplate = true
+        face.image = awake
+        face.imageScaling = .scaleProportionallyUpOrDown
+        face.wantsLayer = true
+        addSubview(face)
+
+        caption.font = Words.tiny
+        caption.textColor = Paint.faint
+        caption.alignment = .center
+        addSubview(caption)
+
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 104),
+        ])
+        paint()
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+
+    deinit { stop() }
+
+    private func stop() {
+        for item in pending { item.cancel() }
+        pending = []
+        running = false
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        paint()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil { stop() }
+    }
+
+    private func paint() {
+        face.contentTintColor = Paint.ink
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            self.folder.layer?.borderColor = Paint.faint.cgColor
+            for thing in self.things { thing.layer?.backgroundColor = Paint.ink.cgColor }
+        }
+    }
+
+    /// Frames, because this is a figure and some boxes, not a form.
+    private var pile: CGFloat { (bounds.width - 250) / 2 }
+    private var away: CGFloat { pile + 190 }
+
+    override func layout() {
+        super.layout()
+        let box = Undoing.box
+        for (i, thing) in things.enumerated() {
+            thing.frame = CGRect(x: pile + CGFloat(i) * (box + 8), y: 40,
+                                 width: box, height: box)
+        }
+        folder.frame = CGRect(x: away, y: 32, width: 60, height: 36)
+        face.frame = CGRect(x: pile - 58, y: 32, width: Undoing.him, height: Undoing.him)
+        caption.frame = CGRect(x: 0, y: 8, width: bounds.width, height: 16)
+    }
+
+    /// One round: over to the pile, the three of them into the folder, back
+    /// out again, and everything exactly where it started. Then again.
+    func play(after wait: Double) {
+        stop()
+        layoutSubtreeIfNeeded()
+        guard bounds.width > 0 else { return }
+        running = true
+        at(wait) { [weak self] in self?.round() }
+    }
+
+    private func round() {
+        guard running, window != nil else { return }
+        let carry = away - pile + 6
+
+        // Every leg says where it starts as well as where it ends. A layer
+        // animation with only a toValue begins at the model value, which never
+        // moves, so each new leg would snap him back to the beginning first.
+        say("he takes them")
+        step(face, from: 0, to: 40, in: 0.5, facing: "mascot-right")
+        for (i, thing) in things.enumerated() {
+            slide(thing, from: 0, to: carry - CGFloat(i) * (Undoing.box + 8),
+                  at: 0.46 + Double(i) * 0.1, over: 0.54, small: true)
+        }
+        at(0.5) { [weak self] in
+            self?.step(self?.face, from: 40, to: carry - 8, in: 0.62, facing: "mascot-right")
+        }
+
+        at(1.6) { [weak self] in self?.say("and puts them back where they were") }
+        for (i, thing) in things.enumerated() {
+            slide(thing, from: carry - CGFloat(i) * (Undoing.box + 8), to: 0,
+                  at: 1.78 + Double(i) * 0.1, over: 0.58, small: false)
+        }
+        at(1.7) { [weak self] in
+            self?.step(self?.face, from: carry - 8, to: 40, in: 0.62, facing: "mascot-left")
+        }
+        at(2.6) { [weak self] in
+            self?.step(self?.face, from: 40, to: 0, in: 0.5, facing: "mascot-left")
+        }
+        at(3.2) { [weak self] in self?.wear("mascot") }
+
+        at(4.6) { [weak self] in self?.round() }
+    }
+
+    private func say(_ text: String) {
+        caption.stringValue = text
+        let show = CABasicAnimation(keyPath: "opacity")
+        show.fromValue = 0
+        show.toValue = 1
+        show.duration = 0.3
+        caption.wantsLayer = true
+        caption.layer?.add(show, forKey: "saying")
+    }
+
+    private func step(_ who: NSView?, from: CGFloat, to x: CGFloat,
+                      in time: Double, facing: String) {
+        guard let who = who else { return }
+        wear(facing)
+        let across = CABasicAnimation(keyPath: "transform.translation.x")
+        across.fromValue = from
+        across.toValue = x
+        across.duration = time
+        across.fillMode = .both
+        across.isRemovedOnCompletion = false
+        across.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        who.layer?.add(across, forKey: "walking")
+
+        let bob = CABasicAnimation(keyPath: "transform.translation.y")
+        bob.fromValue = 0
+        bob.toValue = 4
+        bob.duration = 0.17
+        bob.autoreverses = true
+        bob.repeatCount = Float(time / 0.34)
+        who.layer?.add(bob, forKey: "bobbing")
+    }
+
+    private func slide(_ thing: NSView, from: CGFloat, to x: CGFloat, at when: Double,
+                       over time: Double, small: Bool) {
+        at(when) {
+            let across = CABasicAnimation(keyPath: "transform.translation.x")
+            across.fromValue = from
+            across.toValue = x
+            across.duration = time
+            across.fillMode = .both
+            across.isRemovedOnCompletion = false
+            across.timingFunction = CAMediaTimingFunction(controlPoints: 0.4, 0, 0.2, 1)
+            thing.layer?.add(across, forKey: "carried")
+
+            let size = CABasicAnimation(keyPath: "transform.scale")
+            size.fromValue = small ? 1 : 0.55
+            size.toValue = small ? 0.55 : 1
+            size.duration = time
+            size.fillMode = .both
+            size.isRemovedOnCompletion = false
+            thing.layer?.add(size, forKey: "shrinking")
+        }
+    }
+
+    private func wear(_ named: String) {
+        let picture = NSImage(named: named)
+        picture?.isTemplate = true
+        face.image = picture
+    }
+
+    private func at(_ when: Double, _ then: @escaping () -> Void) {
+        let item = DispatchWorkItem(block: then)
+        pending.append(item)
+        DispatchQueue.main.asyncAfter(deadline: .now() + when, execute: item)
     }
 }
 

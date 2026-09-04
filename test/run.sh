@@ -1378,8 +1378,18 @@ check "the welcome is four pages, not one"  \
     "grep -q 'Dots(of: 4, at: step)' '$APP/Sources/main.swift' && grep -q 'case 3:' '$APP/Sources/main.swift'"
 # Eight rows of text saying what each page does is a wall to read in somebody's
 # first minute. Five marks that land one after another is the same answer.
-check "and it counts the places rather than listing them" \
-    "grep -q 'final class Places' '$APP/Sources/main.swift' && ! sed -n '/switch step {/,/^        default:/p' '$APP/Sources/main.swift' | grep -q 'for item in Action.all where'"
+check "and he walks the places rather than listing them" \
+    "grep -q 'final class Walk' '$APP/Sources/main.swift' && grep -q 'Walk(Action.places)' '$APP/Sources/main.swift' && ! sed -n '/switch step {/,/^        default:/p' '$APP/Sources/main.swift' | grep -q 'for item in Action.all where'"
+# Somebody walking along a row and stopping at each thing is somebody showing
+# you round. A row that simply appears is a page being shown to you.
+check "and each mark lights as he reaches it" \
+    "grep -q 'private func light(_ i: Int)' '$APP/Sources/main.swift' && grep -q 'self?.light(i)' '$APP/Sources/main.swift'"
+check "and he bobs rather than hovering across" \
+    "sed -n '/^final class Walk/,/^}/p' '$APP/Sources/main.swift' | grep -q 'forKey: \"bobbing\"' && sed -n '/^final class Walk/,/^}/p' '$APP/Sources/main.swift' | grep -q 'mascot-right'"
+# A layer animation with only a toValue begins at the model value, which never
+# moves, so each new leg would snap back to the beginning first.
+check "and every leg says where it starts" \
+    "! sed -n '/^final class Undoing/,/^}/p' '$APP/Sources/main.swift' | grep -q 'across.toValue = x$' || grep -q 'across.fromValue = from' '$APP/Sources/main.swift'"
 # The one promise the whole app rests on, shown rather than said four times.
 check "and it shows what putting it back looks like" \
     "grep -q 'final class Undoing' '$APP/Sources/main.swift' && grep -q 'undoing?.play(after:' '$APP/Sources/main.swift'"
