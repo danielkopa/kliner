@@ -5774,12 +5774,17 @@ final class Job: NSView {
         tile.translatesAutoresizingMaskIntoConstraints = false
         addSubview(tile)
 
-        let picture = NSImage(systemSymbolName: done ? "checkmark" : symbol,
-                              accessibilityDescription: nil)
-        picture?.isTemplate = true
-        mark.image = picture
-        mark.symbolConfiguration = NSImage.SymbolConfiguration(
-            pointSize: 13, weight: done ? .bold : .medium)
+        // The weight is put on the image rather than on the image view: the
+        // view's own symbolConfiguration wants a newer macOS than Kliner asks
+        // for, and this one is the same picture.
+        let shape = NSImage.SymbolConfiguration(pointSize: 13,
+                                                weight: done ? .bold : .medium)
+        if let picture = NSImage(systemSymbolName: done ? "checkmark" : symbol,
+                                 accessibilityDescription: nil) {
+            let drawn = picture.withSymbolConfiguration(shape) ?? picture
+            drawn.isTemplate = true
+            mark.image = drawn
+        }
         mark.translatesAutoresizingMaskIntoConstraints = false
         addSubview(mark)
 
