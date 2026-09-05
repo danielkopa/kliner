@@ -510,6 +510,24 @@ check "and taken back out if the move did not happen" \
     "grep -q 'nimo_undo_drop_last()' '$ROOT/lib/core.sh' \
      && [ \$(grep -c 'nimo_undo_drop_last \"' '$ROOT/lib/desktop.sh' '$ROOT/lib/dock.sh' '$ROOT/lib/startup.sh' | awk -F: '{t+=\$2} END{print t}') = 6 ]"
 
+# doctor said 140 while the desktop showed 137 icons and clearing it moved
+# 137: it was counting the dotfiles Finder hides and the folder nimo itself
+# had made to tidy into. A count nobody can reproduce by looking is worse
+# than no count.
+check "doctor counts what you can see, not what is there" \
+    "d=\$(mktemp -d) && mkdir -p \"\$d/Tidy\" && touch \"\$d/one\" \"\$d/two\" \"\$d/.quiet\" \
+     && [ \"\$(bash -c '. \"$ROOT/lib/core.sh\" 2>/dev/null; nimo_count_dir_items \"\$0\"' \"\$d\")\" = 2 ]"
+
+# SQLite's only escape inside a single-quoted string is a doubled quote. A
+# picture called "Dan's holiday.jpg" would otherwise close the string in the
+# middle of its own name and leave the rest to be read as SQL.
+check "a wallpaper's name cannot end up being read as SQL" \
+    "grep -q 'nimo_sql_quote()' '$ROOT/lib/wall.sh' \
+     && ! grep -q \"set value = '\\\$pic'\" '$ROOT/lib/wall.sh' \
+     && [ \$(grep -c 'nimo_sql_quote \"\$pic\"' '$ROOT/lib/wall.sh') = 3 ]"
+check "and a quote in it is doubled, not dropped" \
+    "[ \"\$(NIMO_LIB='$ROOT/lib' bash -c '. \"$ROOT/lib/wall.sh\" 2>/dev/null; nimo_sql_quote \"Dan'\"'\"'s photo.jpg\"')\" = \"Dan''s photo.jpg\" ]"
+
 # -e is false for a symlink whose target is gone, and a broken symlink is
 # still a name that is taken.
 check "a broken link still counts as something there" \

@@ -243,6 +243,14 @@ nimo_wall_took() {
     [ "$now" = "$want" ]
 }
 
+# A path on its way into a SQL string. SQLite's only escape inside single
+# quotes is a doubled quote, and a picture called "Dan's holiday.jpg" would
+# otherwise close the string in the middle of its own name and leave the rest
+# of it to be read as SQL.
+nimo_sql_quote() {
+    printf '%s' "${1:-}" | sed "s/'/''/g"
+}
+
 nimo_wall_osa() {
     NIMO_WALL_WHY=$(osascript -e "$1" 2>&1)
     [ -z "$NIMO_WALL_WHY" ]
@@ -273,7 +281,7 @@ nimo_wall_apply() {
             return 0 ;;
         dock)
             sqlite3 "$HOME/Library/Application Support/Dock/desktoppicture.db" \
-                "update data set value = '$pic'" >/dev/null 2>&1
+                "update data set value = '$(nimo_sql_quote "$pic")'" >/dev/null 2>&1
             killall Dock >/dev/null 2>&1
             return 0 ;;
     esac
@@ -296,7 +304,7 @@ nimo_wall_apply() {
         killall WallpaperAgent >/dev/null 2>&1
         if nimo_have sqlite3; then
             local blind="$HOME/Library/Application Support/Dock/desktoppicture.db"
-            if [ -f "$blind" ] && sqlite3 "$blind" "update data set value = '$pic'" >/dev/null 2>&1; then
+            if [ -f "$blind" ] && sqlite3 "$blind" "update data set value = '$(nimo_sql_quote "$pic")'" >/dev/null 2>&1; then
                 killall Dock >/dev/null 2>&1
                 return 0
             fi
@@ -314,7 +322,7 @@ nimo_wall_apply() {
 
     if nimo_have sqlite3; then
         local db="$HOME/Library/Application Support/Dock/desktoppicture.db"
-        if [ -f "$db" ] && sqlite3 "$db" "update data set value = '$pic'" >/dev/null 2>&1; then
+        if [ -f "$db" ] && sqlite3 "$db" "update data set value = '$(nimo_sql_quote "$pic")'" >/dev/null 2>&1; then
             killall Dock >/dev/null 2>&1
             if nimo_wall_took "$pic"; then NIMO_WALL_METHOD=dock; return 0; fi
         fi

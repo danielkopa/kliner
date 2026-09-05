@@ -280,9 +280,27 @@ nimo_disk_line() {
 # kilobytes -> bytes, for --json
 nimo_kb_to_bytes() { awk -v k="${1:-0}" 'BEGIN {printf "%.0f", k * 1024}'; }
 
+# How many things are sitting in a folder, counted the way the person looking
+# at it counts them.
+#
+# The raw count said 140 while the desktop showed 137 icons and clearing it
+# moved 137, because it was also counting the dotfiles Finder hides and the
+# folder nimo itself had made to tidy into. A count nobody can reproduce by
+# looking is worse than no count.
 nimo_count_dir_items() {
     [ -d "$1" ] || { printf '0'; return 0; }
-    find "$1" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' '
+    local item name n=0
+    while IFS= read -r item; do
+        [ -n "$item" ] || continue
+        name="${item##*/}"
+        case "$name" in
+            .*|"${NIMO_TIDY_DIR_NAME:-Tidy}") continue ;;
+        esac
+        n=$((n + 1))
+    done <<EOF
+$(find "$1" -mindepth 1 -maxdepth 1 2>/dev/null)
+EOF
+    printf '%s' "$n"
 }
 
 # How many non-empty lines are in this string?
