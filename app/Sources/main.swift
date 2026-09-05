@@ -35,7 +35,7 @@ enum Words {
     static let hero   = NSFont.systemFont(ofSize: 27, weight: .semibold)
     /// A number worth reading across the room. Monospaced digits, so a figure
     /// that changes does not shuffle the words after it.
-    static let figure = NSFont.monospacedDigitSystemFont(ofSize: 26, weight: .semibold)
+    static let figure = NSFont.monospacedDigitSystemFont(ofSize: 30, weight: .semibold)
     /// The top of a card, or a line that opens a group.
     static let head   = NSFont.systemFont(ofSize: 15, weight: .semibold)
     /// Everything anybody actually reads.
@@ -45,6 +45,8 @@ enum Words {
     static let small  = NSFont.systemFont(ofSize: 12, weight: .regular)
     /// A label on a control, and nothing else.
     static let tiny   = NSFont.systemFont(ofSize: 11, weight: .medium)
+    /// The word over a card or a figure, set small and spaced in capitals.
+    static let label  = NSFont.systemFont(ofSize: 11, weight: .semibold)
 
     /// A figure in a table, which has to line up with the figure above it.
     static let column = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
@@ -75,33 +77,96 @@ enum Step {
 // MARK: - nimo's colours
 
 enum Paint {
-    // On glass a fixed grey is a mistake: the wallpaper is behind the text, so
-    // the text has to be told by macOS what it should be. These are the system
-    // colours every Mac app uses — they change with the appearance, and they
-    // stay legible over whatever happens to be on the desktop.
-    static let line   = NSColor.separatorColor
-    static let hover  = NSColor.quaternaryLabelColor
-    static let picked = NSColor.unemphasizedSelectedContentBackgroundColor
+    /// Kliner's own colours, the ones the site is drawn in. The window used to
+    /// be system grey over glass, which meant it took its colour from whatever
+    /// wallpaper happened to be behind it: on a warm photograph the whole app
+    /// went brown. These do not move.
+    private static func of(_ value: UInt32) -> NSColor {
+        NSColor(srgbRed: CGFloat((value >> 16) & 0xFF) / 255,
+                green:   CGFloat((value >> 8) & 0xFF) / 255,
+                blue:    CGFloat(value & 0xFF) / 255,
+                alpha:   1)
+    }
 
-    static let ink    = NSColor.labelColor
-    static let body   = NSColor.labelColor
-    static let muted  = NSColor.secondaryLabelColor
-    static let faint  = NSColor.tertiaryLabelColor
+    /// One colour, told twice: what it is on a light Mac and what it is on a
+    /// dark one. macOS asks the block again when the appearance changes, so
+    /// nothing in the window has to be repainted by hand to follow the system.
+    private static func duo(_ light: UInt32, _ dark: UInt32) -> NSColor {
+        NSColor(name: nil) { look in
+            look.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+                ? Paint.of(dark) : Paint.of(light)
+        }
+    }
 
-    /// A breakdown drawn in five colours is a chart to be decoded. Drawn in
-    /// one colour at falling strengths it is the same reading, in order, and
-    /// the page stays quiet. Alpha over the label colour, so it is right on a
-    /// light Mac and a dark one without being asked twice.
+    // ---- the three surfaces ------------------------------------------------
+    /// The page: the widest, quietest thing in the window.
+    static let ground = duo(0xF6F8F9, 0x14191B)
+    /// The list down the side, a shade back from the page.
+    static let rail   = duo(0xEDF1F2, 0x0F1416)
+    /// A card standing on the page. Light: paper on a wall. Dark: lifted.
+    static let panel  = duo(0xFFFFFF, 0x1C2326)
+
+    static let line   = duo(0xE1E6E8, 0x2A3336)
+    static let hover  = duo(0xE7ECED, 0x232B2E)
+    static let picked = duo(0xDDE4E6, 0x283134)
+    /// The unlit half of anything that fills.
+    static let track  = duo(0xE4E9EB, 0x263033)
+
+    // ---- what is written on them -------------------------------------------
+    static let ink    = duo(0x0B1013, 0xEDF1F2)
+    static let body   = ink
+    static let muted  = duo(0x66727A, 0x98A3AA)
+    static let faint  = duo(0x9AA4AB, 0x69757C)
+
+    /// One teal, spent only on the thing you are meant to do next and on the
+    /// part of a picture that is the answer. Everything else is slate. A page
+    /// where three things are coloured is a page where nothing is.
+    static let accent   = duo(0x0E7A72, 0x5FD3C6)
+    static let onAccent = duo(0xFFFFFF, 0x04211E)
+    /// The teal at a whisper, for the ground under a quiet button.
+    static let wash     = duo(0x0E7A72, 0x5FD3C6).withAlphaComponent(0.12)
+
+    /// A breakdown drawn in five hues is a chart to be decoded. Drawn as one
+    /// hue falling away it is the same reading, in order, and the eye starts
+    /// at the biggest slice without being told to. The first band is the teal
+    /// itself, because the first band is the answer.
     static func band(_ i: Int) -> NSColor {
-        let steps: [CGFloat] = [0.92, 0.70, 0.52, 0.38, 0.28, 0.20, 0.14]
-        return NSColor.labelColor
-            .withAlphaComponent(i < steps.count ? steps[i] : 0.09)
+        if i == 0 { return accent }
+        let steps: [CGFloat] = [0, 0.55, 0.34, 0.24, 0.18, 0.13, 0.10]
+        return accent.withAlphaComponent(i < steps.count ? steps[i] : 0.08)
     }
 
     /// The one button, and the words on it.
-    static let strong = NSColor.labelColor
-    static let onStrong = NSColor.textBackgroundColor
-    static let ground = NSColor.textBackgroundColor
+    static let strong = accent
+    static let onStrong = onAccent
+}
+
+/// A plain rectangle of one of Kliner's colours, which repaints itself when
+/// the Mac changes from light to dark. The window is built out of two of
+/// these instead of two sheets of glass.
+final class Surface: NSView {
+    private let colour: NSColor
+
+    init(_ colour: NSColor) {
+        self.colour = colour
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+        paint()
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        paint()
+    }
+
+    private func paint() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            self.layer?.backgroundColor = self.colour.cgColor
+        }
+    }
 }
 
 // MARK: - running nimo
@@ -951,12 +1016,15 @@ final class Row: NSView {
     private func repaint() {
         name.textColor = chosen ? Paint.ink : Paint.muted
         name.font = chosen ? Words.strong : Words.body
-        icon.contentTintColor = chosen ? Paint.ink : Paint.muted
+        icon.contentTintColor = chosen ? Paint.accent : Paint.muted
 
-        // The page you are on is the dark one. A filled pill behind it as well
-        // says the same thing twice, and a list of pills is a list of boxes.
+        // A grey pill behind the page you are on says in a second way what
+        // the darker word already says. The teal is not a second way: it is
+        // the one mark in the window for where you are, and it is the same
+        // teal as the button for the thing to do next.
         var background = NSColor.clear
-        if hovering { background = Paint.hover }
+        if chosen { background = Paint.wash }
+        if hovering && !chosen { background = Paint.hover }
         // .cgColor answers for whichever appearance is current, so ask under
         // this view's own.
         effectiveAppearance.performAsCurrentDrawingAppearance {
@@ -1146,7 +1214,7 @@ final class Ask: NSView {
 
     private func paint() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            self.field.layer?.backgroundColor = Paint.hover.withAlphaComponent(0.4).cgColor
+            self.field.layer?.backgroundColor = Paint.track.cgColor
             self.field.layer?.borderColor = Paint.line.cgColor
         }
     }
@@ -1209,7 +1277,7 @@ final class Choice: NSView {
         picked = yes
         effectiveAppearance.performAsCurrentDrawingAppearance {
             self.layer?.borderColor = yes ? Paint.ink.cgColor : Paint.line.cgColor
-            ease(self.layer, to: yes ? Paint.hover.withAlphaComponent(0.5) : NSColor.clear)
+            ease(self.layer, to: yes ? Paint.wash : NSColor.clear)
             self.mark.layer?.borderColor = yes ? Paint.ink.cgColor : Paint.line.cgColor
             self.mark.layer?.backgroundColor = yes ? Paint.ink.cgColor : NSColor.clear.cgColor
         }
@@ -1395,10 +1463,12 @@ final class Main: NSObject, NSWindowDelegate {
         window.title = "Kliner"
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
-        // Glass: the window stops painting a background of its own, and the
-        // effect view underneath everything blurs whatever is behind it.
-        window.isOpaque = false
-        window.backgroundColor = .clear
+        // Not glass. A blurred window takes its colour from the wallpaper
+        // behind it, so on a warm photograph the whole app went brown and no
+        // amount of care inside it could get the colour back. The window
+        // paints its own ground now, in Kliner's own slate.
+        window.isOpaque = true
+        window.backgroundColor = Paint.ground
         window.isMovableByWindowBackground = true
         window.minSize = NSSize(width: 760, height: 480)
         window.delegate = self
@@ -1469,20 +1539,17 @@ final class Main: NSObject, NSWindowDelegate {
     // MARK: building it
 
     private func build() {
-        let glass = NSVisualEffectView()
-        glass.material = .sidebar
-        glass.blendingMode = .behindWindow
-        glass.state = .followsWindowActiveState
-        window.contentView = glass
-        let content: NSView = glass
+        let shell = Surface(Paint.rail)
+        window.contentView = shell
+        // The content view is placed by the window, not by constraints: with
+        // its autoresizing turned off and nothing holding it, it would have no
+        // size at all and the window would open empty.
+        shell.translatesAutoresizingMaskIntoConstraints = true
+        let content: NSView = shell
 
-        // The work sits on a second, slightly denser pane. The two halves read
-        // apart without a box being drawn round either.
-        let pane = NSVisualEffectView()
-        pane.material = .contentBackground
-        pane.blendingMode = .withinWindow
-        pane.state = .followsWindowActiveState
-        pane.translatesAutoresizingMaskIntoConstraints = false
+        // The work sits on a second, lighter pane. The two halves read apart
+        // without a box being drawn round either.
+        let pane = Surface(Paint.ground)
         content.addSubview(pane)
 
         // ---- down the side ----------------------------------------------
@@ -2220,9 +2287,13 @@ final class Main: NSObject, NSWindowDelegate {
         // then never uses it is a form for its own sake.
         let hour = Calendar.current.component(.hour, from: Date())
         let part = hour < 12 ? "Good morning" : (hour < 18 ? "Good afternoon" : "Good evening")
-        let called = (Config.value("name") ?? "").trimmingCharacters(in: .whitespaces)
+        var called = (Config.value("name") ?? "").trimmingCharacters(in: .whitespaces)
+        // Somebody called D.K. was greeted as "D.K..", because a name that
+        // ends in a full stop was given another one.
+        while called.hasSuffix(".") { called.removeLast() }
+        called = called.trimmingCharacters(in: .whitespaces)
         words(called.isEmpty ? "\(part)." : "\(part), \(called).",
-              Words.hero, Paint.ink, top: Step.hair, bottom: Step.tight)
+              Words.hero, Paint.ink, top: Step.hair, bottom: Step.close)
 
         // ---- how things stand ------------------------------------------------
         let across = NSStackView()
@@ -2257,9 +2328,12 @@ final class Main: NSObject, NSWindowDelegate {
         let list = Card("What to do")
         var left = 0
 
-        func job(_ title: String, _ note: String, done: Bool, verb: String?, page: Int) {
+        func job(_ title: String, _ note: String, done: Bool, verb: String?,
+                 symbol: String, page: Int) {
             if !done { left += 1 }
-            let one = Job(title, note: note, done: done, verb: done ? nil : verb)
+            let first = !done && left == 1
+            let one = Job(title, note: note, done: done, verb: done ? nil : verb,
+                          symbol: symbol, lead: first)
             one.onOpen = { [weak self] in self?.show(page) }
             one.onDo = { [weak self] in self?.startOn(page) }
             list.add(one)
@@ -2267,25 +2341,29 @@ final class Main: NSObject, NSWindowDelegate {
 
         let sighted = Access.may(Access.desktop) && Access.may(Access.downloads)
         if !sighted {
+            left += 1
             let one = Job("Let Kliner see your files",
-                          note: "macOS has not been asked yet", done: false, verb: "Ask")
+                          note: "macOS has not been asked yet", done: false, verb: "Ask",
+                          symbol: "lock", lead: true)
             one.onDo = { [weak self] in self?.askFromHome() }
             one.onOpen = { [weak self] in self?.askFromHome() }
             list.add(one)
-            left += 1
         }
 
         job("Clear your desktop",
             figures["Desktop"] ?? "nothing on it",
-            done: count("Desktop") == 0, verb: "Clear it", page: 1)
+            done: count("Desktop") == 0, verb: "Clear it",
+            symbol: "macwindow.on.rectangle", page: 1)
 
         job("Sort your downloads",
             figures["Downloads"] ?? "nothing in it",
-            done: count("Downloads") == 0, verb: "Sort it", page: 2)
+            done: count("Downloads") == 0, verb: "Sort it",
+            symbol: "arrow.down.circle", page: 2)
 
         job("Free up space",
             junk > 0 ? size(junk) : "nothing to free",
-            done: junk == 0, verb: "Free it", page: 6)
+            done: junk == 0, verb: "Free it",
+            symbol: "internaldrive", page: 6)
 
         if left == 0 {
             let clear = NSTextField(labelWithString: "Nothing needs doing. Your Mac is clear.")
@@ -2301,21 +2379,19 @@ final class Main: NSObject, NSWindowDelegate {
             let yours = max(0, total - free - junk)
             let card = Card("What is on your disk")
 
-            let bands: [(name: String, share: Double, colour: NSColor)] = [
-                (name: "Your files", share: yours, colour: Paint.band(0)),
-                (name: "Worth freeing", share: junk, colour: Paint.band(2)),
-                (name: "Free", share: free, colour: Paint.band(5)),
+            func told(_ much: Double) -> String {
+                "\(size(much))  ·  \(Int((much / total * 100).rounded()))%"
+            }
+
+            // The bar and the table under it were the same three numbers
+            // twice, which is why the page ran on and said nothing new. One
+            // bar, with the reading written along under it.
+            let bands: [(name: String, share: Double, colour: NSColor, note: String)] = [
+                (name: "Your files", share: yours, colour: Paint.band(1), note: told(yours)),
+                (name: "Worth freeing", share: junk, colour: Paint.band(0), note: told(junk)),
+                (name: "Free", share: free, colour: Paint.band(4), note: told(free)),
             ]
             card.add(Split(bands))
-
-            card.add(Ledger(colour: nil, name: "What is on it",
-                            share: "Share", size: "Size", head: true), gap: Step.air)
-            for band in bands where band.share > 0 {
-                card.add(Ledger(colour: band.colour,
-                                name: band.name,
-                                share: "\(Int((band.share / total * 100).rounded()))%",
-                                size: size(band.share)))
-            }
             card.foot("Look at what is big") { [weak self] in self?.show(5) }
             line(card)
             gap(Step.tight)
@@ -4210,7 +4286,7 @@ final class Walk: NSView {
         face.contentTintColor = Paint.ink
         effectiveAppearance.performAsCurrentDrawingAppearance {
             for mark in self.marks {
-                mark.layer?.backgroundColor = Paint.hover.withAlphaComponent(0.5).cgColor
+                mark.layer?.backgroundColor = Paint.track.cgColor
             }
         }
     }
@@ -5017,6 +5093,11 @@ final class Pick: NSView {
     private func repaint() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             ease(self.layer, to: self.hovering ? Paint.hover : NSColor.clear)
+            // A job still to do carries the teal. A job already done goes
+            // quiet, so what is left stands out on its own.
+            self.tile.layer?.backgroundColor = self.done
+                ? Paint.track.cgColor : Paint.wash.cgColor
+            self.mark.contentTintColor = self.done ? Paint.muted : Paint.accent
         }
     }
 }
@@ -5302,7 +5383,7 @@ final class Seek: NSView, NSTextFieldDelegate {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             // Enough fill to read as a field. At a third of the hover colour
             // it was a word with a key floating beside it.
-            self.layer?.backgroundColor = Paint.hover.cgColor
+            self.layer?.backgroundColor = Paint.track.cgColor
             self.layer?.borderColor = Paint.line.cgColor
             self.badge.layer?.backgroundColor = Paint.picked.cgColor
         }
@@ -5672,21 +5753,33 @@ final class Job: NSView {
     var onOpen: (() -> Void)?
 
     private let mark = NSImageView()
+    private let tile = NSView()
     private let done: Bool
     private var hovering = false
 
-    init(_ title: String, note: String, done: Bool, verb: String?) {
+    init(_ title: String, note: String, done: Bool, verb: String?,
+         symbol: String = "circle", lead: Bool = false) {
         self.done = done
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
-        layer?.cornerRadius = 8
+        layer?.cornerRadius = 9
 
-        let picture = NSImage(systemSymbolName: done ? "checkmark.circle.fill" : "circle",
+        // A hollow ring beside a line of text is a radio button, and three of
+        // them in a column is a form asking you to pick one. These are jobs,
+        // not choices: each one gets the mark of the place it is about, and a
+        // tick once it is done.
+        tile.wantsLayer = true
+        tile.layer?.cornerRadius = 8
+        tile.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(tile)
+
+        let picture = NSImage(systemSymbolName: done ? "checkmark" : symbol,
                               accessibilityDescription: nil)
         picture?.isTemplate = true
         mark.image = picture
-        mark.contentTintColor = done ? Paint.muted : Paint.ink
+        mark.symbolConfiguration = NSImage.SymbolConfiguration(
+            pointSize: 13, weight: done ? .bold : .medium)
         mark.translatesAutoresizingMaskIntoConstraints = false
         addSubview(mark)
 
@@ -5706,19 +5799,24 @@ final class Job: NSView {
         addSubview(much)
 
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 44),
+            heightAnchor.constraint(equalToConstant: 52),
 
-            mark.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Step.close),
-            mark.centerYAnchor.constraint(equalTo: centerYAnchor),
-            mark.widthAnchor.constraint(equalToConstant: 15),
-            mark.heightAnchor.constraint(equalToConstant: 15),
+            tile.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Step.tight),
+            tile.centerYAnchor.constraint(equalTo: centerYAnchor),
+            tile.widthAnchor.constraint(equalToConstant: 28),
+            tile.heightAnchor.constraint(equalToConstant: 28),
 
-            name.leadingAnchor.constraint(equalTo: mark.trailingAnchor, constant: Step.close),
+            mark.centerXAnchor.constraint(equalTo: tile.centerXAnchor),
+            mark.centerYAnchor.constraint(equalTo: tile.centerYAnchor),
+
+            name.leadingAnchor.constraint(equalTo: tile.trailingAnchor, constant: Step.close),
             name.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
 
         if let word = verb {
-            let go = Chip(.quiet)
+            // One filled button on the page, on the first thing still to do.
+            // Three of them in a column is three things shouting at once.
+            let go = Chip(lead ? .strong : .quiet)
             go.set(word)
             go.onClick = { [weak self] in self?.onDo?() }
             go.translatesAutoresizingMaskIntoConstraints = false
@@ -5738,6 +5836,8 @@ final class Job: NSView {
             much.leadingAnchor.constraint(greaterThanOrEqualTo: name.trailingAnchor,
                                           constant: Step.close),
         ])
+
+        repaint()
     }
 
     required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
@@ -5799,21 +5899,50 @@ func leaded(_ text: String, _ font: NSFont, _ colour: NSColor) -> NSAttributedSt
 /// rounded a little more than the next is a window somebody assembled rather
 /// than drew.
 enum Panel {
-    static let round: CGFloat = 12
+    static let round: CGFloat = 14
     static let pad: CGFloat = Step.air
 
     static func dress(_ view: NSView) {
         view.wantsLayer = true
         view.layer?.cornerRadius = round
         view.layer?.borderWidth = 1
+        // A card is a thing standing on the page, so it is lit like one: an
+        // opaque face and a shadow so faint it reads as an edge rather than
+        // as a drop. It used to be a 40% tint of the hover colour, which on
+        // most desktops was indistinguishable from the page under it.
+        view.layer?.shadowOpacity = 1
+        view.layer?.shadowRadius = 8
+        view.layer?.shadowOffset = CGSize(width: 0, height: -1)
+        view.layer?.masksToBounds = false
         paint(view)
     }
 
     static func paint(_ view: NSView) {
         view.effectiveAppearance.performAsCurrentDrawingAppearance {
-            view.layer?.backgroundColor = Paint.hover.withAlphaComponent(0.4).cgColor
+            view.layer?.backgroundColor = Paint.panel.cgColor
             view.layer?.borderColor = Paint.line.cgColor
+            view.layer?.shadowColor = NSColor.black
+                .withAlphaComponent(dark(view) ? 0.34 : 0.07).cgColor
         }
+    }
+
+    /// Whether the Mac is in dark mode, asked of the view that is about to be
+    /// painted. A shadow that works on white is invisible on slate.
+    static func dark(_ view: NSView) -> Bool {
+        view.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+    }
+
+    /// The line over a card or a group: small, spaced, and in capitals, so it
+    /// reads as a label on the thing rather than as the first sentence of it.
+    static func label(_ words: String) -> NSTextField {
+        let name = NSTextField(labelWithString: "")
+        name.attributedStringValue = NSAttributedString(
+            string: words.uppercased(),
+            attributes: [.font: Words.label,
+                         .foregroundColor: Paint.faint,
+                         .kern: 0.7])
+        name.translatesAutoresizingMaskIntoConstraints = false
+        return name
     }
 }
 
@@ -5920,27 +6049,30 @@ final class Bars: NSView {
 /// bar and it counts like a number, which is what a figure with a ceiling
 /// wants: you can see it is about two thirds without being told.
 final class Meter: NSView {
-    private var filled: [NSView] = []
     private let part: Double
+    private let track = CALayer()
+    private let bar = CALayer()
     private var filling = false
 
-    init(_ part: Double, ticks: Int = 30) {
+    init(_ part: Double) {
         self.part = min(1, max(0, part))
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
 
-        let lit = Int((Double(ticks) * self.part).rounded())
-        for i in 0..<ticks {
-            let tick = NSView()
-            tick.wantsLayer = true
-            tick.layer?.cornerRadius = 1
-            addSubview(tick)
-            filled.append(tick)
-            tick.layer?.backgroundColor = (i < lit ? Paint.band(0) : Paint.band(6)).cgColor
-        }
+        // It was thirty little ticks, which from a step back read as a
+        // barcode rather than as an amount. One bar filling one way is the
+        // shape everybody already knows how to read.
+        //
+        // Layers, not views: a sublayer keeps the anchor it is given, and the
+        // bar has to grow from its left edge rather than from its middle.
+        track.cornerRadius = 3
+        bar.cornerRadius = 3
+        bar.anchorPoint = CGPoint(x: 0, y: 0.5)
+        layer?.addSublayer(track)
+        layer?.addSublayer(bar)
 
-        heightAnchor.constraint(equalToConstant: 16).isActive = true
+        heightAnchor.constraint(equalToConstant: 6).isActive = true
         paint()
     }
 
@@ -5952,49 +6084,44 @@ final class Meter: NSView {
     }
 
     private func paint() {
-        let lit = Int((Double(filled.count) * part).rounded())
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            for (i, tick) in self.filled.enumerated() {
-                tick.layer?.backgroundColor =
-                    (i < lit ? Paint.band(0) : Paint.band(6)).cgColor
-            }
+            self.track.backgroundColor = Paint.track.cgColor
+            self.bar.backgroundColor = Paint.accent.cgColor
         }
     }
 
-    /// The lit ticks arrive one after another, left to right, once. A meter
-    /// that fills is a meter you watch reach its number; a meter that is
-    /// simply there is a picture of one.
-    private func fill() {
+    /// The bar runs out to its number once, when the page arrives. A bar that
+    /// is simply there is a picture of a bar; one that fills is a reading
+    /// being taken.
+    private func run() {
         guard !filling else { return }
         filling = true
-        let lit = Int((Double(filled.count) * part).rounded())
-        for (i, tick) in filled.enumerated() where i < lit {
-            let show = CABasicAnimation(keyPath: "opacity")
-            show.fromValue = 0
-            show.toValue = 1
-            show.duration = 0.18
-            show.beginTime = CACurrentMediaTime() + Double(i) * 0.012
-            show.fillMode = .backwards
-            show.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            tick.layer?.add(show, forKey: "filling")
-        }
+        let grow = CABasicAnimation(keyPath: "transform.scale.x")
+        grow.fromValue = 0
+        grow.toValue = 1
+        grow.duration = 0.62
+        grow.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        bar.add(grow, forKey: "filling")
     }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        if window != nil { fill() }
+        if window != nil { run() }
     }
 
     override func layout() {
         super.layout()
-        guard !filled.isEmpty else { return }
-        let air: CGFloat = 3
-        let room = bounds.width - air * CGFloat(filled.count - 1)
-        let wide = max(1.5, room / CGFloat(filled.count))
-        for (i, tick) in filled.enumerated() {
-            tick.frame = NSRect(x: CGFloat(i) * (wide + air), y: 0,
-                                width: wide, height: bounds.height)
-        }
+        // A sublayer is not laid out by AppKit, so it is placed here, and
+        // without the implicit animation every frame change would otherwise
+        // slide it.
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        track.frame = bounds
+        let room = max(0, bounds.width)
+        bar.bounds = CGRect(x: 0, y: 0,
+                            width: max(3, room * CGFloat(part)), height: bounds.height)
+        bar.position = CGPoint(x: 0, y: bounds.midY)
+        CATransaction.commit()
     }
 }
 
@@ -6008,18 +6135,12 @@ final class Metric: NSView {
         translatesAutoresizingMaskIntoConstraints = false
         Panel.dress(self)
 
-        let title = NSTextField(labelWithString: name)
-        title.font = Words.strong
-        title.textColor = Paint.ink
-        title.translatesAutoresizingMaskIntoConstraints = false
+        // The name of the figure, and under it the figure. The line of prose
+        // that used to sit between them ("Space in use" under "Disk") said
+        // what the name already said, and pushed the number it was explaining
+        // down the card.
+        let title = Panel.label(name)
         addSubview(title)
-
-        let under = NSTextField(labelWithString: note)
-        under.font = Words.small
-        under.textColor = Paint.muted
-        under.lineBreakMode = .byTruncatingTail
-        under.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(under)
 
         let number = NSTextField(labelWithString: big)
         number.font = Words.figure
@@ -6030,36 +6151,45 @@ final class Metric: NSView {
         NSLayoutConstraint.activate([
             title.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Panel.pad),
             title.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor,
-                                            constant: -Step.close),
+                                            constant: -Step.tight),
             title.topAnchor.constraint(equalTo: topAnchor, constant: Panel.pad),
 
-            under.leadingAnchor.constraint(equalTo: title.leadingAnchor),
-            under.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor,
-                                            constant: -Step.close),
-            under.topAnchor.constraint(equalTo: title.bottomAnchor, constant: 2),
-
-            // Air, not a rule. A line between the name of a figure and the
-            // figure is a line between a thing and itself.
             number.leadingAnchor.constraint(equalTo: title.leadingAnchor),
-            number.topAnchor.constraint(equalTo: under.bottomAnchor, constant: Step.wide),
+            number.topAnchor.constraint(equalTo: title.bottomAnchor, constant: Step.tight),
         ])
 
         if let ceiling = whole {
             let ofIt = NSTextField(labelWithString: "of \(ceiling)")
             ofIt.font = Words.small
-            ofIt.textColor = Paint.muted
+            ofIt.textColor = Paint.faint
             ofIt.translatesAutoresizingMaskIntoConstraints = false
             addSubview(ofIt)
             NSLayoutConstraint.activate([
-                ofIt.leadingAnchor.constraint(equalTo: number.trailingAnchor, constant: Step.tight),
+                ofIt.leadingAnchor.constraint(equalTo: number.trailingAnchor, constant: 5),
                 ofIt.lastBaselineAnchor.constraint(equalTo: number.lastBaselineAnchor),
                 ofIt.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor,
-                                               constant: -Step.close),
+                                               constant: -Step.tight),
             ])
         } else {
             number.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor,
                                              constant: -Panel.pad).isActive = true
         }
+
+        // The word under the number is the one that is worth reading: what
+        // this figure is telling you. On the cards that are only a count it
+        // is the whole explanation, so it stays.
+        let under = NSTextField(labelWithString: note)
+        under.font = Words.small
+        under.textColor = Paint.muted
+        under.lineBreakMode = .byTruncatingTail
+        under.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(under)
+        NSLayoutConstraint.activate([
+            under.leadingAnchor.constraint(equalTo: title.leadingAnchor),
+            under.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor,
+                                            constant: -Step.tight),
+            under.topAnchor.constraint(equalTo: number.bottomAnchor, constant: Step.tight),
+        ])
 
         if let share = part {
             let meter = Meter(share)
@@ -6067,12 +6197,12 @@ final class Metric: NSView {
             NSLayoutConstraint.activate([
                 meter.leadingAnchor.constraint(equalTo: title.leadingAnchor),
                 meter.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Panel.pad),
-                meter.topAnchor.constraint(equalTo: number.bottomAnchor, constant: Step.close),
+                meter.topAnchor.constraint(equalTo: under.bottomAnchor, constant: Step.close),
                 meter.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -Panel.pad),
             ])
         } else {
-            number.bottomAnchor.constraint(equalTo: bottomAnchor,
-                                           constant: -Step.wide).isActive = true
+            under.bottomAnchor.constraint(equalTo: bottomAnchor,
+                                          constant: -Panel.pad - 5).isActive = true
         }
 
         paint()
@@ -6103,10 +6233,7 @@ final class Card: NSView {
         translatesAutoresizingMaskIntoConstraints = false
         Panel.dress(self)
 
-        let name = NSTextField(labelWithString: title)
-        name.font = Words.strong
-        name.textColor = Paint.muted
-        name.translatesAutoresizingMaskIntoConstraints = false
+        let name = Panel.label(title)
         addSubview(name)
 
         body.orientation = .vertical
@@ -6306,18 +6433,18 @@ final class Figure: NSView {
 /// them being broken, and a bar that is nearly in proportion is not a
 /// breakdown of anything.
 final class Split: NSView {
-    private let parts: [(name: String, share: Double, colour: NSColor)]
+    private let parts: [(name: String, share: Double, colour: NSColor, note: String)]
     private var pieces: [NSView] = []
 
-    init(_ parts: [(name: String, share: Double, colour: NSColor)]) {
+    init(_ parts: [(name: String, share: Double, colour: NSColor, note: String)]) {
         self.parts = parts.filter { $0.share > 0 }
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
 
         let keys = NSStackView()
         keys.orientation = .horizontal
-        keys.spacing = 16
-        keys.alignment = .centerY
+        keys.spacing = Step.wide
+        keys.alignment = .top
         keys.translatesAutoresizingMaskIntoConstraints = false
         addSubview(keys)
 
@@ -6328,13 +6455,13 @@ final class Split: NSView {
             piece.layer?.backgroundColor = part.colour.cgColor
             addSubview(piece)
             pieces.append(piece)
-            keys.addArrangedSubview(Key(part.name, part.colour))
+            keys.addArrangedSubview(Key(part.name, part.colour, part.note))
         }
 
         NSLayoutConstraint.activate([
             keys.leadingAnchor.constraint(equalTo: leadingAnchor),
             keys.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
-            keys.topAnchor.constraint(equalTo: topAnchor, constant: 18),
+            keys.topAnchor.constraint(equalTo: topAnchor, constant: 20),
             keys.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
     }
@@ -6357,9 +6484,10 @@ final class Split: NSView {
     }
 }
 
-/// A dot and a word: one entry of a legend.
+/// A dot, a word and the figure it stands for: one entry of a legend, which
+/// with the figure on it is the whole reading and not half of one.
 final class Key: NSView {
-    init(_ name: String, _ colour: NSColor) {
+    init(_ name: String, _ colour: NSColor, _ note: String? = nil) {
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
 
@@ -6378,13 +6506,32 @@ final class Key: NSView {
 
         NSLayoutConstraint.activate([
             dot.leadingAnchor.constraint(equalTo: leadingAnchor),
-            dot.centerYAnchor.constraint(equalTo: centerYAnchor),
+            dot.topAnchor.constraint(equalTo: word.topAnchor, constant: 5),
             dot.widthAnchor.constraint(equalToConstant: 7),
             dot.heightAnchor.constraint(equalToConstant: 7),
             word.leadingAnchor.constraint(equalTo: dot.trailingAnchor, constant: 6),
-            word.trailingAnchor.constraint(equalTo: trailingAnchor),
+            word.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
             word.topAnchor.constraint(equalTo: topAnchor),
-            word.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+
+        guard let figure = note else {
+            NSLayoutConstraint.activate([
+                word.trailingAnchor.constraint(equalTo: trailingAnchor),
+                word.bottomAnchor.constraint(equalTo: bottomAnchor),
+            ])
+            return
+        }
+
+        let much = NSTextField(labelWithString: figure)
+        much.font = Words.strong
+        much.textColor = Paint.ink
+        much.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(much)
+        NSLayoutConstraint.activate([
+            much.leadingAnchor.constraint(equalTo: word.leadingAnchor),
+            much.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
+            much.topAnchor.constraint(equalTo: word.bottomAnchor, constant: 1),
+            much.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
     }
 

@@ -1131,12 +1131,19 @@ check "the menu is built after the window it points at" \
 check "there is no terminal left in the window" \
     "! grep -qE 'NSTextView\\(|documentView = .*NSTextView' '$APP/Sources/main.swift'"
 check "what nimo said is laid out as text"  "grep -q 'final class Said' '$APP/Sources/main.swift'"
-check "there is nothing shouting on the page" \
-    "! grep -q 'Paint.accent' '$APP/Sources/main.swift'"
+# One teal, and it is spent on the thing you are meant to do next. Every
+# other colour in the window is slate. Counted, not banned: a page where
+# three things are coloured is a page where nothing is.
+check "there is one colour in the window, and it is Kliner's" \
+    "grep -q 'static let accent   = duo' '$APP/Sources/main.swift'"
+check "and it is not sprayed about" \
+    "[ \$(grep -c 'Paint.accent' '$APP/Sources/main.swift') -le 12 ]"
 check "the window follows the system, light or dark" \
-    "grep -q 'NSColor.labelColor' '$APP/Sources/main.swift' && ! grep -q 'window.appearance' '$APP/Sources/main.swift'"
-check "the window is glass"                 "grep -q 'NSVisualEffectView' '$APP/Sources/main.swift'"
-check "and it lets the desktop through"     "grep -q 'window.isOpaque = false' '$APP/Sources/main.swift'"
+    "grep -q 'bestMatch(from: \[.aqua, .darkAqua\])' '$APP/Sources/main.swift' && ! grep -q 'window.appearance' '$APP/Sources/main.swift'"
+# Not glass. A blurred window takes its colour from the wallpaper behind it,
+# so on a warm photograph the whole app went brown.
+check "the window paints its own ground"    "grep -q 'window.isOpaque = true' '$APP/Sources/main.swift'"
+check "and no wallpaper reaches it"         "! grep -q 'NSVisualEffectView' '$APP/Sources/main.swift'"
 check "the window opens on a look, not a job" \
     "grep -q 'static let home = Action' '$APP/Sources/main.swift' && grep -q 'func drawHome' '$APP/Sources/main.swift'"
 check "home is doctor's own reading, not a second measurement" \
@@ -1206,8 +1213,12 @@ check "home is laid out as cards"            \
     "grep -q 'final class Card' '$APP/Sources/main.swift' && grep -q 'let card = Card(\"What is on your disk\")' '$APP/Sources/main.swift'"
 # The figures across the top, then the bar they came out of, then the table
 # behind the bar. Out of that order it is three unrelated pictures.
-check "the figures sit above the bar, and the bar above the table" \
-    "awk '/across.addArrangedSubview\\(Metric\\(\"Disk\"/{m=NR} /card.add\\(Split\\(bands\\)/{s=NR} /card.add\\(Ledger\\(colour: band.colour/{l=NR} END{exit !(m && s && l && m<s && s<l)}' '$APP/Sources/main.swift'"
+check "the figures sit above the bar" \
+    "awk '/across.addArrangedSubview\\(Metric\\(\"Disk\"/{m=NR} /card.add\\(Split\\(bands\\)/{s=NR} END{exit !(m && s && m<s)}' '$APP/Sources/main.swift'"
+# The bar and the table under it were the same three numbers twice. The bar
+# carries its own reading now, and there is no table.
+check "and the bar carries its own reading" \
+    "! sed -n '/what is taking the room/,/^    }/p' '$APP/Sources/main.swift' | grep -q 'Ledger(' && grep -q 'Key(part.name, part.colour, part.note)' '$APP/Sources/main.swift'"
 check "a figure with a ceiling gets a meter" \
     "grep -q 'final class Meter' '$APP/Sources/main.swift' && grep -q 'of: size(total)' '$APP/Sources/main.swift'"
 # One colour at falling strengths, not a palette. A breakdown in five colours
@@ -1238,8 +1249,12 @@ check "and the breakdown has the picture as well as the table" \
     "grep -q 'final class Bars' '$APP/Sources/main.swift' && grep -q 'card.add(Bars(named.map' '$APP/Sources/main.swift'"
 check "sizes are read back into numbers"    "grep -q 'func bytes' '$APP/Sources/main.swift'"
 check "no paragraph under every title"      "! grep -q 'blurbLabel' '$APP/Sources/main.swift'"
-check "the window is glass, in two weights"  \
-    "[ \$(grep -c 'NSVisualEffectView()' '$APP/Sources/main.swift') = 2 ]"
+# A content view with its autoresizing turned off and no constraints has no
+# size, and the window opens empty.
+check "the window's own view is placed by the window" \
+    "grep -q 'shell.translatesAutoresizingMaskIntoConstraints = true' '$APP/Sources/main.swift'"
+check "the window is two surfaces, not one" \
+    "[ \$(grep -c 'Surface(Paint' '$APP/Sources/main.swift') = 2 ]"
 check "back and forward remember where you were" \
     "grep -q 'func goBack' '$APP/Sources/main.swift' && grep -q 'behind.append' '$APP/Sources/main.swift'"
 check "the chrome sits past the three lights" \
@@ -1580,9 +1595,11 @@ check "and it sits in the middle of that page" \
 # back to starting where the page starts, rather than printing over a button.
 check "and it never prints over a button"    \
     "grep -q 'titleLeading.priority = .defaultLow' '$APP/Sources/main.swift' && grep -q 'titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: chrome.trailingAnchor' '$APP/Sources/main.swift'"
-# The page you are on is the dark one in the list. A filled pill behind it as
-# well says the same thing twice.
-check "the list marks the page by weight, not by a box" \
+# The page you are on is marked once, in the one colour the window has. A
+# grey pill as well says in a second way what the darker word already says.
+check "the list marks where you are in Kliner's colour" \
+    "grep -q 'if chosen { background = Paint.wash }' '$APP/Sources/main.swift'"
+check "and not with a grey box as well" \
     "! grep -q 'if chosen { background = Paint.picked }' '$APP/Sources/main.swift'"
 check "paragraphs have room between their lines" \
     "grep -q 'lineHeightMultiple' '$APP/Sources/main.swift' && grep -q 'func leaded' '$APP/Sources/main.swift'"
@@ -1718,7 +1735,7 @@ check "and every page says what one of its rows is" \
 check "every panel in the window is the same panel" \
     "grep -q 'enum Panel {' '$APP/Sources/main.swift' && [ \$(grep -c 'Panel.dress(self)' '$APP/Sources/main.swift') -ge 2 ]"
 check "and none of them names its own corner" \
-    "! grep -qE 'layer\\?.cornerRadius = 1[02]$' '$APP/Sources/main.swift'"
+    "! grep -qE 'layer\\?.cornerRadius = 1[024]$' '$APP/Sources/main.swift'"
 # The eyes move, not the mark. A layer slid sideways is the whole word walking.
 check "only the eyes look sideways"          \
     "! sed -n '/^final class Wordmark/,/^}/p' '$APP/Sources/main.swift' | grep -q 'transform' && grep -q '\"-right\"' '$APP/Sources/main.swift'"
