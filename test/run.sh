@@ -1535,6 +1535,17 @@ check "doctor can answer its instant half alone" \
     "grep -q 'NIMO_FAST:-0' '$ROOT/lib/tools.sh' && bash '$MIN' doctor --fast -q --no-color | grep -q 'your computer'"
 check "and home asks for that half first"    \
     "grep -q 'private var filling = false' '$APP/Sources/main.swift' && grep -q 'if filling { arguments += \[\"--fast\"\] }' '$APP/Sources/main.swift' && grep -q 'private func fillIn()' '$APP/Sources/main.swift'"
+# The bars are the picture and the table is the reading. A stacked bar and a
+# row of dots naming every kind again between them was one thing said thrice.
+check "the breakdown is drawn twice, not three times" \
+    "! sed -n '/private func drawBreakdown/,/^    }/p' '$APP/Sources/main.swift' | grep -q 'Split('"
+# The card is named after the page already, so the panel's own heading printed
+# again left "your desktop" sitting on its own under the table.
+check "and the panel heading is not printed under it" \
+    "sed -n '/private func drawBreakdown/,/^    }/p' '$APP/Sources/main.swift' | grep -q 'if whole > 0 { break }'"
+# At a fifth of the label colour on a barely-there disc he read as a smudge.
+check "the corner reads as somebody, not a smudge" \
+    "grep -q 'face.contentTintColor = Paint.ink' '$APP/Sources/main.swift'"
 # The row of buttons sits opposite the page title, not underneath it, so one
 # line across the top says what the page is and what it can do.
 # One row across the top holds everything that is not the page. The page under

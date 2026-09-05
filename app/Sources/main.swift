@@ -2393,22 +2393,16 @@ final class Main: NSObject, NSWindowDelegate {
             // rolled into the faintest of them.
             let shown = 7
             var shades: [NSColor] = []
-            var bars: [(name: String, share: Double, colour: NSColor)] = []
-            for (i, one) in named.enumerated() {
-                let shade = Paint.band(min(i, shown))
-                shades.append(shade)
-                if i < shown {
-                    bars.append((name: one.name, share: one.size, colour: shade))
-                }
+            for (i, _) in named.enumerated() {
+                shades.append(Paint.band(min(i, shown)))
             }
-            let tail = named.dropFirst(shown).reduce(0) { $0 + $1.size }
-            if tail > 0 {
-                bars.append((name: "Everything else", share: tail,
-                             colour: Paint.band(shown)))
-            }
+            // The bars are the picture and the table is the reading. A third
+            // drawing of the same numbers between them — a stacked bar and a
+            // row of dots naming every kind again — was the page saying one
+            // thing three times, and the dots were the crowded line nobody
+            // could read.
             card.add(Bars(named.map { (name: $0.name, size: $0.size) }, bytes: asBytes),
                      gap: Step.tight)
-            card.add(Split(bars), gap: Step.air)
 
             card.add(Ledger(colour: nil, name: "What is in it",
                             share: "Share", size: asBytes ? "Size" : "How many",
@@ -2432,6 +2426,10 @@ final class Main: NSObject, NSWindowDelegate {
         for piece in rest {
             switch piece {
             case .heading(let text):
+                // The card above is named after this page already. Printing
+                // the panel's own heading again left "your desktop" sitting on
+                // its own under the table, in the faintest grey there is.
+                if whole > 0 { break }
                 words(text, Words.small, Paint.faint, top: Step.air, bottom: Step.tight)
             case .good(let text):
                 words(text, Words.strong, Paint.ink)
@@ -5599,11 +5597,19 @@ final class Helper: NSView {
     }
 
     private func paint() {
-        face.contentTintColor = hovering ? Paint.ink : Paint.muted
+        // He is the one thing you can hand work to, and in the corner of a
+        // dark window at a fifth of the label colour on a barely-there disc he
+        // read as a smudge on the glass rather than as somebody standing
+        // there. Ink at rest, and a disc you can actually see the edge of.
+        face.contentTintColor = Paint.ink
         effectiveAppearance.performAsCurrentDrawingAppearance {
             self.disc.layer?.borderColor = Paint.line.cgColor
             ease(self.disc.layer,
-                 to: self.hovering ? Paint.picked : Paint.hover.withAlphaComponent(0.5))
+                 to: self.hovering ? Paint.picked : Paint.hover)
+            self.disc.layer?.shadowColor = NSColor.black.cgColor
+            self.disc.layer?.shadowOpacity = 0.22
+            self.disc.layer?.shadowRadius = 10
+            self.disc.layer?.shadowOffset = CGSize(width: 0, height: -2)
         }
     }
 
