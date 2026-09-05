@@ -1216,6 +1216,13 @@ check "and a place holding two things offers both" \
 check "the window cannot be made shorter than its own list" \
     "grep -q 'NSSize(width: 760, height: 620)' '$APP/Sources/main.swift'"
 
+# A place stays if anything it holds matched. One of the things inside it
+# stays only if it matched itself — searching for the wallpaper and being
+# shown Startup as well is the list ignoring what was typed into it.
+check "searching hides the things that did not match" \
+    "grep -q 'let found = row.isUnder' '$APP/Sources/main.swift' \
+     && grep -q '? matches.contains(row.index)' '$APP/Sources/main.swift'"
+
 check "the list shows what is inside each place" \
     "grep -q 'let kid = Row(item.title, symbol: item.symbol, index: which, under: true)' '$APP/Sources/main.swift'"
 # How many things are in there, at the right-hand end of the row — but only

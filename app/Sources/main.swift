@@ -3182,12 +3182,19 @@ final class Main: NSObject, NSWindowDelegate {
         // the window with it.
         for row in rows {
             guard let place = Action.place(of: row.index) else { continue }
-            let found = place.holds.contains { matches.contains($0) }
+            // A place stays if anything it holds matched. One of the things
+            // inside it stays only if it matched itself — searching for the
+            // wallpaper and being shown Startup as well is the list ignoring
+            // what was typed into it.
+            let found = row.isUnder
+                ? matches.contains(row.index)
+                : place.holds.contains { matches.contains($0) }
             row.isHidden = !(want.isEmpty || found)
         }
         // Settings and Help are under a hairline of their own and are not one
         // of the things being searched, so they stay where they are.
         for head in groupLabels { head.isHidden = !want.isEmpty }
+        sideHeading.isHidden = !want.isEmpty
     }
 
     /// Return opens the first thing the words matched, and empties the field,
