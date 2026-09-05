@@ -1683,6 +1683,11 @@ check "nothing is pinned to its own contents" \
 # two are four hundred lines apart. That cost a build.
 check "and no name is declared twice in one scope" \
     "python3 '$ROOT/tools/shadow.py' '$APP/Sources/main.swift'"
+# A paint routine edited into the wrong class set `self.tile` and read
+# `self.done` inside one that has neither. swiftc said so in a second and
+# nothing here did, so this reads every class and every self.x in it.
+check "and every self.x is a member of the class writing it" \
+    "python3 '$ROOT/tools/members.py' '$APP/Sources/main.swift'"
 check "and the trail never says the same word twice" \
     "grep -q 'trail(place == name ? \"Kliner\" : place, name)' '$APP/Sources/main.swift'"
 # The name of the page is in that row, on the same line as everything you can
