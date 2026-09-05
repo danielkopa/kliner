@@ -1080,13 +1080,12 @@ final class Row: NSView {
         count.textColor = Paint.faint
 
         // A grey pill behind the page you are on says in a second way what
-        // the darker word already says. The teal is not a second way: it is
-        // the one mark in the window for where you are, and it is the same
-        // teal as the button for the thing to do next.
+        // the darker word already says. The lift is not a second way: it is
+        // the one mark in the window for where you are, the same lift the
+        // button for the thing to do next is made of.
         var background = NSColor.clear
         if chosen { background = Paint.wash }
         if hovering && !chosen { background = Paint.hover }
-        _ = lit
         // .cgColor answers for whichever appearance is current, so ask under
         // this view's own.
         effectiveAppearance.performAsCurrentDrawingAppearance {
@@ -6276,8 +6275,8 @@ final class Job: NSView {
     private func repaint() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             ease(self.layer, to: self.hovering ? Paint.hover : NSColor.clear)
-            // A job still to do carries the teal. A job already done goes
-            // quiet, so what is left stands out on its own.
+            // A job still to do is lifted off the card. A job already done
+            // goes quiet, so what is left stands out on its own.
             self.tile.layer?.backgroundColor = self.done
                 ? Paint.track.cgColor : Paint.wash.cgColor
             self.mark.contentTintColor = self.done ? Paint.muted : Paint.accent
@@ -7214,7 +7213,7 @@ final class Thinking: NSView {
         let awake = NSImage(named: "mascot")
         awake?.isTemplate = true
         face.image = awake
-        // Quiet. What moves is the teal going round the edge of him; the
+        // Quiet. What moves is the light going round the edge of him; the
         // shape itself is only there to be gone round, and painted any
         // stronger it is a grey mass in the middle of an empty page.
         face.contentTintColor = Paint.faint
