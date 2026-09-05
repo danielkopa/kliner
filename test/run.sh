@@ -1168,12 +1168,16 @@ check "the menu is built after the window it points at" \
 check "there is no terminal left in the window" \
     "! grep -qE 'NSTextView\\(|documentView = .*NSTextView' '$APP/Sources/main.swift'"
 check "what nimo said is laid out as text"  "grep -q 'final class Said' '$APP/Sources/main.swift'"
-# One teal, and it is spent on the thing you are meant to do next. Every
-# other colour in the window is slate. Counted, not banned: a page where
-# three things are coloured is a page where nothing is.
-check "there is one colour in the window, and it is Kliner's" \
-    "grep -q 'static let accent   = duo' '$APP/Sources/main.swift'"
-check "and it is not sprayed about" \
+# The window has no colour in it. Every dashboard reaches for a brand hue and
+# puts it on the button, the selected row, the first bar of the chart and the
+# icon beside a job — four coloured things, which is four things shouting.
+# What matters is brighter, what does not is dimmer, and the only colour in
+# the window is whatever is behind the glass.
+check "the window is grey all the way down" \
+    "! grep -qE 'NSColor\\.(systemBlue|systemTeal|systemGreen|systemOrange|systemPurple|systemPink|systemYellow)' '$APP/Sources/main.swift'"
+check "and every colour it has is told twice, light and dark" \
+    "[ \$(grep -c 'static let [a-z]* *= duo(0x' '$APP/Sources/main.swift') -ge 12 ]"
+check "and it is spent in one place at a time" \
     "[ \$(grep -c 'Paint.accent' '$APP/Sources/main.swift') -le 12 ]"
 check "the window follows the system, light or dark" \
     "grep -q 'bestMatch(from: \[.aqua, .darkAqua\])' '$APP/Sources/main.swift' && ! grep -q 'window.appearance' '$APP/Sources/main.swift'"

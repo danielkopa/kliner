@@ -98,51 +98,56 @@ enum Paint {
         }
     }
 
-    // ---- the three surfaces ------------------------------------------------
-    /// The page: the widest, quietest thing in the window.
-    static let ground = duo(0xF6F8F9, 0x14191B)
-    /// The list down the side, a shade back from the page.
-    static let rail   = duo(0xEDF1F2, 0x0F1416)
-    /// A card standing on the page. Light: paper on a wall. Dark: lifted.
-    static let panel  = duo(0xFFFFFF, 0x1C2326)
-
-    static let line   = duo(0xE1E6E8, 0x2A3336)
-    static let hover  = duo(0xE7ECED, 0x232B2E)
-    static let picked = duo(0xDDE4E6, 0x283134)
-    /// The unlit half of anything that fills.
-    static let track  = duo(0xE4E9EB, 0x263033)
-
-    // ---- what is written on them -------------------------------------------
-    static let ink    = duo(0x0B1013, 0xEDF1F2)
-    static let body   = ink
-    static let muted  = duo(0x66727A, 0x98A3AA)
-    static let faint  = duo(0x9AA4AB, 0x69757C)
-
-    /// One teal, spent only on the thing you are meant to do next and on the
-    /// part of a picture that is the answer. Everything else is slate. A page
-    /// where three things are coloured is a page where nothing is.
-    static let accent   = duo(0x0E7A72, 0x5FD3C6)
-    static let onAccent = duo(0xFFFFFF, 0x04211E)
-    /// The teal at a whisper, for the ground under a quiet button.
-    static let wash     = duo(0x0E7A72, 0x5FD3C6).withAlphaComponent(0.12)
-
-    // ---- and the two of them that sit on glass -----------------------------
+    // ---- the surfaces, darkest first ---------------------------------------
     /// Over the blur, so the window keeps the depth of glass without taking
     /// the wallpaper's colour with it. Straight glass went brown over a warm
-    /// photograph; this is Kliner's slate, thin enough to see through.
-    static let veil = duo(0xF2F5F6, 0x101618).withAlphaComponent(0.74)
-    /// The work sits on one card inset from the window's edges, the way the
-    /// glass apps do it: the blur is the window, the card is the page.
-    static let card = duo(0xFFFFFF, 0x1B2226).withAlphaComponent(0.72)
+    /// photograph; this is a cool grey, thin enough to see through.
+    static let veil = duo(0xF1F3F5, 0x24282C).withAlphaComponent(0.80)
+    /// The list stands on the veil, so this is only a name for the same
+    /// thing: what the side of the window is.
+    static let rail   = duo(0xEDEFF2, 0x25292D)
+    /// The work sits on one card, and the card is the *lighter* thing. A page
+    /// darker than the frame round it reads as a hole in the window.
+    static let card   = duo(0xFFFFFF, 0x33373D).withAlphaComponent(0.88)
+    /// And a panel standing on that card is lighter again.
+    static let panel  = duo(0xFFFFFF, 0x383C42)
+    /// Kept for anything measured against the page rather than drawn on it.
+    static let ground = duo(0xF7F8FA, 0x2B2F34)
+
+    static let line   = duo(0xE1E4E8, 0x474B52)
+    static let hover  = duo(0xE9EBEE, 0x2E3236)
+    /// The row you are on, and the fill under anything chosen.
+    static let picked = duo(0xE2E5E9, 0x32363A)
+    /// The unlit half of anything that fills, and the ground under a chip.
+    static let track  = duo(0xE4E7EB, 0x45494D)
+
+    // ---- what is written on them -------------------------------------------
+    static let ink    = duo(0x14171A, 0xF8F9FC)
+    static let body   = duo(0x2B2F34, 0xBDC0C3)
+    static let muted  = duo(0x6B6F76, 0x9B9EA5)
+    static let faint  = duo(0x91959C, 0x7C8087)
+
+    /// The window has no colour in it.
+    ///
+    /// Every dashboard reaches for a brand hue and puts it on the button, the
+    /// selected row, the first bar of the chart and the icon beside a job —
+    /// four coloured things, which is four things shouting. This one is grey
+    /// all the way down: what matters is brighter, what does not is dimmer,
+    /// and the only colour in the window is whatever is behind the glass.
+    ///
+    /// It is one constant. Kliner's teal goes back in here if it ever should.
+    static let accent   = duo(0x1D2024, 0xF0F2F5)
+    static let onAccent = duo(0xFFFFFF, 0x1B1E22)
+    /// A lift rather than a tint: the same light the card is made of, a
+    /// little more of it.
+    static let wash     = duo(0x000000, 0xFFFFFF).withAlphaComponent(0.07)
 
     /// A breakdown drawn in five hues is a chart to be decoded. Drawn as one
-    /// hue falling away it is the same reading, in order, and the eye starts
-    /// at the biggest slice without being told to. The first band is the teal
-    /// itself, because the first band is the answer.
+    /// light falling away it is the same reading, in order, and the eye
+    /// starts at the biggest slice without being told to.
     static func band(_ i: Int) -> NSColor {
-        if i == 0 { return accent }
-        let steps: [CGFloat] = [0, 0.55, 0.34, 0.24, 0.18, 0.13, 0.10]
-        return accent.withAlphaComponent(i < steps.count ? steps[i] : 0.08)
+        let steps: [CGFloat] = [0.90, 0.60, 0.42, 0.30, 0.22, 0.16, 0.12]
+        return ink.withAlphaComponent(i < steps.count ? steps[i] : 0.09)
     }
 
     /// The one button, and the words on it.
