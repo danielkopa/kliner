@@ -126,6 +126,15 @@ enum Paint {
     /// The teal at a whisper, for the ground under a quiet button.
     static let wash     = duo(0x0E7A72, 0x5FD3C6).withAlphaComponent(0.12)
 
+    // ---- and the two of them that sit on glass -----------------------------
+    /// Over the blur, so the window keeps the depth of glass without taking
+    /// the wallpaper's colour with it. Straight glass went brown over a warm
+    /// photograph; this is Kliner's slate, thin enough to see through.
+    static let veil = duo(0xF2F5F6, 0x101618).withAlphaComponent(0.74)
+    /// The work sits on one card inset from the window's edges, the way the
+    /// glass apps do it: the blur is the window, the card is the page.
+    static let card = duo(0xFFFFFF, 0x1B2226).withAlphaComponent(0.72)
+
     /// A breakdown drawn in five hues is a chart to be decoded. Drawn as one
     /// hue falling away it is the same reading, in order, and the eye starts
     /// at the biggest slice without being told to. The first band is the teal
@@ -146,12 +155,21 @@ enum Paint {
 /// these instead of two sheets of glass.
 final class Surface: NSView {
     private let colour: NSColor
+    private let round: CGFloat
+    private let edged: Bool
 
-    init(_ colour: NSColor) {
+    init(_ colour: NSColor, round: CGFloat = 0, edged: Bool = false) {
         self.colour = colour
+        self.round = round
+        self.edged = edged
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
+        layer?.cornerRadius = round
+        layer?.borderWidth = edged ? 1 : 0
+        // A page scrolling inside a rounded card has to stop at the corner,
+        // or the first line of it pokes out past the curve.
+        layer?.masksToBounds = round > 0
         paint()
     }
 
@@ -165,6 +183,7 @@ final class Surface: NSView {
     private func paint() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             self.layer?.backgroundColor = self.colour.cgColor
+            if self.edged { self.layer?.borderColor = Paint.line.cgColor }
         }
     }
 }
@@ -1338,6 +1357,8 @@ final class Main: NSObject, NSWindowDelegate {
     private var stackWidth: NSLayoutConstraint!
     private var markWidth: NSLayoutConstraint!
     private var sideStack: NSStackView!
+    /// The word over the list, which goes when the list folds to its pictures.
+    private var sideHeading: NSView!
     private var wordmark: Wordmark!
     private var groupLabels: [NSTextField] = []
     private var narrow = false
@@ -1463,12 +1484,12 @@ final class Main: NSObject, NSWindowDelegate {
         window.title = "Kliner"
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
-        // Not glass. A blurred window takes its colour from the wallpaper
-        // behind it, so on a warm photograph the whole app went brown and no
-        // amount of care inside it could get the colour back. The window
-        // paints its own ground now, in Kliner's own slate.
-        window.isOpaque = true
-        window.backgroundColor = Paint.ground
+        // Glass, with a veil of Kliner's own slate over it. Straight glass
+        // took its colour from the wallpaper — on a warm photograph the whole
+        // app went brown — and a flat opaque window threw the depth away with
+        // it. The blur stays; the hue does not reach the page.
+        window.isOpaque = false
+        window.backgroundColor = .clear
         window.isMovableByWindowBackground = true
         window.minSize = NSSize(width: 760, height: 480)
         window.delegate = self
@@ -1539,17 +1560,28 @@ final class Main: NSObject, NSWindowDelegate {
     // MARK: building it
 
     private func build() {
-        let shell = Surface(Paint.rail)
-        window.contentView = shell
-        // The content view is placed by the window, not by constraints: with
-        // its autoresizing turned off and nothing holding it, it would have no
-        // size at all and the window would open empty.
-        shell.translatesAutoresizingMaskIntoConstraints = true
-        let content: NSView = shell
+        let glass = NSVisualEffectView()
+        glass.material = .sidebar
+        glass.blendingMode = .behindWindow
+        glass.state = .followsWindowActiveState
+        window.contentView = glass
+        let content: NSView = glass
 
-        // The work sits on a second, lighter pane. The two halves read apart
-        // without a box being drawn round either.
-        let pane = Surface(Paint.ground)
+        // First thing in, so everything else stands on it: the slate that
+        // stops the wallpaper's colour coming through the blur.
+        let veil = Surface(Paint.veil)
+        content.addSubview(veil)
+        NSLayoutConstraint.activate([
+            veil.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            veil.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            veil.topAnchor.constraint(equalTo: content.topAnchor),
+            veil.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+        ])
+
+        // The work sits on one card, inset from the window's edges and round
+        // at the corners. The list is not on it: the list is on the glass, and
+        // the card is the page.
+        let pane = Surface(Paint.card, round: 12, edged: true)
         content.addSubview(pane)
 
         // ---- down the side ----------------------------------------------
@@ -1588,6 +1620,23 @@ final class Main: NSObject, NSWindowDelegate {
         seek.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         stack.setCustomSpacing(Step.wide, after: seek)
 
+
+        // The list has a name over it, the way every list down the side of a
+        // window does: small, spaced, in capitals, so it reads as a label on
+        // the list rather than as the first row of it.
+        let heading = Panel.label("Places")
+        let headRoom = NSView()
+        headRoom.translatesAutoresizingMaskIntoConstraints = false
+        headRoom.addSubview(heading)
+        NSLayoutConstraint.activate([
+            heading.leadingAnchor.constraint(equalTo: headRoom.leadingAnchor, constant: 10),
+            heading.trailingAnchor.constraint(lessThanOrEqualTo: headRoom.trailingAnchor),
+            heading.topAnchor.constraint(equalTo: headRoom.topAnchor),
+            heading.bottomAnchor.constraint(equalTo: headRoom.bottomAnchor, constant: -Step.tight),
+        ])
+        stack.addArrangedSubview(headRoom)
+        headRoom.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        sideHeading = headRoom
 
         // Five places, each opening on the first of the things it holds. What
         // else is in a place is under the name of the one you are on, which
@@ -1638,10 +1687,13 @@ final class Main: NSObject, NSWindowDelegate {
         // One hairline in the whole window, between the list and the work.
         // The row along the top is not a strip of its own: it is the top of
         // the two surfaces, so it needs no line under it and no line in it.
+        // Where the list stops and the page starts. It used to be drawn as a
+        // hairline; the card has an edge of its own now, so this is only the
+        // line everything is measured from.
         let edge = NSBox()
         edge.boxType = .custom
         edge.borderWidth = 0
-        edge.fillColor = Paint.line
+        edge.fillColor = .clear
         edge.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(edge)
         railLine = edge
@@ -1653,7 +1705,7 @@ final class Main: NSObject, NSWindowDelegate {
         let under = NSBox()
         under.boxType = .custom
         under.borderWidth = 0
-        under.fillColor = Paint.line
+        under.fillColor = .clear
         under.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(under)
         barLine = under
@@ -1788,13 +1840,16 @@ final class Main: NSObject, NSWindowDelegate {
             feet.bottomAnchor.constraint(equalTo: content.bottomAnchor,
                                          constant: -Step.air),
 
-            // The page runs the whole height of the window. The row along the
-            // top is not a strip of its own with a colour of its own: it is
-            // the top of the two surfaces, and the window is quieter for it.
+            // One card, inset from three edges of the window and starting
+            // under the row along the top. The row is not a strip of its own:
+            // it is the glass above the card, with the lights in it.
             pane.leadingAnchor.constraint(equalTo: edge.trailingAnchor),
-            pane.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            pane.topAnchor.constraint(equalTo: content.topAnchor),
-            pane.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            pane.trailingAnchor.constraint(equalTo: content.trailingAnchor,
+                                           constant: -Step.close),
+            pane.topAnchor.constraint(equalTo: content.topAnchor,
+                                      constant: Step.bar + Step.tight),
+            pane.bottomAnchor.constraint(equalTo: content.bottomAnchor,
+                                         constant: -Step.close),
 
             railWidth,
             edge.topAnchor.constraint(equalTo: content.topAnchor),
@@ -1826,30 +1881,30 @@ final class Main: NSObject, NSWindowDelegate {
             side.trailingAnchor.constraint(equalTo: edge.leadingAnchor, constant: -Step.air),
             side.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -Step.wide),
 
-            ahead.leadingAnchor.constraint(equalTo: edge.trailingAnchor, constant: Step.edge),
-            ahead.trailingAnchor.constraint(equalTo: content.trailingAnchor,
+            ahead.leadingAnchor.constraint(equalTo: pane.leadingAnchor, constant: Step.edge),
+            ahead.trailingAnchor.constraint(equalTo: pane.trailingAnchor,
                                             constant: -Step.edge),
-            ahead.bottomAnchor.constraint(equalTo: content.bottomAnchor,
-                                          constant: -Step.wide),
+            ahead.bottomAnchor.constraint(equalTo: pane.bottomAnchor,
+                                          constant: -Step.air),
 
-            sitting.trailingAnchor.constraint(equalTo: content.trailingAnchor,
-                                              constant: -Step.wide),
-            sitting.bottomAnchor.constraint(equalTo: content.bottomAnchor,
-                                            constant: -Step.wide),
+            // Kliner sits in the bottom right corner of the card, inside it,
+            // not in the corner of the window under it.
+            sitting.trailingAnchor.constraint(equalTo: pane.trailingAnchor,
+                                              constant: -Step.air),
+            sitting.bottomAnchor.constraint(equalTo: pane.bottomAnchor,
+                                            constant: -Step.air),
 
-            // The row is as tall as the list's own head start, so both
-            // surfaces begin saying something at the same height.
-            under.leadingAnchor.constraint(equalTo: edge.trailingAnchor),
-            under.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            under.topAnchor.constraint(equalTo: content.topAnchor,
-                                       constant: Step.bar + Step.close),
+            // The line the page's first words stand on, kept as a measure
+            // now that the card's own edge is what you can see.
+            under.leadingAnchor.constraint(equalTo: pane.leadingAnchor),
+            under.trailingAnchor.constraint(equalTo: pane.trailingAnchor),
+            under.topAnchor.constraint(equalTo: pane.topAnchor),
             under.heightAnchor.constraint(equalToConstant: 1),
 
-            scroll.leadingAnchor.constraint(equalTo: edge.trailingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            scroll.topAnchor.constraint(equalTo: under.bottomAnchor,
-                                        constant: Step.air),
-            scroll.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            scroll.leadingAnchor.constraint(equalTo: pane.leadingAnchor, constant: 1),
+            scroll.trailingAnchor.constraint(equalTo: pane.trailingAnchor, constant: -1),
+            scroll.topAnchor.constraint(equalTo: pane.topAnchor, constant: Step.air),
+            scroll.bottomAnchor.constraint(equalTo: pane.bottomAnchor, constant: -1),
 
             report.leadingAnchor.constraint(equalTo: scroll.contentView.leadingAnchor),
             report.trailingAnchor.constraint(equalTo: scroll.contentView.trailingAnchor),
@@ -2394,8 +2449,24 @@ final class Main: NSObject, NSWindowDelegate {
             card.add(Split(bands))
             card.foot("Look at what is big") { [weak self] in self?.show(5) }
             line(card)
-            gap(Step.tight)
+            gap(Step.close)
         }
+
+        // The page stopped two thirds of the way down, and what was under it
+        // was nothing. This is the thing worth saying last, and the one
+        // question anybody has before they press any of the buttons above.
+        let safe = Card("Nothing here is deleted")
+        let told = Wrapping(labelWithString: "")
+        told.maximumNumberOfLines = 0
+        told.lineBreakMode = .byWordWrapping
+        told.attributedStringValue = leaded(
+            "Kliner moves things and writes down every move. Whatever it does, "
+            + "you can have it back the way it was.",
+            Words.body, Paint.muted)
+        safe.add(told, gap: Step.hair)
+        safe.foot("Put something back") { [weak self] in self?.show(8) }
+        line(safe)
+        gap(Step.tight)
     }
 
     /// Go to a page and start the thing it does, which is what pressing the
@@ -4016,6 +4087,8 @@ final class Main: NSObject, NSWindowDelegate {
         }
         for row in rows { row.narrow(narrow) }
         for head in groupLabels { head.isHidden = narrow }
+        // Folded to a rail there is no room for a word over the list either.
+        sideHeading.isHidden = narrow
         // A search field 38 points wide is a search field nobody can type in.
         search.isHidden = narrow
 
@@ -6478,6 +6551,13 @@ final class Split: NSView {
             keys.addArrangedSubview(Key(part.name, part.colour, part.note))
         }
 
+        // The slack goes at the end, so the entries stand together at the
+        // left rather than being pushed to the corners of the card.
+        let slack = NSView()
+        slack.translatesAutoresizingMaskIntoConstraints = false
+        slack.setContentHuggingPriority(.init(1), for: .horizontal)
+        keys.addArrangedSubview(slack)
+
         NSLayoutConstraint.activate([
             keys.leadingAnchor.constraint(equalTo: leadingAnchor),
             keys.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
@@ -6542,16 +6622,27 @@ final class Key: NSView {
             return
         }
 
+        // Nothing was pulling the right-hand edge in, so three entries in a
+        // row spread themselves across the whole card instead of standing
+        // next to each other. This asks to be as wide as the wider of its two
+        // lines, and gives way if the row has to be narrower than that.
+        let hug = word.trailingAnchor.constraint(equalTo: trailingAnchor)
+        hug.priority = .defaultLow
+
         let much = NSTextField(labelWithString: figure)
         much.font = Words.strong
         much.textColor = Paint.ink
         much.translatesAutoresizingMaskIntoConstraints = false
         addSubview(much)
+        let hugToo = much.trailingAnchor.constraint(equalTo: trailingAnchor)
+        hugToo.priority = .defaultLow
         NSLayoutConstraint.activate([
             much.leadingAnchor.constraint(equalTo: word.leadingAnchor),
             much.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
             much.topAnchor.constraint(equalTo: word.bottomAnchor, constant: 1),
             much.bottomAnchor.constraint(equalTo: bottomAnchor),
+            hug,
+            hugToo,
         ])
     }
 

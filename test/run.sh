@@ -1177,10 +1177,14 @@ check "and it is not sprayed about" \
     "[ \$(grep -c 'Paint.accent' '$APP/Sources/main.swift') -le 12 ]"
 check "the window follows the system, light or dark" \
     "grep -q 'bestMatch(from: \[.aqua, .darkAqua\])' '$APP/Sources/main.swift' && ! grep -q 'window.appearance' '$APP/Sources/main.swift'"
-# Not glass. A blurred window takes its colour from the wallpaper behind it,
-# so on a warm photograph the whole app went brown.
-check "the window paints its own ground"    "grep -q 'window.isOpaque = true' '$APP/Sources/main.swift'"
-check "and no wallpaper reaches it"         "! grep -q 'NSVisualEffectView' '$APP/Sources/main.swift'"
+# Glass, with a veil of Kliner's own slate over it. Straight glass took its
+# colour from the wallpaper — on a warm photograph the whole app went brown —
+# and a flat opaque window threw the depth away with it.
+check "the window is glass"                 "grep -q 'NSVisualEffectView()' '$APP/Sources/main.swift'"
+check "and it lets the desktop through"     "grep -q 'window.isOpaque = false' '$APP/Sources/main.swift'"
+check "but the wallpaper's colour does not reach the page" \
+    "grep -q 'static let veil = duo' '$APP/Sources/main.swift' \
+     && grep -q 'Surface(Paint.veil)' '$APP/Sources/main.swift'"
 check "the window opens on a look, not a job" \
     "grep -q 'static let home = Action' '$APP/Sources/main.swift' && grep -q 'func drawHome' '$APP/Sources/main.swift'"
 check "home is doctor's own reading, not a second measurement" \
@@ -1250,6 +1254,18 @@ check "home is laid out as cards"            \
     "grep -q 'final class Card' '$APP/Sources/main.swift' && grep -q 'let card = Card(\"What is on your disk\")' '$APP/Sources/main.swift'"
 # The figures across the top, then the bar they came out of, then the table
 # behind the bar. Out of that order it is three unrelated pictures.
+# Home ran out two thirds of the way down the window and what was under it
+# was nothing. The last thing on it is the one question anybody has before
+# they press any of the buttons above it.
+check "home closes on what it promises" \
+    "grep -q 'Card(\"Nothing here is deleted\")' '$APP/Sources/main.swift' \
+     && grep -q 'safe.foot(\"Put something back\")' '$APP/Sources/main.swift'"
+# Nothing pulled a legend entry's right edge in, so three of them spread
+# themselves across the whole card instead of standing next to each other.
+check "a legend entry is as wide as its own words" \
+    "grep -q 'hug.priority = .defaultLow' '$APP/Sources/main.swift' \
+     && grep -q 'hugToo.priority = .defaultLow' '$APP/Sources/main.swift'"
+
 check "the figures sit above the bar" \
     "awk '/across.addArrangedSubview\\(Metric\\(\"Disk\"/{m=NR} /card.add\\(Split\\(bands\\)/{s=NR} END{exit !(m && s && m<s)}' '$APP/Sources/main.swift'"
 # The bar and the table under it were the same three numbers twice. The bar
@@ -1286,10 +1302,14 @@ check "and the breakdown has the picture as well as the table" \
     "grep -q 'final class Bars' '$APP/Sources/main.swift' && grep -q 'card.add(Bars(named.map' '$APP/Sources/main.swift'"
 check "sizes are read back into numbers"    "grep -q 'func bytes' '$APP/Sources/main.swift'"
 check "no paragraph under every title"      "! grep -q 'blurbLabel' '$APP/Sources/main.swift'"
-# A content view with its autoresizing turned off and no constraints has no
-# size, and the window opens empty.
-check "the window's own view is placed by the window" \
-    "grep -q 'shell.translatesAutoresizingMaskIntoConstraints = true' '$APP/Sources/main.swift'"
+# The work is one card, inset from three edges of the window and round at the
+# corners. The list is not on it: the list is on the glass.
+check "the work sits on one card, inset from the window" \
+    "grep -q 'Surface(Paint.card, round: 12, edged: true)' '$APP/Sources/main.swift' \
+     && grep -q 'pane.trailingAnchor.constraint(equalTo: content.trailingAnchor,' '$APP/Sources/main.swift'"
+check "and Kliner sits in the corner of the card" \
+    "grep -q 'sitting.trailingAnchor.constraint(equalTo: pane.trailingAnchor,' '$APP/Sources/main.swift' \
+     && grep -q 'sitting.bottomAnchor.constraint(equalTo: pane.bottomAnchor,' '$APP/Sources/main.swift'"
 check "the window is two surfaces, not one" \
     "[ \$(grep -c 'Surface(Paint' '$APP/Sources/main.swift') = 2 ]"
 check "back and forward remember where you were" \
@@ -1408,7 +1428,8 @@ check "and the rail is not folded away for it" \
 # Back in the bottom-left of the pane, the one thing to press in the
 # bottom-right, rather than both floating in the middle of the page.
 check "and the way through sits in the corners" \
-    "grep -q 'onward.bottomAnchor.constraint(equalTo: content.bottomAnchor' '$APP/Sources/main.swift' || grep -q 'ahead.bottomAnchor.constraint(equalTo: content.bottomAnchor' '$APP/Sources/main.swift'"
+    "grep -q 'ahead.bottomAnchor.constraint(equalTo: pane.bottomAnchor' '$APP/Sources/main.swift' \
+     && grep -q 'ahead.leadingAnchor.constraint(equalTo: pane.leadingAnchor' '$APP/Sources/main.swift'"
 # Beckoning steps aside for leaning, so coming back off the last page has to
 # put him down again or he keeps the round eyes on a page asking nothing.
 check "and he stops asking when you walk back off it" \
@@ -1642,16 +1663,20 @@ check "paragraphs have room between their lines" \
     "grep -q 'lineHeightMultiple' '$APP/Sources/main.swift' && grep -q 'func leaded' '$APP/Sources/main.swift'"
 check "and the work stops at a readable width" \
     "grep -q 'static let column: CGFloat' '$APP/Sources/main.swift' && grep -q 'lessThanOrEqualToConstant: Main.column' '$APP/Sources/main.swift'"
-# The row along the top takes no colour of its own — the page runs the whole
-# height of the window underneath it — but it is a header, so it has a line.
-check "the page runs the whole height of the window" \
-    "grep -q 'pane.topAnchor.constraint(equalTo: content.topAnchor)' '$APP/Sources/main.swift'"
-check "the row along the top has a line under it" \
-    "grep -q 'under.heightAnchor.constraint(equalToConstant: 1)' '$APP/Sources/main.swift' && grep -q 'scroll.topAnchor.constraint(equalTo: under.bottomAnchor' '$APP/Sources/main.swift'"
-# The list is its own surface. A line drawn over both turns the window into a
-# grid of boxes, so this one stops where the list ends.
-check "and that line stops at the list" \
-    "grep -q 'under.leadingAnchor.constraint(equalTo: edge.trailingAnchor)' '$APP/Sources/main.swift'"
+# The row along the top takes no colour of its own: it is the glass above the
+# card, with the three lights in it. Two hairlines used to be drawn to say
+# where the list stopped and where the page's words started; the card has an
+# edge of its own, and two lines saying one thing is one line too many.
+check "the page begins under the row along the top" \
+    "grep -q 'pane.topAnchor.constraint(equalTo: content.topAnchor,' '$APP/Sources/main.swift' \
+     && grep -q 'constant: Step.bar + Step.tight)' '$APP/Sources/main.swift'"
+check "and the card's own edge is the only line drawn" \
+    "grep -q 'edge.fillColor = .clear' '$APP/Sources/main.swift' \
+     && grep -q 'under.fillColor = .clear' '$APP/Sources/main.swift'"
+# The list is not on the card. The card is the page.
+check "the list stands on the glass, not on the page" \
+    "grep -q 'under.leadingAnchor.constraint(equalTo: pane.leadingAnchor)' '$APP/Sources/main.swift' \
+     && grep -q 'stack.leadingAnchor.constraint(equalTo: content.leadingAnchor' '$APP/Sources/main.swift'"
 check "and the setup keeps the one down the side" \
     "grep -q 'railLine?.isHidden = false' '$APP/Sources/main.swift' && grep -q 'barLine, chrome' '$APP/Sources/main.swift'"
 check "with no second line inside the row" \
