@@ -1208,8 +1208,25 @@ check "the list down the side is five places" \
 # it. The name of the thing you are looking at is where you change it.
 check "and a place holding two things offers both" \
     "grep -q 'func offerSiblings' '$APP/Sources/main.swift' && grep -q 'final class Trail' '$APP/Sources/main.swift' && ! grep -q 'final class Tab' '$APP/Sources/main.swift'"
-check "the row is lit for the page inside it" \
-    "grep -q 'Action.place(of: row.index)?.holds.contains(index)' '$APP/Sources/main.swift'"
+# What is inside a place is listed under it, indented, rather than being
+# reachable only through a chevron on the name of the page you are already on
+# — a door with the handle on the inside.
+check "the list shows what is inside each place" \
+    "grep -q 'let kid = Row(item.title, symbol: item.symbol, index: which, under: true)' '$APP/Sources/main.swift'"
+# How many things are in there, at the right-hand end of the row — but only
+# once Home has counted them. A zero nobody has measured is a lie.
+check "the list says how many are in each place" \
+    "grep -q 'func holds(_ many: String?)' '$APP/Sources/main.swift' \
+     && grep -q 'row.holds(tally(count(\"Desktop\")))' '$APP/Sources/main.swift'"
+check "and says nothing before it has counted" \
+    "grep -q 'func tally(_ many: Int) -> String? { many > 0 ? String(many) : nil }' '$APP/Sources/main.swift'"
+
+check "the place is lit for the page inside it" \
+    "grep -q 'let inHere = holds.contains(index)' '$APP/Sources/main.swift' \
+     && grep -q 'row.within(inHere)' '$APP/Sources/main.swift'"
+check "and the fill belongs to the row you are standing on" \
+    "grep -q 'func within(_ yes: Bool)' '$APP/Sources/main.swift' \
+     && awk '/func within\\(_ yes: Bool\\)/{print}' '$APP/Sources/main.swift' | grep -q 'inside = yes'"
 check "help sits under settings, with the keys" \
     "grep -q 'func drawHelp' '$APP/Sources/main.swift' && grep -q 'static let help = Action' '$APP/Sources/main.swift'"
 check "it can ask macOS for what it needs"  "grep -q 'func askForFolders' '$APP/Sources/main.swift' && grep -q 'func askNext' '$APP/Sources/main.swift'"

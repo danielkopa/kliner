@@ -945,7 +945,11 @@ final class Row: NSView {
 
     private let name = NSTextField(labelWithString: "")
     private let icon = NSImageView()
+    private let count = NSTextField(labelWithString: "")
+    /// A row for one of the things inside a place, indented under it.
+    private let under: Bool
     private var chosen = false
+    private var inside = false
     private var hovering = false
     private var wide: NSLayoutConstraint!
     private var atLeft: NSLayoutConstraint!
@@ -959,18 +963,24 @@ final class Row: NSView {
             self.name.animator().alphaValue = yes ? 0 : 1
         }
         name.isHidden = yes
+        count.isHidden = yes || count.stringValue.isEmpty
         atLeft.isActive = !yes
         inMiddle.isActive = yes
         wide.constant = yes ? 38 : 190
         toolTip = yes ? name.stringValue : nil
     }
 
+    /// A row for one of the things inside a place has nothing to say at a
+    /// rail's width: the place above it is already there.
+    var isUnder: Bool { under }
+
     convenience init(_ item: Action, index: Int) {
         self.init(item.title, symbol: item.symbol, index: index)
     }
 
-    init(_ title: String, symbol: String, index: Int) {
+    init(_ title: String, symbol: String, index: Int, under: Bool = false) {
         self.index = index
+        self.under = under
         super.init(frame: .zero)
 
         translatesAutoresizingMaskIntoConstraints = false
@@ -990,20 +1000,32 @@ final class Row: NSView {
         name.translatesAutoresizingMaskIntoConstraints = false
         addSubview(name)
 
+        // How many things are in there, the way every list down the side of a
+        // window says it: quietly, at the right-hand end of the row.
+        count.font = Words.tiny
+        count.alignment = .right
+        count.isHidden = true
+        count.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(count)
+
         wide = widthAnchor.constraint(equalToConstant: 190)
-        atLeft = icon.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10)
+        atLeft = icon.leadingAnchor.constraint(equalTo: leadingAnchor,
+                                               constant: under ? 26 : 10)
         inMiddle = icon.centerXAnchor.constraint(equalTo: centerXAnchor)
 
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 32),
+            heightAnchor.constraint(equalToConstant: under ? 28 : 30),
             wide,
             atLeft,
             icon.centerYAnchor.constraint(equalTo: centerYAnchor),
-            icon.widthAnchor.constraint(equalToConstant: 15),
-            icon.heightAnchor.constraint(equalToConstant: 15),
+            icon.widthAnchor.constraint(equalToConstant: under ? 13 : 15),
+            icon.heightAnchor.constraint(equalToConstant: under ? 13 : 15),
             name.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 9),
-            name.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -10),
             name.centerYAnchor.constraint(equalTo: centerYAnchor),
+            count.leadingAnchor.constraint(greaterThanOrEqualTo: name.trailingAnchor,
+                                           constant: Step.tight),
+            count.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            count.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
 
         repaint()
@@ -1037,10 +1059,25 @@ final class Row: NSView {
 
     func choose(_ yes: Bool) { chosen = yes; repaint() }
 
+    /// The page you are on lives in here, but is not this row. A place with
+    /// its things listed under it does not take the fill as well — the fill
+    /// belongs to the one row you are actually standing on.
+    func within(_ yes: Bool) { inside = yes; repaint() }
+
+    /// How many things are in the place this row opens. Nothing, when nobody
+    /// has counted yet — a zero somebody has not measured is a lie.
+    func holds(_ many: String?) {
+        count.stringValue = many ?? ""
+        count.isHidden = (many ?? "").isEmpty
+        repaint()
+    }
+
     private func repaint() {
-        name.textColor = chosen ? Paint.ink : Paint.muted
-        name.font = chosen ? Words.strong : Words.body
-        icon.contentTintColor = chosen ? Paint.accent : Paint.muted
+        let lit = chosen || inside
+        name.textColor = lit ? Paint.ink : (under ? Paint.faint : Paint.muted)
+        name.font = lit ? Words.strong : Words.body
+        icon.contentTintColor = chosen ? Paint.accent : Paint.faint
+        count.textColor = Paint.faint
 
         // A grey pill behind the page you are on says in a second way what
         // the darker word already says. The teal is not a second way: it is
@@ -1049,6 +1086,7 @@ final class Row: NSView {
         var background = NSColor.clear
         if chosen { background = Paint.wash }
         if hovering && !chosen { background = Paint.hover }
+        _ = lit
         // .cgColor answers for whichever appearance is current, so ask under
         // this view's own.
         effectiveAppearance.performAsCurrentDrawingAppearance {
@@ -1362,6 +1400,8 @@ final class Main: NSObject, NSWindowDelegate {
     private var stackWidth: NSLayoutConstraint!
     private var markWidth: NSLayoutConstraint!
     private var sideStack: NSStackView!
+    /// The rows for the things inside a place, which go when the list folds.
+    private var kids: [Row] = []
     /// The word over the list, which goes when the list folds to its pictures.
     private var sideHeading: NSView!
     private var wordmark: Wordmark!
@@ -1654,6 +1694,20 @@ final class Main: NSObject, NSWindowDelegate {
             row.onClick = { [weak self] which in self?.show(which) }
             stack.addArrangedSubview(row)
             rows.append(row)
+
+            // And what is inside it, under it. It used to be reachable only
+            // through a chevron on the name of the page you were already on,
+            // which is a door with the handle on the inside: you had to be in
+            // the room to find out the room had another one.
+            guard place.holds.count > 1 else { continue }
+            for which in place.holds {
+                let item = Action.all[which]
+                let kid = Row(item.title, symbol: item.symbol, index: which, under: true)
+                kid.onClick = { [weak self] one in self?.show(one) }
+                stack.addArrangedSubview(kid)
+                rows.append(kid)
+                kids.append(kid)
+            }
         }
 
         // Settings and Help are not things nimo does, so they do not stand in
@@ -2353,6 +2407,19 @@ final class Main: NSObject, NSWindowDelegate {
 
         func count(_ key: String) -> Int {
             Int(figures[key]?.components(separatedBy: " ").first ?? "") ?? 0
+        }
+
+        // The list says how many things are in each place, the way every list
+        // down the side of a window does. Only once Home has counted them: a
+        // zero nobody has measured is a lie.
+        func tally(_ many: Int) -> String? { many > 0 ? String(many) : nil }
+        for row in rows {
+            if row.isUnder {
+                if row.index == 1 { row.holds(tally(count("Desktop"))) }
+                if row.index == 2 { row.holds(tally(count("Downloads"))) }
+            } else if row.index == 1 {
+                row.holds(tally(count("Desktop") + count("Downloads")))
+            }
         }
 
         // The one place the name goes. A setup that asks you something and
@@ -3449,8 +3516,19 @@ final class Main: NSObject, NSWindowDelegate {
         // is the page the row opens: Downloads is inside Desk, and Desk is
         // what the list should be showing you standing on.
         for row in rows {
-            row.choose(row.index == index
-                       || Action.place(of: row.index)?.holds.contains(index) == true)
+            let here = row.index == index
+            let holds = Action.place(of: row.index)?.holds ?? []
+            let inHere = holds.contains(index)
+            if row.isUnder {
+                row.choose(here)
+            } else if holds.count > 1 {
+                // A place with its things listed under it is not itself a
+                // page you stand on; the one you are standing on is under it.
+                row.choose(false)
+                row.within(inHere)
+            } else {
+                row.choose(here || inHere)
+            }
         }
 
         let item = page(index)
@@ -4182,8 +4260,10 @@ final class Main: NSObject, NSWindowDelegate {
         }
         for row in rows { row.narrow(narrow) }
         for head in groupLabels { head.isHidden = narrow }
-        // Folded to a rail there is no room for a word over the list either.
+        // Folded to a rail there is no room for a word over the list either,
+        // nor for the things inside a place: the place itself is still there.
         sideHeading.isHidden = narrow
+        for kid in kids { kid.isHidden = narrow }
         // A search field 38 points wide is a search field nobody can type in.
         search.isHidden = narrow
 
