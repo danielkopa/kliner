@@ -32,10 +32,10 @@ enum Words {
     static let title  = NSFont.systemFont(ofSize: 14, weight: .semibold)
     static let trail  = NSFont.systemFont(ofSize: 14, weight: .regular)
     /// The one line that opens the setup.
-    static let hero   = NSFont.systemFont(ofSize: 27, weight: .semibold)
+    static let hero   = NSFont.systemFont(ofSize: 25, weight: .semibold)
     /// A number worth reading across the room. Monospaced digits, so a figure
     /// that changes does not shuffle the words after it.
-    static let figure = NSFont.monospacedDigitSystemFont(ofSize: 30, weight: .semibold)
+    static let figure = NSFont.monospacedDigitSystemFont(ofSize: 28, weight: .semibold)
     /// The top of a card, or a line that opens a group.
     static let head   = NSFont.systemFont(ofSize: 15, weight: .semibold)
     /// Everything anybody actually reads.
@@ -1823,8 +1823,8 @@ final class Main: NSObject, NSWindowDelegate {
         report.alignment = .leading
         report.spacing = 0
         // Room at the bottom for him to sit without anything under him.
-        report.edgeInsets = NSEdgeInsets(top: Step.hair, left: Step.edge,
-                                         bottom: 96, right: Step.edge)
+        report.edgeInsets = NSEdgeInsets(top: Step.hair, left: Step.wide,
+                                         bottom: 72, right: Step.wide)
         report.translatesAutoresizingMaskIntoConstraints = false
         scroll.documentView = report
 
@@ -1933,7 +1933,7 @@ final class Main: NSObject, NSWindowDelegate {
 
     /// One thing down the page, in a column. Text that runs the whole width of
     /// a wide window is text nobody finishes a line of, so the column stops.
-    private func line(_ view: NSView, inset: CGFloat = Step.edge * 2) {
+    private func line(_ view: NSView, inset: CGFloat = Step.wide * 2) {
         view.translatesAutoresizingMaskIntoConstraints = false
         report.addArrangedSubview(view)
         let full = view.widthAnchor.constraint(equalTo: report.widthAnchor, constant: -inset)
@@ -2372,7 +2372,7 @@ final class Main: NSObject, NSWindowDelegate {
         across.orientation = .horizontal
         across.distribution = .fillEqually
         across.alignment = .top
-        across.spacing = Step.close
+        across.spacing = Step.tight
         across.translatesAutoresizingMaskIntoConstraints = false
 
         if total > 0 {
@@ -2472,15 +2472,31 @@ final class Main: NSObject, NSWindowDelegate {
         // The page stopped two thirds of the way down, and what was under it
         // was nothing. This is the thing worth saying last, and the one
         // question anybody has before they press any of the buttons above.
-        let safe = Card("Nothing here is deleted")
+        let changed = (figures["Last change"] ?? "").trimmingCharacters(in: .whitespaces)
+        let safe = Card(changed.isEmpty ? "Nothing here is deleted" : "What Kliner has done")
         let told = Wrapping(labelWithString: "")
         told.maximumNumberOfLines = 0
         told.lineBreakMode = .byWordWrapping
         told.attributedStringValue = leaded(
-            "Kliner moves things and writes down every move. Whatever it does, "
-            + "you can have it back the way it was.",
+            changed.isEmpty
+                ? "Kliner has not changed anything yet. When it does, it moves "
+                  + "things and writes down every move, so you can have any of "
+                  + "it back the way it was."
+                : "Kliner moves things and writes down every move, so you can "
+                  + "have any of it back the way it was.",
             Words.body, Paint.muted)
         safe.add(told, gap: Step.hair)
+        if !changed.isEmpty {
+            // The last thing it did, said out loud on the page somebody
+            // arrives at. "What has this actually changed?" is the first
+            // question anybody has about a tool that moves their files.
+            let done = Job(changed.components(separatedBy: ", ").first ?? changed,
+                           note: changed.components(separatedBy: ", ").dropFirst()
+                                        .joined(separator: ", "),
+                           done: true, verb: nil, symbol: "clock.arrow.circlepath")
+            done.onOpen = { [weak self] in self?.show(8) }
+            safe.add(done, gap: Step.tight)
+        }
         safe.foot("Put something back") { [weak self] in self?.show(8) }
         line(safe)
         gap(Step.tight)
@@ -6081,7 +6097,7 @@ final class Job: NSView {
         addSubview(much)
 
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 52),
+            heightAnchor.constraint(equalToConstant: 46),
 
             tile.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Step.tight),
             tile.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -6187,7 +6203,7 @@ func leaded(_ text: String, _ font: NSFont, _ colour: NSColor) -> NSAttributedSt
 /// than drew.
 enum Panel {
     static let round: CGFloat = 14
-    static let pad: CGFloat = Step.air
+    static let pad: CGFloat = 14
 
     static func dress(_ view: NSView) {
         view.wantsLayer = true

@@ -292,6 +292,13 @@ nimo_cmd_doctor() {
         fi
     fi
 
+    # The newest thing nimo has done, so the one question anybody has —
+    # "what has this actually changed?" — is answered where they are looking
+    # rather than on another page.
+    local last
+    last=$(nimo_undo_last 2>/dev/null) && [ -n "$last" ] \
+        && nimo_fact "Last change" "$last"
+
     # Everything above is a handful of reads and is instant. Everything below
     # walks the caches, which on a full disk is tens of seconds. With --fast
     # doctor stops here, so something that wants a face on the screen now can

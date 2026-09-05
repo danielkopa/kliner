@@ -33,6 +33,47 @@ nimo_undo_spend() {
 }
 
 # 20260826-162929 -> 26 Aug 16:29
+# The newest thing nimo has done, in one line, for the page that opens on
+# what it has been up to. Empty when it has done nothing.
+#
+#   "cleared your desktop, 05.09.2026 16:41"
+nimo_undo_last() {
+    local f name kind label stamp
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        [ -f "$f" ] || continue
+        name=$(basename "$f")
+        case "$name" in
+            desktop-*)     label="cleared your desktop" ;;
+            downloads-*)   label="sorted your downloads" ;;
+            screenshots-*) label="gathered your screenshots" ;;
+            blank-*)       label="emptied a file" ;;
+            startup-*)     label="stopped things starting" ;;
+            dock-*)        label="rebuilt your dock" ;;
+            setup-*)       label="changed a preference" ;;
+            wallpaper.txt) label="changed your wallpaper" ;;
+            *) continue ;;
+        esac
+        # A log opened and never written to is nothing to put back.
+        case "$name" in
+            wallpaper.txt) ;;
+            *) [ "$(nimo_file_lines "$f")" -gt 0 ] || continue ;;
+        esac
+        stamp=$(printf '%s' "$name" | sed -e 's/^[a-z]*-//' -e 's/\.[a-z]*$//')
+        kind=$(nimo_undo_when "$stamp")
+        if [ -n "$kind" ]; then
+            printf '%s, %s' "$label" "$kind"
+        else
+            printf '%s' "$label"
+        fi
+        return 0
+    done <<EOF
+$(ls -1t "$NIMO_UNDO_DIR"/*.tsv "$NIMO_BACKUP_DIR"/dock-*.plist \
+         "$NIMO_BACKUP_DIR"/setup-*.tsv "$NIMO_BACKUP_DIR"/wallpaper.txt 2>/dev/null)
+EOF
+    return 1
+}
+
 nimo_undo_when() {
     printf '%s' "$1" | sed -n 's/^\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)-\([0-9]\{2\}\)\([0-9]\{2\}\).*/\3.\2.\1 \4:\5/p'
 }

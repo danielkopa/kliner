@@ -1273,8 +1273,18 @@ check "and it waits with a face, not with the wrong page" \
     "awk '/private func run\\(_ item: Action/,/^        wanted = nil/' '$APP/Sources/main.swift' | grep -q 'waiting()'"
 
 check "home closes on what it promises" \
-    "grep -q 'Card(\"Nothing here is deleted\")' '$APP/Sources/main.swift' \
+    "grep -q 'Nothing here is deleted' '$APP/Sources/main.swift' \
      && grep -q 'safe.foot(\"Put something back\")' '$APP/Sources/main.swift'"
+# "What has this actually changed?" is the first question anybody has about a
+# tool that moves their files, and it was answered on another page.
+check "and on the last thing Kliner did" \
+    "grep -q 'nimo_undo_last()' '$ROOT/lib/undo.sh' \
+     && grep -q 'nimo_fact \"Last change\"' '$ROOT/lib/tools.sh' \
+     && grep -q 'figures\[\"Last change\"\]' '$APP/Sources/main.swift'"
+check "which doctor can say without walking the disk" \
+    "d=\$(mktemp -d) && mkdir -p \"\$d/.nimo/undo\" \"\$d/.nimo/backup\" \
+     && printf '/a\\t/b\\n' > \"\$d/.nimo/undo/desktop-20260905-1641.tsv\" \
+     && HOME=\"\$d\" bash '$ROOT/min' doctor --fast -q --no-color </dev/null | grep -q 'cleared your desktop, 05.09.2026 16:41'"
 # Nothing pulled a legend entry's right edge in, so three of them spread
 # themselves across the whole card instead of standing next to each other.
 check "a legend entry is as wide as its own words" \
