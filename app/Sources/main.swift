@@ -1074,7 +1074,7 @@ final class Row: NSView {
 
     private func repaint() {
         let lit = chosen || inside
-        name.textColor = lit ? Paint.ink : (under ? Paint.faint : Paint.muted)
+        name.textColor = lit ? Paint.ink : Paint.muted
         name.font = lit ? Words.strong : Words.body
         icon.contentTintColor = chosen ? Paint.accent : Paint.faint
         count.textColor = Paint.faint
@@ -3600,8 +3600,13 @@ final class Main: NSObject, NSWindowDelegate {
     private func tellStrip() {
         guard strip != nil else { return }
         if busy {
-            let what = isPage ? Action.all[chosen].verb.lowercased() : "reading"
-            strip.say("Kliner is \(what) …", busy: true)
+            // The page's own words for what it is doing. Lowercased and put
+            // after "Kliner is" they came out as "Kliner is look again",
+            // because the button says what pressing it does, not what is
+            // happening. The button's own words, as they are, and a trail.
+            let what = chosen == 0 ? "Reading your Mac"
+                                   : (isPage ? Action.all[chosen].verb : "Working")
+            strip.say("\(what) …", busy: true)
         } else {
             strip.say("Kliner \(Nimo.version) · nothing here is deleted", busy: false)
         }
