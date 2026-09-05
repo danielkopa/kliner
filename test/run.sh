@@ -510,6 +510,15 @@ check "and taken back out if the move did not happen" \
     "grep -q 'nimo_undo_drop_last()' '$ROOT/lib/core.sh' \
      && [ \$(grep -c 'nimo_undo_drop_last \"' '$ROOT/lib/desktop.sh' '$ROOT/lib/dock.sh' '$ROOT/lib/startup.sh' | awk -F: '{t+=\$2} END{print t}') = 6 ]"
 
+# One of the six rules the README stands on, and until now the one with no
+# test under it — which is how `min update` came to be quietly running
+# `git pull` for you.
+check "nimo never reaches the network" \
+    "! grep -rnE '(^|[ \t;&|(])(curl|wget|ping|nslookup|nc|scp|ftp) |git (pull|fetch|clone)' '$ROOT/lib' '$ROOT/min' \
+     | grep -v printf | grep -qv '^[^:]*:[0-9]*: *#'"
+check "and update says what to type instead of typing it" \
+    "min update --no-color | grep -q 'git pull' && min update --no-color | grep -q 'never reaches the network'"
+
 # doctor said 140 while the desktop showed 137 icons and clearing it moved
 # 137: it was counting the dotfiles Finder hides and the folder nimo itself
 # had made to tidy into. A count nobody can reproduce by looking is worse

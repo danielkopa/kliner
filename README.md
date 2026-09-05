@@ -437,7 +437,7 @@ anything.
 | `min top` | the biggest things in your home — step into them |
 | `min doctor` | how your computer is doing |
 | `min setup` | a small, sane set of macOS preferences |
-| `min update` | pull the newest nimo |
+| `min update` | how to pull the newest nimo |
 | `min help` · `min version` | the basics |
 
 ## Options

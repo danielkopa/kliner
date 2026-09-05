@@ -16,7 +16,7 @@
 #   min doctor      how your computer is doing
 #   min setup       a small, sane setup for macOS or Windows
 #   min startup     what launches when you sign in
-#   min update      pull the newest nimo
+#   min update      how to pull the newest nimo
 #   min help        this
 #
 set -u
@@ -106,7 +106,7 @@ nimo_usage() {
     min preview         the same scan, without touching anything
     min top             the biggest things in your home, step into them
     min doctor          how your computer is doing
-    min update          pull the newest nimo
+    min update          how to pull the newest nimo
     min help            show this
     min version         show the version
 

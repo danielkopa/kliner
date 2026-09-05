@@ -353,6 +353,12 @@ nimo_cmd_update() {
     nimo_header
     nimo_panel_open "update"
 
+    # nimo does not reach the network. That is one of the six rules, and a
+    # command that quietly ran `git pull` for you was the one place it was not
+    # true — which made the rule worth exactly nothing.
+    #
+    # So this says what to type. Fetching a new copy of a tool that rearranges
+    # your files is a thing to do with your eyes open, and it is one line.
     if [ ! -d "$NIMO_ROOT/.git" ]; then
         nimo_warn "this copy of nimo is not a git repository"
         nimo_dim "$NIMO_ROOT"
@@ -361,25 +367,17 @@ nimo_cmd_update() {
         return 1
     fi
 
-    if ! nimo_have git; then
-        nimo_warn "git is not installed"
-        nimo_panel_close
-        nimo_blank
-        return 1
-    fi
-
-    nimo_dim "pulling in $NIMO_ROOT …"
+    nimo_fact "nimo" "v$NIMO_VERSION" "$NIMO_ROOT"
     nimo_blank
-    if (cd "$NIMO_ROOT" && git pull --ff-only); then
-        nimo_blank
-        nimo_ok "nimo is up to date"
-    else
-        nimo_blank
-        nimo_warn "could not update automatically"
-        nimo_dim "try it by hand:  cd $NIMO_ROOT && git pull"
-    fi
+    nimo_dim "nimo never reaches the network by itself, so it does not update itself."
+    nimo_dim "one line, and you can see what it does:"
+    nimo_blank
+    printf '%s%s    cd %s && git pull%s\n' \
+        "$NIMO_PAD" "$NIMO_C_BOLD" "$NIMO_ROOT" "$NIMO_C_RESET"
+    nimo_blank
     nimo_panel_close
     nimo_blank
+    return 0
 }
 
 # ---- min tidy ------------------------------------------------------------
