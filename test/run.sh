@@ -1211,6 +1211,11 @@ check "and a place holding two things offers both" \
 # What is inside a place is listed under it, indented, rather than being
 # reachable only through a chevron on the name of the page you are already on
 # — a door with the handle on the inside.
+# Thirteen rows, a mark and a search field, and it does not scroll. Shorter
+# than this and the list would be standing on Settings.
+check "the window cannot be made shorter than its own list" \
+    "grep -q 'NSSize(width: 760, height: 620)' '$APP/Sources/main.swift'"
+
 check "the list shows what is inside each place" \
     "grep -q 'let kid = Row(item.title, symbol: item.symbol, index: which, under: true)' '$APP/Sources/main.swift'"
 # How many things are in there, at the right-hand end of the row — but only

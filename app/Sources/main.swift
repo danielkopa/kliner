@@ -1014,7 +1014,7 @@ final class Row: NSView {
         inMiddle = icon.centerXAnchor.constraint(equalTo: centerXAnchor)
 
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: under ? 28 : 30),
+            heightAnchor.constraint(equalToConstant: under ? 26 : 30),
             wide,
             atLeft,
             icon.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -1538,7 +1538,10 @@ final class Main: NSObject, NSWindowDelegate {
         window.isOpaque = false
         window.backgroundColor = .clear
         window.isMovableByWindowBackground = true
-        window.minSize = NSSize(width: 760, height: 480)
+        // The list down the side is thirteen rows, a mark and a search field,
+        // and it is not a scrolling list. The window's minimum is what that
+        // needs; shorter than this and the rows would be standing on Settings.
+        window.minSize = NSSize(width: 760, height: 620)
         window.delegate = self
         _ = window.setFrameAutosaveName("nimo.main")
 
