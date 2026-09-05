@@ -2314,10 +2314,17 @@ final class Main: NSObject, NSWindowDelegate {
     /// search and its buttons while it is still explaining itself is a window
     /// asking you to read two things at once.
     private func bare(_ yes: Bool) {
-        for view: NSView? in [sideStack, footStack, barLine, chrome,
+        for view: NSView? in [footStack, barLine, chrome,
                               buttons, search, titleLabel, helper, strip] {
             view?.isHidden = yes
         }
+        // The mark stays where it is. This is somebody's first minute with
+        // the app and the top left corner of the window is where they look
+        // for whose app it is; hiding the whole side took the name with it
+        // and left the corner empty. What goes is the list — that is not
+        // theirs yet — and everything else that is not the step.
+        sideHeading?.isHidden = yes
+        for row in rows { row.isHidden = yes }
         // The rail itself stays. It used to be folded away and the setup took
         // the whole window, which is a different app for four pages and then
         // yours. Kaelor and Open Analytics both keep their two panes through

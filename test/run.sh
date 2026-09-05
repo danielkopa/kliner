@@ -1213,6 +1213,15 @@ check "and a place holding two things offers both" \
 # — a door with the handle on the inside.
 # Thirteen rows, a mark and a search field, and it does not scroll. Shorter
 # than this and the list would be standing on Settings.
+# The setup is somebody's first minute with the app, and the top left corner
+# of the window is where they look for whose app it is. Hiding the whole side
+# took the name with it and left the corner empty.
+check "the setup keeps the name in the corner" \
+    "awk '/private func bare\\(_ yes: Bool\\)/,/^    }/' '$APP/Sources/main.swift' \
+     | grep -q 'for row in rows { row.isHidden = yes }' \
+     && ! awk '/private func bare\\(_ yes: Bool\\)/,/^    }/' '$APP/Sources/main.swift' \
+        | grep -q 'sideStack, footStack'"
+
 check "the window cannot be made shorter than its own list" \
     "grep -q 'NSSize(width: 760, height: 620)' '$APP/Sources/main.swift'"
 
