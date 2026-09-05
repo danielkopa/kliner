@@ -2921,14 +2921,29 @@ final class Main: NSObject, NSWindowDelegate {
         said.translatesAutoresizingMaskIntoConstraints = false
         holder.addSubview(said)
 
+        // He waits in the middle of the page. Pinned to the top of it he sat
+        // in the upper quarter with two thirds of a dark rectangle under him,
+        // which reads as a page that failed to draw rather than one loading.
+        let above = NSLayoutGuide()
+        let below = NSLayoutGuide()
+        holder.addLayoutGuide(above)
+        holder.addLayoutGuide(below)
+
         NSLayoutConstraint.activate([
+            holder.heightAnchor.constraint(greaterThanOrEqualToConstant: 400),
+
+            above.topAnchor.constraint(equalTo: holder.topAnchor),
+            above.bottomAnchor.constraint(equalTo: face.topAnchor),
+            below.topAnchor.constraint(equalTo: said.bottomAnchor),
+            below.bottomAnchor.constraint(equalTo: holder.bottomAnchor),
+            above.heightAnchor.constraint(equalTo: below.heightAnchor),
+            above.heightAnchor.constraint(greaterThanOrEqualToConstant: Step.wide),
+
             face.centerXAnchor.constraint(equalTo: holder.centerXAnchor),
-            face.topAnchor.constraint(equalTo: holder.topAnchor, constant: Step.edge * 2),
             said.centerXAnchor.constraint(equalTo: holder.centerXAnchor),
             said.topAnchor.constraint(equalTo: face.bottomAnchor, constant: Step.close),
             said.leadingAnchor.constraint(greaterThanOrEqualTo: holder.leadingAnchor),
             said.trailingAnchor.constraint(lessThanOrEqualTo: holder.trailingAnchor),
-            said.bottomAnchor.constraint(equalTo: holder.bottomAnchor, constant: -Step.edge),
         ])
         line(holder)
         settle()
@@ -6796,7 +6811,10 @@ final class Thinking: NSView {
         let awake = NSImage(named: "mascot")
         awake?.isTemplate = true
         face.image = awake
-        face.contentTintColor = Paint.muted
+        // Quiet. What moves is the teal going round the edge of him; the
+        // shape itself is only there to be gone round, and painted any
+        // stronger it is a grey mass in the middle of an empty page.
+        face.contentTintColor = Paint.faint
         face.imageScaling = .scaleProportionallyUpOrDown
         face.translatesAutoresizingMaskIntoConstraints = false
         addSubview(face)
@@ -6858,8 +6876,8 @@ final class Thinking: NSView {
         }
         effectiveAppearance.performAsCurrentDrawingAppearance {
             self.track.strokeColor = Paint.line.cgColor
-            self.trail.strokeColor = Paint.faint.cgColor
-            self.ring.strokeColor = Paint.ink.cgColor
+            self.trail.strokeColor = Paint.accent.withAlphaComponent(0.35).cgColor
+            self.ring.strokeColor = Paint.accent.cgColor
         }
         travel()
     }
