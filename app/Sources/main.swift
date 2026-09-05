@@ -1406,6 +1406,8 @@ final class Main: NSObject, NSWindowDelegate {
     private var backButton: Ghost!
     private var onButton: Ghost!
     private var chrome: NSStackView!
+    /// The line under the card: what Kliner is doing, and the way to ask again.
+    private var strip: Strip!
     private var chromeLeading: NSLayoutConstraint!
     private var search: Seek!
     private var titleLeading: NSLayoutConstraint!
@@ -1742,6 +1744,13 @@ final class Main: NSObject, NSWindowDelegate {
         titleLabel.onClick = { [weak self] in self?.offerSiblings() }
         content.addSubview(titleLabel)
 
+        // Under the card, on the glass: a line saying what Kliner is doing
+        // and a way to ask again. Quiet enough to ignore, there when you look.
+        let line = Strip()
+        line.onAgain = { [weak self] in self?.refresh() }
+        strip = line
+        content.addSubview(line)
+
 
 
         // The right of the row is one thing: on the pages that do something,
@@ -1826,14 +1835,12 @@ final class Main: NSObject, NSWindowDelegate {
         chromeLeading = chrome.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 76)
         stackWidth = stack.widthAnchor.constraint(equalToConstant: 214)
 
-        // The name belongs in the middle of the page it names. That is what
-        // it wants; what it must do is stay off the buttons at either end, so
-        // in a window too narrow to have a middle the want gives way and the
-        // name goes back to starting where the page starts.
-        titleCentre = titleLabel.centerXAnchor.constraint(equalTo: pane.centerXAnchor)
+        // The tab stands at the left edge of the page it names, the way a tab
+        // does. Centred in the row it read as a window title, which is what
+        // the title bar behind it already is.
+        titleCentre = titleLabel.leadingAnchor.constraint(equalTo: pane.leadingAnchor)
         titleCentre.priority = .defaultHigh
-        titleLeading = titleLabel.leadingAnchor.constraint(equalTo: edge.trailingAnchor,
-                                                           constant: Step.air)
+        titleLeading = titleLabel.leadingAnchor.constraint(equalTo: edge.trailingAnchor)
         titleLeading.priority = .defaultLow
 
         NSLayoutConstraint.activate([
@@ -1850,11 +1857,16 @@ final class Main: NSObject, NSWindowDelegate {
             // it is the glass above the card, with the lights in it.
             pane.leadingAnchor.constraint(equalTo: edge.trailingAnchor),
             pane.trailingAnchor.constraint(equalTo: content.trailingAnchor,
-                                           constant: -Step.close),
+                                           constant: -Step.tight),
             pane.topAnchor.constraint(equalTo: content.topAnchor,
-                                      constant: Step.bar + Step.tight),
+                                      constant: Step.bar + Step.air),
             pane.bottomAnchor.constraint(equalTo: content.bottomAnchor,
-                                         constant: -Step.close),
+                                         constant: -Step.page),
+
+            strip.leadingAnchor.constraint(equalTo: pane.leadingAnchor),
+            strip.trailingAnchor.constraint(equalTo: pane.trailingAnchor),
+            strip.topAnchor.constraint(equalTo: pane.bottomAnchor),
+            strip.bottomAnchor.constraint(equalTo: content.bottomAnchor),
 
             railWidth,
             edge.topAnchor.constraint(equalTo: content.topAnchor),
@@ -2246,7 +2258,7 @@ final class Main: NSObject, NSWindowDelegate {
     /// asking you to read two things at once.
     private func bare(_ yes: Bool) {
         for view: NSView? in [sideStack, footStack, barLine, chrome,
-                              buttons, search, titleLabel, helper] {
+                              buttons, search, titleLabel, helper, strip] {
             view?.isHidden = yes
         }
         // The rail itself stays. It used to be folded away and the setup took
@@ -2737,6 +2749,8 @@ final class Main: NSObject, NSWindowDelegate {
         ]))
         let holds = Action.place(of: chosen)?.holds ?? []
         titleLabel.set(line, more: holds.count > 1)
+        titleLabel.wear(Action.place(of: chosen)?.symbol
+                        ?? (isSettings ? "gearshape" : "questionmark.circle"))
 
         // It changes as the page changes, so it fades rather than swapping:
         // two words appearing in place is a flicker, two words arriving is a
@@ -3469,6 +3483,7 @@ final class Main: NSObject, NSWindowDelegate {
     /// which of them are there at all, so the row never jumps about while a
     /// page loads.
     private func fitButtons() {
+        tellStrip()
         // A page that only reads has no button: opening it reads it, and Cmd-R
         // reads it again. "Look again" beside a page that had just looked was
         // a button for the sake of having one.
@@ -3481,6 +3496,18 @@ final class Main: NSObject, NSWindowDelegate {
         primary.isHidden = !acts
         if acts { primary.set(item.verb, live: !busy) }
         wake()
+    }
+
+    /// What the line under the card says. Kliner's own words for what it is
+    /// doing, and its version when it is doing nothing.
+    private func tellStrip() {
+        guard strip != nil else { return }
+        if busy {
+            let what = isPage ? Action.all[chosen].verb.lowercased() : "reading"
+            strip.say("Kliner is \(what) …", busy: true)
+        } else {
+            strip.say("Kliner \(Nimo.version) · nothing here is deleted", busy: false)
+        }
     }
 
     /// The quiet actions follow the one button: alive when Kliner is not busy,
@@ -5536,6 +5563,7 @@ final class Trail: NSView {
 
     private let label = NSTextField(labelWithString: "")
     private let arrow = NSImageView()
+    private let mark = NSImageView()
     private var trailing: NSLayoutConstraint!
     private var more = false
     private var hovering = false
@@ -5544,7 +5572,15 @@ final class Trail: NSView {
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
-        layer?.cornerRadius = 6
+        layer?.cornerRadius = 7
+
+        // A tab, not a caption. The page you are on is a thing standing in
+        // the row along the top, at the left edge of the page it names —
+        // floating in the middle of the bar it read as a window title, which
+        // is what the title bar already is.
+        mark.contentTintColor = Paint.muted
+        mark.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(mark)
 
         label.lineBreakMode = .byTruncatingTail
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -5563,8 +5599,12 @@ final class Trail: NSView {
         trailing = arrow.trailingAnchor.constraint(equalTo: trailingAnchor,
                                                    constant: -Step.tight)
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 22),
-            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Step.tight),
+            heightAnchor.constraint(equalToConstant: 26),
+            mark.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 9),
+            mark.centerYAnchor.constraint(equalTo: centerYAnchor),
+            mark.widthAnchor.constraint(equalToConstant: 13),
+            mark.heightAnchor.constraint(equalToConstant: 13),
+            label.leadingAnchor.constraint(equalTo: mark.trailingAnchor, constant: 7),
             label.centerYAnchor.constraint(equalTo: centerYAnchor),
             arrow.leadingAnchor.constraint(equalTo: label.trailingAnchor, constant: 5),
             arrow.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -5582,6 +5622,14 @@ final class Trail: NSView {
         arrow.isHidden = !others
         trailing.constant = others ? -Step.tight : -5
         repaint()
+    }
+
+    /// The picture on the tab: whichever place this page lives in.
+    func wear(_ symbol: String) {
+        guard let picture = NSImage(systemSymbolName: symbol,
+                                    accessibilityDescription: nil) else { return }
+        picture.isTemplate = true
+        mark.image = picture
     }
 
     override func updateTrackingAreas() {
@@ -5610,8 +5658,102 @@ final class Trail: NSView {
 
     private func repaint() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            ease(self.layer, to: self.hovering && self.more ? Paint.hover : NSColor.clear)
+            self.mark.contentTintColor = Paint.muted
+            ease(self.layer, to: self.hovering && self.more ? Paint.track : Paint.picked)
         }
+    }
+}
+
+/// The line under the card, on the glass: a dot that lights while Kliner is
+/// reading, what it is doing in a few words, and the way to ask again.
+///
+/// Every window like this has one. It is the difference between an app that
+/// is quietly doing something and an app that has stopped.
+final class Strip: NSView {
+    var onAgain: (() -> Void)?
+
+    private let dot = NSView()
+    private let said = NSTextField(labelWithString: "")
+    private let again = Ghost("arrow.clockwise")
+    private var lit = false
+
+    init() {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+
+        dot.wantsLayer = true
+        dot.layer?.cornerRadius = 3
+        dot.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(dot)
+
+        said.font = Words.tiny
+        said.textColor = Paint.faint
+        said.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(said)
+
+        again.toolTip = "Read this again  ⌘R"
+        again.onClick = { [weak self] in self?.onAgain?() }
+        addSubview(again)
+
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: Step.page),
+
+            dot.centerYAnchor.constraint(equalTo: centerYAnchor),
+            dot.centerXAnchor.constraint(equalTo: centerXAnchor, constant: -78),
+            dot.widthAnchor.constraint(equalToConstant: 6),
+            dot.heightAnchor.constraint(equalToConstant: 6),
+
+            said.leadingAnchor.constraint(equalTo: dot.trailingAnchor, constant: Step.tight),
+            said.centerYAnchor.constraint(equalTo: centerYAnchor),
+
+            again.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Step.hair),
+            again.centerYAnchor.constraint(equalTo: centerYAnchor),
+            again.leadingAnchor.constraint(greaterThanOrEqualTo: said.trailingAnchor,
+                                           constant: Step.close),
+        ])
+        paint()
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+
+    /// What it says, and whether the dot is lit.
+    func say(_ words: String, busy: Bool) {
+        said.stringValue = words
+        lit = busy
+        paint()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        paint()
+    }
+
+    private func paint() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            self.said.textColor = Paint.faint
+            self.dot.layer?.backgroundColor =
+                (self.lit ? Paint.ink : Paint.faint).withAlphaComponent(self.lit ? 0.9 : 0.4).cgColor
+        }
+        beat()
+    }
+
+    /// While it is reading the dot breathes, so a long read does not look
+    /// like a stopped one.
+    private func beat() {
+        guard lit else {
+            dot.layer?.removeAnimation(forKey: "beating")
+            return
+        }
+        guard dot.layer?.animation(forKey: "beating") == nil else { return }
+        let pulse = CABasicAnimation(keyPath: "opacity")
+        pulse.fromValue = 1
+        pulse.toValue = 0.25
+        pulse.duration = 0.75
+        pulse.autoreverses = true
+        pulse.repeatCount = .infinity
+        pulse.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        dot.layer?.add(pulse, forKey: "beating")
     }
 }
 

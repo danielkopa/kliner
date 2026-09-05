@@ -1661,9 +1661,13 @@ check "the page's name is in the row as well" \
 # two weights so it reads as one line.
 check "and it says where that page belongs"  \
     "grep -q 'func trail(' '$APP/Sources/main.swift' && grep -q 'titleLabel.set(line, more:' '$APP/Sources/main.swift'"
-# The name belongs in the middle of the page it names.
-check "and it sits in the middle of that page" \
-    "grep -q 'titleCentre = titleLabel.centerXAnchor.constraint(equalTo: pane.centerXAnchor)' '$APP/Sources/main.swift' && grep -q 'titleCentre.priority = .defaultHigh' '$APP/Sources/main.swift'"
+# A tab, not a caption: the page you are on is a thing standing in the row
+# along the top, at the left edge of the page it names. Centred in the row it
+# read as a window title, which is what the title bar behind it already is.
+check "the page's name is a tab at the left edge of the page" \
+    "grep -q 'titleCentre = titleLabel.leadingAnchor.constraint(equalTo: pane.leadingAnchor)' '$APP/Sources/main.swift' && grep -q 'titleCentre.priority = .defaultHigh' '$APP/Sources/main.swift'"
+check "and the tab carries the mark of the place it is in" \
+    "grep -q 'func wear(_ symbol: String)' '$APP/Sources/main.swift' && grep -q 'titleLabel.wear(Action.place(of: chosen)?.symbol' '$APP/Sources/main.swift'"
 # In a window too narrow to have a middle the want gives way and the name goes
 # back to starting where the page starts, rather than printing over a button.
 check "and it never prints over a button"    \
@@ -1684,7 +1688,16 @@ check "and the work stops at a readable width" \
 # edge of its own, and two lines saying one thing is one line too many.
 check "the page begins under the row along the top" \
     "grep -q 'pane.topAnchor.constraint(equalTo: content.topAnchor,' '$APP/Sources/main.swift' \
-     && grep -q 'constant: Step.bar + Step.tight)' '$APP/Sources/main.swift'"
+     && grep -q 'constant: Step.bar + Step.air)' '$APP/Sources/main.swift'"
+# Under the card, on the glass: what Kliner is doing, and the way to ask
+# again. It is the difference between an app quietly doing something and an
+# app that has stopped.
+check "there is a line under the card that says what it is doing" \
+    "grep -q 'final class Strip: NSView' '$APP/Sources/main.swift' \
+     && grep -q 'strip.topAnchor.constraint(equalTo: pane.bottomAnchor)' '$APP/Sources/main.swift' \
+     && grep -q 'private func tellStrip()' '$APP/Sources/main.swift'"
+check "and the dot on it breathes while it reads" \
+    "grep -q 'pulse.autoreverses = true' '$APP/Sources/main.swift'"
 check "and the card's own edge is the only line drawn" \
     "grep -q 'edge.fillColor = .clear' '$APP/Sources/main.swift' \
      && grep -q 'under.fillColor = .clear' '$APP/Sources/main.swift'"
