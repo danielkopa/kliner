@@ -5093,11 +5093,6 @@ final class Pick: NSView {
     private func repaint() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             ease(self.layer, to: self.hovering ? Paint.hover : NSColor.clear)
-            // A job still to do carries the teal. A job already done goes
-            // quiet, so what is left stands out on its own.
-            self.tile.layer?.backgroundColor = self.done
-                ? Paint.track.cgColor : Paint.wash.cgColor
-            self.mark.contentTintColor = self.done ? Paint.muted : Paint.accent
         }
     }
 }
@@ -5881,6 +5876,11 @@ final class Job: NSView {
     private func repaint() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             ease(self.layer, to: self.hovering ? Paint.hover : NSColor.clear)
+            // A job still to do carries the teal. A job already done goes
+            // quiet, so what is left stands out on its own.
+            self.tile.layer?.backgroundColor = self.done
+                ? Paint.track.cgColor : Paint.wash.cgColor
+            self.mark.contentTintColor = self.done ? Paint.muted : Paint.accent
         }
     }
 }
