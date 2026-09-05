@@ -102,10 +102,10 @@ enum Paint {
     /// Over the blur, so the window keeps the depth of glass without taking
     /// the wallpaper's colour with it. Straight glass went brown over a warm
     /// photograph; this is a cool grey, thin enough to see through.
-    static let veil = duo(0xF1F3F5, 0x24282C).withAlphaComponent(0.80)
+    static let veil = duo(0xEBEEF1, 0x24282C).withAlphaComponent(0.80)
     /// The list stands on the veil, so this is only a name for the same
     /// thing: what the side of the window is.
-    static let rail   = duo(0xEDEFF2, 0x25292D)
+    static let rail   = duo(0xE7EAEE, 0x25292D)
     /// The work sits on one card, and the card is the *lighter* thing. A page
     /// darker than the frame round it reads as a hole in the window.
     static let card   = duo(0xFFFFFF, 0x33373D).withAlphaComponent(0.88)
@@ -114,12 +114,12 @@ enum Paint {
     /// Kept for anything measured against the page rather than drawn on it.
     static let ground = duo(0xF7F8FA, 0x2B2F34)
 
-    static let line   = duo(0xE1E4E8, 0x474B52)
-    static let hover  = duo(0xE9EBEE, 0x2E3236)
+    static let line   = duo(0xDCE0E5, 0x474B52)
+    static let hover  = duo(0xE2E6EA, 0x2E3236)
     /// The row you are on, and the fill under anything chosen.
-    static let picked = duo(0xE2E5E9, 0x32363A)
+    static let picked = duo(0xDCE1E6, 0x32363A)
     /// The unlit half of anything that fills, and the ground under a chip.
-    static let track  = duo(0xE4E7EB, 0x45494D)
+    static let track  = duo(0xDFE4E9, 0x45494D)
 
     // ---- what is written on them -------------------------------------------
     static let ink    = duo(0x14171A, 0xF8F9FC)
