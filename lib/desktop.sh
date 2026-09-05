@@ -412,10 +412,13 @@ EOF
         dest="$root/$kind"
         mkdir -p "$dest" 2>/dev/null
         target=$(nimo_free_name "$dest" "$(basename "$item")")
+        # Written down first: a machine that stops mid-move would otherwise
+        # have moved the file with nothing saying where it went.
+        printf '%s\t%s\n' "$item" "$target" >> "$log"
         if mv "$item" "$target" 2>/dev/null; then
-            printf '%s\t%s\n' "$item" "$target" >> "$log"
             moved=$((moved + 1))
         else
+            nimo_undo_drop_last "$log"
             failed=$((failed + 1))
         fi
     done <<EOF
@@ -535,10 +538,12 @@ EOF
     while IFS= read -r item; do
         [ -n "$item" ] || continue
         target=$(nimo_free_name "$room" "$(basename "$item")")
+        # Written down first, for the same reason as above.
+        printf '%s\t%s\n' "$item" "$target" >> "$log"
         if mv "$item" "$target" 2>/dev/null; then
-            printf '%s\t%s\n' "$item" "$target" >> "$log"
             moved=$((moved + 1))
         else
+            nimo_undo_drop_last "$log"
             failed=$((failed + 1))
         fi
     done <<EOF

@@ -500,6 +500,16 @@ check "a setup preview leaves no log behind" \
 check "the wallpaper record is spent, not deleted" \
     "grep -q 'nimo_undo_spend \"\$kept\"' '$ROOT/lib/wall.sh' && ! grep -q 'rm -f \"\$NIMO_BACKUP_DIR/wallpaper.txt\"' '$ROOT/lib/wall.sh'"
 
+# A file that has been moved with nothing written down about where it went is
+# a file nimo cannot put back. The record goes in first; if the move then does
+# not happen, the record comes back out.
+check "what nimo is about to move is written down before it moves" \
+    "! grep -q 'mv \"\$what\" \"\$dest\" 2>/dev/null || return 1' '$ROOT/lib/startup.sh' \
+     && ! grep -q 'mv \"\$src\" \"\$dest\" 2>/dev/null || continue' '$ROOT/lib/dock.sh'"
+check "and taken back out if the move did not happen" \
+    "grep -q 'nimo_undo_drop_last()' '$ROOT/lib/core.sh' \
+     && [ \$(grep -c 'nimo_undo_drop_last \"' '$ROOT/lib/desktop.sh' '$ROOT/lib/dock.sh' '$ROOT/lib/startup.sh' | awk -F: '{t+=\$2} END{print t}') = 6 ]"
+
 # -e is false for a symlink whose target is gone, and a broken symlink is
 # still a name that is taken.
 check "a broken link still counts as something there" \

@@ -173,6 +173,26 @@ nimo_inside_home() {
     esac
 }
 
+# Take the last line back off an undo log.
+#
+# The record of a move has to be written before the move, not after it: a
+# machine that stops between the two would otherwise have moved a file with
+# nothing anywhere saying where it went. Written first, the worst case is a
+# line pointing at a file that was never moved, and putting things back
+# already skips those. This is what takes such a line out again when the move
+# it was written for did not happen.
+nimo_undo_drop_last() {
+    local log="${1:-}" keep
+    [ -n "$log" ] && [ -f "$log" ] || return 0
+    keep=$(sed '$d' "$log" 2>/dev/null) || return 0
+    if [ -n "$keep" ]; then
+        printf '%s\n' "$keep" > "$log"
+    else
+        : > "$log"
+    fi
+    return 0
+}
+
 # nimo_confirm <question>  -> 0 = yes
 nimo_confirm() {
     [ "${NIMO_ASSUME_YES:-0}" = "1" ] && return 0

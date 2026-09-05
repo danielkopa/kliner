@@ -217,9 +217,14 @@ INNER
         [ -n "$src" ] || continue
         [ -f "$src" ] || continue
         dest=$(nimo_free_name "$NIMO_BACKUP_DIR/taskbar" "$(basename "$src")")
-        mv "$src" "$dest" 2>/dev/null || continue
+        # Written down first: a machine that stops mid-move would otherwise
+        # have unpinned the shortcut with nothing saying where it went.
         printf 'file\t%s\t%s\n' "$src" "$dest" >> "$log"
-        gone=$((gone + 1))
+        if mv "$src" "$dest" 2>/dev/null; then
+            gone=$((gone + 1))
+        else
+            nimo_undo_drop_last "$log"
+        fi
     done
 
     nimo_blank

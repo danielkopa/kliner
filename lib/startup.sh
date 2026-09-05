@@ -137,12 +137,14 @@ nimo_startup_stop() {
         folder)
             mkdir -p "$(nimo_startup_store)" 2>/dev/null
             dest=$(nimo_free_name "$(nimo_startup_store)" "$(basename "$what")")
-            mv "$what" "$dest" 2>/dev/null || return 1
             printf 'file\t%s\t%s\n' "$what" "$dest" >> "$NIMO_STARTUP_STORE"
+            mv "$what" "$dest" 2>/dev/null \
+                || { nimo_undo_drop_last "$NIMO_STARTUP_STORE"; return 1; }
             return 0 ;;
         login)
-            osascript -e "tell application \"System Events\" to delete login item \"$name\"" >/dev/null 2>&1 || return 1
             printf 'login\t%s\t%s\n' "$name" "$what" >> "$NIMO_STARTUP_STORE"
+            osascript -e "tell application \"System Events\" to delete login item \"$name\"" >/dev/null 2>&1 \
+                || { nimo_undo_drop_last "$NIMO_STARTUP_STORE"; return 1; }
             return 0 ;;
         agent)
             # Unload it first, so it stops now rather than at the next login,
@@ -152,8 +154,9 @@ nimo_startup_stop() {
             launchctl unload -w "$what" >/dev/null 2>&1
             mkdir -p "$(nimo_startup_store)" 2>/dev/null
             dest=$(nimo_free_name "$(nimo_startup_store)" "$(basename "$what")")
-            mv "$what" "$dest" 2>/dev/null || return 1
             printf 'agent\t%s\t%s\n' "$what" "$dest" >> "$NIMO_STARTUP_STORE"
+            mv "$what" "$dest" 2>/dev/null \
+                || { nimo_undo_drop_last "$NIMO_STARTUP_STORE"; return 1; }
             return 0 ;;
     esac
     return 1
