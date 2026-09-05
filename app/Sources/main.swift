@@ -3967,7 +3967,22 @@ final class Main: NSObject, NSWindowDelegate {
     /// because nobody asked for it and a page that goes blank on its own is a
     /// page that flickers.
     private func run(_ item: Action, preview: Bool = false, quietly: Bool = false) {
-        guard !busy else { return }
+        guard !busy else {
+            // Something else is still running — Home reads itself every half
+            // minute, so this is not rare. The page that has just been opened
+            // has nothing of its own to show yet, and it must not go on
+            // showing the last page's answer under its own name. It puts the
+            // face up and asks again the moment the machine is free.
+            //
+            // This was silent: open Desktop while Home was refreshing and you
+            // got Desktop's title, Desktop's button and Home's page.
+            guard !quietly else { return }
+            wanted = chosen
+            waited = true
+            waiting()
+            return
+        }
+        wanted = nil
         // Home in two halves. Everything on it but one figure is a handful of
         // reads and is instant; the junk figure walks every cache on the disk
         // and takes tens of seconds. Asking for the lot meant the first screen
@@ -4000,6 +4015,34 @@ final class Main: NSObject, NSWindowDelegate {
     /// True while the instant half of Home is in flight, so what comes back is
     /// drawn and then asked again in full.
     private var filling = false
+
+    /// A page that was opened while something else was still running, and is
+    /// owed a reading of its own the moment there is one to be had.
+    private var wanted: Int?
+
+    /// Ask for that page, the same way opening it would have.
+    private func askFor(_ index: Int) {
+        guard index == chosen, isPage, !busy, kept[index] == nil else { return }
+        let item = Action.all[index]
+        if item.asks != nil {
+            run(item, preview: true)
+        } else if item.looksOnly {
+            run(item)
+        } else {
+            let ready: [Piece] = [.text("Ready when you are.")]
+            kept[index] = ready
+            draw(ready)
+        }
+    }
+
+    /// Whether there was a page owed and it has now been asked for.
+    private func serveWanted() -> Bool {
+        guard let again = wanted else { return false }
+        wanted = nil
+        guard again == chosen, isPage, kept[again] == nil, !busy else { return false }
+        askFor(again)
+        return true
+    }
 
     /// The rest of Home, once the instant half is on the screen. Quietly: the
     /// page is already drawn and nobody is waiting on a face.
@@ -4034,6 +4077,9 @@ final class Main: NSObject, NSWindowDelegate {
                     self.busy = false
                     self.waited = false
                     self.fitButtons()
+                    // Somebody is standing on another page with nothing on
+                    // it, waiting for exactly this moment.
+                    if self.serveWanted() { return }
                     self.carryOn()
                     return
                 }
@@ -4075,6 +4121,7 @@ final class Main: NSObject, NSWindowDelegate {
                         return
                     }
                 }
+                if self.serveWanted() { return }
                 self.carryOn()
             }
         }

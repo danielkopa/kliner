@@ -1261,6 +1261,17 @@ check "home is laid out as cards"            \
 # Home ran out two thirds of the way down the window and what was under it
 # was nothing. The last thing on it is the one question anybody has before
 # they press any of the buttons above it.
+# Home reads itself every half minute. Open another page while that reading
+# is in flight and `run` returned at its own guard without a word: you got the
+# new page's title, the new page's button, and the last page's body under
+# both. It puts the face up and asks again the moment the machine is free.
+check "a page opened while something is running does not show the last one" \
+    "grep -q 'wanted = chosen' '$APP/Sources/main.swift' \
+     && grep -q 'private func serveWanted() -> Bool' '$APP/Sources/main.swift' \
+     && [ \$(grep -c 'if self.serveWanted() { return }' '$APP/Sources/main.swift') = 2 ]"
+check "and it waits with a face, not with the wrong page" \
+    "awk '/private func run\\(_ item: Action/,/^        wanted = nil/' '$APP/Sources/main.swift' | grep -q 'waiting()'"
+
 check "home closes on what it promises" \
     "grep -q 'Card(\"Nothing here is deleted\")' '$APP/Sources/main.swift' \
      && grep -q 'safe.foot(\"Put something back\")' '$APP/Sources/main.swift'"
