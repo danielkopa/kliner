@@ -1849,6 +1849,12 @@ check "and looking at him puts it out"       \
 # site against them by hand.
 check "every call names its arguments in the order they are declared" \
     "python3 '$ROOT/tools/argorder.py' '$APP/Sources/main.swift'"
+# And in the right number. A call whose arguments are all unlabelled has
+# nothing for the order check to hold on to, and handing a type one argument
+# too many is the same compile error as handing it the wrong label.
+check "and in the right number"              \
+    "d=\$(mktemp -d) && sed 's/Key(part.name, part.colour, part.note)/Key(part.name, part.colour, part.note, 1)/' '$APP/Sources/main.swift' > \"\$d/x.swift\" \
+     && ! python3 '$ROOT/tools/argorder.py' \"\$d/x.swift\" >/dev/null 2>&1"
 # The waiting ring traces the artwork's own outline. Both the outline and how
 # far it reaches are read out of the file, because an outline somebody typed
 # is an outline that drifts away from the drawing, and one measured down the
