@@ -642,6 +642,25 @@ check "an empty one deletes nothing"      "wguard '' /c/Users/daniel/Downloads"
 check "cleaning refuses the profile root" "PATH=\"$FAKE:\$PATH\" HOME=\"$BOX\" bash -c '. $ROOT/lib/ui.sh; . $ROOT/lib/core.sh; nimo_init_colors; nimo_purge_children \"\$HOME/.\"' 2>&1 | grep -q 'refusing'"
 check "and the desktop is still there"    "[ -f '$BOX/OneDrive/Desktop/report.pdf' ]"
 
+# Windows hands the same file back as C:\Windows\Web\x.jpg out of the registry
+# and /c/Windows/Web/x.jpg out of the shell. Compared as they came, they were
+# never equal, so nimo could never tell that a wallpaper it had just set had
+# taken, and said so every time.
+pathkey() {
+    PATH="$FAKE:$PATH" bash -c ". $ROOT/lib/core.sh; nimo_path_key \"\$1\"" _ "$1"
+}
+check "one file, two spellings, one key" \
+    "[ \"\$(pathkey 'C:\\Windows\\Web\\x.jpg')\" = \"\$(pathkey '/c/Windows/Web/x.jpg')\" ]"
+check "and two files are still two"      \
+    "[ \"\$(pathkey 'C:\\Windows\\Web\\x.jpg')\" != \"\$(pathkey '/c/Windows/Web/y.jpg')\" ]"
+check "the wallpaper is checked by key, not by spelling" \
+    "grep -q 'nimo_path_key \"\$now\"' '$ROOT/lib/wall.sh'"
+# The macOS side wrote down the menu bar before hiding it; the Windows side
+# hid the taskbar and wrote nothing, so `min undo` had nothing to put back.
+check "hiding the taskbar is written down first" \
+    "awk '/^nimo_hide_windows/,/^}/' '$ROOT/lib/look.sh' \
+     | grep -B4 'nimo_win_taskbar_hide \"\$want\"' | grep -q 'nimo_win_record'"
+
 printf '\n'
 if [ "$FAIL" -eq 0 ]; then
     printf '  %s✓ %d passed%s\n\n' "$G" "$PASS" "$Z"

@@ -147,6 +147,12 @@ nimo_hide_windows() {
         return 0
     fi
 
+    # Written down before it is changed, the same way the macOS side does it,
+    # so `min undo` can put the taskbar back. Without this the only way back
+    # was `min hide --restore`, which you have to remember exists.
+    nimo_look_log
+    nimo_win_record "$NIMO_WIN_STUCK" Settings
+
     nimo_win_taskbar_hide "$want"
 
     nimo_blank

@@ -193,6 +193,28 @@ nimo_undo_drop_last() {
     return 0
 }
 
+# One path, written the way whoever wrote it writes paths.
+#
+# Windows hands the same file back three ways: C:\Windows\Web\x.jpg out of the
+# registry, C:/Windows/Web/x.jpg once the slashes are turned round, and
+# /c/Windows/Web/x.jpg out of the shell. Compared as they come, none of them
+# equals any other, which is how nimo came to be unable to tell that a
+# wallpaper it had just set had taken.
+#
+# This is not a path to use — only a key to compare two of them by.
+nimo_path_key() {
+    local key
+    key=$(printf '%s' "${1:-}" | tr '\\' '/' | sed -e 's|^\([A-Za-z]\):/|/\1/|')
+    # Windows does not care about case in a file name, and neither does a Mac
+    # as it comes out of the box. Somewhere else it might, so it is only
+    # folded where it is known not to matter.
+    if [ "$(nimo_platform)" = "windows" ]; then
+        printf '%s' "$key" | tr 'A-Z' 'a-z'
+        return 0
+    fi
+    printf '%s' "$key"
+}
+
 # nimo_confirm <question>  -> 0 = yes
 nimo_confirm() {
     [ "${NIMO_ASSUME_YES:-0}" = "1" ] && return 0

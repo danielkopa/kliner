@@ -240,7 +240,9 @@ nimo_wall_took() {
     sleep 0.4 2>/dev/null || sleep 1
     now=$(nimo_wall_current 2>/dev/null) || now=""
     [ -n "$now" ] || return 2
-    [ "$now" = "$want" ]
+    # By key, not by spelling: on Windows the two sides of this comparison are
+    # the same file written two different ways, and it was never once equal.
+    [ "$(nimo_path_key "$now")" = "$(nimo_path_key "$want")" ]
 }
 
 # A path on its way into a SQL string. SQLite's only escape inside single
