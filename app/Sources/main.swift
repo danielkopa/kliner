@@ -3911,10 +3911,10 @@ final class Main: NSObject, NSWindowDelegate {
             view.removeFromSuperview()
         }
 
-        func card(_ title: String, _ keys: [(String, String)]) {
+        func card(_ title: String, over: String, _ keys: [(String, String)]) {
             let box = Card(title)
             box.add(Ledger(colour: nil, name: "What it does",
-                           share: "", size: "Key", head: true))
+                           share: "", size: over, head: true))
             for (what, key) in keys {
                 box.add(Ledger(colour: nil, name: what, share: "", size: key))
             }
@@ -3922,7 +3922,7 @@ final class Main: NSObject, NSWindowDelegate {
             gap(Step.close)
         }
 
-        card("Getting about", [
+        card("Getting about", over: "Key", [
             ("The place above", "↑"),
             ("The place below", "↓"),
             ("Back where you came from", "⌘["),
@@ -3931,14 +3931,16 @@ final class Main: NSObject, NSWindowDelegate {
             ("Search the list", "⌘K"),
         ])
 
-        card("On the page", [
+        card("On the page", over: "Key", [
             ("Ask this page again", "⌘R"),
             ("Show the introduction", "⌘F"),
             ("Settings", "⌘,"),
             ("A sideways push turns the page", "two fingers"),
         ])
 
-        card("What Kliner will not do", [
+        // Not a list of keys, and a column headed "Key" over a column of
+        // "never" is a table that has not read itself.
+        card("What Kliner will not do", over: "Ever?", [
             ("Ask for an administrator", "never"),
             ("Touch the network", "never"),
             ("Read outside your home folder", "never"),

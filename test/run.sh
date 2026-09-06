@@ -1301,6 +1301,12 @@ check "and a folded row keeps its name"     "grep -q 'toolTip = yes ? name.strin
 # page is a figure with no working shown.
 # Settings was a column of loose rows with a grey word over each group, which
 # on a window made of cards reads as the one screen somebody forgot.
+# A column headed "Key" over a column of "never" is a table that has not read
+# itself.
+check "the help page's columns say what is under them" \
+    "grep -q 'card(\"What Kliner will not do\", over: \"Ever?\"' '$APP/Sources/main.swift' \
+     && grep -q 'card(\"Getting about\", over: \"Key\"' '$APP/Sources/main.swift'"
+
 check "settings is laid out as cards too"    \
     "grep -q 'let mine = Card(\"Kliner\")' '$APP/Sources/main.swift' \
      && grep -q 'let allowed = Card(\"What macOS lets Kliner touch\")' '$APP/Sources/main.swift'"
