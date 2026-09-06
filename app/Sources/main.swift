@@ -66,12 +66,13 @@ enum Step {
     /// The row across the top of the window, and the line everything in it
     /// stands on.
     ///
-    /// macOS puts the three lights in a 28 point title bar, 14 across, so
-    /// their middle is at 13. Everything else in the row is put on that line
-    /// and the row is as tall as the title bar, so the row is centred on
-    /// itself and on the lights at the same time.
-    static let bar:   CGFloat = 28
-    static let lights: CGFloat = 13
+    /// An empty toolbar makes the title bar 52 points rather than 28, which
+    /// is what gives the row room to be a row: the lights sit at 26 with the
+    /// chrome beside them, and the page's own tab hangs off the bottom of it
+    /// onto the card. In a 28 point bar the tab had nowhere to be and floated
+    /// in the gap above the page.
+    static let bar:   CGFloat = 52
+    static let lights: CGFloat = 26
 }
 
 // MARK: - nimo's colours
@@ -1010,11 +1011,11 @@ final class Row: NSView {
 
         wide = widthAnchor.constraint(equalToConstant: 190)
         atLeft = icon.leadingAnchor.constraint(equalTo: leadingAnchor,
-                                               constant: under ? 26 : 10)
+                                               constant: under ? 32 : 10)
         inMiddle = icon.centerXAnchor.constraint(equalTo: centerXAnchor)
 
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: under ? 26 : 30),
+            heightAnchor.constraint(equalToConstant: under ? 32 : 34),
             wide,
             atLeft,
             icon.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -1399,6 +1400,10 @@ final class Main: NSObject, NSWindowDelegate {
     private var stackWidth: NSLayoutConstraint!
     private var markWidth: NSLayoutConstraint!
     private var sideStack: NSStackView!
+    /// The list itself, which scrolls, and what it scrolls inside.
+    private var listStack: NSStackView!
+    private var listScroll: NSScrollView!
+    private var listWidth: NSLayoutConstraint!
     /// The rows for the things inside a place, which go when the list folds.
     private var kids: [Row] = []
     /// The word over the list, which goes when the list folds to its pictures.
@@ -1530,6 +1535,15 @@ final class Main: NSObject, NSWindowDelegate {
         window.title = "Kliner"
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
+        // An empty toolbar, for its height and nothing else: it moves the
+        // three lights down to 26 and gives the row along the top the depth
+        // every window of this shape has. Nothing is drawn in it — the row is
+        // Kliner's own, under the glass.
+        let bar = NSToolbar(identifier: "kliner.bar")
+        bar.showsBaselineSeparator = false
+        window.toolbar = bar
+        window.toolbarStyle = .unifiedCompact
+        if #available(macOS 11.0, *) { window.titlebarSeparatorStyle = .none }
         // Glass, with a veil of Kliner's own slate over it. Straight glass
         // took its colour from the wallpaper — on a warm photograph the whole
         // app went brown — and a flat opaque window threw the depth away with
@@ -1537,10 +1551,7 @@ final class Main: NSObject, NSWindowDelegate {
         window.isOpaque = false
         window.backgroundColor = .clear
         window.isMovableByWindowBackground = true
-        // The list down the side is thirteen rows, a mark and a search field,
-        // and it is not a scrolling list. The window's minimum is what that
-        // needs; shorter than this and the rows would be standing on Settings.
-        window.minSize = NSSize(width: 760, height: 620)
+        window.minSize = NSSize(width: 760, height: 520)
         window.delegate = self
         _ = window.setFrameAutosaveName("nimo.main")
 
@@ -1670,6 +1681,29 @@ final class Main: NSObject, NSWindowDelegate {
         stack.setCustomSpacing(Step.wide, after: seek)
 
 
+        // The list scrolls. It is thirteen rows at a rhythm somebody can
+        // read, and a window is as short as somebody drags it — pinned to the
+        // top with Settings pinned to the bottom, the two used to meet in the
+        // middle and stand on each other.
+        let listed = NSStackView()
+        listed.orientation = .vertical
+        listed.alignment = .leading
+        listed.spacing = 3
+        listed.translatesAutoresizingMaskIntoConstraints = false
+
+        let rolling = NSScrollView()
+        rolling.drawsBackground = false
+        rolling.borderType = .noBorder
+        rolling.hasVerticalScroller = true
+        rolling.autohidesScrollers = true
+        rolling.scrollerStyle = .overlay
+        rolling.contentView = TopClip()
+        rolling.documentView = listed
+        rolling.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(rolling)
+        listScroll = rolling
+        listStack = listed
+
         // The list has a name over it, the way every list down the side of a
         // window does: small, spaced, in capitals, so it reads as a label on
         // the list rather than as the first row of it.
@@ -1683,8 +1717,8 @@ final class Main: NSObject, NSWindowDelegate {
             heading.topAnchor.constraint(equalTo: headRoom.topAnchor),
             heading.bottomAnchor.constraint(equalTo: headRoom.bottomAnchor, constant: -Step.tight),
         ])
-        stack.addArrangedSubview(headRoom)
-        headRoom.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        listed.addArrangedSubview(headRoom)
+        headRoom.widthAnchor.constraint(equalTo: listed.widthAnchor).isActive = true
         sideHeading = headRoom
 
         // Five places, each opening on the first of the things it holds. What
@@ -1694,7 +1728,7 @@ final class Main: NSObject, NSWindowDelegate {
             guard let first = place.holds.first else { continue }
             let row = Row(place.title, symbol: place.symbol, index: first)
             row.onClick = { [weak self] which in self?.show(which) }
-            stack.addArrangedSubview(row)
+            listed.addArrangedSubview(row)
             rows.append(row)
 
             // And what is inside it, under it. It used to be reachable only
@@ -1706,7 +1740,7 @@ final class Main: NSObject, NSWindowDelegate {
                 let item = Action.all[which]
                 let kid = Row(item.title, symbol: item.symbol, index: which, under: true)
                 kid.onClick = { [weak self] one in self?.show(one) }
-                stack.addArrangedSubview(kid)
+                listed.addArrangedSubview(kid)
                 rows.append(kid)
                 kids.append(kid)
             }
@@ -1899,10 +1933,23 @@ final class Main: NSObject, NSWindowDelegate {
         titleLeading = titleLabel.leadingAnchor.constraint(equalTo: edge.trailingAnchor)
         titleLeading.priority = .defaultLow
 
+        listWidth = rolling.widthAnchor.constraint(equalToConstant: 214)
+
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: Step.air),
-            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: Step.bar + Step.close),
+            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: Step.bar - Step.hair),
             stackWidth,
+
+            // Between the search and the hairline over Settings, and it
+            // scrolls if the window is too short to hold all of it.
+            rolling.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
+            rolling.topAnchor.constraint(equalTo: stack.bottomAnchor, constant: Step.air),
+            rolling.bottomAnchor.constraint(equalTo: foot.topAnchor, constant: -Step.close),
+            listWidth,
+
+            listed.leadingAnchor.constraint(equalTo: rolling.contentView.leadingAnchor),
+            listed.trailingAnchor.constraint(equalTo: rolling.contentView.trailingAnchor),
+            listed.topAnchor.constraint(equalTo: rolling.contentView.topAnchor),
 
             feet.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
             feet.bottomAnchor.constraint(equalTo: content.bottomAnchor,
@@ -1915,7 +1962,7 @@ final class Main: NSObject, NSWindowDelegate {
             pane.trailingAnchor.constraint(equalTo: content.trailingAnchor,
                                            constant: -Step.tight),
             pane.topAnchor.constraint(equalTo: content.topAnchor,
-                                      constant: Step.bar + Step.air),
+                                      constant: Step.bar),
             pane.bottomAnchor.constraint(equalTo: content.bottomAnchor,
                                          constant: -Step.page),
 
@@ -1948,7 +1995,9 @@ final class Main: NSObject, NSWindowDelegate {
                                                 constant: Step.air),
             titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: buttons.leadingAnchor,
                                                  constant: -Step.air),
-            titleLabel.centerYAnchor.constraint(equalTo: chrome.centerYAnchor),
+            // Hanging off the bar onto the page: its bottom is inside the
+            // card's top edge, so the two read as one shape.
+            titleLabel.bottomAnchor.constraint(equalTo: pane.topAnchor, constant: 1),
 
             side.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: Step.air),
             side.trailingAnchor.constraint(equalTo: edge.leadingAnchor, constant: -Step.air),
@@ -2313,17 +2362,10 @@ final class Main: NSObject, NSWindowDelegate {
     /// search and its buttons while it is still explaining itself is a window
     /// asking you to read two things at once.
     private func bare(_ yes: Bool) {
-        for view: NSView? in [footStack, barLine, chrome,
+        for view: NSView? in [footStack, barLine, chrome, listScroll,
                               buttons, search, titleLabel, helper, strip] {
             view?.isHidden = yes
         }
-        // The mark stays where it is. This is somebody's first minute with
-        // the app and the top left corner of the window is where they look
-        // for whose app it is; hiding the whole side took the name with it
-        // and left the corner empty. What goes is the list — that is not
-        // theirs yet — and everything else that is not the step.
-        sideHeading?.isHidden = yes
-        for row in rows { row.isHidden = yes }
         // The rail itself stays. It used to be folded away and the setup took
         // the whole window, which is a different app for four pages and then
         // yours. Kaelor and Open Analytics both keep their two panes through
@@ -4291,6 +4333,7 @@ final class Main: NSObject, NSWindowDelegate {
         wordmark.fold(narrow)
         markWidth.constant = narrow ? 38 : 190
         stackWidth.constant = narrow ? 38 : 214
+        listWidth.constant = narrow ? 38 : 214
         railWidth.constant = narrow ? 70 : 246
         chromeLeading.constant = narrow ? 90 : 76
         foldButton.toolTip = narrow ? "Show the list  ⌘B" : "Hide the list  ⌘B"
@@ -5689,10 +5732,13 @@ final class Trail: NSView {
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
-        layer?.cornerRadius = 7
+        layer?.cornerRadius = 9
+        // Round at the top, square at the bottom, because the bottom is not
+        // an edge: it is where the tab meets the page it names.
+        layer?.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
 
-        // A tab, not a caption. The page you are on is a thing standing in
-        // the row along the top, at the left edge of the page it names —
+        // A tab, not a caption. The page you are on is a thing hanging off
+        // the row along the top onto the left edge of the page it names —
         // floating in the middle of the bar it read as a window title, which
         // is what the title bar already is.
         mark.contentTintColor = Paint.muted
@@ -5714,14 +5760,14 @@ final class Trail: NSView {
         addSubview(arrow)
 
         trailing = arrow.trailingAnchor.constraint(equalTo: trailingAnchor,
-                                                   constant: -Step.tight)
+                                                   constant: -Step.close)
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 26),
-            mark.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 9),
+            heightAnchor.constraint(equalToConstant: 38),
+            mark.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
             mark.centerYAnchor.constraint(equalTo: centerYAnchor),
             mark.widthAnchor.constraint(equalToConstant: 13),
             mark.heightAnchor.constraint(equalToConstant: 13),
-            label.leadingAnchor.constraint(equalTo: mark.trailingAnchor, constant: 7),
+            label.leadingAnchor.constraint(equalTo: mark.trailingAnchor, constant: 8),
             label.centerYAnchor.constraint(equalTo: centerYAnchor),
             arrow.leadingAnchor.constraint(equalTo: label.trailingAnchor, constant: 5),
             arrow.centerYAnchor.constraint(equalTo: centerYAnchor),

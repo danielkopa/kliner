@@ -1218,12 +1218,19 @@ check "and a place holding two things offers both" \
 # took the name with it and left the corner empty.
 check "the setup keeps the name in the corner" \
     "awk '/private func bare\\(_ yes: Bool\\)/,/^    }/' '$APP/Sources/main.swift' \
-     | grep -q 'for row in rows { row.isHidden = yes }' \
+     | grep -q 'listScroll' \
      && ! awk '/private func bare\\(_ yes: Bool\\)/,/^    }/' '$APP/Sources/main.swift' \
-        | grep -q 'sideStack, footStack'"
+        | grep -q 'sideStack'"
 
-check "the window cannot be made shorter than its own list" \
-    "grep -q 'NSSize(width: 760, height: 620)' '$APP/Sources/main.swift'"
+# Thirteen rows at a rhythm somebody can read, and a window is as short as
+# somebody drags it. Pinned to the top with Settings pinned to the bottom, the
+# two met in the middle and stood on each other; so the list scrolls.
+check "the list down the side scrolls"       \
+    "grep -q 'listScroll = rolling' '$APP/Sources/main.swift' \
+     && grep -q 'rolling.bottomAnchor.constraint(equalTo: foot.topAnchor' '$APP/Sources/main.swift' \
+     && grep -q 'rolling.topAnchor.constraint(equalTo: stack.bottomAnchor' '$APP/Sources/main.swift'"
+check "and it folds to a rail with everything else" \
+    "grep -q 'listWidth.constant = narrow ? 38 : 214' '$APP/Sources/main.swift'"
 
 # A place stays if anything it holds matched. One of the things inside it
 # stays only if it matched itself — searching for the wallpaper and being
@@ -1708,8 +1715,11 @@ check "and the trail never says the same word twice" \
     "grep -q 'trail(place == name ? \"Kliner\" : place, name)' '$APP/Sources/main.swift'"
 # The name of the page is in that row, on the same line as everything you can
 # do to it, and there is no second copy of it below.
-check "the page's name is in the row as well" \
-    "grep -q 'titleLabel.centerYAnchor.constraint(equalTo: chrome.centerYAnchor)' '$APP/Sources/main.swift'"
+# It hangs off the bar onto the page, the way a tab does: its bottom is
+# inside the card's top edge, so the two read as one shape.
+check "the page's name hangs off the row onto the page" \
+    "grep -q 'titleLabel.bottomAnchor.constraint(equalTo: pane.topAnchor, constant: 1)' '$APP/Sources/main.swift' \
+     && grep -q 'layer?.maskedCorners = \[.layerMinXMinYCorner, .layerMaxXMinYCorner\]' '$APP/Sources/main.swift'"
 # Written as a trail: where you are, in the place it belongs, one label and
 # two weights so it reads as one line.
 check "and it says where that page belongs"  \
@@ -1739,9 +1749,15 @@ check "and the work stops at a readable width" \
 # card, with the three lights in it. Two hairlines used to be drawn to say
 # where the list stopped and where the page's words started; the card has an
 # edge of its own, and two lines saying one thing is one line too many.
-check "the page begins under the row along the top" \
+check "the page begins where the row along the top ends" \
     "grep -q 'pane.topAnchor.constraint(equalTo: content.topAnchor,' '$APP/Sources/main.swift' \
-     && grep -q 'constant: Step.bar + Step.air)' '$APP/Sources/main.swift'"
+     && grep -q 'constant: Step.bar),' '$APP/Sources/main.swift'"
+# An empty toolbar, for its height and nothing else: it moves the three
+# lights down to 26 and gives the row along the top room to be a row.
+check "the row along the top has room to be a row" \
+    "grep -q 'static let bar:   CGFloat = 52' '$APP/Sources/main.swift' \
+     && grep -q 'static let lights: CGFloat = 26' '$APP/Sources/main.swift' \
+     && grep -q 'window.toolbarStyle = .unifiedCompact' '$APP/Sources/main.swift'"
 # Under the card, on the glass: what Kliner is doing, and the way to ask
 # again. It is the difference between an app quietly doing something and an
 # app that has stopped.
