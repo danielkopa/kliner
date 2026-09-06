@@ -947,10 +947,20 @@ final class Wordmark: NSImageView {
 final class Row: NSView {
     let index: Int
     var onClick: ((Int) -> Void)?
+    /// Pressing the chevron opens or shuts what is inside this place.
+    var onFold: (() -> Void)?
+
+    /// A search did not match this row.
+    var ruledOut = false
+    /// The place this row is inside is shut.
+    var shutAway = false
 
     private let name = NSTextField(labelWithString: "")
     private let icon = NSImageView()
     private let count = NSTextField(labelWithString: "")
+    private let chevron = NSImageView()
+    /// Whether this row has anything under it to open and shut.
+    private var canFold = false
     /// A row for one of the things inside a place, indented under it.
     private let under: Bool
     private var chosen = false
@@ -969,6 +979,9 @@ final class Row: NSView {
         }
         name.isHidden = yes
         count.isHidden = yes || count.stringValue.isEmpty
+        // A chevron on a row 38 points wide is a chevron under every click,
+        // and the row would open and shut instead of opening its page.
+        chevron.isHidden = yes || !canFold
         atLeft.isActive = !yes
         inMiddle.isActive = yes
         wide.constant = yes ? 38 : 190
@@ -1013,6 +1026,13 @@ final class Row: NSView {
         count.translatesAutoresizingMaskIntoConstraints = false
         addSubview(count)
 
+        // And, on a place that holds more than one thing, the chevron that
+        // opens and shuts it. Every list of this shape has one, and without
+        // it thirteen rows is thirteen rows whether you want them or not.
+        chevron.isHidden = true
+        chevron.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(chevron)
+
         wide = widthAnchor.constraint(equalToConstant: 190)
         atLeft = icon.leadingAnchor.constraint(equalTo: leadingAnchor,
                                                constant: under ? 32 : 10)
@@ -1029,8 +1049,13 @@ final class Row: NSView {
             name.centerYAnchor.constraint(equalTo: centerYAnchor),
             count.leadingAnchor.constraint(greaterThanOrEqualTo: name.trailingAnchor,
                                            constant: Step.tight),
-            count.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            count.trailingAnchor.constraint(equalTo: chevron.leadingAnchor, constant: -6),
             count.centerYAnchor.constraint(equalTo: centerYAnchor),
+
+            chevron.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            chevron.centerYAnchor.constraint(equalTo: centerYAnchor),
+            chevron.widthAnchor.constraint(equalToConstant: 9),
+            chevron.heightAnchor.constraint(equalToConstant: 9),
         ])
 
         repaint()
@@ -1054,7 +1079,16 @@ final class Row: NSView {
 
     override func mouseEntered(with event: NSEvent) { hovering = true;  repaint() }
     override func mouseExited(with event: NSEvent)  { hovering = false; repaint() }
-    override func mouseDown(with event: NSEvent)    { onClick?(index) }
+    /// The chevron opens and shuts what is inside this place; the rest of
+    /// the row goes to the page it names.
+    override func mouseDown(with event: NSEvent) {
+        let at = convert(event.locationInWindow, from: nil)
+        if !chevron.isHidden, onFold != nil, at.x > chevron.frame.minX - 8 {
+            onFold?()
+            return
+        }
+        onClick?(index)
+    }
 
     /// The picture and the words are controls of their own, and a control eats
     /// the click it is given. This view is the button; nothing inside it is.
@@ -1077,12 +1111,31 @@ final class Row: NSView {
         repaint()
     }
 
+    /// This place can be opened and shut, and this is which it is.
+    func folds(_ open: Bool) {
+        let picture = NSImage(systemSymbolName: open ? "chevron.down" : "chevron.right",
+                              accessibilityDescription: nil)
+        picture?.isTemplate = true
+        chevron.image = picture
+        canFold = true
+        chevron.isHidden = name.isHidden
+        repaint()
+    }
+
+    /// Whether this row is on the screen at all. A search can rule it out,
+    /// the place it is inside can be shut, and a list folded to a rail has
+    /// room for the places and nothing under them.
+    func settle(_ narrowed: Bool) {
+        isHidden = ruledOut || (under && (shutAway || narrowed))
+    }
+
     private func repaint() {
         let lit = chosen || inside
         name.textColor = lit ? Paint.ink : Paint.muted
         name.font = lit ? Words.strong : Words.body
         icon.contentTintColor = chosen ? Paint.accent : Paint.faint
         count.textColor = Paint.faint
+        chevron.contentTintColor = Paint.faint
 
         // A grey pill behind the page you are on says in a second way what
         // the darker word already says. The lift is not a second way: it is
@@ -1410,6 +1463,8 @@ final class Main: NSObject, NSWindowDelegate {
     private var listWidth: NSLayoutConstraint!
     /// The rows for the things inside a place, which go when the list folds.
     private var kids: [Row] = []
+    /// The places somebody has shut, by the index of the first thing in them.
+    private var shut: Set<Int> = []
     /// The word over the list, which goes when the list folds to its pictures.
     private var sideHeading: NSView!
     private var wordmark: Wordmark!
@@ -1738,6 +1793,8 @@ final class Main: NSObject, NSWindowDelegate {
             // which is a door with the handle on the inside: you had to be in
             // the room to find out the room had another one.
             guard place.holds.count > 1 else { continue }
+            row.folds(true)
+            row.onFold = { [weak self] in self?.foldPlace(first) }
             for which in place.holds {
                 let item = Action.all[which]
                 let kid = Row(item.title, symbol: item.symbol, index: which, under: true)
@@ -3243,8 +3300,12 @@ final class Main: NSObject, NSWindowDelegate {
             let found = row.isUnder
                 ? matches.contains(row.index)
                 : place.holds.contains { matches.contains($0) }
-            row.isHidden = !(want.isEmpty || found)
+            row.ruledOut = !(want.isEmpty || found)
         }
+        // A search reaches into a shut place: what it turned up is no use
+        // behind a chevron.
+        if !want.isEmpty { shut = [] }
+        settleList()
         // Settings and Help are under a hairline of their own and are not one
         // of the things being searched, so they stay where they are.
         for head in groupLabels { head.isHidden = !want.isEmpty }
@@ -4317,6 +4378,33 @@ final class Main: NSObject, NSWindowDelegate {
         }
     }
 
+    /// Open or shut one place in the list. Thirteen rows is thirteen rows
+    /// whether you want them or not, so each of them can be put away.
+    private func foldPlace(_ first: Int) {
+        if shut.contains(first) { shut.remove(first) } else { shut.insert(first) }
+        settleList()
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.16
+            context.allowsImplicitAnimation = true
+            self.listScroll.contentView.layoutSubtreeIfNeeded()
+        }
+    }
+
+    /// Which rows are on the screen: what a search left, what a shut place is
+    /// hiding, and whether the whole list is folded down to a rail. Three
+    /// answers that used to be given in three places and disagreed.
+    private func settleList() {
+        for row in rows {
+            let place = Action.place(of: row.index)
+            let first = place?.holds.first ?? -1
+            row.shutAway = shut.contains(first)
+            if place != nil, (place?.holds.count ?? 0) > 1, !row.isUnder {
+                row.folds(!shut.contains(first))
+            }
+            row.settle(narrow)
+        }
+    }
+
     /// The list folds down to its pictures and back. Everything stays where
     /// it was — same rows, same order, same fills — only the words go, and
     /// each row keeps its name as a tooltip so nothing is lost.
@@ -4332,7 +4420,7 @@ final class Main: NSObject, NSWindowDelegate {
         // Folded to a rail there is no room for a word over the list either,
         // nor for the things inside a place: the place itself is still there.
         sideHeading.isHidden = narrow
-        for kid in kids { kid.isHidden = narrow }
+        settleList()
         // A search field 38 points wide is a search field nobody can type in.
         search.isHidden = narrow
 

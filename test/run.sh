@@ -1856,7 +1856,23 @@ check "a click cannot be eaten by the picture inside a button" \
 check "there is a way to search from the keyboard" \
     "grep -q 'final class Seek' '$APP/Sources/main.swift' && grep -q 'keyEquivalent: \"k\"' '$APP/Sources/main.swift'"
 check "and typing narrows the list rather than covering it" \
-    "grep -q 'func sieve' '$APP/Sources/main.swift' && grep -q 'row.isHidden = !(want.isEmpty || found)' '$APP/Sources/main.swift'"
+    "grep -q 'func sieve' '$APP/Sources/main.swift' && grep -q 'row.ruledOut = !(want.isEmpty || found)' '$APP/Sources/main.swift'"
+# A search, a shut place and a list folded to a rail all decide whether a row
+# is on the screen. Three answers given in three places disagree.
+check "one place decides whether a row is on the screen" \
+    "grep -q 'private func settleList()' '$APP/Sources/main.swift' \
+     && [ \$(grep -c 'settleList()' '$APP/Sources/main.swift') -ge 4 ]"
+# Thirteen rows is thirteen rows whether you want them or not.
+check "a place in the list opens and shuts" \
+    "grep -q 'private func foldPlace(_ first: Int)' '$APP/Sources/main.swift' \
+     && grep -q 'row.onFold = { \[weak self\] in self?.foldPlace(first) }' '$APP/Sources/main.swift' \
+     && grep -q 'func folds(_ open: Bool)' '$APP/Sources/main.swift'"
+# A chevron on a row 38 points wide is a chevron under every click, and the
+# row would open and shut instead of opening its page.
+check "a rail has no chevrons on it" \
+    "grep -q 'chevron.isHidden = yes || !canFold' '$APP/Sources/main.swift'"
+check "and a search reaches into a shut one" \
+    "grep -q 'if !want.isEmpty { shut = \[\] }' '$APP/Sources/main.swift'"
 # The list is five places, not nine pages. Walking Action.all through rows[i]
 # ran off the end of a seven-row list on the first letter typed.
 check "and it narrows the rows there are, not the pages there are" \
