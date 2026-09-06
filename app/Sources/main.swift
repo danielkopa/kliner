@@ -1543,11 +1543,9 @@ final class Main: NSObject, NSWindowDelegate {
         // three lights down to 26 and gives the row along the top the depth
         // every window of this shape has. Nothing is drawn in it — the row is
         // Kliner's own, under the glass.
-        let bar = NSToolbar(identifier: "kliner.bar")
-        bar.showsBaselineSeparator = false
-        window.toolbar = bar
+        window.toolbar = NSToolbar(identifier: "kliner.bar")
         window.toolbarStyle = .unifiedCompact
-        if #available(macOS 11.0, *) { window.titlebarSeparatorStyle = .none }
+        window.titlebarSeparatorStyle = .none
         // Glass, with a veil of Kliner's own slate over it. Straight glass
         // took its colour from the wallpaper — on a warm photograph the whole
         // app went brown — and a flat opaque window threw the depth away with

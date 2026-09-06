@@ -1767,6 +1767,13 @@ check "the page begins where the row along the top ends" \
      && grep -q 'constant: Step.bar),' '$APP/Sources/main.swift'"
 # An empty toolbar, for its height and nothing else: it moves the three
 # lights down to 26 and gives the row along the top room to be a row.
+# The build names macOS 12 as its floor, so anything newer than that has to
+# be asked for by hand. Written down because the guards that were there were
+# guarding against a macOS this app never runs on.
+check "the app says which macOS it is built for" \
+    "grep -q 'target \"\${arch}-apple-macos12.0\"' '$APP/build.sh' \
+     && grep -q '<string>12.0</string>' '$APP/Info.plist'"
+
 check "the row along the top has room to be a row" \
     "grep -q 'static let bar:   CGFloat = 52' '$APP/Sources/main.swift' \
      && grep -q 'static let lights: CGFloat = 26' '$APP/Sources/main.swift' \
