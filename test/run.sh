@@ -1375,8 +1375,14 @@ check "no paragraph under every title"      "! grep -q 'blurbLabel' '$APP/Source
 # The work is one card, inset from three edges of the window and round at the
 # corners. The list is not on it: the list is on the glass.
 check "the work sits on one card, inset from the window" \
-    "grep -q 'Surface(Paint.card, round: 12, edged: true)' '$APP/Sources/main.swift' \
+    "grep -q 'Surface(Paint.card, round: 18, edged: true)' '$APP/Sources/main.swift' \
      && grep -q 'pane.trailingAnchor.constraint(equalTo: content.trailingAnchor,' '$APP/Sources/main.swift'"
+# Measured off the picture: the column is about eight hundred points wide
+# with a margin either side, not pushed against the left edge of the card.
+check "the work sits in a column in the middle of the card" \
+    "grep -q 'report.alignment = .centerX' '$APP/Sources/main.swift' \
+     && grep -q 'static let column: CGFloat = 820' '$APP/Sources/main.swift'"
+
 check "and Kliner sits in the corner of the card" \
     "grep -q 'sitting.trailingAnchor.constraint(equalTo: pane.trailingAnchor,' '$APP/Sources/main.swift' \
      && grep -q 'sitting.bottomAnchor.constraint(equalTo: pane.bottomAnchor,' '$APP/Sources/main.swift'"

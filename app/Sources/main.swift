@@ -1641,7 +1641,7 @@ final class Main: NSObject, NSWindowDelegate {
         // The work sits on one card, inset from the window's edges and round
         // at the corners. The list is not on it: the list is on the glass, and
         // the card is the page.
-        let pane = Surface(Paint.card, round: 12, edged: true)
+        let pane = Surface(Paint.card, round: 18, edged: true)
         content.addSubview(pane)
 
         // ---- down the side ----------------------------------------------
@@ -1910,7 +1910,11 @@ final class Main: NSObject, NSWindowDelegate {
         content.addSubview(scroll)
 
         report.orientation = .vertical
-        report.alignment = .leading
+        // In the middle of the card, not against its left edge. Measured off
+        // the picture: the column is about eight hundred points wide with a
+        // margin either side of it, which is what stops a wide window from
+        // being one long line of text and a great deal of nothing.
+        report.alignment = .centerX
         report.spacing = 0
         // Room at the bottom for him to sit without anything under him.
         report.edgeInsets = NSEdgeInsets(top: Step.hair, left: Step.wide,
@@ -2048,7 +2052,7 @@ final class Main: NSObject, NSWindowDelegate {
     }
 
     /// As wide as the work ever gets.
-    static let column: CGFloat = 760
+    static let column: CGFloat = 820
 
     private func words(_ text: String, _ font: NSFont, _ colour: NSColor,
                        top: CGFloat = Step.tight, bottom: CGFloat = Step.tight) {
