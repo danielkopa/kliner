@@ -1587,7 +1587,11 @@ final class Main: NSObject, NSWindowDelegate {
     private var ticking: Timer?
 
     override init() {
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 940, height: 640),
+        // Wide enough for the column of work to be its full width beside
+        // the list, and tall enough for Home to be one screen rather than
+        // half of one. A window that opens on half a page is a window that
+        // asks you to resize it before you can read it.
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1160, height: 800),
                           styleMask: [.titled, .closable, .miniaturizable, .resizable,
                                       .fullSizeContentView],
                           backing: .buffered,

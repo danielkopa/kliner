@@ -1790,6 +1790,12 @@ check "the app says which macOS it is built for" \
 # drawn under the title bar is a view macOS is holding on to: an empty toolbar
 # bought the height and would have taken the clicks with it. So the tab is in
 # the band under the bar, clear of it, and the card starts under that.
+# Wide enough for the column of work to be its full width beside the list,
+# and tall enough for Home to be one screen. A window that opens on half a
+# page asks you to resize it before you can read it.
+check "the window opens on a whole page, not half of one" \
+    "grep -q 'NSRect(x: 0, y: 0, width: 1160, height: 800)' '$APP/Sources/main.swift'"
+
 check "the tab is clear of the title bar" \
     "grep -q 'static let bar:   CGFloat = 28' '$APP/Sources/main.swift' \
      && grep -q 'static let crown: CGFloat = 52' '$APP/Sources/main.swift' \
