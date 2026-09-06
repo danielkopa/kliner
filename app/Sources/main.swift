@@ -39,8 +39,12 @@ enum Words {
     /// The top of a card, or a line that opens a group.
     static let head   = NSFont.systemFont(ofSize: 15, weight: .semibold)
     /// Everything anybody actually reads.
-    static let body   = NSFont.systemFont(ofSize: 13, weight: .regular)
-    static let strong = NSFont.systemFont(ofSize: 13, weight: .medium)
+    ///
+    /// Fourteen, not thirteen. Measured off the picture: its running text is
+    /// about fourteen points set on twenty-seven, and beside it a Mac app at
+    /// the system thirteen on seventeen reads as something squashed to fit.
+    static let body   = NSFont.systemFont(ofSize: 14, weight: .regular)
+    static let strong = NSFont.systemFont(ofSize: 14, weight: .medium)
     /// A caption under something, or a column heading over one.
     static let small  = NSFont.systemFont(ofSize: 12, weight: .regular)
     /// A label on a control, and nothing else.
@@ -49,7 +53,7 @@ enum Words {
     static let label  = NSFont.systemFont(ofSize: 11, weight: .semibold)
 
     /// A figure in a table, which has to line up with the figure above it.
-    static let column = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
+    static let column = NSFont.monospacedDigitSystemFont(ofSize: 14, weight: .regular)
 }
 
 /// Every gap in the window is one of these. Four points apart, so two things
@@ -6339,7 +6343,10 @@ final class Job: NSView {
 /// somebody reads and a window somebody scans.
 func leaded(_ text: String, _ font: NSFont, _ colour: NSColor) -> NSAttributedString {
     let style = NSMutableParagraphStyle()
-    style.lineHeightMultiple = 1.32
+    // Twenty-seven points on fourteen is what the picture sets its running
+    // text at, and a paragraph set tighter than that is a paragraph people
+    // skim rather than read.
+    style.lineHeightMultiple = 1.55
     style.lineBreakMode = .byWordWrapping
     return NSAttributedString(string: text, attributes: [
         .font: font,

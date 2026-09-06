@@ -1747,6 +1747,13 @@ check "the list marks where you are in Kliner's colour" \
     "grep -q 'if chosen { background = Paint.wash }' '$APP/Sources/main.swift'"
 check "and not with a grey box as well" \
     "! grep -q 'if chosen { background = Paint.picked }' '$APP/Sources/main.swift'"
+# Measured off the picture: its running text is about fourteen points set on
+# twenty-seven. A Mac app at the system thirteen on seventeen reads, beside
+# it, as something squashed to fit.
+check "the running text is set the way the picture sets it" \
+    "grep -q 'static let body   = NSFont.systemFont(ofSize: 14, weight: .regular)' '$APP/Sources/main.swift' \
+     && grep -q 'style.lineHeightMultiple = 1.55' '$APP/Sources/main.swift'"
+
 check "paragraphs have room between their lines" \
     "grep -q 'lineHeightMultiple' '$APP/Sources/main.swift' && grep -q 'func leaded' '$APP/Sources/main.swift'"
 check "and the work stops at a readable width" \
