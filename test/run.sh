@@ -1299,6 +1299,12 @@ check "and a folded row keeps its name"     "grep -q 'toolTip = yes ? name.strin
 # Home is cards now: the number, the bar it came out of, then the table
 # behind the bar. Each of the three has to be there, in that order, or the
 # page is a figure with no working shown.
+# Settings was a column of loose rows with a grey word over each group, which
+# on a window made of cards reads as the one screen somebody forgot.
+check "settings is laid out as cards too"    \
+    "grep -q 'let mine = Card(\"Kliner\")' '$APP/Sources/main.swift' \
+     && grep -q 'let allowed = Card(\"What macOS lets Kliner touch\")' '$APP/Sources/main.swift'"
+
 check "home is laid out as cards"            \
     "grep -q 'final class Card' '$APP/Sources/main.swift' && grep -q 'let card = Card(\"What is on your disk\")' '$APP/Sources/main.swift'"
 # The figures across the top, then the bar they came out of, then the table

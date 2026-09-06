@@ -3956,14 +3956,17 @@ final class Main: NSObject, NSWindowDelegate {
             view.removeFromSuperview()
         }
 
-        words("Kliner", Words.small, Paint.faint, top: Step.hair, bottom: Step.tight)
+        // In cards, like every other page in the window. Settings was a
+        // column of loose rows with a grey word over each group, which on a
+        // page made of cards reads as the one screen somebody forgot.
+        let mine = Card("Kliner")
 
         let login = NSSwitch()
         login.state = Login.on ? .on : .off
         login.isEnabled = Login.possible
         login.target = self
         login.action = #selector(loginChanged(_:))
-        line(Setting("Open when I sign in", control: login))
+        mine.add(Setting("Open when I sign in", control: login))
 
         let days = NSPopUpButton()
         days.addItems(withTitles: ["7 days", "30 days", "90 days"])
@@ -3971,63 +3974,49 @@ final class Main: NSObject, NSWindowDelegate {
         if days.indexOfSelectedItem < 0 { days.selectItem(withTitle: "30 days") }
         days.target = self
         days.action = #selector(daysChanged(_:))
-        line(Setting("Old means older than", control: days))
+        mine.add(Setting("Old means older than", control: days))
 
-        line(Setting("In a terminal",
-                     control: quiet("Open") { [weak self] in self?.openTerminal() }))
+        mine.add(Setting("In a terminal",
+                         control: quiet("Open") { [weak self] in self?.openTerminal() }))
 
-        line(Setting("The introduction",
-                     control: quiet("Show it again  ⌘F") { [weak self] in
-                         self?.replaySetup()
-                     }))
+        mine.add(Setting("The introduction",
+                         control: quiet("Show it again  ⌘F") { [weak self] in
+                             self?.replaySetup()
+                         }))
+        line(mine)
+        gap(Step.close)
 
         // ---- what macOS will let it touch --------------------------------
         // Each row says what is true; the button does the only thing there is
         // to do about it.
-        words("Access", Words.small, Paint.faint, top: Step.page, bottom: Step.tight)
+        let allowed = Card("What macOS lets Kliner touch")
 
         // Full Disk Access first, because it is the one that ends the asking.
         // Folder by folder, macOS prompts again for every folder nimo has not
         // been in yet; with this on it never prompts at all.
-        line(Setting(Access.everything ? "Full Disk Access, on" : "Full Disk Access, off",
-                     control: quiet(Access.everything ? "Settings" : "Turn on") {
-                         [weak self] in self?.explainFullDisk()
-                     }))
+        allowed.add(Setting(Access.everything ? "Full Disk Access, on"
+                                              : "Full Disk Access, off",
+                            control: quiet(Access.everything ? "Settings" : "Turn on") {
+                                [weak self] in self?.explainFullDisk()
+                            }))
 
         let openFolders = Access.may(Access.desktop) && Access.may(Access.downloads)
-        line(Setting(openFolders ? "Your folders" : "Your folders, not yet",
-                     control: quiet(openFolders ? "Check again" : "Ask") {
-                         [weak self] in self?.askForFolders()
-                     }))
+        allowed.add(Setting(openFolders ? "Your folders" : "Your folders, not yet",
+                            control: quiet(openFolders ? "Check again" : "Ask") {
+                                [weak self] in self?.askForFolders()
+                            }))
 
-        line(Setting("Changing your wallpaper",
-                     control: quiet("Settings") { Access.settings("Privacy_Automation") }))
+        allowed.add(Setting("Changing your wallpaper",
+                            control: quiet("Settings") {
+                                Access.settings("Privacy_Automation")
+                            }))
+        line(allowed)
+        gap(Step.close)
 
         words("Kliner \(Nimo.version) · MIT · kliner.app",
-              Words.small, Paint.faint, top: Step.page, bottom: Step.hair)
+              Words.small, Paint.faint, top: Step.tight, bottom: Step.hair)
 
         settle()
-    }
-
-    /// The same hairline the list down the side uses, across the page.
-    private func divider() {
-        let rule = NSBox()
-        rule.boxType = .custom
-        rule.borderWidth = 0
-        rule.fillColor = Paint.line
-        rule.translatesAutoresizingMaskIntoConstraints = false
-
-        let holder = NSView()
-        holder.translatesAutoresizingMaskIntoConstraints = false
-        holder.addSubview(rule)
-        NSLayoutConstraint.activate([
-            holder.heightAnchor.constraint(equalToConstant: 30),
-            rule.leadingAnchor.constraint(equalTo: holder.leadingAnchor),
-            rule.trailingAnchor.constraint(equalTo: holder.trailingAnchor),
-            rule.centerYAnchor.constraint(equalTo: holder.centerYAnchor),
-            rule.heightAnchor.constraint(equalToConstant: 1),
-        ])
-        line(holder)
     }
 
     /// Reading a folder is what raises the prompt, so asking and checking are
