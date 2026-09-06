@@ -5729,7 +5729,10 @@ final class Seek: NSView, NSTextFieldDelegate {
         addSubview(key)
 
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 26),
+            // Room for the text that is in it. Twenty-six was right when the
+            // running text was thirteen points; at fourteen it is a field
+            // holding its own line too tightly.
+            heightAnchor.constraint(equalToConstant: 30),
             glass.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
             glass.centerYAnchor.constraint(equalTo: centerYAnchor),
             glass.widthAnchor.constraint(equalToConstant: 12),
