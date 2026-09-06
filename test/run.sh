@@ -1762,9 +1762,9 @@ check "and the work stops at a readable width" \
 # card, with the three lights in it. Two hairlines used to be drawn to say
 # where the list stopped and where the page's words started; the card has an
 # edge of its own, and two lines saying one thing is one line too many.
-check "the page begins where the row along the top ends" \
+check "the page begins under the band the tab hangs in" \
     "grep -q 'pane.topAnchor.constraint(equalTo: content.topAnchor,' '$APP/Sources/main.swift' \
-     && grep -q 'constant: Step.bar),' '$APP/Sources/main.swift'"
+     && grep -q 'constant: Step.crown),' '$APP/Sources/main.swift'"
 # An empty toolbar, for its height and nothing else: it moves the three
 # lights down to 26 and gives the row along the top room to be a row.
 # The build names macOS 12 as its floor, so anything newer than that has to
@@ -1774,10 +1774,14 @@ check "the app says which macOS it is built for" \
     "grep -q 'target \"\${arch}-apple-macos12.0\"' '$APP/build.sh' \
      && grep -q '<string>12.0</string>' '$APP/Info.plist'"
 
-check "the row along the top has room to be a row" \
-    "grep -q 'static let bar:   CGFloat = 52' '$APP/Sources/main.swift' \
-     && grep -q 'static let lights: CGFloat = 26' '$APP/Sources/main.swift' \
-     && grep -q 'window.toolbarStyle = .unifiedCompact' '$APP/Sources/main.swift'"
+# The three lights are macOS's and sit at 13 whatever Kliner does, and a view
+# drawn under the title bar is a view macOS is holding on to: an empty toolbar
+# bought the height and would have taken the clicks with it. So the tab is in
+# the band under the bar, clear of it, and the card starts under that.
+check "the tab is clear of the title bar" \
+    "grep -q 'static let bar:   CGFloat = 28' '$APP/Sources/main.swift' \
+     && grep -q 'static let crown: CGFloat = 52' '$APP/Sources/main.swift' \
+     && ! grep -q 'NSToolbar' '$APP/Sources/main.swift'"
 # Under the card, on the glass: what Kliner is doing, and the way to ask
 # again. It is the difference between an app quietly doing something and an
 # app that has stopped.

@@ -70,13 +70,16 @@ enum Step {
     /// The row across the top of the window, and the line everything in it
     /// stands on.
     ///
-    /// An empty toolbar makes the title bar 52 points rather than 28, which
-    /// is what gives the row room to be a row: the lights sit at 26 with the
-    /// chrome beside them, and the page's own tab hangs off the bottom of it
-    /// onto the card. In a 28 point bar the tab had nowhere to be and floated
-    /// in the gap above the page.
-    static let bar:   CGFloat = 52
-    static let lights: CGFloat = 26
+    /// macOS puts the three lights in a 28 point title bar, 14 across, so
+    /// their middle is at 13, and nothing Kliner draws can move them. The
+    /// lights and the chrome sit on that line; the page's own tab is in the
+    /// band under it, hanging off it onto the card, which is where the
+    /// picture puts it and where a tab strip has always gone.
+    static let bar:   CGFloat = 28
+    static let lights: CGFloat = 13
+    /// From the top of the window to the top of the card: the title bar, and
+    /// the band under it that the tab hangs in.
+    static let crown: CGFloat = 52
 }
 
 // MARK: - nimo's colours
@@ -1594,13 +1597,6 @@ final class Main: NSObject, NSWindowDelegate {
         window.title = "Kliner"
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
-        // An empty toolbar, for its height and nothing else: it moves the
-        // three lights down to 26 and gives the row along the top the depth
-        // every window of this shape has. Nothing is drawn in it — the row is
-        // Kliner's own, under the glass.
-        window.toolbar = NSToolbar(identifier: "kliner.bar")
-        window.toolbarStyle = .unifiedCompact
-        window.titlebarSeparatorStyle = .none
         // Glass, with a veil of Kliner's own slate over it. Straight glass
         // took its colour from the wallpaper — on a warm photograph the whole
         // app went brown — and a flat opaque window threw the depth away with
@@ -2000,7 +1996,7 @@ final class Main: NSObject, NSWindowDelegate {
 
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: Step.air),
-            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: Step.bar - Step.hair),
+            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: Step.bar + Step.close),
             stackWidth,
 
             // Between the search and the hairline over Settings, and it
@@ -2025,7 +2021,7 @@ final class Main: NSObject, NSWindowDelegate {
             pane.trailingAnchor.constraint(equalTo: content.trailingAnchor,
                                            constant: -Step.tight),
             pane.topAnchor.constraint(equalTo: content.topAnchor,
-                                      constant: Step.bar),
+                                      constant: Step.crown),
             pane.bottomAnchor.constraint(equalTo: content.bottomAnchor,
                                          constant: -Step.page),
 
@@ -5856,8 +5852,8 @@ final class Trail: NSView {
         trailing = arrow.trailingAnchor.constraint(equalTo: trailingAnchor,
                                                    constant: -Step.close)
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 38),
-            mark.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            heightAnchor.constraint(equalToConstant: 24),
+            mark.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
             mark.centerYAnchor.constraint(equalTo: centerYAnchor),
             mark.widthAnchor.constraint(equalToConstant: 13),
             mark.heightAnchor.constraint(equalToConstant: 13),
