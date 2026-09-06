@@ -987,7 +987,7 @@ final class Row: NSView {
         chevron.isHidden = yes || !canFold
         atLeft.isActive = !yes
         inMiddle.isActive = yes
-        wide.constant = yes ? 38 : 190
+        wide.constant = yes ? 38 : 214
         toolTip = yes ? name.stringValue : nil
     }
 
@@ -1036,7 +1036,10 @@ final class Row: NSView {
         chevron.translatesAutoresizingMaskIntoConstraints = false
         addSubview(chevron)
 
-        wide = widthAnchor.constraint(equalToConstant: 190)
+        // The width of the list, not a little less than it: a row 190 wide
+        // in a list 214 wide leaves 24 points of nothing at the right-hand
+        // end of every row, which is where the count and the chevron go.
+        wide = widthAnchor.constraint(equalToConstant: 214)
         atLeft = icon.leadingAnchor.constraint(equalTo: leadingAnchor,
                                                constant: under ? 32 : 10)
         inMiddle = icon.centerXAnchor.constraint(equalTo: centerXAnchor)
