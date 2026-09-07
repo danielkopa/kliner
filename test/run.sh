@@ -649,8 +649,22 @@ check "the formula points at this tag"    "grep -q \"v\$(tr -d ' \n' < '$ROOT/VE
 
 # The website is documentation too. It drifted eighteen versions once while
 # nobody was looking at it, and a page that names a version it has never seen
-# is worse than a page with no version on it at all.
-check "the website knows this version"    "grep -q \"v\$(tr -d ' \n' < '$ROOT/VERSION')\" '$ROOT/docs/index.html'"
+# is worse than a page with no version on it at all. The full site is kept
+# beside the holding page rather than thrown away, and it is still checked.
+check "the website knows this version"    "grep -q \"v\$(tr -d ' \n' < '$ROOT/VERSION')\" '$ROOT/docs/site.html'"
+# What kliner.app answers with today: him in the middle of the page, blinking,
+# and one line saying the rest is being built.
+check "the front page is Kliner and one line" \
+    "grep -q 'Website in the works' '$ROOT/docs/index.html' \
+     && grep -q 'class=\"kliner\"' '$ROOT/docs/index.html' \
+     && grep -q 'id=\"eyes\"' '$ROOT/docs/index.html'"
+check "and he blinks on it"                \
+    "grep -q '.eyes.shut' '$ROOT/docs/index.html' && grep -q 'function blink' '$ROOT/docs/index.html'"
+check "and it stops moving when asked to" \
+    "grep -q 'prefers-reduced-motion: reduce' '$ROOT/docs/index.html' \
+     && grep -q 'matchMedia(\"(prefers-reduced-motion: reduce)\").matches' '$ROOT/docs/index.html'"
+check "and the way in is still on it"      \
+    "grep -q 'href=\"join.html\"' '$ROOT/docs/index.html'"
 
 # ---- what starts when you sign in ---------------------------------------
 
@@ -2010,7 +2024,7 @@ NAKED=$(awk '
 check "every row down the side has a picture" "[ -z '$NAKED' ]"
 check "ci builds the app"                 "grep -q 'app/build.sh' '$ROOT/.github/workflows/ci.yml'"
 check "the release carries the app"       "grep -q 'Kliner.app.zip' '$ROOT/.github/workflows/release.yml'"
-check "the site points at the release"    "grep -q 'releases/latest/download/Kliner.app.zip' '$ROOT/docs/index.html'"
+check "the site points at the release"    "grep -q 'releases/latest/download/Kliner.app.zip' '$ROOT/docs/site.html'"
 
 # ---- verdict ------------------------------------------------------------
 

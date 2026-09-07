@@ -3,1410 +3,285 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="nimo makes a computer feel minimal again: a clear desktop, a dock with only what you open, a calmer wallpaper, and the disk back. Every step asks first. Every step can be undone. macOS, Linux and Windows.">
-<meta name="color-scheme" content="dark light">
-<meta property="og:title" content="nimo">
-<meta property="og:description" content="Make your Mac feel minimal again.">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Kliner — a quieter Mac. The site is being built.">
+<meta property="og:title" content="Kliner">
+<meta property="og:description" content="A quieter Mac. The site is being built.">
 <meta property="og:type" content="website">
-<title>nimo — make your Mac feel minimal again</title>
+<title>Kliner — coming soon</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap">
 
 <style>
-  /* dark first: this is a terminal tool, and the terminal is the ground */
+  /* One screen, one character, one line. Everything here is in service of
+     him being alive on it: he floats, he blinks, he looks about. */
   :root {
-    --bg:        #08090A;
-    --surface:   #0D0F11;
-    --raised:    #131719;
-    --line:      #1D2225;
-    --line-soft: #16191C;
-    --ink:       #ECEFF1;
-    --muted:     #9AA4AB;
-    --faint:     #6A757C;
-    --accent:    #5FD3C6;
-    --accent-2:  #2C8079;
-    --on-accent: #04211E;
-
-    --term-bg:   #0B0D0E;
-    --term-line: #1A1E20;
-    --term-ink:  #D4DBDE;
-    --term-mute: #6A7679;
-    --term-cyan: #5FD3C6;
-    --term-warm: #D9BA74;
-
-    --shadow: 0 30px 80px -40px rgba(0, 0, 0, 0.9);
-    --col: 68rem;
-  }
-
-  @media (prefers-color-scheme: light) {
-    :root:not([data-theme="dark"]) {
-      --bg:        #FBFBFC;
-      --surface:   #FFFFFF;
-      --raised:    #F3F5F6;
-      --line:      #E3E7EA;
-      --line-soft: #EDF0F2;
-      --ink:       #0B1013;
-      --muted:     #58636A;
-      --faint:     #8A949A;
-      --accent:    #0E7A72;
-      --accent-2:  #7FC3BC;
-      --on-accent: #FFFFFF;
-      --shadow: 0 24px 60px -36px rgba(11, 26, 24, 0.35);
-    }
-  }
-
-  :root[data-theme="light"] {
-    --bg:        #FBFBFC;
-    --surface:   #FFFFFF;
-    --raised:    #F3F5F6;
-    --line:      #E3E7EA;
-    --line-soft: #EDF0F2;
-    --ink:       #0B1013;
-    --muted:     #58636A;
-    --faint:     #8A949A;
-    --accent:    #0E7A72;
-    --accent-2:  #7FC3BC;
-    --on-accent: #FFFFFF;
-    --shadow: 0 24px 60px -36px rgba(11, 26, 24, 0.35);
+    --ground:  #0B0F11;
+    --rise:    #141A1D;
+    --ink:     #EDF1F2;
+    --muted:   #8B959B;
+    --faint:   #59636A;
+    --accent:  #5FD3C6;
+    --eye:     #0B0F11;
   }
 
   * { box-sizing: border-box; }
 
+  html, body { height: 100%; }
+
   body {
     margin: 0;
-    background: var(--bg);
+    background: var(--ground);
     color: var(--ink);
     font-family: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
-    font-size: 16px;
-    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
-  }
-
-  .wrap { max-width: var(--col); margin: 0 auto; padding: 0 1.5rem; }
-
-  h1, h2, h3 { margin: 0; text-wrap: balance; letter-spacing: -0.03em; font-weight: 600; }
-  h1 { font-size: clamp(2.5rem, 6.4vw, 4.1rem); line-height: 1.02; font-weight: 700; }
-  h2 { font-size: clamp(1.75rem, 3.4vw, 2.4rem); line-height: 1.12; }
-  h3 { font-size: 1rem; letter-spacing: -0.01em; }
-  p  { margin: 0; }
-
-  a { color: inherit; text-decoration: none; }
-  a:focus-visible, button:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-    border-radius: 6px;
-  }
-
-  code, .mono {
-    font-family: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
-    font-size: 0.9em;
-  }
-
-  .eyebrow {
-    font-family: "Geist Mono", ui-monospace, monospace;
-    font-size: 0.7rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--faint);
-  }
-
-  .lede { color: var(--muted); font-size: 1.14rem; line-height: 1.55; max-width: 44ch; }
-
-  /* ---------- nav ---------- */
-
-  .nav {
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    background: color-mix(in srgb, var(--bg) 82%, transparent);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--line-soft);
-  }
-
-  .nav-in {
-    max-width: var(--col);
-    margin: 0 auto;
-    padding: 0.85rem 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1.4rem;
-  }
-
-  .brand { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; letter-spacing: -0.02em; }
-  .brand .mark { color: var(--accent); font-size: 1.05rem; line-height: 1; }
-
-  .nav-links { display: flex; gap: 1.25rem; margin-left: auto; align-items: center; }
-  .nav-links a { color: var(--muted); font-size: 0.9rem; }
-  .nav-links a:hover { color: var(--ink); }
-
-  @media (max-width: 40rem) { .nav-links .hide-s { display: none; } }
-
-  .ghost {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    border: 1px solid var(--line);
-    background: var(--surface);
-    color: var(--ink);
-    border-radius: 8px;
-    padding: 0.4rem 0.7rem;
-    font-size: 0.83rem;
-    font-weight: 500;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  .ghost:hover { border-color: var(--accent-2); }
-
-  /* ---------- hero ---------- */
-
-  header.hero { padding: clamp(4rem, 11vh, 7.5rem) 0 3.5rem; }
-  .hero-in { display: flex; flex-direction: column; gap: 1.6rem; }
-
-  .pill {
-    align-self: flex-start;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    border: 1px solid var(--line);
-    background: var(--surface);
-    border-radius: 999px;
-    padding: 0.3rem 0.8rem 0.3rem 0.45rem;
-    font-size: 0.8rem;
-    color: var(--muted);
-  }
-  .pill b {
-    background: var(--accent);
-    color: var(--on-accent);
-    border-radius: 999px;
-    padding: 0.05rem 0.5rem;
-    font-size: 0.72rem;
-    font-weight: 600;
-    font-family: "Geist Mono", ui-monospace, monospace;
-  }
-
-  .cta { display: flex; flex-wrap: wrap; gap: 0.7rem; align-items: center; }
-
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    border-radius: 9px;
-    padding: 0.62rem 1rem;
-    font-size: 0.92rem;
-    font-weight: 550;
-    border: 1px solid transparent;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  .btn-primary { background: var(--accent); color: var(--on-accent); }
-  .btn-primary:hover { filter: brightness(1.08); }
-  .btn-quiet { background: var(--surface); border-color: var(--line); color: var(--ink); }
-  .btn-quiet:hover { border-color: var(--accent-2); }
-
-  .copybar {
-    display: inline-flex;
-    align-items: stretch;
-    border: 1px solid var(--line);
-    background: var(--surface);
-    border-radius: 9px;
-    overflow: hidden;
-    max-width: 100%;
-  }
-  .copybar code {
-    padding: 0.62rem 0.9rem;
-    color: var(--ink);
-    white-space: nowrap;
-    overflow-x: auto;
-    font-size: 0.84rem;
-  }
-  .copybar code::before { content: "$ "; color: var(--faint); }
-  .copybar button {
-    border: 0;
-    border-left: 1px solid var(--line);
-    background: transparent;
-    color: var(--muted);
-    padding: 0 0.85rem;
-    cursor: pointer;
-    font-family: "Geist Mono", ui-monospace, monospace;
-    font-size: 0.74rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-  .copybar button:hover { color: var(--accent); background: var(--raised); }
-
-  .under-cta {
-    margin: 0.95rem 0 0;
-    font-size: 0.86rem;
-    color: var(--faint);
-  }
-  .under-cta b { color: var(--muted); font-weight: 500; }
-  .under-cta a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
-  .under-cta a:hover { color: var(--accent); }
-
-  /* --- the four steps ------------------------------------------------- */
-  .steps {
-    counter-reset: step;
-    list-style: none;
-    margin: 0;
-    padding: 0;
     display: grid;
-    gap: 0.55rem;
+    grid-template-rows: 1fr auto;
+    overflow: hidden;
   }
-  .steps li {
-    counter-increment: step;
+
+  /* The ground is not flat: a wide, slow bloom behind him, and a second one
+     drifting, so the dark has some depth to it rather than being a void. */
+  .sky {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(62vmax 62vmax at 50% 40%, var(--rise) 0%, transparent 64%),
+      radial-gradient(26vmax 26vmax at 50% 38%, rgba(95, 211, 198, 0.16) 0%, transparent 68%),
+      radial-gradient(11vmax 11vmax at 50% 38%, rgba(95, 211, 198, 0.10) 0%, transparent 72%);
+    animation: drift 14s ease-in-out infinite;
+  }
+
+  /* A gradient this wide on a ground this dark bands into rings — the screen
+     runs out of steps between one shade and the next. A little grain over the
+     top is the oldest fix there is, and the only one that does not mean
+     giving up the gradient. */
+  .grain {
+    position: fixed;
+    inset: -50%;
+    pointer-events: none;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'>\
+<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/></filter>\
+<rect width='160' height='160' filter='url(%23n)'/></svg>");
+  }
+
+  @keyframes drift {
+    0%, 100% { transform: scale(1);    opacity: 1; }
+    50%      { transform: scale(1.06); opacity: 0.86; }
+  }
+
+  main {
     position: relative;
-    padding: 0.85rem 1rem 0.85rem 3rem;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    background: var(--surface);
-    color: var(--muted);
-    font-size: 0.92rem;
-  }
-  .steps li b { color: var(--ink); font-weight: 600; }
-  .steps li::before {
-    content: counter(step);
-    position: absolute;
-    left: 0.95rem;
-    top: 0.82rem;
-    width: 1.45rem;
-    height: 1.45rem;
-    display: grid;
-    place-items: center;
-    border-radius: 50%;
-    background: var(--raised);
-    border: 1px solid var(--line);
-    color: var(--accent);
-    font-size: 0.76rem;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .fineprint {
-    margin: 1.1rem 0 0;
-    font-size: 0.84rem;
-    color: var(--faint);
-  }
-
-  /* --- the app, drawn rather than screenshotted ----------------------- */
-  .shot {
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    overflow: hidden;
-    background: var(--term-bg);
-    box-shadow: var(--shadow);
-  }
-  .shot-bar {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.7rem 0.9rem;
-    background: #0E1113;
-    border-bottom: 1px solid var(--term-line);
-  }
-  .shot-body { display: grid; grid-template-columns: 216px 1fr; }
-  @media (max-width: 44rem) { .shot-body { grid-template-columns: 1fr; } }
-
-  .shot-side {
-    padding: 1rem 0.8rem 1.4rem;
-    background: transparent;
-    min-width: 0;
+    justify-content: center;
+    gap: 2.25rem;
+    padding: 2rem 1.5rem;
+    text-align: center;
   }
 
-  .shot-mark { color: #EEEFF1; font-weight: 600; font-size: 0.9rem; }
-  .shot-version { color: var(--term-mute); font-size: 0.7rem; margin-top: 0.15rem; }
-  .shot-head {
-    color: var(--term-mute);
-    font-size: 0.63rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    margin: 1.05rem 0 0.4rem 0.45rem;
-  }
-  .shot-row {
-    padding: 0.32rem 0.55rem;
-    border-radius: 7px;
-    color: #9AA4AB;
-    font-size: 0.82rem;
-  }
-  .shot-row.is-on {
-    background: #212126;
-    color: #EEEFF1;
-    font-weight: 500;
-  }
-  .shot-row.is-on .shot-dot { background: var(--term-cyan); }
-  .shot-dot {
-    display: inline-block;
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: #626770;
-    margin-right: 0.6rem;
-    vertical-align: middle;
-    position: relative;
-    top: -1px;
+  /* ---- him ------------------------------------------------------------ */
+
+  .kliner {
+    width: clamp(150px, 26vw, 240px);
+    height: auto;
+    color: var(--ink);
+    overflow: visible;
+    filter: drop-shadow(0 24px 60px rgba(0, 0, 0, 0.55));
+    animation: arrive 1s cubic-bezier(0.16, 1, 0.3, 1) both,
+               breathe 5.5s ease-in-out 1s infinite;
   }
 
-  .shot-main {
-    margin: 0.6rem 0.6rem 0.6rem 0;
-    padding: 1.5rem 1.6rem 0;
-    background: #151518;
-    border: 1px solid #232327;
-    border-radius: 10px;
-    min-width: 0;
-    overflow: hidden;
-  }
-  .shot-main h3 {
-    margin: 0;
-    font-size: 1.35rem;
-    font-weight: 700;
-    color: #ECEFF1;
-    letter-spacing: -0.01em;
-  }
-  .shot-main p {
-    margin: 0.45rem 0 0;
-    color: #9AA4AB;
-    font-size: 0.85rem;
-    max-width: 46ch;
-  }
-  .shot-btn {
-    display: inline-block;
-    margin: 1.05rem 0 1.4rem;
-    padding: 0.45rem 0.95rem;
-    border-radius: 8px;
-    background: var(--term-cyan);
-    color: #04211E;
-    font-size: 0.85rem;
-    font-weight: 600;
-  }
-  .shot-screen {
-    margin: 0 -1.6rem;
-    border: 0;
-    border-top: 1px solid #232327;
-    border-radius: 0;
-    background: transparent;
+  @keyframes arrive {
+    from { opacity: 0; transform: translateY(18px) scale(0.94); }
+    to   { opacity: 1; transform: none; }
   }
 
-  .facts {
+  /* Barely: enough that he is alive, not enough to be movement in the corner
+     of your eye while you are reading the line under him. */
+  @keyframes breathe {
+    0%, 100% { transform: translateY(0)      scale(1); }
+    50%      { transform: translateY(-9px)   scale(1.012); }
+  }
+
+  /* The eyes are their own group, so they can shut and look about without
+     the face moving with them. The origin is the middle of the pair, which
+     is what makes a blink close rather than slide. */
+  .eyes {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .eyes.shut   { transform: scaleY(0.08); transition-duration: 70ms; }
+  .eyes.left   { transform: translateX(-2.2px); }
+  .eyes.right  { transform: translateX(2.2px); }
+
+  /* ---- what it says --------------------------------------------------- */
+
+  .said {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem 1.75rem;
-    font-family: "Geist Mono", ui-monospace, monospace;
-    font-size: 0.76rem;
-    color: var(--faint);
-  }
-  .facts b { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
-
-  /* ---------- terminal ---------- */
-
-  .term {
-    background: var(--term-bg);
-    border: 1px solid var(--term-line);
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: var(--shadow);
-    min-width: 0;
-  }
-  .term-bar {
-    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.65rem 0.85rem;
-    border-bottom: 1px solid var(--term-line);
-  }
-  .dot { width: 9px; height: 9px; border-radius: 50%; background: #262E30; }
-  .term-title {
-    margin-left: 0.5rem;
-    font-family: "Geist Mono", ui-monospace, monospace;
-    font-size: 0.71rem;
-    color: var(--term-mute);
-  }
-
-  pre.screen {
-    margin: 0;
-    padding: 1.2rem 1.3rem 1.4rem;
-    overflow-x: auto;
-    color: var(--term-ink);
-    font-family: "Geist Mono", ui-monospace, monospace;
-    font-size: 0.78rem;
-    line-height: 1.6;
-  }
-  pre.screen b { color: var(--term-cyan); font-weight: 400; }
-  pre.screen i { color: var(--term-mute); font-style: normal; }
-  pre.screen u { color: var(--term-warm); text-decoration: none; }
-  pre.screen s { color: #EEF2F3; text-decoration: none; font-weight: 500; }
-
-  .demo-wrap { padding: 0; line-height: 0; background: var(--term-bg); }
-  .demo { display: block; width: 100%; height: auto; }
-
-  .reveal > * { opacity: 0; animation: fade 0.45s ease forwards; }
-  @keyframes fade { to { opacity: 1; } }
-  @media (prefers-reduced-motion: reduce) {
-    .reveal > * { opacity: 1; animation: none; }
-  }
-
-  /* ---------- sections ---------- */
-
-  section { padding: 4.5rem 0; border-top: 1px solid var(--line-soft); }
-  .stack   { display: flex; flex-direction: column; gap: 1.1rem; }
-  .stack-l { display: flex; flex-direction: column; gap: 2.75rem; }
-  .head    { display: flex; flex-direction: column; gap: 0.7rem; max-width: 52ch; }
-  .head p  { color: var(--muted); }
-
-  /* min-width: 0 or a grid column grows to fit the widest line inside a
-     terminal, and the whole page scrolls sideways on a phone */
-  .two-up { display: grid; grid-template-columns: 1fr; gap: 1.1rem; }
-  .two-up > * { min-width: 0; }
-  @media (min-width: 56rem) { .two-up { grid-template-columns: 1fr 1fr; } }
-
-  .cap { display: flex; flex-direction: column; gap: 0.3rem; }
-  .cap .mono { color: var(--accent); font-size: 0.86rem; }
-  .cap p { color: var(--muted); font-size: 0.9rem; max-width: 42ch; }
-
-  /* ---------- steps ---------- */
-
-  .steps { display: grid; grid-template-columns: 1fr; gap: 0; }
-  .step {
-    display: grid;
-    grid-template-columns: 2.1rem 1fr;
     gap: 0.9rem;
-    padding: 1.1rem 0;
-    border-top: 1px solid var(--line-soft);
-    align-items: start;
+    animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.28s both;
   }
-  .step:first-child { border-top: 0; }
-  .step .n {
-    font-family: "Geist Mono", ui-monospace, monospace;
-    font-size: 0.78rem;
-    color: var(--accent);
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    text-align: center;
-    padding: 0.1rem 0;
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
   }
-  .step p { color: var(--muted); font-size: 0.93rem; max-width: 52ch; }
 
-  /* ---------- command grid ---------- */
-
-  .grid { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
-  @media (min-width: 40rem) { .grid { grid-template-columns: 1fr 1fr; } }
-  @media (min-width: 62rem) { .grid { grid-template-columns: 1fr 1fr 1fr; } }
-
-  .card {
-    border: 1px solid var(--line);
-    background: var(--surface);
-    border-radius: 11px;
-    padding: 1rem 1.05rem 1.1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
+  h1 {
+    margin: 0;
+    font-size: clamp(1.6rem, 4.6vw, 2.25rem);
+    font-weight: 600;
+    letter-spacing: -0.022em;
+    line-height: 1.1;
   }
-  .card .mono { color: var(--accent); font-size: 0.88rem; }
-  .card p { color: var(--muted); font-size: 0.88rem; }
-  .card .tag {
-    margin-top: 0.15rem;
-    font-family: "Geist Mono", ui-monospace, monospace;
-    font-size: 0.68rem;
-    letter-spacing: 0.1em;
+
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0;
+    font-family: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.8125rem;
+    letter-spacing: 0.07em;
     text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* One teal thing on the page, and it is the one that says work is going on. */
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 0 rgba(95, 211, 198, 0.5);
+    animation: beat 2s ease-out infinite;
+  }
+
+  @keyframes beat {
+    0%   { box-shadow: 0 0 0 0 rgba(95, 211, 198, 0.45); opacity: 1; }
+    70%  { box-shadow: 0 0 0 9px rgba(95, 211, 198, 0);  opacity: 0.55; }
+    100% { box-shadow: 0 0 0 0 rgba(95, 211, 198, 0);    opacity: 1; }
+  }
+
+  .note {
+    margin: 0;
+    max-width: 30rem;
+    font-size: 0.95rem;
+    line-height: 1.65;
     color: var(--faint);
   }
 
-  /* ---------- promises ---------- */
+  /* ---- the bottom of the page ----------------------------------------- */
 
-  .promises { display: grid; grid-template-columns: 1fr; column-gap: 3rem; }
-  @media (min-width: 48rem) { .promises { grid-template-columns: 1fr 1fr; } }
-  .promise { padding: 1.15rem 0; border-top: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 0.3rem; }
-  .promise p { color: var(--muted); font-size: 0.92rem; max-width: 40ch; }
-
-  /* ---------- ci matrix ---------- */
-
-  .matrix { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 11px; overflow: hidden; background: var(--surface); }
-  .job {
+  footer {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 0.7rem;
-    padding: 0.7rem 1rem;
-    border-top: 1px solid var(--line-soft);
-    font-size: 0.9rem;
+    justify-content: center;
+    gap: 1.4rem;
+    flex-wrap: wrap;
+    padding: 1.6rem;
+    font-size: 0.8125rem;
+    color: var(--faint);
+    animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
   }
-  .job:first-child { border-top: 0; }
-  .job .tick { color: var(--accent); font-family: "Geist Mono", monospace; }
-  .job .what { color: var(--muted); }
-  .job .where { margin-left: auto; font-family: "Geist Mono", monospace; font-size: 0.76rem; color: var(--faint); }
 
-  /* ---------- closing band ---------- */
-
-  .band {
-    border: 1px solid var(--line);
-    background: var(--surface);
-    border-radius: 14px;
-    padding: 2.5rem 1.75rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.1rem;
-    align-items: center;
-    text-align: center;
+  footer a {
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 1px;
+    transition: color 160ms ease, border-color 160ms ease;
   }
-  .band p { color: var(--muted); max-width: 46ch; }
+  footer a:hover  { color: var(--ink); border-bottom-color: rgba(95, 211, 198, 0.6); }
+  footer a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
 
-  footer { border-top: 1px solid var(--line-soft); padding: 2.5rem 0 4rem; }
-  .foot { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; font-size: 0.86rem; color: var(--faint); }
-  .foot a { color: var(--muted); }
-  .foot a:hover { color: var(--ink); }
-  .foot-links { display: flex; gap: 1.25rem; flex-wrap: wrap; }
+  @media (prefers-reduced-motion: reduce) {
+    .sky, .kliner, .said, footer, .dot { animation: none; }
+    .grain { opacity: 0.02; }
+    .kliner, .said, footer { opacity: 1; transform: none; }
+    .eyes { transition: none; }
+  }
 </style>
-
 </head>
 <body>
-<nav class="nav">
-  <div class="nav-in">
-    <a class="brand" href="#top"><span class="mark">◍</span> nimo</a>
-    <div class="nav-links">
-      <a class="hide-s" href="#app">the app</a>
-      <a class="hide-s" href="#commands">commands</a>
-      <a class="hide-s" href="#promises">promises</a>
-      <a href="https://github.com/danielkopa/nimo">github</a>
-      <button class="ghost" type="button" id="theme" aria-label="Switch between light and dark">
-        <span id="theme-label">theme</span>
-      </button>
-    </div>
-  </div>
-</nav>
+<div class="sky" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
 
-<div class="wrap" id="top">
+<main>
+  <svg class="kliner" viewBox="0 0 100 100" fill="none" role="img"
+       aria-label="Kliner, waiting">
+    <path class="body" fill="currentColor" d="M 45.434 2.864 C 46.024 2.810 46.628 2.785 47.232 2.768 C 47.836 2.751 48.450 2.753 49.057 2.762 C 49.663 2.770 50.270 2.789 50.870 2.820 C 51.470 2.850 52.067 2.887 52.657 2.942 C 53.247 2.998 53.834 3.059 54.408 3.151 C 54.983 3.242 55.549 3.355 56.105 3.490 C 56.662 3.626 57.206 3.790 57.747 3.963 C 58.288 4.137 58.823 4.324 59.350 4.531 C 59.877 4.737 60.398 4.957 60.909 5.203 C 61.420 5.449 61.921 5.717 62.415 6.004 C 62.909 6.291 63.396 6.598 63.872 6.924 C 64.348 7.249 64.819 7.591 65.272 7.957 C 65.724 8.322 66.165 8.709 66.586 9.115 C 67.007 9.521 67.412 9.953 67.800 10.394 C 68.187 10.835 68.558 11.295 68.910 11.760 C 69.262 12.225 69.594 12.702 69.910 13.184 C 70.227 13.665 70.525 14.154 70.810 14.649 C 71.095 15.143 71.363 15.645 71.621 16.150 C 71.880 16.656 72.114 17.171 72.359 17.682 C 72.604 18.193 72.830 18.712 73.091 19.217 C 73.351 19.722 73.618 20.226 73.923 20.710 C 74.229 21.194 74.561 21.671 74.922 22.123 C 75.283 22.574 75.676 23.012 76.090 23.420 C 76.504 23.828 76.948 24.214 77.404 24.570 C 77.860 24.925 78.341 25.250 78.825 25.555 C 79.310 25.860 79.811 26.133 80.312 26.402 C 80.813 26.671 81.323 26.919 81.833 27.167 C 82.343 27.414 82.858 27.649 83.372 27.888 C 83.886 28.126 84.402 28.360 84.916 28.597 C 85.430 28.835 85.943 29.075 86.457 29.313 C 86.971 29.552 87.488 29.782 87.999 30.027 C 88.510 30.272 89.022 30.514 89.523 30.783 C 90.024 31.052 90.518 31.341 91.005 31.642 C 91.493 31.943 91.975 32.260 92.450 32.592 C 92.925 32.923 93.398 33.263 93.856 33.633 C 94.313 34.004 94.766 34.398 95.194 34.812 C 95.622 35.226 96.040 35.668 96.423 36.118 C 96.806 36.568 97.168 37.035 97.491 37.514 C 97.815 37.992 98.103 38.485 98.364 38.990 C 98.625 39.494 98.856 40.011 99.058 40.540 C 99.260 41.069 99.439 41.607 99.577 42.163 C 99.715 42.718 99.814 43.289 99.885 43.873 C 99.955 44.456 99.981 45.061 100.000 45.663 C 100.019 46.265 100.016 46.881 100.000 47.485 C 99.984 48.088 99.958 48.692 99.904 49.282 C 99.850 49.873 99.774 50.454 99.674 51.025 C 99.573 51.596 99.443 52.154 99.301 52.708 C 99.159 53.262 98.993 53.806 98.822 54.347 C 98.651 54.889 98.468 55.426 98.273 55.958 C 98.079 56.490 97.872 57.016 97.655 57.539 C 97.439 58.062 97.212 58.581 96.974 59.095 C 96.737 59.609 96.492 60.120 96.229 60.624 C 95.966 61.128 95.685 61.624 95.397 62.117 C 95.109 62.610 94.803 63.096 94.502 63.584 C 94.201 64.072 93.899 64.559 93.589 65.044 C 93.280 65.528 92.967 66.011 92.642 66.489 C 92.317 66.967 91.971 67.436 91.638 67.911 C 91.306 68.386 90.959 68.854 90.646 69.338 C 90.334 69.821 90.036 70.310 89.765 70.810 C 89.494 71.310 89.251 71.822 89.019 72.339 C 88.788 72.856 88.577 73.381 88.375 73.910 C 88.173 74.439 87.989 74.975 87.809 75.513 C 87.629 76.051 87.465 76.596 87.296 77.138 C 87.128 77.681 86.963 78.225 86.798 78.770 C 86.633 79.314 86.470 79.859 86.306 80.403 C 86.142 80.948 85.984 81.495 85.811 82.036 C 85.639 82.577 85.461 83.116 85.269 83.649 C 85.077 84.182 84.873 84.710 84.658 85.234 C 84.444 85.758 84.218 86.277 83.981 86.791 C 83.744 87.305 83.500 87.817 83.234 88.319 C 82.968 88.822 82.696 89.322 82.384 89.805 C 82.072 90.288 81.733 90.763 81.361 91.219 C 80.990 91.675 80.578 92.121 80.155 92.539 C 79.732 92.957 79.281 93.362 78.823 93.727 C 78.364 94.093 77.887 94.427 77.402 94.734 C 76.916 95.041 76.417 95.313 75.910 95.568 C 75.403 95.824 74.888 96.060 74.361 96.265 C 73.833 96.470 73.298 96.657 72.745 96.801 C 72.192 96.945 71.622 97.054 71.042 97.127 C 70.463 97.200 69.860 97.232 69.267 97.238 C 68.673 97.244 68.068 97.215 67.481 97.162 C 66.893 97.109 66.312 97.025 65.744 96.919 C 65.175 96.813 64.618 96.679 64.069 96.527 C 63.519 96.374 62.979 96.199 62.446 96.006 C 61.913 95.814 61.390 95.600 60.871 95.373 C 60.352 95.147 59.841 94.901 59.334 94.646 C 58.827 94.391 58.327 94.121 57.829 93.843 C 57.332 93.565 56.841 93.271 56.350 92.977 C 55.860 92.682 55.373 92.379 54.886 92.076 C 54.399 91.773 53.913 91.454 53.429 91.158 C 52.944 90.861 52.463 90.526 51.979 90.297 C 51.496 90.068 51.014 89.847 50.530 89.782 C 50.046 89.718 49.559 89.773 49.075 89.909 C 48.591 90.044 48.107 90.329 47.624 90.595 C 47.141 90.861 46.660 91.201 46.176 91.505 C 45.691 91.808 45.205 92.118 44.717 92.418 C 44.228 92.718 43.738 93.014 43.246 93.305 C 42.754 93.596 42.263 93.889 41.764 94.164 C 41.265 94.438 40.764 94.707 40.254 94.954 C 39.743 95.200 39.227 95.432 38.701 95.640 C 38.174 95.849 37.640 96.037 37.096 96.203 C 36.552 96.368 35.997 96.508 35.436 96.633 C 34.876 96.758 34.306 96.867 33.731 96.953 C 33.157 97.039 32.573 97.115 31.990 97.147 C 31.407 97.180 30.814 97.183 30.232 97.147 C 29.650 97.112 29.066 97.036 28.497 96.936 C 27.929 96.837 27.368 96.706 26.819 96.553 C 26.270 96.399 25.731 96.221 25.203 96.016 C 24.676 95.810 24.159 95.581 23.654 95.319 C 23.150 95.057 22.656 94.768 22.179 94.445 C 21.702 94.123 21.235 93.765 20.792 93.382 C 20.350 93.000 19.923 92.580 19.522 92.148 C 19.121 91.717 18.741 91.259 18.386 90.796 C 18.032 90.332 17.703 89.853 17.397 89.368 C 17.090 88.882 16.811 88.385 16.548 87.882 C 16.284 87.378 16.042 86.866 15.815 86.348 C 15.588 85.829 15.383 85.302 15.186 84.771 C 14.989 84.239 14.813 83.700 14.634 83.161 C 14.456 82.623 14.285 82.081 14.114 81.539 C 13.944 80.997 13.778 80.453 13.610 79.910 C 13.441 79.368 13.277 78.823 13.105 78.282 C 12.934 77.740 12.760 77.199 12.580 76.662 C 12.400 76.124 12.217 75.587 12.024 75.054 C 11.831 74.522 11.634 73.991 11.421 73.466 C 11.209 72.942 10.992 72.419 10.748 71.907 C 10.505 71.396 10.244 70.891 9.958 70.397 C 9.672 69.903 9.350 69.424 9.031 68.943 C 8.712 68.463 8.370 67.992 8.044 67.514 C 7.718 67.037 7.394 66.558 7.075 66.078 C 6.755 65.598 6.437 65.117 6.127 64.633 C 5.817 64.149 5.506 63.665 5.213 63.174 C 4.921 62.682 4.642 62.185 4.372 61.685 C 4.102 61.184 3.847 60.677 3.594 60.169 C 3.340 59.662 3.089 59.154 2.850 58.640 C 2.612 58.126 2.377 57.610 2.164 57.086 C 1.950 56.562 1.752 56.032 1.568 55.495 C 1.385 54.959 1.219 54.415 1.064 53.867 C 0.908 53.318 0.765 52.765 0.638 52.205 C 0.510 51.646 0.392 51.082 0.298 50.508 C 0.205 49.934 0.126 49.352 0.077 48.762 C 0.027 48.173 0.000 47.569 0.000 46.972 C 0.000 46.376 0.026 45.771 0.077 45.182 C 0.128 44.594 0.205 44.010 0.307 43.440 C 0.409 42.870 0.537 42.310 0.691 41.761 C 0.844 41.212 1.023 40.674 1.228 40.146 C 1.432 39.618 1.661 39.101 1.916 38.594 C 2.171 38.087 2.449 37.589 2.757 37.104 C 3.065 36.619 3.401 36.144 3.765 35.684 C 4.130 35.224 4.530 34.774 4.944 34.346 C 5.358 33.918 5.801 33.501 6.251 33.117 C 6.702 32.734 7.169 32.374 7.645 32.045 C 8.121 31.716 8.613 31.425 9.109 31.142 C 9.604 30.859 10.111 30.605 10.617 30.347 C 11.123 30.089 11.631 29.838 12.143 29.594 C 12.654 29.350 13.169 29.114 13.686 28.884 C 14.204 28.654 14.728 28.441 15.247 28.215 C 15.766 27.990 16.286 27.767 16.801 27.531 C 17.316 27.295 17.827 27.050 18.336 26.801 C 18.846 26.551 19.354 26.299 19.856 26.034 C 20.359 25.769 20.864 25.504 21.353 25.210 C 21.842 24.916 22.330 24.612 22.790 24.271 C 23.250 23.929 23.696 23.560 24.112 23.160 C 24.527 22.761 24.917 22.323 25.282 21.875 C 25.647 21.427 25.988 20.952 26.301 20.471 C 26.614 19.989 26.897 19.492 27.160 18.988 C 27.422 18.485 27.645 17.965 27.877 17.448 C 28.108 16.931 28.315 16.404 28.548 15.888 C 28.781 15.372 29.018 14.858 29.274 14.351 C 29.531 13.845 29.803 13.345 30.088 12.851 C 30.373 12.356 30.667 11.865 30.985 11.385 C 31.303 10.904 31.634 10.426 31.996 9.966 C 32.358 9.505 32.748 9.051 33.156 8.620 C 33.563 8.188 34.000 7.768 34.443 7.376 C 34.887 6.983 35.347 6.608 35.817 6.266 C 36.288 5.924 36.770 5.608 37.265 5.325 C 37.761 5.043 38.272 4.797 38.791 4.571 C 39.309 4.344 39.841 4.150 40.378 3.967 C 40.915 3.783 41.458 3.616 42.010 3.470 C 42.562 3.325 43.121 3.195 43.692 3.094 C 44.263 2.993 44.844 2.918 45.434 2.864 Z"/>
+    <g class="eyes" id="eyes">
+      <path fill="var(--eye)" d="M 41.664 34.017 C 41.923 33.902 42.221 33.850 42.517 33.808 C 42.813 33.766 43.131 33.773 43.442 33.766 C 43.753 33.759 44.071 33.763 44.383 33.766 C 44.696 33.770 45.012 33.763 45.316 33.786 C 45.620 33.810 45.925 33.833 46.207 33.908 C 46.490 33.983 46.759 34.092 47.013 34.237 C 47.267 34.381 47.503 34.576 47.731 34.775 C 47.960 34.974 48.186 35.200 48.382 35.429 C 48.578 35.659 48.769 35.896 48.909 36.152 C 49.049 36.408 49.159 36.688 49.222 36.964 C 49.285 37.241 49.314 37.557 49.285 37.811 C 49.256 38.066 49.186 38.320 49.050 38.493 C 48.913 38.667 48.700 38.767 48.466 38.853 C 48.232 38.938 47.923 38.942 47.647 39.006 C 47.370 39.069 47.075 39.129 46.807 39.235 C 46.538 39.342 46.291 39.505 46.034 39.643 C 45.777 39.781 45.527 39.935 45.267 40.064 C 45.006 40.193 44.726 40.285 44.472 40.417 C 44.217 40.550 43.950 40.677 43.740 40.859 C 43.530 41.041 43.343 41.264 43.211 41.510 C 43.078 41.756 43.001 42.043 42.944 42.332 C 42.886 42.620 42.881 42.933 42.866 43.241 C 42.852 43.549 42.859 43.866 42.857 44.179 C 42.856 44.492 42.857 44.807 42.857 45.121 C 42.857 45.434 42.863 45.763 42.857 46.062 C 42.851 46.361 42.858 46.692 42.820 46.915 C 42.783 47.138 42.728 47.337 42.631 47.399 C 42.534 47.462 42.378 47.405 42.241 47.288 C 42.104 47.171 41.940 46.925 41.810 46.696 C 41.679 46.467 41.577 46.176 41.456 45.914 C 41.335 45.653 41.213 45.388 41.082 45.128 C 40.951 44.868 40.788 44.622 40.671 44.356 C 40.555 44.091 40.449 43.821 40.383 43.534 C 40.317 43.248 40.297 42.942 40.276 42.637 C 40.256 42.332 40.262 42.015 40.260 41.702 C 40.257 41.389 40.260 41.074 40.260 40.761 C 40.260 40.447 40.260 40.133 40.260 39.819 C 40.260 39.505 40.260 39.191 40.260 38.878 C 40.260 38.564 40.260 38.250 40.260 37.936 C 40.260 37.622 40.253 37.306 40.260 36.994 C 40.266 36.683 40.259 36.367 40.299 36.069 C 40.339 35.772 40.389 35.473 40.499 35.211 C 40.610 34.948 40.768 34.694 40.962 34.495 C 41.156 34.296 41.405 34.131 41.664 34.017 Z"/>
+      <path fill="var(--eye)" d="M 54.651 34.017 C 54.910 33.902 55.208 33.850 55.504 33.808 C 55.801 33.766 56.118 33.773 56.429 33.766 C 56.740 33.759 57.058 33.763 57.370 33.766 C 57.683 33.770 57.999 33.763 58.303 33.786 C 58.607 33.810 58.912 33.833 59.194 33.908 C 59.477 33.983 59.746 34.092 60.000 34.237 C 60.254 34.381 60.490 34.576 60.718 34.775 C 60.947 34.974 61.173 35.200 61.369 35.429 C 61.565 35.659 61.756 35.896 61.896 36.152 C 62.036 36.408 62.146 36.688 62.209 36.964 C 62.272 37.241 62.301 37.557 62.272 37.811 C 62.243 38.066 62.173 38.320 62.037 38.493 C 61.900 38.667 61.687 38.767 61.453 38.853 C 61.219 38.938 60.910 38.942 60.634 39.006 C 60.357 39.069 60.062 39.129 59.794 39.235 C 59.525 39.342 59.278 39.505 59.021 39.643 C 58.764 39.781 58.514 39.935 58.254 40.064 C 57.993 40.193 57.713 40.285 57.459 40.417 C 57.204 40.550 56.937 40.677 56.727 40.859 C 56.517 41.041 56.330 41.264 56.198 41.510 C 56.065 41.756 55.988 42.043 55.931 42.332 C 55.873 42.620 55.868 42.933 55.853 43.241 C 55.839 43.549 55.846 43.866 55.844 44.179 C 55.843 44.492 55.844 44.807 55.844 45.121 C 55.844 45.434 55.850 45.763 55.844 46.062 C 55.838 46.361 55.845 46.692 55.807 46.915 C 55.770 47.138 55.715 47.337 55.618 47.399 C 55.521 47.462 55.365 47.405 55.228 47.288 C 55.091 47.171 54.927 46.925 54.797 46.696 C 54.666 46.467 54.564 46.176 54.443 45.914 C 54.322 45.653 54.200 45.388 54.069 45.128 C 53.938 44.868 53.775 44.622 53.658 44.356 C 53.542 44.091 53.436 43.821 53.370 43.534 C 53.304 43.248 53.284 42.942 53.263 42.637 C 53.243 42.332 53.249 42.015 53.247 41.702 C 53.244 41.389 53.247 41.074 53.247 40.761 C 53.247 40.447 53.247 40.133 53.247 39.819 C 53.247 39.505 53.247 39.191 53.247 38.878 C 53.247 38.564 53.247 38.250 53.247 37.936 C 53.247 37.622 53.240 37.306 53.247 36.994 C 53.253 36.683 53.246 36.367 53.286 36.069 C 53.326 35.772 53.376 35.473 53.486 35.211 C 53.597 34.948 53.755 34.694 53.949 34.495 C 54.143 34.296 54.392 34.131 54.651 34.017 Z"/>
+    </g>
+  </svg>
 
-  <header class="hero">
-    <div class="hero-in">
-      <span class="pill"><b>v0.45.0</b> new — nimo is an app you open, not a terminal</span>
-
-      <h1>Make your Mac<br>feel minimal again.</h1>
-
-      <p class="lede">
-        A clear desktop. A dock with only what you open. A calmer wallpaper. And the
-        disk back. An app you open and click — every step asks first, and every step
-        can be undone.
-      </p>
-
-      <div class="cta">
-        <a class="btn btn-primary" href="https://github.com/danielkopa/nimo/releases/latest/download/Kliner.app.zip" id="download">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M8 2v8m0 0 3.2-3.2M8 10 4.8 6.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M2.6 11.4v1.2a1.2 1.2 0 0 0 1.2 1.2h8.4a1.2 1.2 0 0 0 1.2-1.2v-1.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-          </svg>
-          Download for Mac
-        </a>
-        <a class="btn btn-quiet" href="#install">How to open it →</a>
-      </div>
-
-      <p class="under-cta">
-        Free, open source, <b>2&nbsp;MB</b>. macOS 12 and newer, Apple silicon and Intel.
-        <a href="#terminal">Prefer a terminal?</a>
-      </p>
-
-      <div class="facts">
-        <span><b>0</b> dependencies</span>
-        <span><b>652</b> tests</span>
-        <span>bash <b>3.2</b></span>
-        <span><b>~7000</b> lines you can read</span>
-        <span><b>MIT</b></span>
-      </div>
-    </div>
-  </header>
-
-  <section style="border-top: 0; padding-top: 1rem;">
-    <div class="term">
-      <div class="term-bar">
-        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-        <span class="term-title">daniel — min</span>
-      </div>
-      <div class="demo-wrap">
-<svg class="demo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 531 415" role="img" aria-label="nimo sorting 296 downloads, in a terminal">
-<rect width="531" height="415" rx="12" fill="#0B0D0E" stroke="#1A1E20"/>
-<circle cx="26" cy="24" r="5" fill="#262E30"/>
-<circle cx="44" cy="24" r="5" fill="#262E30"/>
-<circle cx="62" cy="24" r="5" fill="#262E30"/>
-<text x="82" y="28" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" fill="#6A7679">daniel — min</text>
-<line x1="0" y1="44" x2="531" y2="44" stroke="#1A1E20"/>
-<g opacity="0">
-<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.0000;0.0000;0.0976;0.1016;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
-<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">$ min</text>
-</g>
-<g opacity="0">
-<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.0936;0.0976;0.2561;0.2601;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
-<text x="22" y="85.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">             ╭───────────────╮</text>
-<text x="22" y="104.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">           ╭─╯               ╰─╮</text>
-<text x="22" y="124.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          ╭╯                   ╰╮</text>
-<g>
-<text x="22" y="143.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          │     ●         ●     │</text>
-<animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.9581;0.9582;1" dur="3.1s" repeatCount="indefinite" calcMode="discrete"/>
-</g>
-<g opacity="0">
-<text x="22" y="143.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          │     ─         ─     │</text>
-<animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.9581;0.9582;1" dur="3.1s" repeatCount="indefinite" calcMode="discrete"/>
-</g>
-<text x="22" y="163.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          │                     │</text>
-<text x="22" y="182.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          │      ╰───────╯      │</text>
-<text x="22" y="202.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">          ╰╮                   ╭╯</text>
-<text x="22" y="221.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">           ╰─╮               ╭─╯</text>
-<text x="22" y="241.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">             ╰───────────────╯</text>
-<text x="22" y="280.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">                     nimo</text>
-<text x="22" y="319.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  / to see what it can do</text>
-<text x="22" y="358.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  nimo › </text>
-</g>
-<g opacity="0">
-<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.2521;0.2561;0.3171;0.3211;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
-<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  nimo › /clear</text>
-</g>
-<g opacity="0">
-<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.3131;0.3171;0.4512;0.4552;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
-<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  nimo › /clear</text>
-<text x="22" y="104.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  ╭─ what should be clear? ─────────────────────</text>
-<text x="22" y="143.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">     nothing is deleted — everything can be undone</text>
-<text x="22" y="182.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">     1.4 GB in all, and none of it is deleted</text>
-<text x="22" y="221.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#EEF2F3">   ▸ Desktop       85 items    ████········</text>
-<text x="22" y="241.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Downloads     296 items   ████████████</text>
-<text x="22" y="260.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Screenshots   12 loose    █···········</text>
-<text x="22" y="280.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Trash         18 items    █···········</text>
-<text x="22" y="299.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Dock          the apps you never open</text>
-<text x="22" y="319.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Everything    all of it, one step at a time</text>
-</g>
-<g opacity="0">
-<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.4472;0.4512;0.5488;0.5528;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
-<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  nimo › /clear</text>
-<text x="22" y="104.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  ╭─ what should be clear? ─────────────────────</text>
-<text x="22" y="143.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">     nothing is deleted — everything can be undone</text>
-<text x="22" y="182.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">     1.4 GB in all, and none of it is deleted</text>
-<text x="22" y="221.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Desktop       85 items    ████········</text>
-<text x="22" y="241.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#EEF2F3">   ▸ Downloads     296 items   ████████████</text>
-<text x="22" y="260.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Screenshots   12 loose    █···········</text>
-<text x="22" y="280.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Trash         18 items    █···········</text>
-<text x="22" y="299.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Dock          the apps you never open</text>
-<text x="22" y="319.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Everything    all of it, one step at a time</text>
-</g>
-<g opacity="0">
-<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.5448;0.5488;0.7195;0.7235;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
-<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  ╭─ your downloads ────────────────────────────</text>
-<text x="22" y="104.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Documents                      118 items</text>
-<text x="22" y="124.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Archives                        61 items</text>
-<text x="22" y="143.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Images                          54 items</text>
-<text x="22" y="163.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Video                           31 items</text>
-<text x="22" y="182.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Code                            18 items</text>
-<text x="22" y="202.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">     Other                           14 items</text>
-<text x="22" y="241.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">     ─────────────────────────────────</text>
-<text x="22" y="260.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#EEF2F3">     In there                       296 items</text>
-<text x="22" y="299.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  ╰─────────────────────────────────────────────</text>
-<text x="22" y="338.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  everything moves into  Downloads/Tidy/&lt;kind&gt;/</text>
-<text x="22" y="358.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  nothing is deleted, nothing is renamed</text>
-</g>
-<g opacity="0">
-<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.7155;0.7195;0.8171;0.8211;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
-<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  everything moves into  Downloads/Tidy/&lt;kind&gt;/</text>
-<text x="22" y="85.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  nothing is deleted, nothing is renamed</text>
-<text x="22" y="124.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  Sort 296 items? [y/N] y</text>
-</g>
-<g opacity="0">
-<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.8131;0.8171;1.0000;1.0000;1" dur="16.4s" repeatCount="indefinite" calcMode="linear"/>
-<text x="22" y="65.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  Sort 296 items? [y/N] y</text>
-<text x="22" y="104.5" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#5FD3C6">  ✓ Sorted — 296 items filed away</text>
-<text x="22" y="124.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  Downloads/Tidy/</text>
-<text x="22" y="163.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#6A7679">  changed your mind?  min downloads --undo</text>
-<text x="22" y="202.0" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#D4DBDE">  nimo › </text>
-</g>
-</svg>
-      </div>
-    </div>
-    <p style="color: var(--faint); font-size: 0.8rem; margin-top: 0.6rem; text-align: center;">
-      That is the real thing, playing. Not a video — twelve kilobytes of SVG,
-      generated from a file of frames in the repository.
+  <div class="said">
+    <h1>Kliner</h1>
+    <p class="status"><span class="dot"></span>Website in the works</p>
+    <p class="note">
+      A quieter Mac: a clear desktop, sorted downloads, the disk back.
+      Nothing is deleted, and every step can be undone.
     </p>
-  </section>
-
-  <section id="app">
-    <div class="stack-l">
-      <div class="head">
-        <span class="eyebrow">the app</span>
-        <h2>An app you open. Not a terminal.</h2>
-        <p>
-          Download it, drag it into Applications, and nimo is an icon in your Dock
-          like anything else. What it does is down the left, what each one is at the
-          top, and one button. Nothing to type, ever.
-        </p>
-      </div>
-
-      <div class="shot" role="img" aria-label="The nimo app: a list down the left, and what nimo said on the right">
-        <div class="shot-bar">
-          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-        </div>
-        <div class="shot-body">
-          <div class="shot-side">
-            <div class="shot-mark">◍&nbsp; nimo</div>
-            <div class="shot-version">version 0.45.0</div>
-
-            <div class="shot-head">Your desk</div>
-            <div class="shot-row is-on"><span class="shot-dot"></span>Desktop</div>
-            <div class="shot-row"><span class="shot-dot"></span>Downloads</div>
-            <div class="shot-row"><span class="shot-dot"></span>Screenshots</div>
-
-            <div class="shot-head">Your screen</div>
-            <div class="shot-row"><span class="shot-dot"></span>Wallpaper</div>
-            <div class="shot-row"><span class="shot-dot"></span>Startup</div>
-
-            <div class="shot-head">Your disk</div>
-            <div class="shot-row"><span class="shot-dot"></span>What is big</div>
-            <div class="shot-row"><span class="shot-dot"></span>What could go</div>
-            <div class="shot-row"><span class="shot-dot"></span>Free it up</div>
-
-            <div class="shot-head">Your computer</div>
-            <div class="shot-row"><span class="shot-dot"></span>How it is</div>
-            <div class="shot-row"><span class="shot-dot"></span>Put it all back</div>
-          </div>
-
-          <div class="shot-main">
-            <h3>Desktop</h3>
-            <p>
-              Everything on your desktop, sorted into Desktop/Tidy by what it is.
-              Nothing is deleted, and nothing is renamed.
-            </p>
-            <span class="shot-btn">Clear my desktop</span>
-<pre class="screen shot-screen">  <i>╭─ your desktop ─────────────────────────</i>
-
-  <b>✓</b> Sorted — 41 items filed away
-
-     Screenshots            <s>23 items</s>
-     Images                  <s>9 items</s>
-     Documents               <s>6 items</s>
-     Other                   <s>3 items</s>
-
-  <i>  Desktop/Tidy/</i>
-
-  <i>  changed your mind?  Put it all back</i>
-</pre>
-          </div>
-        </div>
-      </div>
-
-      <div class="two-up">
-        <div class="cap">
-          <span class="mono">it asks, then it tells you</span>
-          <p>
-            Anything that changes something stops and asks first, in a normal Mac
-            dialog. Then it shows you exactly what nimo said — the same panel, the
-            same colours, no terminal anywhere.
-          </p>
-        </div>
-        <div class="cap">
-          <span class="mono">nothing is deleted</span>
-          <p>
-            The app is a window on the same program: it moves and writes down, never
-            removes. <b>Put it all back</b> reverses the lot, newest first.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="install">
-    <div class="stack-l">
-      <div class="head">
-        <span class="eyebrow">the first time</span>
-        <h2>macOS will stop you once. Here is why.</h2>
-        <p>
-          nimo is not signed with Apple's $99-a-year certificate, so the first time you
-          open it macOS says it cannot check it. That is a statement about a receipt,
-          not about the app — every line of it is on GitHub, and the copy you download
-          is built there, in the open, by a script you can read.
-        </p>
-      </div>
-
-      <ol class="steps">
-        <li><b>Download</b> Kliner.app.zip and double-click it to unzip.</li>
-        <li><b>Drag Kliner</b> into your Applications folder.</li>
-        <li><b>Right-click it</b> (or Control-click) and choose <b>Open</b>. Not double-click — right-click. Then <b>Open</b> again in the dialog.</li>
-        <li>That is once, for ever. nimo opens, and it is in your Dock like anything else.</li>
-      </ol>
-
-      <p class="fineprint">
-        If you would rather not take anyone's word for it: <code>app/build.sh</code> in the
-        repository is the whole build, forty lines of it, and the release is put together
-        by GitHub's own machines from the tag you can see.
-      </p>
-    </div>
-  </section>
-
-  <section>
-    <div class="stack-l">
-      <div class="head">
-        <span class="eyebrow">two commands, one afternoon back</span>
-        <h2>It moves your files. It never loses them.</h2>
-        <p>
-          nimo only ever rearranges — it does not decide what you no longer need. What
-          it moves, it writes down, and what it writes down, it can put back.
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="stack">
-          <div class="cap">
-            <span class="mono">min desktop</span>
-            <p>Sorted into <code>Desktop/Tidy/</code> by kind. Hidden files stay. Names are never changed.</p>
-          </div>
-          <div class="term">
-            <pre class="screen">  <i>╭─ your desktop ──────────────────</i>
-
-     Screenshots            <s>23 items</s>
-     Images                 <s>11 items</s>
-     Documents               <s>8 items</s>
-     Archives                <s>3 items</s>
-     Folders                 <s>2 items</s>
-
-     <i>──────────────────────</i>
-     <s>On your desktop        47 items</s>
-
-  <i>╰─────────────────────────────────</i>
-
-  <i>min desktop --undo puts it back</i></pre>
-          </div>
-        </div>
-
-        <div class="stack">
-          <div class="cap">
-            <span class="mono">min dock</span>
-            <p>Tick what goes. The apps stay installed — only the icons leave. Exported first.</p>
-          </div>
-          <div class="term">
-            <pre class="screen">  <i>╭─ your dock ─────────────────────</i>
-
-  <i>↑↓ move  space tick  a all  enter</i>
-
-   <b>▸</b> <b>[x]</b> TV            <i>came with macOS</i>
-     <b>[x]</b> Podcasts      <i>came with macOS</i>
-     [ ] Safari
-     [ ] Terminal
-     [ ] Figma
-     <b>[x]</b> Freeform      <i>came with macOS</i>
-
-  <i>╰─────────────────────────────────</i>
-
-  <i>min dock --restore puts it back</i></pre>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="stack-l">
-      <div class="head">
-        <span class="eyebrow">how min tidy works</span>
-        <h2>Four steps. Four chances to say no.</h2>
-        <p>
-          One command walks the whole thing. Nothing runs until you say so, and nothing
-          is remembered except how to undo it.
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="steps">
-          <div class="step">
-            <span class="n">1</span>
-            <div>
-              <h3>Your desktop</h3>
-              <p>Counted by kind, then moved into one folder — and logged file by file.</p>
-            </div>
-          </div>
-          <div class="step">
-            <span class="n">2</span>
-            <div>
-              <h3>Your dock</h3>
-              <p>Listed with Apple's own additions marked, so you can see what you never chose.</p>
-            </div>
-          </div>
-          <div class="step">
-            <span class="n">3</span>
-            <div>
-              <h3>Your wallpaper</h3>
-              <p>From the ones your system already ships with, flipped through one at a time on your own screen. nimo never touches the network.</p>
-            </div>
-          </div>
-          <div class="step">
-            <span class="n">4</span>
-            <div>
-              <h3>Your preferences</h3>
-              <p>Five small groups of <code>defaults write</code> — each key's old value read and kept, so it can go back.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="term">
-          <div class="term-bar">
-            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-            <span class="term-title">min tidy</span>
-          </div>
-          <pre class="screen">  <i>four steps toward a minimal mac.</i>
-  <i>each one asks before it does anything,</i>
-  <i>and each one can be undone.</i>
-
-  <i>╭─ your desktop ──────────────────</i>
-     <s>On your desktop        47 items</s>
-  <i>╰─────────────────────────────────</i>
-
-  <b>Clear your desktop?</b> [y/N] <s>y</s>
-
-  <b>✓</b> Your desktop is clear — <s>47 items</s> filed away
-  <i>Desktop/Tidy/</i>
-
-  <i>╭─ done ──────────────────────────</i>
-
-  <b>✓</b> <s>That is a minimal mac.</s>
-
-  <i>undo the desktop     min desktop --undo</i>
-  <i>undo the dock        min dock --restore</i>
-  <i>undo the wallpaper   min wallpaper --restore</i>
-
-  <i>╰─────────────────────────────────</i></pre>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="commands">
-    <div class="stack-l">
-      <div class="head">
-        <span class="eyebrow">the whole surface</span>
-        <h2>Eighteen commands. None you need to memorise.</h2>
-      </div>
-
-      <div class="grid">
-        <div class="card">
-          <span class="mono">min clear</span>
-          <p>Asks what should be clear, and counts each one as it asks.</p>
-          <span class="tag">the front door</span>
-        </div>
-        <div class="card">
-          <span class="mono">min desktop</span>
-          <p>Everything filed into <code>Desktop/Tidy/</code> by kind.</p>
-          <span class="tag">--undo</span>
-        </div>
-        <div class="card">
-          <span class="mono">min downloads</span>
-          <p>The same sorter, pointed at the folder that fills up fastest.</p>
-          <span class="tag">--undo</span>
-        </div>
-        <div class="card">
-          <span class="mono">min screenshots</span>
-          <p>Gathers the loose ones into <code>Pictures/Screenshots</code>.</p>
-          <span class="tag">--undo</span>
-        </div>
-        <div class="card">
-          <span class="mono">min dock</span>
-          <p>Keep only the apps you actually open.</p>
-          <span class="tag">--restore</span>
-        </div>
-        <div class="card">
-          <span class="mono">min wallpaper</span>
-          <p>The calm ones your system already ships with.</p>
-          <span class="tag">--random · --restore</span>
-        </div>
-        <div class="card">
-          <span class="mono">min zen</span>
-          <p>Finder stops drawing icons on the desktop at all.</p>
-          <span class="tag">--restore</span>
-        </div>
-        <div class="card">
-          <span class="mono">min dark · light</span>
-          <p>Switch the appearance, with the old setting written down.</p>
-          <span class="tag">reversible</span>
-        </div>
-        <div class="card">
-          <span class="mono">min hide</span>
-          <p>The menu bar slides away until you reach for it.</p>
-          <span class="tag">--restore</span>
-        </div>
-        <div class="card">
-          <span class="mono">min undo</span>
-          <p>Everything nimo has done, and a way back from each of it —
-             or <span class="mono">--all</span>, newest first, for a whole
-             session at once.</p>
-          <span class="tag">the safety net</span>
-        </div>
-        <div class="card">
-          <span class="mono">min clean</span>
-          <p>Sixteen places junk hides. Freed only after you confirm.</p>
-          <span class="tag">--only · --days</span>
-        </div>
-        <div class="card">
-          <span class="mono">min preview</span>
-          <p>The same scan, structurally unable to delete anything.</p>
-          <span class="tag">--json</span>
-        </div>
-        <div class="card">
-          <span class="mono">min duplicates</span>
-          <p>The same file kept in three places. Reported, never deleted.</p>
-          <span class="tag">read only</span>
-        </div>
-        <div class="card">
-          <span class="mono">min apps</span>
-          <p>What you installed once and have not opened in six months. On
-             Windows, what has been sitting there longest — it says so, rather
-             than implying the other question.</p>
-          <span class="tag">read only</span>
-        </div>
-        <div class="card">
-          <span class="mono">min empty</span>
-          <p>Takes the trash out, and says what that was worth. On Windows it
-             asks Windows to empty the Recycle Bin rather than reaching into
-             it, because that is files plus an index.</p>
-          <span class="tag">the one with no undo</span>
-        </div>
-        <div class="card">
-          <span class="mono">min startup</span>
-          <p>The six things that start themselves every morning. Stop the ones
-             you tick — nothing is uninstalled, and a program you stop still
-             starts when you open it.</p>
-          <span class="tag">--undo</span>
-        </div>
-        <div class="card">
-          <span class="mono">min next · prev</span>
-          <p>Flip through the wallpapers your system ships with, each one on
-             your own screen as you move.</p>
-          <span class="tag">q puts yours back</span>
-        </div>
-        <div class="card">
-          <span class="mono">min top · doctor</span>
-          <p>The biggest things in your home, and a way into them: pick the
-             folder that is too big and look inside it. And how the machine is
-             doing.</p>
-          <span class="tag">changes nothing</span>
-        </div>
-        <div class="card">
-          <span class="mono">min setup</span>
-          <p>Sane preferences: five groups on a Mac, two on Windows.</p>
-          <span class="tag">--dry-run · --restore</span>
-        </div>
-        <div class="card">
-          <span class="mono">min tidy</span>
-          <p>All of it, one step at a time, asking each time.</p>
-          <span class="tag">or /auto, once</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="stack-l">
-      <div class="head">
-        <span class="eyebrow">worth a look, never touched</span>
-        <h2>The line between junk and yours.</h2>
-        <p>
-          Caches your apps rebuild by themselves are fair game. Your downloads, your
-          backups, your <code>node_modules</code> are measured, shown, and left exactly
-          where they are — not even <code>--yes</code> moves them.
-        </p>
-      </div>
-
-      <div class="term">
-        <pre class="screen">  <i>╭─ safe to clean ─────────────────────────────────</i>
-
-     App caches                  <u>4.2 GB</u>  <i>your apps rebuild them</i>
-     Xcode derived data          <u>8.7 GB</u>  <i>rebuilt on your next build</i>
-     Trash                       <u>1.1 GB</u>  <i>already thrown away</i>
-     npm / yarn / pnpm cache     <s>812 MB</s>  <i>download caches</i>
-     Application logs            <s>143 MB</s>  <i>old log files</i>
-
-     <i>─────────────────────────────────</i>
-     <s>Total                      15.0 GB</s>
-     <i>Disk         231 GB free of 494 GB</i>
-
-  <i>╰─────────────────────────────────────────────────</i>
-
-  <i>╭─ worth a look ──────────────────────────────────</i>
-
-     <i>nimo never deletes anything in this section</i>
-
-     node_modules folders        <u>6.4 GB</u>  <i>23 items · npm install brings them back</i>
-     Old downloads               <s>2.9 GB</s>  <i>41 items · untouched for a while</i>
-     iPhone / iPad backups        <u>11 GB</u>  <i>2 items · losing these loses backups</i>
-
-  <i>╰─────────────────────────────────────────────────</i></pre>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="stack-l">
-      <div class="head">
-        <span class="eyebrow">the front door</span>
-        <h2>A menu that weighs what it offers.</h2>
-        <p>
-          Type <code>/clear</code> and nimo counts each pile before it asks, and draws
-          each one against the biggest. You can see where the mess is before you have
-          chosen anything.
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="term">
-          <pre class="screen">  <i>╭─ what should be clear? ──────────────────</i>
-
-     <i>everything here can be undone</i>
-     <i>1.4 GB in all, and none of it is deleted</i>
-
-   <b>▸</b> <s>Desktop       85 items    ████········</s>
-     Downloads     296 items   <b>████████████</b>
-     Screenshots   12 loose    <b>█</b>···········
-     Trash         18 items    <b>█</b>···········
-     Dock          <i>the apps you never open</i>
-     Everything    <i>all of it, one step at a time</i>
-
-  <i>╰──────────────────────────────────────────</i></pre>
-        </div>
-
-        <div class="stack">
-          <div class="cap">
-            <span class="mono">/auto</span>
-            <p>Say yes once, for the whole session — the same bargain a terminal agent offers.</p>
-          </div>
-          <div class="term">
-            <pre class="screen">  <i>╭─ yes to everything ──────────────────────</i>
-
-     nimo stops asking. Every command runs
-     the moment you type it.
-
-     <i>this covers this session only</i>
-     <i>undo still works:  /undo</i>
-     <i>the trash is the exception</i>
-
-  <i>╰──────────────────────────────────────────</i>
-
-  Stop asking for this session? [y/N] <s>y</s>
-
-  <b>nimo</b> <u>auto</u> <b>›</b> _</pre>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="stack-l">
-      <div class="head">
-        <span class="eyebrow">and not only on a mac</span>
-        <h2>Windows, without loosening a thing.</h2>
-        <p>
-          Under Git Bash, MSYS2 or Cygwin, <code>$HOME</code> is already
-          <code>C:/Users/&lt;name&gt;</code> — so the rule that keeps nimo inside your home
-          folder holds there untouched. It finds the Desktop after Windows has moved it
-          into OneDrive, is not fooled by the empty one left behind, and looks for junk
-          under <code>AppData</code> rather than <code>~/Library</code>.
-        </p>
-        <p>
-          It leaves the Recycle Bin alone, because that is an index as well as a folder
-          and half-deleting it helps nobody. And <strong>WSL is treated as Linux on
-          purpose</strong>: its home is a Linux home, the Windows one sits outside it,
-          and reaching over there would mean widening the one guard that never widens.
-        </p>
-      </div>
-
-      <div class="matrix">
-        <div class="job"><span class="tick">✓</span> <span>the desktop, downloads, screenshots</span> <span class="where">everywhere</span></div>
-        <div class="job"><span class="tick">✓</span> <span>duplicates, top, doctor, the prompt</span> <span class="where">everywhere</span></div>
-        <div class="job"><span class="tick">✓</span> <span>caches under <span class="what">AppData</span></span> <span class="where">windows</span></div>
-        <div class="job"><span class="tick">✓</span> <span>caches under <span class="what">~/Library</span></span> <span class="where">macos</span></div>
-        <div class="job"><span class="tick">✓</span> <span>dock, wallpaper, appearance, setup</span> <span class="where">macos only</span></div>
-      </div>
-    </div>
-  </section>
-
-  <section id="promises">
-    <div class="stack-l">
-      <div class="head">
-        <span class="eyebrow">what nimo will and will not do</span>
-        <h2>Six promises, and the code to check them against.</h2>
-      </div>
-
-      <div class="promises">
-        <div class="promise">
-          <h3>Nothing happens without a yes</h3>
-          <p>Every command that changes something shows what it is about to do, and waits.</p>
-        </div>
-        <div class="promise">
-          <h3>Everything is undoable</h3>
-          <p>Desktop moves logged one by one. The dock exported first. Every preference read — value and type — before it is overwritten.</p>
-        </div>
-        <div class="promise">
-          <h3>Only inside your home folder</h3>
-          <p>Any path outside <code>$HOME</code> is refused, and so is <code>$HOME</code> itself. The guard is four lines long.</p>
-        </div>
-        <div class="promise">
-          <h3>No sudo. Ever.</h3>
-          <p>If something would need administrator rights, nimo skips it and says so.</p>
-        </div>
-        <div class="promise">
-          <h3>Nothing is downloaded</h3>
-          <p>Wallpapers come from what your system already ships. nimo never reaches the network.</p>
-        </div>
-        <div class="promise">
-          <h3>Small enough to read</h3>
-          <p>One script and eleven short libraries. Fifteen minutes and you know everything it can do.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="stack-l">
-      <div class="head">
-        <span class="eyebrow">how it is kept honest</span>
-        <h2>Every promise here is a job that fails.</h2>
-        <p>
-          A hundred and seventy-six checks run against a fake computer in <code>/tmp</code> with its own fake
-          home — including the arrow-key picker, driven by simulated keystrokes, and a
-          full clean where the promised number is compared against the freed one. Your
-          real files are never read.
-        </p>
-        <p>
-          The dock, the wallpaper and the preferences only ever run on a Mac, which used
-          to make them the parts nobody could test. A hundred and thirteen more checks put fake
-          <code>defaults</code>, <code>osascript</code>, <code>pmset</code> and
-          <code>uname</code> in front of the real ones and run the real code against
-          them — for macOS and for Git Bash alike — the right apps leave the dock and the rest keep their order, the backup
-          is written <em>before</em> anything changes, <code>--restore</code> brings it
-          all back, and no line anywhere reaches for sudo.
-        </p>
-        <p>
-          That suite has found three real bugs so far. <code>pmset</code> reports
-          <code>discharging</code>, which contains <code>charging</code>, so a battery on
-          its way down was being called plugged in. A guard written as
-          <code>"$(printf '\n')"</code> collapsed to an empty string, so it matched every
-          value instead of the structured ones. And two runs inside one second landed on
-          the same log name, where the second truncated the first and took the only
-          record of how to undo it. Each one now has a test standing on it.
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="matrix">
-          <div class="job"><span class="tick">✓</span> <span>shellcheck</span> <span class="where">ubuntu</span></div>
-          <div class="job"><span class="tick">✓</span> <span>parses on <span class="what">bash 3.2</span></span> <span class="where">container</span></div>
-          <div class="job"><span class="tick">✓</span> <span>parses on <span class="what">bash 5</span></span> <span class="where">container</span></div>
-          <div class="job"><span class="tick">✓</span> <span>176 + 86 + 27 tests</span> <span class="where">ubuntu</span></div>
-          <div class="job"><span class="tick">✓</span> <span>all three, <span class="what">/bin/bash 3.2</span></span> <span class="where">macos</span></div>
-          <div class="job"><span class="tick">✓</span> <span>176 + 27 tests</span> <span class="where">windows</span></div>
-          <div class="job"><span class="tick">✓</span> <span>parses on bash 3.2 and 5</span> <span class="where">container</span></div>
-          <div class="job"><span class="tick">✓</span> <span>install, then uninstall</span> <span class="where">macos</span></div>
-          <div class="job"><span class="tick">✓</span> <span>a release that does not run <span class="what">cannot ship</span></span> <span class="where">on tag</span></div>
-        </div>
-
-        <div class="term">
-          <pre class="screen">  <s>nimo macOS suite</s>
-  <i>real nimo code, fake macOS underneath</i>
-
-  <b>✓</b> decodes %20 in app names
-  <b>✓</b> marks what Apple put there
-  <b>✓</b> removes exactly what you ticked
-  <b>✓</b> the order is preserved
-  <b>✓</b> a backup was written first
-  <b>✓</b> --restore brings all five back
-  <b>✓</b> discharging is not 'plugged in'
-  <b>✓</b> setup --dry-run writes nothing
-  <b>✓</b> nothing in setup calls sudo
-  <b>✓</b> falls back when macOS says no
-  <i>  …</i>
-
-  <b>✓ 86 passed</b></pre>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="terminal">
-    <div class="band">
-      <h2>Or keep it in the terminal.</h2>
-      <p>Then <code>min tidy</code>. Or <code>min preview</code> first — it cannot change anything at all. Works on macOS, Linux and Windows.</p>
-      <div class="copybar">
-        <code id="cmd2">git clone git@github.com:danielkopa/nimo.git ~/nimo &amp;&amp; ~/nimo/install.sh</code>
-        <button type="button" id="copy2">copy</button>
-      </div>
-    </div>
-  </section>
-
-  <footer>
-    <div class="foot">
-      <span>nimo — made by Daniel Kopa · MIT</span>
-      <span class="foot-links">
-        <a href="https://github.com/danielkopa/nimo">github</a>
-        <a href="https://github.com/danielkopa/nimo#readme">docs</a>
-        <a href="https://github.com/danielkopa/nimo/blob/main/CHANGELOG.md">changelog</a>
-      </span>
-    </div>
-  </footer>
-
-</div>
+  </div>
+</main>
+
+<footer>
+  <a href="join.html">Get told when it is ready</a>
+  <span aria-hidden="true">·</span>
+  <a href="mailto:daniel@rlx.sk">daniel@rlx.sk</a>
+</footer>
 
 <script>
+  // He blinks the way somebody blinks: not on a beat. A fixed keyframe loop
+  // reads as a machine ticking, so the timing is drawn each time, and now and
+  // then he blinks twice, or looks off to one side and comes back.
   (function () {
-    var root = document.documentElement;
-    var button = document.getElementById("theme");
-    var label = document.getElementById("theme-label");
+    var eyes = document.getElementById("eyes");
+    if (!eyes) { return; }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { return; }
 
-    function stored() {
-      try { return localStorage.getItem("nimo-theme"); } catch (e) { return null; }
+    function shut(ms) {
+      eyes.classList.add("shut");
+      setTimeout(function () { eyes.classList.remove("shut"); }, ms || 110);
     }
 
-    function current() {
-      var set = root.getAttribute("data-theme");
-      if (set) { return set; }
-      return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    function blink() {
+      shut(110);
+      // A double blink, sometimes. It is the thing that stops a loop looking
+      // like a loop.
+      if (Math.random() < 0.22) {
+        setTimeout(function () { shut(90); }, 260);
+      }
+      setTimeout(blink, 2200 + Math.random() * 4600);
     }
 
-    function paint() {
-      label.textContent = current() === "dark" ? "light" : "dark";
+    function glance() {
+      var way = Math.random() < 0.5 ? "left" : "right";
+      eyes.classList.add(way);
+      setTimeout(function () { eyes.classList.remove(way); }, 900 + Math.random() * 700);
+      setTimeout(glance, 5000 + Math.random() * 9000);
     }
 
-    var saved = stored();
-    if (saved === "light" || saved === "dark") { root.setAttribute("data-theme", saved); }
-    paint();
-
-    button.addEventListener("click", function () {
-      var next = current() === "dark" ? "light" : "dark";
-      root.setAttribute("data-theme", next);
-      try { localStorage.setItem("nimo-theme", next); } catch (e) {}
-      paint();
-    });
-
-    var lines = document.querySelectorAll(".reveal > *");
-    for (var i = 0; i < lines.length; i++) {
-      lines[i].style.animationDelay = (i * 40) + "ms";
-    }
-
-    function wire(buttonId, codeId) {
-      var b = document.getElementById(buttonId);
-      var c = document.getElementById(codeId);
-      if (!b || !c) { return; }
-      b.addEventListener("click", function () {
-        var done = function () {
-          b.textContent = "copied";
-          setTimeout(function () { b.textContent = "copy"; }, 1600);
-        };
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(c.textContent).then(done, function () {
-            b.textContent = "select it";
-          });
-        } else {
-          var r = document.createRange();
-          r.selectNodeContents(c);
-          var s = window.getSelection();
-          s.removeAllRanges();
-          s.addRange(r);
-          b.textContent = "select it";
-        }
-      });
-    }
-
-    wire("copy", "cmd");
-    wire("copy2", "cmd2");
+    setTimeout(blink, 1400);
+    setTimeout(glance, 4200);
   })();
 </script>
-
 </body>
 </html>
