@@ -11,3 +11,5 @@ tmp/
 # a built app is not source
 app/build/
 _to_delete/
+trove/
+Claude outputs/
