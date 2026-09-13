@@ -1,0 +1,8 @@
+{
+  "name": "kliner-tax",
+  "version": "0.1.0",
+  "description": "Works out what a year of crypto owes in Slovakia, and shows the working.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": { "test": "node test/run.js", "show": "node test/show.js" }
+}
