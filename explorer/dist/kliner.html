@@ -1,0 +1,2440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kliner</title>
+<meta name="description" content="Paste a transaction. Read what happened, in one sentence.">
+<style>
+:root {
+    --ground: #f6f6f4;
+    --paper: #fdfdfc;
+    --ink: #161614;
+    --dim: #6e6e68;
+    --faint: #9a9a94;
+    --line: #e0e0da;
+    --rule: #c9c9c2;
+    --gutter: clamp(16px, 4vw, 40px);
+    color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --ground: #0e0e0d;
+        --paper: #141413;
+        --ink: #f0f0ec;
+        --dim: #8c8c85;
+        --faint: #63635d;
+        --line: #232321;
+        --rule: #34342f;
+    }
+}
+:root[data-theme="dark"] {
+    --ground: #0e0e0d;
+    --paper: #141413;
+    --ink: #f0f0ec;
+    --dim: #8c8c85;
+    --faint: #63635d;
+    --line: #232321;
+    --rule: #34342f;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font: 15px/1.55 ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
+}
+
+.wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding-inline: var(--gutter);
+    padding-block: 0 96px;
+}
+
+/* ── masthead ─────────────────────────────────────────────────────── */
+
+header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-block: 28px 20px;
+}
+
+.mark {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+nav {
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+}
+
+nav button {
+    appearance: none;
+    background: none;
+    border: 0;
+    padding: 4px 8px;
+    font: inherit;
+    font-size: 13px;
+    color: var(--faint);
+    cursor: pointer;
+    border-radius: 2px;
+}
+nav button:hover { color: var(--ink); }
+nav button[aria-pressed="true"] {
+    color: var(--ink);
+    box-shadow: inset 0 -1px 0 var(--ink);
+}
+
+/* ── the field ────────────────────────────────────────────────────── */
+
+form {
+    display: flex;
+    gap: 0;
+    border-block: 1px solid var(--ink);
+    padding-block: 2px;
+}
+
+input[type="text"] {
+    flex: 1 1 auto;
+    min-width: 0;
+    appearance: none;
+    background: none;
+    border: 0;
+    padding: 14px 0;
+    font: inherit;
+    font-size: 16px;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    color: var(--ink);
+}
+input::placeholder { color: var(--faint); font-family: inherit; }
+input:focus { outline: 0; }
+form:focus-within { box-shadow: 0 1px 0 var(--ink); }
+
+form button {
+    appearance: none;
+    background: none;
+    border: 0;
+    padding: 0 0 0 16px;
+    font: inherit;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dim);
+    cursor: pointer;
+}
+form button:hover { color: var(--ink); }
+
+/* ── the reading ──────────────────────────────────────────────────── */
+
+.verdict {
+    font-size: clamp(24px, 4.6vw, 34px);
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    font-weight: 400;
+    text-wrap: balance;
+    margin: 48px 0 0;
+}
+
+.under {
+    margin-top: 14px;
+    color: var(--dim);
+    font-size: 13px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+}
+.under a { color: inherit; }
+
+section { margin-top: 44px; }
+
+h2 {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 0 0 4px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+}
+h2 > span { flex: 0 0 auto; }
+
+.rows { display: flex; flex-direction: column; }
+
+.row {
+    display: grid;
+    grid-template-columns: 46px 1fr auto;
+    gap: 16px;
+    align-items: baseline;
+    padding-block: 13px;
+    border-bottom: 1px solid var(--line);
+}
+
+.row .side {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+}
+.row .what { font-size: 16px; overflow-wrap: anywhere; }
+.row > * { min-width: 0; }
+.row .aside {
+    color: var(--dim);
+    font-size: 13px;
+    text-align: right;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.row .sub { color: var(--dim); font-size: 13px; margin-top: 2px; }
+
+/* a flag is weight and a rule, never a colour */
+.row.warn {
+    box-shadow: inset 2px 0 0 var(--ink);
+    padding-left: 14px;
+    grid-template-columns: 32px 1fr auto;
+}
+.row.warn .side { color: var(--ink); font-weight: 600; font-size: 13px; letter-spacing: 0; }
+
+.flag {
+    display: grid;
+    grid-template-columns: 46px 1fr;
+    gap: 16px;
+    padding-block: 14px;
+    border-bottom: 1px solid var(--line);
+}
+.flag.warn { box-shadow: inset 2px 0 0 var(--ink); padding-left: 14px; grid-template-columns: 32px 1fr; }
+.flag .glyph { font-weight: 600; color: var(--ink); }
+.flag.note .glyph { color: var(--faint); font-weight: 400; }
+.flag .title { font-weight: 600; }
+.flag.note .title { font-weight: 400; }
+.flag .detail { color: var(--dim); font-size: 13px; margin-top: 3px; }
+
+.line {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    padding-block: 13px;
+    border-bottom: 1px solid var(--line);
+}
+.line .lead { min-width: 0; overflow-wrap: anywhere; }
+.line .trail { color: var(--dim); font-size: 13px; white-space: nowrap; flex: 0 0 auto; }
+
+a.entry {
+    color: inherit;
+    text-decoration: none;
+}
+a.entry.line { display: flex; }
+a.entry:hover .lead { text-decoration: underline; text-underline-offset: 3px; }
+
+button.act {
+    appearance: none;
+    background: none;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 5px 11px;
+    font: inherit;
+    font-size: 12px;
+    color: var(--ink);
+    cursor: pointer;
+    white-space: nowrap;
+}
+button.act:hover { border-color: var(--ink); }
+button.act[disabled] { color: var(--faint); border-color: var(--line); cursor: default; }
+
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.dim { color: var(--dim); }
+
+.state {
+    margin-top: 44px;
+    color: var(--dim);
+    max-width: 52ch;
+}
+.state strong { color: var(--ink); font-weight: 600; }
+
+.progress {
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--dim);
+    font-variant-numeric: tabular-nums;
+}
+
+.bar { height: 1px; background: var(--line); margin-top: 8px; }
+.bar > i { display: block; height: 1px; background: var(--ink); width: 0; transition: width .3s ease; }
+
+footer {
+    margin-top: 72px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--faint);
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 520px) {
+    .row { grid-template-columns: 38px 1fr; }
+    .row .aside { grid-column: 2; text-align: left; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <h1 class="mark">Kliner</h1>
+        <nav id="chains" aria-label="Chain"></nav>
+    </header>
+
+    <form id="form">
+        <input id="q" type="text" spellcheck="false" autocomplete="off" autocapitalize="off"
+               placeholder="transaction hash, or a wallet address" aria-label="Transaction or address">
+        <button type="submit">Read</button>
+    </form>
+
+    <main id="out"></main>
+
+    <footer>
+        <span>Runs in your browser. No account, no key, no server of ours.</span>
+        <span id="source"></span>
+    </footer>
+</div>
+<script type="module">
+/* ── src/keccak.js ─────────────────────────────────────────────── */
+
+// keccak256 — the hash Ethereum uses for event topics and address checksums.
+//
+// This is Keccak, not NIST SHA-3. They differ in one byte of padding
+// (0x01 here, 0x06 there), which is why node's crypto.sha3-256 cannot
+// stand in for it. No dependency does this for us, so it lives here.
+//
+// Lanes are BigInt. That is slower than the usual 32-bit-pair trick, but
+// it is short enough to read and check by eye, and we hash addresses and
+// signatures, not megabytes.
+
+const MASK = (1n << 64n) - 1n;
+
+const RHO = [
+     0n,  1n, 62n, 28n, 27n,
+    36n, 44n,  6n, 55n, 20n,
+     3n, 10n, 43n, 25n, 39n,
+    41n, 45n, 15n, 21n,  8n,
+    18n,  2n, 61n, 56n, 14n,
+];
+
+const RC = [
+    0x0000000000000001n, 0x0000000000008082n, 0x800000000000808an,
+    0x8000000080008000n, 0x000000000000808bn, 0x0000000080000001n,
+    0x8000000080008081n, 0x8000000000008009n, 0x000000000000008an,
+    0x0000000000000088n, 0x0000000080008009n, 0x000000008000000an,
+    0x000000008000808bn, 0x800000000000008bn, 0x8000000000008089n,
+    0x8000000000008003n, 0x8000000000008002n, 0x8000000000000080n,
+    0x000000000000800an, 0x800000008000000an, 0x8000000080008081n,
+    0x8000000000008080n, 0x0000000080000001n, 0x8000000080008008n,
+];
+
+const rotl = (v, n) => n === 0n ? v : ((v << n) | (v >> (64n - n))) & MASK;
+
+function permute(A) {
+    for (let round = 0; round < 24; round++) {
+        // theta
+        const C = new Array(5);
+        for (let x = 0; x < 5; x++) {
+            C[x] = A[x] ^ A[x + 5] ^ A[x + 10] ^ A[x + 15] ^ A[x + 20];
+        }
+        for (let x = 0; x < 5; x++) {
+            const D = C[(x + 4) % 5] ^ rotl(C[(x + 1) % 5], 1n);
+            for (let y = 0; y < 5; y++) A[x + 5 * y] ^= D;
+        }
+
+        // rho and pi
+        const B = new Array(25).fill(0n);
+        for (let x = 0; x < 5; x++) {
+            for (let y = 0; y < 5; y++) {
+                B[y + 5 * ((2 * x + 3 * y) % 5)] = rotl(A[x + 5 * y], RHO[x + 5 * y]);
+            }
+        }
+
+        // chi
+        for (let y = 0; y < 5; y++) {
+            for (let x = 0; x < 5; x++) {
+                A[x + 5 * y] = B[x + 5 * y] ^
+                    ((~B[(x + 1) % 5 + 5 * y] & MASK) & B[(x + 2) % 5 + 5 * y]);
+            }
+        }
+
+        // iota
+        A[0] ^= RC[round];
+    }
+}
+
+const RATE = 136; // bytes absorbed per block for a 256-bit output
+
+// Returns 32 bytes.
+function keccak256Bytes(input) {
+    const bytes = typeof input === 'string'
+        ? new TextEncoder().encode(input)
+        : Uint8Array.from(input);
+
+    const padded = new Uint8Array(Math.floor(bytes.length / RATE) * RATE + RATE);
+    padded.set(bytes);
+    padded[bytes.length] = 0x01;
+    padded[padded.length - 1] |= 0x80;
+
+    const A = new Array(25).fill(0n);
+    for (let off = 0; off < padded.length; off += RATE) {
+        for (let lane = 0; lane < RATE / 8; lane++) {
+            let v = 0n;
+            for (let b = 7; b >= 0; b--) {
+                v = (v << 8n) | BigInt(padded[off + lane * 8 + b]);
+            }
+            A[lane] ^= v;
+        }
+        permute(A);
+    }
+
+    const out = new Uint8Array(32);
+    for (let lane = 0; lane < 4; lane++) {
+        let v = A[lane];
+        for (let b = 0; b < 8; b++) {
+            out[lane * 8 + b] = Number(v & 0xffn);
+            v >>= 8n;
+        }
+    }
+    return out;
+}
+
+// Returns '0x' + 64 hex characters.
+function keccak256(input) {
+    let s = '0x';
+    for (const b of keccak256Bytes(input)) s += b.toString(16).padStart(2, '0');
+    return s;
+}
+
+/* ── src/hex.js ────────────────────────────────────────────────── */
+
+// Small helpers for the shapes an RPC node hands back: 0x-strings.
+
+
+
+const ZERO = '0x0000000000000000000000000000000000000000';
+const DEAD = '0x000000000000000000000000000000000000dead';
+
+function strip(hex) {
+    return (hex || '').toLowerCase().replace(/^0x/, '');
+}
+
+// Any 0x-quantity to BigInt. Missing or malformed reads as 0n, because a
+// receipt with a field we did not expect should not take the page down.
+function big(hex) {
+    if (typeof hex === 'bigint') return hex;
+    if (typeof hex === 'number') return BigInt(hex);
+    const s = strip(hex);
+    if (!s || /[^0-9a-f]/.test(s)) return 0n;
+    return BigInt('0x' + s);
+}
+
+// Addresses arrive in topics left-padded to 32 bytes.
+function addressFromTopic(topic) {
+    const s = strip(topic);
+    return '0x' + s.slice(-40).padStart(40, '0');
+}
+
+function lower(address) {
+    return (address || '').toLowerCase();
+}
+
+function sameAddress(a, b) {
+    return !!a && !!b && a.toLowerCase() === b.toLowerCase();
+}
+
+function isZero(address) {
+    return sameAddress(address, ZERO);
+}
+
+// Read the Nth 32-byte word out of a log's data field.
+function word(data, index) {
+    const s = strip(data);
+    const at = index * 64;
+    if (s.length < at + 64) return 0n;
+    return BigInt('0x' + s.slice(at, at + 64));
+}
+
+function words(data) {
+    const s = strip(data);
+    const out = [];
+    for (let i = 0; i + 64 <= s.length; i += 64) out.push(BigInt('0x' + s.slice(i, i + 64)));
+    return out;
+}
+
+// EIP-55: the mixed-case form that catches a mistyped address.
+function checksum(address) {
+    const body = strip(address).padStart(40, '0');
+    const hash = keccak256Bytes(body);
+    let out = '0x';
+    for (let i = 0; i < 40; i++) {
+        const nibble = i % 2 === 0 ? hash[i >> 1] >> 4 : hash[i >> 1] & 0x0f;
+        const c = body[i];
+        out += nibble >= 8 ? c.toUpperCase() : c;
+    }
+    return out;
+}
+
+function isAddress(value) {
+    return typeof value === 'string' && /^0x[0-9a-fA-F]{40}$/.test(value);
+}
+
+function short(address, head = 6, tail = 4) {
+    const a = checksum(address);
+    return a.slice(0, 2 + head) + '…' + a.slice(-tail);
+}
+
+/* ── src/amount.js ─────────────────────────────────────────────── */
+
+// Turning a 256-bit integer into something a person reads without counting
+// zeroes. All of it stays in BigInt: a token balance does not survive being
+// a JavaScript number, and the one place that matters is the one place people
+// look.
+
+function format(amount, decimals = 18, options = {}) {
+    const significant = options.significant ?? 6;
+    const negative = amount < 0n;
+    let v = negative ? -amount : amount;
+
+    const d = BigInt(decimals);
+    const unit = 10n ** d;
+    const whole = v / unit;
+    const rest = v % unit;
+
+    let fraction = '';
+    if (rest > 0n) {
+        fraction = rest.toString().padStart(decimals, '0');
+        // Keep enough digits to say something, counting from the first that is
+        // not a zero, so 0.00001234 does not round away to nothing.
+        const lead = fraction.length - fraction.replace(/^0+/, '').length;
+        const keep = whole > 0n ? Math.min(significant, 6) : lead + significant;
+        fraction = fraction.slice(0, Math.max(keep, 1)).replace(/0+$/, '');
+    }
+
+    const head = group(whole.toString());
+    const text = fraction ? `${head}.${fraction}` : head;
+
+    if (v > 0n && text.replace(/[0.,]/g, '') === '') {
+        return (negative ? '-' : '') + `<0.${'0'.repeat(Math.max(significant - 1, 0))}1`;
+    }
+    return (negative ? '-' : '') + text;
+}
+
+function group(digits) {
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+// Compact form for a dense list: 1.2M rather than 1,200,000.
+function compact(amount, decimals = 18) {
+    const unit = 10n ** BigInt(decimals);
+    const whole = (amount < 0n ? -amount : amount) / unit;
+    const sign = amount < 0n ? '-' : '';
+    const steps = [
+        [1000000000000n, 'T'], [1000000000n, 'B'], [1000000n, 'M'], [1000n, 'k'],
+    ];
+    for (const [size, suffix] of steps) {
+        if (whole >= size) {
+            const scaled = Number(whole * 100n / size) / 100;
+            return sign + String(scaled) + suffix;
+        }
+    }
+    return format(amount, decimals, { significant: 4 });
+}
+
+/* ── src/abi.js ────────────────────────────────────────────────── */
+
+// The five events that carry almost every movement of value on an EVM chain.
+//
+// We do not decode calldata and we do not know any protocol by name. A swap
+// router, a lending pool and a game all emit the same Transfer log, and that
+// log is the only thing we read. The topic hashes below are computed from the
+// signatures at load time rather than pasted in, so a typo cannot survive.
+
+
+
+
+const SIGNATURES = {
+    transfer:        'Transfer(address,address,uint256)',
+    approval:        'Approval(address,address,uint256)',
+    approvalForAll:  'ApprovalForAll(address,address,bool)',
+    transferSingle:  'TransferSingle(address,address,address,uint256,uint256)',
+    transferBatch:   'TransferBatch(address,address,address,uint256[],uint256[])',
+    deposit:         'Deposit(address,uint256)',    // WETH-style wrap
+    withdrawal:      'Withdrawal(address,uint256)', // WETH-style unwrap
+};
+
+const TOPIC = Object.fromEntries(
+    Object.entries(SIGNATURES).map(([name, sig]) => [name, keccak256(sig)])
+);
+
+const BY_TOPIC = Object.fromEntries(
+    Object.entries(TOPIC).map(([name, topic]) => [topic, name])
+);
+
+// The amount an "unlimited" approval usually asks for.
+const MAX_UINT256 = (1n << 256n) - 1n;
+
+// Anything this large is unlimited in practice, however it was written.
+const EFFECTIVELY_UNLIMITED = (1n << 255n);
+
+// One log in, one plain object out, or null when it is not an event we read.
+//
+// The shape of Transfer is what tells ERC-20 apart from ERC-721: the token id
+// of an NFT is indexed and so becomes a fourth topic, while an amount stays in
+// the data field. No registry, no guessing.
+function decodeLog(log) {
+    const topics = log.topics || [];
+    if (!topics.length) return null;
+
+    const name = BY_TOPIC[(topics[0] || '').toLowerCase()];
+    if (!name) return null;
+
+    const token = (log.address || '').toLowerCase();
+
+    switch (name) {
+        case 'transfer': {
+            if (topics.length === 4) {
+                return {
+                    event: 'transfer',
+                    standard: 'erc721',
+                    token,
+                    from: addressFromTopic(topics[1]),
+                    to: addressFromTopic(topics[2]),
+                    tokenId: big(topics[3]),
+                    amount: 1n,
+                };
+            }
+            if (topics.length === 3) {
+                return {
+                    event: 'transfer',
+                    standard: 'erc20',
+                    token,
+                    from: addressFromTopic(topics[1]),
+                    to: addressFromTopic(topics[2]),
+                    amount: word(log.data, 0),
+                };
+            }
+            return null; // some other Transfer; not ours to read
+        }
+
+        case 'approval': {
+            if (topics.length === 4) {
+                return {
+                    event: 'approval',
+                    standard: 'erc721',
+                    token,
+                    owner: addressFromTopic(topics[1]),
+                    spender: addressFromTopic(topics[2]),
+                    tokenId: big(topics[3]),
+                };
+            }
+            return {
+                event: 'approval',
+                standard: 'erc20',
+                token,
+                owner: addressFromTopic(topics[1]),
+                spender: addressFromTopic(topics[2]),
+                amount: word(log.data, 0),
+            };
+        }
+
+        case 'approvalForAll':
+            return {
+                event: 'approvalForAll',
+                standard: 'erc721',
+                token,
+                owner: addressFromTopic(topics[1]),
+                spender: addressFromTopic(topics[2]),
+                approved: word(log.data, 0) !== 0n,
+            };
+
+        case 'transferSingle':
+            return {
+                event: 'transfer',
+                standard: 'erc1155',
+                token,
+                operator: addressFromTopic(topics[1]),
+                from: addressFromTopic(topics[2]),
+                to: addressFromTopic(topics[3]),
+                tokenId: word(log.data, 0),
+                amount: word(log.data, 1),
+            };
+
+        case 'transferBatch': {
+            // data is two dynamic arrays: offset, offset, then len+items twice.
+            const w = words(log.data);
+            const ids = readArray(w, 0);
+            const amounts = readArray(w, 1);
+            const from = addressFromTopic(topics[2]);
+            const to = addressFromTopic(topics[3]);
+            return {
+                event: 'transferBatch',
+                standard: 'erc1155',
+                token,
+                operator: addressFromTopic(topics[1]),
+                from,
+                to,
+                items: ids.map((id, i) => ({ tokenId: id, amount: amounts[i] ?? 0n })),
+            };
+        }
+
+        case 'deposit':
+            // WETH9 emits no Transfer when you wrap, so this is the only trace.
+            return {
+                event: 'wrap',
+                standard: 'erc20',
+                token,
+                to: addressFromTopic(topics[1]),
+                amount: topics.length > 2 ? big(topics[2]) : word(log.data, 0),
+            };
+
+        case 'withdrawal':
+            return {
+                event: 'unwrap',
+                standard: 'erc20',
+                token,
+                from: addressFromTopic(topics[1]),
+                amount: topics.length > 2 ? big(topics[2]) : word(log.data, 0),
+            };
+
+        default:
+            return null;
+    }
+}
+
+function readArray(w, slot) {
+    const offset = w[slot];
+    if (offset === undefined) return [];
+    const at = Number(offset) / 32;
+    const length = Number(w[at] ?? 0n);
+    return w.slice(at + 1, at + 1 + length);
+}
+
+// Some contracts named Deposit or Withdrawal are not wrapped native currency.
+// Only trust those two events when they come from the chain's wrapped token.
+function isWrappedNative(address, wrapped) {
+    return !!wrapped && (address || '').toLowerCase() === wrapped.toLowerCase();
+}
+
+/* ── src/flows.js ──────────────────────────────────────────────── */
+
+// What moved, for one address.
+//
+// This is the whole trick. Instead of asking "which protocol is this and what
+// does its calldata mean", we ask the only question a person actually has:
+// what left my wallet and what arrived. Every log is read the same way, the
+// sums are netted per token, and the leftovers are the answer.
+
+
+
+
+const keyFor = (m) =>
+    m.standard === 'erc721' || m.standard === 'erc1155'
+        ? `${m.token}#${m.tokenId}`
+        : m.token;
+
+// Returns every decoded movement in the receipt, flattened.
+function movements(tx, meta = {}) {
+    const out = [];
+    const wrapped = meta.wrapped ? lower(meta.wrapped) : null;
+
+    for (const log of tx.logs || []) {
+        const decoded = decodeLog(log);
+        if (!decoded) continue;
+
+        if (decoded.event === 'wrap' || decoded.event === 'unwrap') {
+            // Deposit and Withdrawal are common event names. Only the chain's
+            // own wrapped token is allowed to mean wrapping.
+            if (!isWrappedNative(decoded.token, wrapped)) continue;
+            out.push(decoded);
+            continue;
+        }
+
+        if (decoded.event === 'transferBatch') {
+            for (const item of decoded.items) {
+                out.push({
+                    event: 'transfer',
+                    standard: 'erc1155',
+                    token: decoded.token,
+                    operator: decoded.operator,
+                    from: decoded.from,
+                    to: decoded.to,
+                    tokenId: item.tokenId,
+                    amount: item.amount,
+                });
+            }
+            continue;
+        }
+
+        out.push(decoded);
+    }
+
+    return out;
+}
+
+// Net every movement against one address.
+function netFlow(tx, wallet, meta = {}) {
+    const me = lower(wallet);
+    const wrapped = meta.wrapped ? lower(meta.wrapped) : null;
+    const moves = movements(tx, meta);
+
+    const ledger = new Map();
+    const approvals = [];
+    const notes = [];
+
+    const entry = (m) => {
+        const key = keyFor(m);
+        if (!ledger.has(key)) {
+            ledger.set(key, {
+                key,
+                token: m.token,
+                standard: m.standard,
+                tokenId: m.tokenId ?? null,
+                in: 0n,
+                out: 0n,
+                minted: false,
+                burned: false,
+                inferred: false,
+                from: [],
+                to: [],
+            });
+        }
+        return ledger.get(key);
+    };
+
+    // The native currency never emits a log; it lives on the transaction.
+    const value = big(tx.value);
+    if (value > 0n) {
+        const native = entry({ standard: 'native', token: 'native' });
+        native.token = 'native';
+        native.standard = 'native';
+        if (sameAddress(tx.from, me)) {
+            native.out += value;
+            if (tx.to) native.to.push(lower(tx.to));
+        }
+        if (sameAddress(tx.to, me)) {
+            native.in += value;
+            if (tx.from) native.from.push(lower(tx.from));
+        }
+    }
+
+    let unwrapped = 0n;
+    let sawUnwrap = false;
+
+    for (const m of moves) {
+        if (m.event === 'approval' || m.event === 'approvalForAll') {
+            if (!sameAddress(m.owner, me)) continue;
+            const unlimited = m.event === 'approvalForAll'
+                ? m.approved
+                : (m.amount ?? 0n) >= EFFECTIVELY_UNLIMITED;
+            const cleared = m.event === 'approvalForAll'
+                ? !m.approved
+                : (m.amount ?? 0n) === 0n;
+            approvals.push({
+                token: m.token,
+                standard: m.standard,
+                spender: m.spender,
+                tokenId: m.tokenId ?? null,
+                amount: m.amount ?? null,
+                everything: m.event === 'approvalForAll',
+                unlimited,
+                cleared,
+            });
+            continue;
+        }
+
+        if (m.event === 'wrap') {
+            // Native turned into wrapped native. The native side is tx.value,
+            // already counted above when the wallet paid it itself.
+            if (!sameAddress(m.to, me)) continue;
+            const e = entry({ standard: 'erc20', token: m.token });
+            e.in += m.amount;
+            e.minted = true;
+            e.from.push(ZERO);
+            continue;
+        }
+
+        if (m.event === 'unwrap') {
+            sawUnwrap = true;
+            unwrapped += m.amount;
+            if (!sameAddress(m.from, me)) continue;
+            const e = entry({ standard: 'erc20', token: m.token });
+            e.out += m.amount;
+            e.burned = true;
+            e.to.push(ZERO);
+            const native = entry({ standard: 'native', token: 'native' });
+            native.in += m.amount;
+            native.from.push(lower(m.token));
+            continue;
+        }
+
+        if (m.event !== 'transfer') continue;
+        if (sameAddress(m.from, m.to)) continue;
+
+        const touchesMe = sameAddress(m.from, me) || sameAddress(m.to, me);
+        if (!touchesMe) continue;
+
+        const e = entry(m);
+        if (sameAddress(m.to, me)) {
+            e.in += m.amount;
+            e.from.push(lower(m.from));
+            if (isZero(m.from)) e.minted = true;
+        }
+        if (sameAddress(m.from, me)) {
+            e.out += m.amount;
+            e.to.push(lower(m.to));
+            if (isZero(m.to) || sameAddress(m.to, DEAD)) e.burned = true;
+        }
+    }
+
+    // A router can unwrap on your behalf and hand you the native currency in a
+    // call that leaves no log at all. When that is the only way the numbers add
+    // up, say so rather than reporting that you received nothing.
+    const native = ledger.get('native');
+    if (sawUnwrap && sameAddress(tx.from, me) && (!native || native.in === 0n)) {
+        const anyOut = [...ledger.values()].some((e) => e.out > e.in);
+        if (anyOut && unwrapped > 0n) {
+            const n = entry({ standard: 'native', token: 'native' });
+            n.in += unwrapped;
+            n.inferred = true;
+            notes.push('The native amount was unwrapped inside the transaction and forwarded without a log, so it is read from the unwrap.');
+        }
+    }
+
+    const rows = [];
+    for (const e of ledger.values()) {
+        const net = e.in - e.out;
+        if (net === 0n && !(e.standard === 'erc721' && e.in > 0n && e.out > 0n)) continue;
+        rows.push({ ...e, net, direction: net > 0n ? 'in' : 'out', amount: net > 0n ? net : -net });
+    }
+
+    const incoming = rows.filter((r) => r.direction === 'in');
+    const outgoing = rows.filter((r) => r.direction === 'out');
+
+    return {
+        wallet: me,
+        wrapped,
+        moves,
+        rows,
+        incoming,
+        outgoing,
+        approvals,
+        notes,
+        touched: rows.length > 0 || approvals.length > 0,
+    };
+}
+
+/* ── src/classify.js ───────────────────────────────────────────── */
+
+// From "what moved" to "what happened".
+//
+// Every rule below reads the shape of the net flow and nothing else. There is
+// no list of router addresses to keep up to date, no ABI to fetch, no protocol
+// to support. A swap on a chain that launches tomorrow is one token out and one
+// token in, the same as a swap on Uniswap, and so it reads the same here.
+
+
+
+
+const isNFT = (row) => row.standard === 'erc721' || row.standard === 'erc1155';
+const isNative = (row) => row.standard === 'native';
+
+const only = (list) => (list.length === 1 ? list[0] : null);
+
+// When everything went to the same place, that place is the counterparty,
+// however many tokens were involved. Otherwise there is no single answer and
+// we say nothing rather than naming the contract that happened to be called.
+function sameEnd(rows, side) {
+    const all = new Set();
+    for (const r of rows) for (const a of r[side]) if (!isZero(a)) all.add(a);
+    return all.size === 1 ? [...all][0] : null;
+}
+
+function failed(tx) {
+    const s = tx.status;
+    if (s === undefined || s === null) return false;
+    if (typeof s === 'boolean') return s === false;
+    return big(s) === 0n;
+}
+
+function classify(tx, wallet, meta = {}) {
+    const me = lower(wallet);
+    const flow = netFlow(tx, me, meta);
+    const iSigned = sameAddress(tx.from, me);
+
+    const fee = big(tx.gasUsed) * big(tx.effectiveGasPrice ?? tx.gasPrice);
+
+    const base = {
+        hash: tx.hash,
+        wallet: me,
+        chain: meta.chain || null,
+        signedByMe: iSigned,
+        fee: iSigned ? fee : 0n,
+        incoming: flow.incoming,
+        outgoing: flow.outgoing,
+        approvals: flow.approvals,
+        notes: [...flow.notes],
+        risks: risksOf(tx, flow, me, iSigned),
+    };
+
+    if (failed(tx)) {
+        return { ...base, kind: 'failed', confidence: 'high', counterparty: lower(tx.to) };
+    }
+
+    const { incoming: ins, outgoing: outs, approvals } = flow;
+    const inOne = only(ins);
+    const outOne = only(outs);
+
+    // Wrapping is a swap between the native currency and its own token. It is
+    // worth its own name because calling it a swap reads as a mistake.
+    if (flow.wrapped) {
+        if (inOne && outOne && isNative(outOne) && inOne.token === flow.wrapped && inOne.minted) {
+            return { ...base, kind: 'wrap', confidence: 'high', gave: outOne, got: inOne };
+        }
+        if (inOne && outOne && isNative(inOne) && outOne.token === flow.wrapped && outOne.burned) {
+            return { ...base, kind: 'unwrap', confidence: 'high', gave: outOne, got: inOne };
+        }
+    }
+
+    const nftIn = ins.filter(isNFT);
+    const nftOut = outs.filter(isNFT);
+
+    if (nftIn.length === 1 && nftOut.length === 0) {
+        const nft = nftIn[0];
+        const paid = outs.find((r) => !isNFT(r));
+        if (nft.minted) {
+            return { ...base, kind: 'mint', confidence: 'high', got: nft, gave: paid || null };
+        }
+        if (paid) {
+            return { ...base, kind: 'nft-buy', confidence: 'high', got: nft, gave: paid };
+        }
+        if (!iSigned) {
+            return { ...base, kind: 'nft-receive', confidence: 'high', got: nft, counterparty: nft.from[0] };
+        }
+        return { ...base, kind: 'nft-claim', confidence: 'medium', got: nft };
+    }
+
+    if (nftOut.length === 1 && nftIn.length === 0) {
+        const nft = nftOut[0];
+        const got = ins.find((r) => !isNFT(r));
+        if (got) return { ...base, kind: 'nft-sell', confidence: 'high', gave: nft, got };
+        if (nft.burned) return { ...base, kind: 'burn', confidence: 'high', gave: nft };
+        return { ...base, kind: 'nft-send', confidence: 'high', gave: nft, counterparty: nft.to[0] };
+    }
+
+    // A pool hands you a share token minted out of nothing when you put value
+    // in, and burns it when you take value out. That mint or burn is the whole
+    // signal; the pool itself stays anonymous.
+    if (outs.length >= 2 && inOne && inOne.minted) {
+        return { ...base, kind: 'add-liquidity', confidence: 'medium', gave: outs, got: inOne };
+    }
+    if (ins.length >= 2 && outOne && outOne.burned) {
+        return { ...base, kind: 'remove-liquidity', confidence: 'medium', gave: outOne, got: ins };
+    }
+
+    if (ins.length >= 1 && outs.length >= 1) {
+        const clean = ins.length === 1 && outs.length === 1;
+        return {
+            ...base,
+            kind: 'swap',
+            confidence: clean ? 'high' : 'medium',
+            gave: clean ? outOne : outs,
+            got: clean ? inOne : ins,
+            legs: { in: ins.length, out: outs.length },
+        };
+    }
+
+    if (outs.length >= 1 && ins.length === 0) {
+        const target = sameEnd(outs, 'to') || lower(tx.to);
+        const bridgeName = bridgeLabel(meta, target) || bridgeLabel(meta, lower(tx.to));
+        if (bridgeName) {
+            return {
+                ...base,
+                kind: 'bridge',
+                confidence: 'medium',
+                gave: outOne || outs,
+                counterparty: target,
+                bridge: bridgeName,
+            };
+        }
+        if (!iSigned) {
+            return { ...base, kind: 'taken', confidence: 'medium', gave: outOne || outs, counterparty: target };
+        }
+        return { ...base, kind: 'send', confidence: 'high', gave: outOne || outs, counterparty: target };
+    }
+
+    if (ins.length >= 1 && outs.length === 0) {
+        const source = sameEnd(ins, 'from') || lower(tx.from);
+        if (!iSigned) {
+            return { ...base, kind: 'receive', confidence: 'high', got: inOne || ins, counterparty: source };
+        }
+        return { ...base, kind: 'claim', confidence: 'medium', got: inOne || ins, counterparty: source };
+    }
+
+    if (approvals.length) {
+        const cleared = approvals.every((a) => a.cleared);
+        return {
+            ...base,
+            kind: cleared ? 'revoke' : 'approve',
+            confidence: 'high',
+            counterparty: approvals[0].spender,
+        };
+    }
+
+    // A transfer of zero tokens moves nothing, which is exactly the point of
+    // it. Name it rather than reporting an empty transaction.
+    if (base.risks.some((k) => k.code === 'zero-value-transfer')) {
+        const poison = base.risks.find((k) => k.code === 'zero-value-transfer');
+        return { ...base, kind: 'poison', confidence: 'high', counterparty: poison.counterparty };
+    }
+
+    if (!flow.touched && !iSigned) {
+        return { ...base, kind: 'unrelated', confidence: 'high' };
+    }
+
+    return { ...base, kind: 'call', confidence: 'low', counterparty: lower(tx.to) };
+}
+
+function bridgeLabel(meta, address) {
+    if (!address || !meta.bridges) return null;
+    const hit = meta.bridges[address] ?? meta.bridges[address?.toLowerCase()];
+    return hit === true ? 'a bridge' : (hit || null);
+}
+
+// The cleaning half. Everything here is read off the same logs; none of it
+// needs a blocklist, which is why none of it goes stale.
+function risksOf(tx, flow, me, iSigned) {
+    const risks = [];
+
+    for (const a of flow.approvals) {
+        if (a.everything && !a.cleared) {
+            risks.push({
+                level: 'warn',
+                code: 'approve-all',
+                title: 'You gave away a whole collection',
+                detail: 'This address can move every item you own in that collection, now and later.',
+                spender: a.spender,
+                token: a.token,
+            });
+        } else if (a.unlimited) {
+            risks.push({
+                level: 'warn',
+                code: 'unlimited-approval',
+                title: 'You granted an unlimited allowance',
+                detail: 'This address can spend as much of that token as you ever hold, until you revoke it.',
+                spender: a.spender,
+                token: a.token,
+            });
+        }
+    }
+
+    // Address poisoning: a zero-amount transfer crafted so a near-identical
+    // address appears in your history, hoping you copy it next time.
+    for (const m of flow.moves) {
+        if (m.event !== 'transfer') continue;
+        if (m.amount !== 0n) continue;
+        if (!sameAddress(m.from, me) && !sameAddress(m.to, me)) continue;
+        risks.push({
+            level: 'warn',
+            code: 'zero-value-transfer',
+            title: 'A transfer of nothing',
+            detail: 'Someone moved zero tokens to put an address that looks like one of yours into your history. Do not copy addresses out of it.',
+            counterparty: sameAddress(m.to, me) ? m.from : m.to,
+            token: m.token,
+        });
+        break;
+    }
+
+    if (!iSigned && flow.incoming.length && !flow.outgoing.length) {
+        risks.push({
+            level: 'note',
+            code: 'unsigned-arrival',
+            title: 'You did not sign this',
+            detail: 'It arrived on its own. Tokens that show up unasked are often bait for a site that wants a signature.',
+        });
+    }
+
+    return risks;
+}
+
+/* ── src/say.js ────────────────────────────────────────────────── */
+
+// One sentence, in the words a person would use.
+//
+// The classifier returns a shape; this turns the shape into English. Keeping
+// them apart means the wording can be argued about without touching anything
+// that decides what a transaction was.
+
+
+
+
+function tokenInfo(row, meta) {
+    if (!row) return null;
+    if (row.standard === 'native') {
+        return {
+            symbol: meta.chain?.symbol || 'ETH',
+            decimals: 18,
+            name: meta.chain?.currency || meta.chain?.symbol || 'ETH',
+        };
+    }
+    const known = (meta.tokens || {})[lower(row.token)] || {};
+    return {
+        symbol: known.symbol || short(row.token, 4, 4),
+        decimals: known.decimals ?? (row.standard === 'erc20' ? 18 : 0),
+        name: known.name || known.symbol || short(row.token, 4, 4),
+        unknown: !known.symbol,
+    };
+}
+
+// "1,200 USDC" or "Cool Cats #4021"
+function describe(row, meta = {}) {
+    if (!row) return '';
+    const info = tokenInfo(row, meta);
+    if (row.standard === 'erc721') {
+        return `${info.name} #${row.tokenId}`;
+    }
+    if (row.standard === 'erc1155') {
+        const n = row.amount === 1n ? '' : `${format(row.amount, 0)}× `;
+        return `${n}${info.name} #${row.tokenId}`;
+    }
+    return `${format(row.amount, info.decimals)} ${info.symbol}`;
+}
+
+function list(rows, meta) {
+    const parts = (Array.isArray(rows) ? rows : [rows]).map((r) => describe(r, meta));
+    if (parts.length <= 1) return parts[0] || '';
+    if (parts.length === 2) return `${parts[0]} and ${parts[1]}`;
+    return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+}
+
+function who(address, meta) {
+    if (!address) return 'somewhere else';
+    const label = (meta.labels || {})[lower(address)];
+    return label || short(address);
+}
+
+function sentence(result, meta = {}) {
+    const r = result;
+    const gave = () => list(r.gave, meta);
+    const got = () => list(r.got, meta);
+
+    switch (r.kind) {
+        case 'swap':
+            return `You swapped ${gave()} for ${got()}.`;
+        case 'wrap':
+            return `You wrapped ${gave()} into ${got()}.`;
+        case 'unwrap':
+            return `You unwrapped ${gave()} back into ${got()}.`;
+        case 'send':
+            return `You sent ${gave()} to ${who(r.counterparty, meta)}.`;
+        case 'receive':
+            return `${got()} arrived from ${who(r.counterparty, meta)}.`;
+        case 'taken':
+            return `${gave()} left your wallet in a transaction you did not sign.`;
+        case 'claim':
+            return `You claimed ${got()}.`;
+        case 'bridge':
+            return `You sent ${gave()} into ${r.bridge === 'a bridge' ? 'a bridge' : r.bridge}, on its way to another chain.`;
+        case 'mint':
+            return r.gave
+                ? `You minted ${got()} for ${gave()}.`
+                : `You minted ${got()}.`;
+        case 'nft-buy':
+            return `You bought ${got()} for ${gave()}.`;
+        case 'nft-sell':
+            return `You sold ${gave()} for ${got()}.`;
+        case 'nft-send':
+            return `You sent ${gave()} to ${who(r.counterparty, meta)}.`;
+        case 'nft-receive':
+            return `${got()} arrived from ${who(r.counterparty, meta)}.`;
+        case 'nft-claim':
+            return `You received ${got()} from a contract you called.`;
+        case 'burn':
+            return `You burned ${gave()}.`;
+        case 'add-liquidity':
+            return `You put ${gave()} into a pool and got ${got()} back as your share.`;
+        case 'remove-liquidity':
+            return `You returned ${gave()} to a pool and took out ${got()}.`;
+        case 'approve': {
+            const a = r.approvals[0];
+            const info = tokenInfo({ standard: a?.standard === 'erc20' ? 'erc20' : 'erc721', token: a?.token }, meta);
+            if (a?.everything) {
+                return `You let ${who(a.spender, meta)} move every ${info.name} you own.`;
+            }
+            if (a?.unlimited) {
+                return `You let ${who(a.spender, meta)} spend your ${info.symbol}, with no limit.`;
+            }
+            return `You let ${who(a?.spender, meta)} spend ${format(a?.amount ?? 0n, info.decimals)} ${info.symbol}.`;
+        }
+        case 'revoke': {
+            const a = r.approvals[0];
+            const info = tokenInfo({ standard: 'erc20', token: a?.token }, meta);
+            return `You took back ${who(a?.spender, meta)}'s permission to touch your ${info.symbol}.`;
+        }
+        case 'failed':
+            return `This one failed. Nothing moved, and the gas was spent anyway.`;
+        case 'call':
+            return `You called ${who(r.counterparty, meta)}. Nothing left or entered your wallet.`;
+        case 'poison':
+            // The whole attack is that the address looks like one of yours, so
+            // this is the one place a shortened address would be a lie.
+            return `Nothing really moved. ${checksum(r.counterparty)} sent you zero tokens so that its address would sit in your history, close enough to yours to be copied by mistake.`;
+        case 'unrelated':
+            return `Nothing in this transaction touched your wallet.`;
+        default:
+            return `Something happened that Kliner could not name.`;
+    }
+}
+
+// The line under the sentence: what it cost you.
+function costLine(result, meta = {}) {
+    if (!result.signedByMe || result.fee === 0n) return '';
+    const symbol = meta.chain?.symbol || 'ETH';
+    return `Gas: ${format(result.fee, 18, { significant: 5 })} ${symbol}`;
+}
+
+function headline(result, meta = {}) {
+    return {
+        title: sentence(result, meta),
+        cost: costLine(result, meta),
+        kind: result.kind,
+        confidence: result.confidence,
+        risks: result.risks,
+        notes: result.notes,
+    };
+}
+
+/* ── src/chains.js ─────────────────────────────────────────────── */
+
+// Chains Kliner reads. Everything here is public and needs no key, because a
+// key is a server, and a server is a thing that can be breached or switched
+// off. Kliner runs in your browser and talks to the chain directly.
+
+const CHAINS = {
+    ethereum: {
+        id: 1,
+        name: 'Ethereum',
+        symbol: 'ETH',
+        currency: 'ether',
+        wrapped: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+        rpc: ['https://eth.llamarpc.com', 'https://rpc.ankr.com/eth', 'https://cloudflare-eth.com'],
+        explorer: 'https://etherscan.io',
+        blockTime: 12,
+    },
+    base: {
+        id: 8453,
+        name: 'Base',
+        symbol: 'ETH',
+        currency: 'ether',
+        wrapped: '0x4200000000000000000000000000000000000006',
+        rpc: ['https://mainnet.base.org', 'https://base.llamarpc.com'],
+        explorer: 'https://basescan.org',
+        blockTime: 2,
+    },
+    arbitrum: {
+        id: 42161,
+        name: 'Arbitrum',
+        symbol: 'ETH',
+        currency: 'ether',
+        wrapped: '0x82af49447d8a07e3bd95bd0d56f35241523fbab1',
+        rpc: ['https://arb1.arbitrum.io/rpc', 'https://arbitrum.llamarpc.com'],
+        explorer: 'https://arbiscan.io',
+        blockTime: 0.26,
+    },
+    optimism: {
+        id: 10,
+        name: 'Optimism',
+        symbol: 'ETH',
+        currency: 'ether',
+        wrapped: '0x4200000000000000000000000000000000000006',
+        rpc: ['https://mainnet.optimism.io', 'https://optimism.llamarpc.com'],
+        explorer: 'https://optimistic.etherscan.io',
+        blockTime: 2,
+    },
+    polygon: {
+        id: 137,
+        name: 'Polygon',
+        symbol: 'POL',
+        currency: 'POL',
+        wrapped: '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
+        rpc: ['https://polygon-rpc.com', 'https://polygon.llamarpc.com'],
+        explorer: 'https://polygonscan.com',
+        blockTime: 2,
+    },
+    bnb: {
+        id: 56,
+        name: 'BNB Chain',
+        symbol: 'BNB',
+        currency: 'BNB',
+        wrapped: '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c',
+        rpc: ['https://bsc-dataseed.binance.org', 'https://binance.llamarpc.com'],
+        explorer: 'https://bscscan.com',
+        blockTime: 3,
+    },
+};
+
+const CHAIN_LIST = Object.entries(CHAINS).map(([key, c]) => ({ key, ...c }));
+
+function chainByKey(key) {
+    return CHAINS[key] ? { key, ...CHAINS[key] } : null;
+}
+
+function chainById(id) {
+    return CHAIN_LIST.find((c) => c.id === Number(id)) || null;
+}
+
+// Bridges worth naming. The shape already tells us a bridge happened; this
+// only supplies a nicer word for it. A missing address costs a label, not a
+// reading, which is why the list being incomplete is not a problem.
+const BRIDGES = {
+    '0x8315177ab297ba92a06054ce80a67ed4dbd7ed3a': 'the Arbitrum bridge',
+    '0x99c9fc46f92e8a1c0dec1b1747d010903e884be1': 'the Optimism bridge',
+    '0x3154cf16ccdb4c6d922629664174b904d80f2c35': 'the Base bridge',
+    '0xa0c68c638235ee32657e8f720a23cec1bfc77c77': 'the Polygon bridge',
+    '0x40ec5b33f54e0e8a33a975908c5ba1c14e5bbbdf': 'the Polygon bridge',
+    '0x3ee18b2214aff97000d974cf647e7c347e8fa585': 'Wormhole',
+    '0x1a44076050125825900e736c501f859c50fe728c': 'LayerZero',
+    '0xbd3fa81b58ba92a82136038b25adec7066af3155': 'Circle CCTP',
+    '0x0a992d191deec32afe36203ad87d7d289a738f81': 'Circle CCTP',
+};
+
+/* ── src/rpc.js ────────────────────────────────────────────────── */
+
+// A JSON-RPC client small enough to read in one sitting.
+//
+// It speaks to a list of endpoints and moves on when one of them is unwell,
+// which public endpoints frequently are. There is no key, no account, and no
+// server of ours between you and the chain.
+
+class Rpc {
+    constructor(urls, options = {}) {
+        this.urls = Array.isArray(urls) ? [...urls] : [urls];
+        this.timeout = options.timeout ?? 15000;
+        this.fetch = options.fetch ?? globalThis.fetch?.bind(globalThis);
+        this.id = 0;
+        this.onError = options.onError ?? (() => {});
+    }
+
+    async send(method, params = []) {
+        const [answer] = await this.batch([{ method, params }]);
+        if (answer.error) throw new RpcError(answer.error, method);
+        return answer.result;
+    }
+
+    // One HTTP request for many calls. This is the difference between a page
+    // that loads and a page that spends a minute counting to fifty.
+    async batch(calls) {
+        if (!calls.length) return [];
+        const payload = calls.map((c) => ({
+            jsonrpc: '2.0',
+            id: ++this.id,
+            method: c.method,
+            params: c.params || [],
+        }));
+
+        let lastError = null;
+        for (let attempt = 0; attempt < this.urls.length; attempt++) {
+            const url = this.urls[0];
+            try {
+                const body = await this.post(url, payload);
+                const byId = new Map(body.map((r) => [r.id, r]));
+                return payload.map((p) => byId.get(p.id) ?? { error: { message: 'no answer' } });
+            } catch (error) {
+                lastError = error;
+                this.onError(url, error);
+                this.urls.push(this.urls.shift()); // try the next one next time
+            }
+        }
+        throw lastError ?? new Error('no endpoint answered');
+    }
+
+    async post(url, payload) {
+        const stop = new AbortController();
+        const timer = setTimeout(() => stop.abort(), this.timeout);
+        try {
+            const response = await this.fetch(url, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(payload),
+                signal: stop.signal,
+            });
+            if (!response.ok) throw new Error(url + ' answered ' + response.status);
+            const body = await response.json();
+            return Array.isArray(body) ? body : [body];
+        } finally {
+            clearTimeout(timer);
+        }
+    }
+
+    // Conveniences, named the way the chain names them.
+    blockNumber()             { return this.send('eth_blockNumber'); }
+    getTransaction(hash)      { return this.send('eth_getTransactionByHash', [hash]); }
+    getReceipt(hash)          { return this.send('eth_getTransactionReceipt', [hash]); }
+    getBlock(n, full = false) { return this.send('eth_getBlockByNumber', [n, full]); }
+    getBalance(address)       { return this.send('eth_getBalance', [address, 'latest']); }
+    getCode(address)          { return this.send('eth_getCode', [address, 'latest']); }
+    call(to, data)            { return this.send('eth_call', [{ to, data }, 'latest']); }
+    getLogs(filter)           { return this.send('eth_getLogs', [filter]); }
+}
+
+class RpcError extends Error {
+    constructor(error, method) {
+        super(method + ': ' + (error.message || 'failed'));
+        this.code = error.code;
+        this.method = method;
+    }
+}
+
+const hexBlock = (n) => '0x' + BigInt(n).toString(16);
+
+/* ── src/tokens.js ─────────────────────────────────────────────── */
+
+// What a token calls itself.
+//
+// Read off the contract, not off a list someone has to maintain. Old tokens
+// answer symbol() with a fixed 32-byte word instead of a string, so both
+// shapes are handled; a token that answers neither still gets read, it just
+// gets called by its address.
+
+
+
+
+const selector = (signature) => keccak256(signature).slice(0, 10);
+
+const SELECTOR = {
+    name: selector('name()'),
+    symbol: selector('symbol()'),
+    decimals: selector('decimals()'),
+    balanceOf: selector('balanceOf(address)'),
+    allowance: selector('allowance(address,address)'),
+    tokenURI: selector('tokenURI(uint256)'),
+    approve: selector('approve(address,uint256)'),
+    setApprovalForAll: selector('setApprovalForAll(address,bool)'),
+};
+
+const TRAILING_ZERO_BYTES = /(?:00)+$/;
+const PRINTABLE = /^[\x20-\x7e]+$/;
+const PADDING = new RegExp(String.fromCharCode(0), 'g');
+
+// A string return is offset, length, bytes. A bytes32 return is 32 bytes with
+// the text at the front and zero padding after it.
+function readString(hex) {
+    const s = strip(hex);
+    if (!s) return null;
+    if (s.length === 64) {
+        const text = decode(s.replace(TRAILING_ZERO_BYTES, ''));
+        return text && PRINTABLE.test(text) ? text : null;
+    }
+    if (s.length < 128) return null;
+    const length = Number(BigInt('0x' + s.slice(64, 128)));
+    if (!Number.isFinite(length) || length === 0 || length > 256) return null;
+    return decode(s.slice(128, 128 + length * 2));
+}
+
+function decode(hex) {
+    if (!hex) return null;
+    const bytes = new Uint8Array(Math.floor(hex.length / 2));
+    for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+    try {
+        const text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+        return text.replace(PADDING, '').trim() || null;
+    } catch {
+        return null;
+    }
+}
+
+function readNumber(hex) {
+    const s = strip(hex);
+    if (!s) return null;
+    const v = BigInt('0x' + s);
+    return v <= 255n ? Number(v) : null;
+}
+
+// One batched round trip for as many tokens as you like.
+async function loadTokens(rpc, addresses, cache = new Map()) {
+    const wanted = [...new Set(addresses.map(lower))]
+        .filter((a) => a && a !== 'native' && !cache.has(a));
+    if (!wanted.length) return cache;
+
+    const calls = [];
+    for (const address of wanted) {
+        calls.push({ method: 'eth_call', params: [{ to: address, data: SELECTOR.symbol }, 'latest'] });
+        calls.push({ method: 'eth_call', params: [{ to: address, data: SELECTOR.decimals }, 'latest'] });
+        calls.push({ method: 'eth_call', params: [{ to: address, data: SELECTOR.name }, 'latest'] });
+    }
+
+    const answers = await rpc.batch(calls);
+    wanted.forEach((address, i) => {
+        const [symbol, decimals, name] = answers.slice(i * 3, i * 3 + 3);
+        cache.set(address, {
+            address,
+            symbol: symbol && !symbol.error ? readString(symbol.result) : null,
+            decimals: decimals && !decimals.error ? readNumber(decimals.result) : null,
+            name: name && !name.error ? readString(name.result) : null,
+        });
+    });
+
+    return cache;
+}
+
+// Turn the cache into the plain object the classifier and the words expect.
+function asMeta(cache) {
+    const tokens = {};
+    for (const [address, info] of cache) {
+        if (!info) continue;
+        tokens[address] = {
+            symbol: info.symbol || undefined,
+            decimals: info.decimals ?? undefined,
+            name: info.name || info.symbol || undefined,
+        };
+    }
+    return tokens;
+}
+
+/* ── src/scan.js ───────────────────────────────────────────────── */
+
+// Reading the chain for one wallet.
+//
+// Two jobs. Read one transaction in full, and sweep a wallet's history for the
+// things it left behind. Both run against a plain public endpoint with no key,
+// so the ranges are chunked and shrink themselves when an endpoint says no.
+
+
+
+
+
+
+
+
+
+const topicFor = (address) => '0x' + strip(address).padStart(64, '0');
+
+function makeRpc(chain, options = {}) {
+    return new Rpc(chain.rpc, options);
+}
+
+function metaFor(chain, tokenCache) {
+    return {
+        chain: { name: chain.name, symbol: chain.symbol, currency: chain.currency },
+        wrapped: chain.wrapped,
+        bridges: BRIDGES,
+        labels: {},
+        tokens: asMeta(tokenCache),
+    };
+}
+
+// A transaction and its receipt are two calls; asking for both at once is the
+// difference between one round trip and two.
+async function readTransaction(rpc, chain, hash, wallet, tokenCache = new Map()) {
+    const [txAnswer, receiptAnswer] = await rpc.batch([
+        { method: 'eth_getTransactionByHash', params: [hash] },
+        { method: 'eth_getTransactionReceipt', params: [hash] },
+    ]);
+
+    const sent = txAnswer.result;
+    const receipt = receiptAnswer.result;
+    if (!sent) throw new Error('No transaction with that hash on ' + chain.name + '.');
+    if (!receipt) throw new Error('That transaction has not been included in a block yet.');
+
+    const tx = {
+        hash: sent.hash,
+        from: lower(sent.from),
+        to: lower(sent.to || receipt.contractAddress || ''),
+        value: sent.value,
+        input: sent.input,
+        nonce: sent.nonce,
+        blockNumber: receipt.blockNumber,
+        status: receipt.status,
+        gasUsed: receipt.gasUsed,
+        effectiveGasPrice: receipt.effectiveGasPrice || sent.gasPrice,
+        logs: receipt.logs || [],
+        createdContract: receipt.contractAddress ? lower(receipt.contractAddress) : null,
+    };
+
+    const who = wallet || tx.from;
+    await loadTokens(rpc, tokensIn(tx, chain), tokenCache);
+    const meta = metaFor(chain, tokenCache);
+
+    return { tx, meta, result: classify(tx, who, meta) };
+}
+
+function tokensIn(tx, chain) {
+    const seen = new Set();
+    for (const m of movements(tx, { wrapped: chain.wrapped })) if (m.token) seen.add(m.token);
+    return [...seen];
+}
+
+// Every log that names this wallet in any indexed position. Three filters cover
+// Transfer either way, Approval either way, and the 1155 events, without
+// naming a single token contract.
+const WALLET_FILTERS = (walletTopic) => [
+    [null, walletTopic],
+    [null, null, walletTopic],
+    [null, null, null, walletTopic],
+];
+
+async function scanWallet(rpc, chain, wallet, options = {}) {
+    const onProgress = options.onProgress ?? (() => {});
+    const head = options.head ?? Number(big(await rpc.blockNumber()));
+    const depth = options.depth ?? Math.round((90 * 24 * 3600) / chain.blockTime);
+    const from = Math.max(0, options.from ?? head - depth);
+    const walletTopic = topicFor(wallet);
+
+    let chunk = options.chunk ?? 50000;
+    const logs = [];
+    let cursor = head;
+
+    while (cursor >= from) {
+        const start = Math.max(from, cursor - chunk + 1);
+        let got;
+        try {
+            const answers = await rpc.batch(
+                WALLET_FILTERS(walletTopic).map((topics) => ({
+                    method: 'eth_getLogs',
+                    params: [{ fromBlock: hexBlock(start), toBlock: hexBlock(cursor), topics }],
+                }))
+            );
+            const failed = answers.find((a) => a.error);
+            if (failed) throw new Error(failed.error.message || 'the endpoint refused that range');
+            got = answers.flatMap((a) => a.result || []);
+        } catch (error) {
+            // Public endpoints all cap the range, and none of them agree on
+            // what the cap is. Halve and try again rather than giving up.
+            if (chunk > 500) {
+                chunk = Math.max(500, Math.floor(chunk / 4));
+                onProgress({ block: cursor, head, from, note: 'narrowing the range' });
+                continue;
+            }
+            throw error;
+        }
+
+        logs.push(...got);
+        cursor = start - 1;
+        onProgress({ block: Math.max(start, from), head, from, found: logs.length });
+        if (options.limit && logs.length >= options.limit) break;
+    }
+
+    return { logs, from, head, scannedTo: cursor + 1 };
+}
+
+// Distinct transactions, newest first.
+function transactionsIn(logs) {
+    const order = new Map();
+    for (const log of logs) {
+        const hash = log.transactionHash;
+        if (!hash) continue;
+        const block = Number(big(log.blockNumber));
+        const index = Number(big(log.logIndex ?? '0x0'));
+        const seen = order.get(hash);
+        if (!seen || block > seen.block) order.set(hash, { hash, block, index });
+    }
+    return [...order.values()].sort((a, b) => b.block - a.block);
+}
+
+async function readMany(rpc, chain, hashes, wallet, tokenCache = new Map(), options = {}) {
+    const onProgress = options.onProgress ?? (() => {});
+    const size = options.batch ?? 10;
+    const out = [];
+
+    for (let i = 0; i < hashes.length; i += size) {
+        const slice = hashes.slice(i, i + size);
+        const calls = slice.flatMap((hash) => ([
+            { method: 'eth_getTransactionByHash', params: [hash] },
+            { method: 'eth_getTransactionReceipt', params: [hash] },
+        ]));
+        const answers = await rpc.batch(calls);
+
+        const built = [];
+        for (let j = 0; j < slice.length; j++) {
+            const sent = answers[j * 2]?.result;
+            const receipt = answers[j * 2 + 1]?.result;
+            if (!sent || !receipt) continue;
+            built.push({
+                hash: sent.hash,
+                from: lower(sent.from),
+                to: lower(sent.to || receipt.contractAddress || ''),
+                value: sent.value,
+                blockNumber: receipt.blockNumber,
+                status: receipt.status,
+                gasUsed: receipt.gasUsed,
+                effectiveGasPrice: receipt.effectiveGasPrice || sent.gasPrice,
+                logs: receipt.logs || [],
+            });
+        }
+
+        const tokens = new Set();
+        for (const tx of built) for (const a of tokensIn(tx, chain)) tokens.add(a);
+        await loadTokens(rpc, [...tokens], tokenCache);
+        const meta = metaFor(chain, tokenCache);
+
+        for (const tx of built) out.push({ tx, meta, result: classify(tx, wallet, meta) });
+        onProgress({ done: out.length, total: hashes.length });
+    }
+
+    return out;
+}
+
+// The standing permissions a wallet has handed out and never taken back.
+//
+// The logs say what was granted; the contract says what is still true. Both
+// are needed, because a spent allowance and a live one look identical in the
+// history and only one of them is worth acting on.
+async function standingApprovals(rpc, chain, wallet, logs, tokenCache = new Map()) {
+    const owner = lower(wallet);
+    const latest = new Map();
+
+    for (const log of logs) {
+        const topic = (log.topics?.[0] || '').toLowerCase();
+        const isErc20 = topic === TOPIC.approval && log.topics.length === 3;
+        const isAll = topic === TOPIC.approvalForAll;
+        if (!isErc20 && !isAll) continue;
+        if (lower('0x' + strip(log.topics[1]).slice(-40)) !== owner) continue;
+
+        const spender = lower('0x' + strip(log.topics[2]).slice(-40));
+        const key = lower(log.address) + ':' + spender + (isAll ? ':all' : '');
+        const block = Number(big(log.blockNumber));
+        const previous = latest.get(key);
+        if (previous && previous.block > block) continue;
+
+        latest.set(key, {
+            token: lower(log.address),
+            spender,
+            block,
+            everything: isAll,
+            amount: big(log.data),
+            hash: log.transactionHash,
+        });
+    }
+
+    const live = [...latest.values()].filter((a) => a.amount > 0n || a.everything);
+    if (!live.length) return [];
+
+    await loadTokens(rpc, live.map((a) => a.token), tokenCache);
+
+    // Ask the contracts what is actually still allowed right now.
+    const erc20 = live.filter((a) => !a.everything);
+    if (erc20.length) {
+        const answers = await rpc.batch(erc20.map((a) => ({
+            method: 'eth_call',
+            params: [{
+                to: a.token,
+                data: SELECTOR.allowance + strip(topicFor(owner)) + strip(topicFor(a.spender)),
+            }, 'latest'],
+        })));
+        erc20.forEach((a, i) => {
+            const answer = answers[i];
+            a.current = answer && !answer.error ? big(answer.result) : null;
+        });
+    }
+
+    const tokens = asMeta(tokenCache);
+    return live
+        .filter((a) => a.everything || a.current === null || a.current > 0n)
+        .map((a) => ({
+            ...a,
+            token_name: tokens[a.token]?.name || checksum(a.token),
+            symbol: tokens[a.token]?.symbol || null,
+            decimals: tokens[a.token]?.decimals ?? 18,
+            unlimited: a.everything || (a.current ?? a.amount) >= EFFECTIVELY_UNLIMITED,
+            amount: a.current ?? a.amount,
+        }))
+        .sort((a, b) => (Number(b.unlimited) - Number(a.unlimited)) || (b.block - a.block));
+}
+
+// What the wallet holds now, for every token it has ever touched.
+async function balances(rpc, chain, wallet, tokenAddresses, tokenCache = new Map()) {
+    const owner = lower(wallet);
+    const list = [...new Set(tokenAddresses.map(lower))].filter(Boolean);
+
+    const calls = [{ method: 'eth_getBalance', params: [owner, 'latest'] }];
+    for (const token of list) {
+        calls.push({
+            method: 'eth_call',
+            params: [{ to: token, data: SELECTOR.balanceOf + strip(topicFor(owner)) }, 'latest'],
+        });
+    }
+
+    const answers = await rpc.batch(calls);
+    await loadTokens(rpc, list, tokenCache);
+    const tokens = asMeta(tokenCache);
+
+    const out = [{
+        token: 'native',
+        standard: 'native',
+        symbol: chain.symbol,
+        name: chain.currency,
+        decimals: 18,
+        amount: answers[0] && !answers[0].error ? big(answers[0].result) : 0n,
+    }];
+
+    list.forEach((token, i) => {
+        const answer = answers[i + 1];
+        if (!answer || answer.error) return;
+        const amount = big(answer.result);
+        if (amount === 0n) return;
+        out.push({
+            token,
+            standard: 'erc20',
+            symbol: tokens[token]?.symbol || null,
+            name: tokens[token]?.name || checksum(token),
+            decimals: tokens[token]?.decimals ?? 18,
+            amount,
+        });
+    });
+
+    return out.filter((row) => row.amount > 0n);
+}
+
+/* ── src/wallet.js ─────────────────────────────────────────────── */
+
+// The only part of Kliner that asks anything of your wallet.
+//
+// It builds one kind of transaction and one only: setting an allowance back to
+// nothing. Your wallet signs it, your wallet shows you it first, and Kliner
+// never sees a key. Nothing here can move a token, only stop something else
+// from being able to.
+
+
+
+
+const pad = (value) => strip(value).padStart(64, '0');
+
+function encodeRevoke(approval) {
+    if (!isAddress(approval.token)) throw new Error('That is not a token address.');
+    if (!isAddress(approval.spender)) throw new Error('That is not a spender address.');
+
+    if (approval.everything) {
+        // setApprovalForAll(spender, false)
+        return SELECTOR.setApprovalForAll + pad(approval.spender) + pad('0');
+    }
+    // approve(spender, 0)
+    return SELECTOR.approve + pad(approval.spender) + pad('0');
+}
+
+// A sentence describing exactly what the wallet is about to be asked to sign,
+// shown before the wallet is touched. If this does not match what the wallet
+// then shows you, do not sign it.
+function describeRevoke(approval) {
+    const what = approval.symbol || approval.token_name || checksum(approval.token);
+    return approval.everything
+        ? 'Tell ' + what + ' that ' + checksum(approval.spender) + ' may no longer move your items.'
+        : 'Set ' + checksum(approval.spender) + ' allowance on ' + what + ' to zero.';
+}
+
+function hasWallet() {
+    return typeof globalThis.ethereum !== 'undefined';
+}
+
+async function connect() {
+    if (!hasWallet()) throw new Error('No wallet extension found in this browser.');
+    const accounts = await globalThis.ethereum.request({ method: 'eth_requestAccounts' });
+    if (!accounts?.length) throw new Error('The wallet did not offer an account.');
+    return lower(accounts[0]);
+}
+
+async function currentChainId() {
+    if (!hasWallet()) return null;
+    const id = await globalThis.ethereum.request({ method: 'eth_chainId' });
+    return Number(BigInt(id));
+}
+
+async function switchChain(chain) {
+    const target = '0x' + chain.id.toString(16);
+    try {
+        await globalThis.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: target }],
+        });
+        return true;
+    } catch (error) {
+        throw new Error('Switch your wallet to ' + chain.name + ' and try again.');
+    }
+}
+
+// Hands the wallet one transaction. The wallet asks you. Kliner does not.
+async function sendRevoke(approval, owner, chain) {
+    if (!hasWallet()) throw new Error('No wallet extension found in this browser.');
+
+    const account = lower(owner);
+    const connected = await connect();
+    if (connected !== account) {
+        throw new Error('Your wallet is on ' + checksum(connected) + ', not ' + checksum(account) + '.');
+    }
+
+    const id = await currentChainId();
+    if (id !== chain.id) await switchChain(chain);
+
+    return globalThis.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{ from: account, to: approval.token, data: encodeRevoke(approval), value: '0x0' }],
+    });
+}
+
+/* ── app.js ────────────────────────────────────────────────────── */
+
+// The page. Everything it knows comes from src/; this file only arranges it.
+
+
+
+
+
+
+
+
+const out = document.getElementById('out');
+const field = document.getElementById('q');
+const form = document.getElementById('form');
+const nav = document.getElementById('chains');
+const source = document.getElementById('source');
+
+let chain = chainByKey('ethereum');
+let rpc = makeRpc(chain);
+let run = 0; // cancels a reading that has been superseded
+
+// ── plumbing ────────────────────────────────────────────────────────────────
+
+const el = (tag, attrs = {}, children = []) => {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+        if (v === null || v === undefined || v === false) continue;
+        if (k === 'class') node.className = v;
+        else if (k === 'text') node.textContent = v;
+        else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
+        else node.setAttribute(k, v === true ? '' : String(v));
+    }
+    for (const child of [].concat(children)) {
+        if (child === null || child === undefined || child === false) continue;
+        node.append(typeof child === 'string' ? document.createTextNode(child) : child);
+    }
+    return node;
+};
+
+const clear = () => { out.textContent = ''; };
+const show = (...nodes) => { clear(); out.append(...nodes); };
+
+function state(strongText, rest) {
+    return el('p', { class: 'state' }, [el('strong', { text: strongText }), ' ', rest || '']);
+}
+
+function heading(text, trail) {
+    const h = el('h2', {}, [text]);
+    if (trail) h.append(el('span', { class: 'dim', style: 'letter-spacing:0;text-transform:none;font-weight:400', text: trail }));
+    return h;
+}
+
+const asNumber = (hex) => Number(big(hex));
+
+function timeAgo(seconds) {
+    const delta = Math.max(0, Math.floor(Date.now() / 1000) - seconds);
+    const steps = [[31536000, 'year'], [2592000, 'month'], [86400, 'day'], [3600, 'hour'], [60, 'minute']];
+    for (const [size, word] of steps) {
+        if (delta >= size) {
+            const n = Math.floor(delta / size);
+            return n + ' ' + word + (n === 1 ? '' : 's') + ' ago';
+        }
+    }
+    return 'just now';
+}
+
+// ── chain tabs ──────────────────────────────────────────────────────────────
+
+function paintChains() {
+    nav.textContent = '';
+    for (const c of CHAIN_LIST) {
+        nav.append(el('button', {
+            type: 'button',
+            text: c.name,
+            'aria-pressed': c.key === chain.key,
+            onclick: () => {
+                if (c.key === chain.key) return;
+                chain = chainByKey(c.key);
+                rpc = makeRpc(chain);
+                paintChains();
+                if (field.value.trim()) go(field.value.trim());
+                else route();
+            },
+        }));
+    }
+}
+
+// ── the empty page ──────────────────────────────────────────────────────────
+
+function welcome() {
+    show(
+        el('p', { class: 'state' }, [
+            el('strong', { text: 'Paste a transaction and read what happened.' }),
+            ' Kliner works out the shape of it from what actually moved, so it can read a ' +
+            'contract nobody has ever labelled. Paste a wallet address instead and it lists ' +
+            'what that wallet still lets other contracts spend.',
+        ]),
+        el('p', { class: 'state', style: 'margin-top:18px' }, [
+            'Nothing you type is sent anywhere except the public node for ' + chain.name +
+            '. There is no account and no key.',
+        ]),
+    );
+    source.textContent = '';
+}
+
+// ── one transaction ─────────────────────────────────────────────────────────
+
+function ledgerRow(row, meta, side) {
+    const where = side === 'out' ? row.to[0] : row.from[0];
+    return el('div', { class: 'row' }, [
+        el('span', { class: 'side', text: side === 'out' ? 'out' : 'in' }),
+        el('span', { class: 'what' }, [
+            describe(row, meta),
+            row.inferred ? el('span', { class: 'dim', text: '  (read from the unwrap)' }) : null,
+        ]),
+        el('span', { class: 'aside', text: where ? (side === 'out' ? 'to ' : 'from ') + short(where) : '' }),
+    ]);
+}
+
+function flagNode(risk) {
+    return el('div', { class: 'flag ' + (risk.level === 'warn' ? 'warn' : 'note') }, [
+        el('span', { class: 'glyph', text: risk.level === 'warn' ? '!' : '·' }),
+        el('div', {}, [
+            el('div', { class: 'title', text: risk.title }),
+            el('div', { class: 'detail', text: risk.detail }),
+        ]),
+    ]);
+}
+
+function paintTransaction({ tx, meta, result }, wallet) {
+    const nodes = [];
+
+    nodes.push(el('p', { class: 'verdict', text: sentence(result, meta) }));
+
+    const facts = [chain.name];
+    if (tx.blockNumber) facts.push('block ' + asNumber(tx.blockNumber).toLocaleString('en-US'));
+    const cost = costLine(result, meta);
+    if (cost) facts.push(cost);
+    const under = el('p', { class: 'under' }, facts.map((f) => el('span', { text: f })));
+    under.append(el('a', {
+        href: chain.explorer + '/tx/' + tx.hash,
+        target: '_blank',
+        rel: 'noreferrer noopener',
+        text: 'raw',
+    }));
+    nodes.push(under);
+
+    if (result.outgoing.length || result.incoming.length) {
+        const rows = el('div', { class: 'rows' }, [
+            ...result.outgoing.map((r) => ledgerRow(r, meta, 'out')),
+            ...result.incoming.map((r) => ledgerRow(r, meta, 'in')),
+        ]);
+        nodes.push(el('section', {}, [heading('What moved'), rows]));
+    }
+
+    if (result.risks.length) {
+        nodes.push(el('section', {}, [
+            heading('Worth knowing'),
+            el('div', {}, result.risks.map(flagNode)),
+        ]));
+    }
+
+    if (result.notes.length) {
+        nodes.push(el('section', {}, [
+            heading('How this was read'),
+            el('div', {}, result.notes.map((n) => el('p', { class: 'detail dim', style: 'margin:12px 0 0', text: n }))),
+        ]));
+    }
+
+    const readAs = wallet && lower(wallet) !== lower(tx.from);
+    nodes.push(el('section', {}, [
+        heading('Seen from'),
+        el('div', { class: 'line' }, [
+            el('span', { class: 'lead mono', text: checksum(result.wallet) }),
+            el('span', { class: 'trail', text: readAs ? 'not the signer' : 'the signer' }),
+        ]),
+        el('div', { class: 'line' }, [
+            el('span', { class: 'lead dim', text: 'Read it as another wallet to see the same transaction from their side.' }),
+            el('button', {
+                class: 'act', type: 'button', text: 'Change',
+                onclick: () => {
+                    const other = prompt('Read this transaction as which address?', checksum(result.wallet));
+                    if (other && isAddress(other.trim())) {
+                        location.hash = '#/' + chain.key + '/' + tx.hash + '/' + lower(other.trim());
+                    }
+                },
+            }),
+        ]),
+    ]));
+
+    show(...nodes);
+    source.textContent = 'read from ' + new URL(rpc.urls[0]).host;
+}
+
+// ── one wallet ──────────────────────────────────────────────────────────────
+
+function approvalLine(approval, owner) {
+    const what = approval.unlimited
+        ? 'no limit'
+        : format(approval.amount, approval.decimals, { significant: 4 }) + ' ' + (approval.symbol || '');
+
+    const name = approval.symbol || approval.token_name;
+    const button = el('button', {
+        class: 'act', type: 'button',
+        text: hasWallet() ? 'Revoke' : 'No wallet',
+        disabled: !hasWallet(),
+    });
+
+    const status = el('span', { class: 'trail', text: what });
+
+    button.addEventListener('click', async () => {
+        const asked = confirm(describeRevoke(approval) + '\n\nYour wallet will ask you to confirm. Kliner cannot sign anything.');
+        if (!asked) return;
+        button.disabled = true;
+        button.textContent = 'Waiting';
+        try {
+            const hash = await sendRevoke(approval, owner, chain);
+            button.textContent = 'Sent';
+            status.textContent = 'revoking';
+            status.append(' ', el('a', {
+                href: chain.explorer + '/tx/' + hash,
+                target: '_blank', rel: 'noreferrer noopener', text: 'tx',
+            }));
+        } catch (error) {
+            button.disabled = false;
+            button.textContent = 'Revoke';
+            status.textContent = error.message || 'the wallet refused';
+        }
+    });
+
+    return el('div', { class: 'row' + (approval.unlimited ? ' warn' : '') }, [
+        el('span', { class: 'side', text: approval.unlimited ? '!' : '' }),
+        el('div', {}, [
+            el('div', { class: 'what', text: name }),
+            el('div', { class: 'sub mono', text: short(approval.spender) + ' can spend it' }),
+        ]),
+        el('div', { style: 'display:flex;gap:12px;align-items:baseline;justify-content:flex-end' }, [status, button]),
+    ]);
+}
+
+function paintWallet(address, data) {
+    const nodes = [];
+    const live = data.approvals.filter((a) => a.unlimited || a.amount > 0n);
+
+    nodes.push(el('p', { class: 'verdict' }, [
+        live.length
+            ? live.length + (live.length === 1 ? ' contract can still spend' : ' contracts can still spend') +
+              ' from this wallet.'
+            : 'Nothing is left standing that can spend from this wallet.',
+    ]));
+
+    nodes.push(el('p', { class: 'under' }, [
+        el('span', { class: 'mono', text: checksum(address) }),
+        el('span', { text: chain.name }),
+        el('a', {
+            href: chain.explorer + '/address/' + address,
+            target: '_blank', rel: 'noreferrer noopener', text: 'raw',
+        }),
+    ]));
+
+    if (live.length) {
+        nodes.push(el('section', {}, [
+            heading('Still allowed to spend', 'newest first'),
+            el('div', { class: 'rows' }, live.map((a) => approvalLine(a, address))),
+        ]));
+    }
+
+    if (data.holdings.length) {
+        nodes.push(el('section', {}, [
+            heading('Holds'),
+            el('div', { class: 'rows' }, data.holdings.map((b) => el('div', { class: 'line' }, [
+                el('span', { class: 'lead', text: format(b.amount, b.decimals, { significant: 5 }) + ' ' + (b.symbol || b.name) }),
+                el('span', { class: 'trail mono', text: b.token === 'native' ? '' : short(b.token) }),
+            ]))),
+        ]));
+    }
+
+    if (data.history.length) {
+        nodes.push(el('section', {}, [
+            heading('Recently', data.window),
+            el('div', { class: 'rows' }, data.history.map((entry) => el('a', {
+                class: 'entry line',
+                href: '#/' + chain.key + '/' + entry.tx.hash + '/' + lower(address),
+            }, [
+                el('span', { class: 'lead', text: sentence(entry.result, entry.meta) }),
+                el('span', { class: 'trail', text: entry.when || '' }),
+            ]))),
+        ]));
+    }
+
+    if (!live.length && !data.history.length) {
+        nodes.push(state('Nothing found in that window.', 'This wallet may simply be quiet, or older than the range a free public node will search.'));
+    }
+
+    show(...nodes);
+    source.textContent = 'read from ' + new URL(rpc.urls[0]).host;
+}
+
+// ── doing the work ──────────────────────────────────────────────────────────
+
+function progress(label) {
+    const text = el('div', { class: 'progress', text: label });
+    const fill = el('i');
+    const node = el('div', {}, [text, el('div', { class: 'bar' }, [fill])]);
+    show(el('div', { style: 'margin-top:48px' }, [node]));
+    return {
+        say(message, fraction) {
+            text.textContent = message;
+            if (typeof fraction === 'number') fill.style.width = Math.min(100, Math.max(0, fraction * 100)) + '%';
+        },
+    };
+}
+
+async function readOneTransaction(hash, wallet) {
+    const mine = ++run;
+    const bar = progress('Reading ' + short(hash, 10, 8) + ' on ' + chain.name + '…');
+    try {
+        const found = await readTransaction(rpc, chain, hash, wallet);
+        if (mine !== run) return;
+        paintTransaction(found, wallet);
+    } catch (error) {
+        if (mine !== run) return;
+        show(state('That did not read.', error.message));
+    }
+}
+
+async function readOneWallet(address) {
+    const mine = ++run;
+    const bar = progress('Looking at ' + short(address) + ' on ' + chain.name + '…');
+    const cache = new Map();
+
+    try {
+        const head = Number(big(await rpc.blockNumber()));
+        const depth = Math.round((180 * 24 * 3600) / chain.blockTime);
+        const from = Math.max(0, head - depth);
+
+        const { logs } = await scanWallet(rpc, chain, address, {
+            head, from,
+            onProgress: ({ block, found }) => {
+                if (mine !== run) return;
+                const done = (head - block) / Math.max(1, head - from);
+                bar.say('Reading blocks… ' + (found || 0) + ' entries so far', done);
+            },
+        });
+        if (mine !== run) return;
+
+        bar.say('Checking what is still allowed…', 0.8);
+        const approvals = await standingApprovals(rpc, chain, address, logs, cache);
+        if (mine !== run) return;
+
+        const txs = transactionsIn(logs).slice(0, 15);
+        bar.say('Reading the last ' + txs.length + ' transactions…', 0.9);
+        const history = await readMany(rpc, chain, txs.map((t) => t.hash), address, cache);
+        if (mine !== run) return;
+
+        const times = await blockTimes(txs.map((t) => t.block));
+        for (const entry of history) {
+            const when = times.get(asNumber(entry.tx.blockNumber));
+            entry.when = when ? timeAgo(when) : '';
+        }
+
+        const tokens = new Set();
+        for (const log of logs) tokens.add(lower(log.address));
+        const holdings = await balances(rpc, chain, address, [...tokens].slice(0, 60), cache);
+        if (mine !== run) return;
+
+        paintWallet(address, {
+            approvals,
+            history,
+            holdings,
+            window: 'last ' + Math.round(depth * chain.blockTime / 86400) + ' days',
+        });
+    } catch (error) {
+        if (mine !== run) return;
+        show(state('That wallet did not read.', error.message +
+            ' Free public nodes limit how far back they will search; try another chain, or a single transaction hash.'));
+    }
+}
+
+async function blockTimes(blocks) {
+    const wanted = [...new Set(blocks)].slice(0, 20);
+    const map = new Map();
+    if (!wanted.length) return map;
+    try {
+        const answers = await rpc.batch(wanted.map((b) => ({
+            method: 'eth_getBlockByNumber',
+            params: ['0x' + b.toString(16), false],
+        })));
+        wanted.forEach((b, i) => {
+            const block = answers[i]?.result;
+            if (block) map.set(b, asNumber(block.timestamp));
+        });
+    } catch { /* times are a nicety, not the point */ }
+    return map;
+}
+
+// ── routing ─────────────────────────────────────────────────────────────────
+
+function go(query) {
+    const value = query.trim();
+    if (/^0x[0-9a-fA-F]{64}$/.test(value)) {
+        location.hash = '#/' + chain.key + '/' + value.toLowerCase();
+    } else if (isAddress(value)) {
+        location.hash = '#/' + chain.key + '/' + value.toLowerCase();
+    } else {
+        show(state('That is not something Kliner can read.',
+            'A transaction hash is 66 characters starting 0x. A wallet address is 42.'));
+    }
+}
+
+function route() {
+    const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
+    if (!parts.length) { field.value = ''; welcome(); return; }
+
+    const named = chainByKey(parts[0]);
+    if (named && named.key !== chain.key) {
+        chain = named;
+        rpc = makeRpc(chain);
+        paintChains();
+    }
+
+    const subject = named ? parts[1] : parts[0];
+    const wallet = named ? parts[2] : parts[1];
+    if (!subject) { welcome(); return; }
+
+    field.value = subject;
+    if (/^0x[0-9a-fA-F]{64}$/.test(subject)) readOneTransaction(subject, wallet && isAddress(wallet) ? wallet : null);
+    else if (isAddress(subject)) readOneWallet(lower(subject));
+    else show(state('That is not something Kliner can read.', 'Paste a transaction hash or a wallet address.'));
+}
+
+form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    go(field.value);
+});
+
+window.addEventListener('hashchange', route);
+paintChains();
+route();
+</script>
+</body>
+</html>

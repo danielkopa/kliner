@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kliner</title>
+<meta name="description" content="Paste a transaction. Read what happened, in one sentence.">
+<style>
+:root {
+    --ground: #f6f6f4;
+    --paper: #fdfdfc;
+    --ink: #161614;
+    --dim: #6e6e68;
+    --faint: #9a9a94;
+    --line: #e0e0da;
+    --rule: #c9c9c2;
+    --gutter: clamp(16px, 4vw, 40px);
+    color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --ground: #0e0e0d;
+        --paper: #141413;
+        --ink: #f0f0ec;
+        --dim: #8c8c85;
+        --faint: #63635d;
+        --line: #232321;
+        --rule: #34342f;
+    }
+}
+:root[data-theme="dark"] {
+    --ground: #0e0e0d;
+    --paper: #141413;
+    --ink: #f0f0ec;
+    --dim: #8c8c85;
+    --faint: #63635d;
+    --line: #232321;
+    --rule: #34342f;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font: 15px/1.55 ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
+}
+
+.wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding-inline: var(--gutter);
+    padding-block: 0 96px;
+}
+
+/* ── masthead ─────────────────────────────────────────────────────── */
+
+header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-block: 28px 20px;
+}
+
+.mark {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+nav {
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+}
+
+nav button {
+    appearance: none;
+    background: none;
+    border: 0;
+    padding: 4px 8px;
+    font: inherit;
+    font-size: 13px;
+    color: var(--faint);
+    cursor: pointer;
+    border-radius: 2px;
+}
+nav button:hover { color: var(--ink); }
+nav button[aria-pressed="true"] {
+    color: var(--ink);
+    box-shadow: inset 0 -1px 0 var(--ink);
+}
+
+/* ── the field ────────────────────────────────────────────────────── */
+
+form {
+    display: flex;
+    gap: 0;
+    border-block: 1px solid var(--ink);
+    padding-block: 2px;
+}
+
+input[type="text"] {
+    flex: 1 1 auto;
+    min-width: 0;
+    appearance: none;
+    background: none;
+    border: 0;
+    padding: 14px 0;
+    font: inherit;
+    font-size: 16px;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    color: var(--ink);
+}
+input::placeholder { color: var(--faint); font-family: inherit; }
+input:focus { outline: 0; }
+form:focus-within { box-shadow: 0 1px 0 var(--ink); }
+
+form button {
+    appearance: none;
+    background: none;
+    border: 0;
+    padding: 0 0 0 16px;
+    font: inherit;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dim);
+    cursor: pointer;
+}
+form button:hover { color: var(--ink); }
+
+/* ── the reading ──────────────────────────────────────────────────── */
+
+.verdict {
+    font-size: clamp(24px, 4.6vw, 34px);
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    font-weight: 400;
+    text-wrap: balance;
+    margin: 48px 0 0;
+}
+
+.under {
+    margin-top: 14px;
+    color: var(--dim);
+    font-size: 13px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+}
+.under a { color: inherit; }
+
+section { margin-top: 44px; }
+
+h2 {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 0 0 4px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+}
+h2 > span { flex: 0 0 auto; }
+
+.rows { display: flex; flex-direction: column; }
+
+.row {
+    display: grid;
+    grid-template-columns: 46px 1fr auto;
+    gap: 16px;
+    align-items: baseline;
+    padding-block: 13px;
+    border-bottom: 1px solid var(--line);
+}
+
+.row .side {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+}
+.row .what { font-size: 16px; overflow-wrap: anywhere; }
+.row > * { min-width: 0; }
+.row .aside {
+    color: var(--dim);
+    font-size: 13px;
+    text-align: right;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.row .sub { color: var(--dim); font-size: 13px; margin-top: 2px; }
+
+/* a flag is weight and a rule, never a colour */
+.row.warn {
+    box-shadow: inset 2px 0 0 var(--ink);
+    padding-left: 14px;
+    grid-template-columns: 32px 1fr auto;
+}
+.row.warn .side { color: var(--ink); font-weight: 600; font-size: 13px; letter-spacing: 0; }
+
+.flag {
+    display: grid;
+    grid-template-columns: 46px 1fr;
+    gap: 16px;
+    padding-block: 14px;
+    border-bottom: 1px solid var(--line);
+}
+.flag.warn { box-shadow: inset 2px 0 0 var(--ink); padding-left: 14px; grid-template-columns: 32px 1fr; }
+.flag .glyph { font-weight: 600; color: var(--ink); }
+.flag.note .glyph { color: var(--faint); font-weight: 400; }
+.flag .title { font-weight: 600; }
+.flag.note .title { font-weight: 400; }
+.flag .detail { color: var(--dim); font-size: 13px; margin-top: 3px; }
+
+.line {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    padding-block: 13px;
+    border-bottom: 1px solid var(--line);
+}
+.line .lead { min-width: 0; overflow-wrap: anywhere; }
+.line .trail { color: var(--dim); font-size: 13px; white-space: nowrap; flex: 0 0 auto; }
+
+a.entry {
+    color: inherit;
+    text-decoration: none;
+}
+a.entry.line { display: flex; }
+a.entry:hover .lead { text-decoration: underline; text-underline-offset: 3px; }
+
+button.act {
+    appearance: none;
+    background: none;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 5px 11px;
+    font: inherit;
+    font-size: 12px;
+    color: var(--ink);
+    cursor: pointer;
+    white-space: nowrap;
+}
+button.act:hover { border-color: var(--ink); }
+button.act[disabled] { color: var(--faint); border-color: var(--line); cursor: default; }
+
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.dim { color: var(--dim); }
+
+.state {
+    margin-top: 44px;
+    color: var(--dim);
+    max-width: 52ch;
+}
+.state strong { color: var(--ink); font-weight: 600; }
+
+.progress {
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--dim);
+    font-variant-numeric: tabular-nums;
+}
+
+.bar { height: 1px; background: var(--line); margin-top: 8px; }
+.bar > i { display: block; height: 1px; background: var(--ink); width: 0; transition: width .3s ease; }
+
+footer {
+    margin-top: 72px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--faint);
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 520px) {
+    .row { grid-template-columns: 38px 1fr; }
+    .row .aside { grid-column: 2; text-align: left; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <h1 class="mark">Kliner</h1>
+        <nav id="chains" aria-label="Chain"></nav>
+    </header>
+
+    <form id="form">
+        <input id="q" type="text" spellcheck="false" autocomplete="off" autocapitalize="off"
+               placeholder="transaction hash, or a wallet address" aria-label="Transaction or address">
+        <button type="submit">Read</button>
+    </form>
+
+    <main id="out"></main>
+
+    <footer>
+        <span>Runs in your browser. No account, no key, no server of ours.</span>
+        <span id="source"></span>
+    </footer>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

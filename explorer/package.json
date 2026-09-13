@@ -1,0 +1,17 @@
+{
+  "name": "klnr-core",
+  "version": "0.1.0",
+  "description": "Reads a transaction and says what happened, in one sentence.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "test": "node test/run.js && node tools/bundle.js && node test/browser.js",
+    "core": "node test/run.js",
+    "build": "node tools/bundle.js",
+    "serve": "python3 -m http.server 8787",
+    "show": "node test/show.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}
