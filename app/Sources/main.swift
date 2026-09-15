@@ -54,6 +54,11 @@ enum Words {
 
     /// A figure in a table, which has to line up with the figure above it.
     static let column = NSFont.monospacedDigitSystemFont(ofSize: 14, weight: .regular)
+
+    /// The line you type into in the menu that ⌘K opens. Bigger than the
+    /// window's own text, because it is the only thing on its row and the
+    /// first thing your eye lands on.
+    static let ask    = NSFont.systemFont(ofSize: 17, weight: .regular)
 }
 
 /// Every gap in the window is one of these. Four points apart, so two things
@@ -4444,6 +4449,14 @@ final class Main: NSObject, NSWindowDelegate {
         show(Action.all.count)
     }
 
+    /// The menu behind ⌘K hands a page over. It never runs anything itself:
+    /// the page says what it is about to do, and waits to be told yes.
+    func openPage(_ index: Int) {
+        show(index)
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     /// Closing the window puts nimo away; the Dock icon brings it back. It is
     /// not a document, so there is nothing to lose by closing it.
     func windowShouldClose(_ sender: NSWindow) -> Bool { true }
@@ -7697,9 +7710,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window.animator().alphaValue = 1
         }
         main.open()
+
+        // The other half of the app: a mark in the menu bar, and ⌘K from
+        // anywhere. The window is a place you go; this is a place you reach.
+        Quick.shared.onOpenPage = { [weak self] index in self?.main.openPage(index) }
+        Quick.shared.start()
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ app: NSApplication) -> Bool { true }
+    /// Closing the window leaves the menu bar item behind, so ⌘K still
+    /// works. Quit is what puts nimo away.
+    func applicationShouldTerminateAfterLastWindowClosed(_ app: NSApplication) -> Bool { false }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool { true }
 
@@ -7757,10 +7777,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         fold.target = main
         look.addItem(fold)
 
+        // ⌘K belongs to the quick menu now, everywhere, so searching inside
+        // the window takes the key every other Mac app uses for finding.
         let find = NSMenuItem(title: "Search",
-                              action: #selector(Main.focusSearch), keyEquivalent: "k")
+                              action: #selector(Main.focusSearch), keyEquivalent: "f")
         find.target = main
         look.addItem(find)
+
+        // The same menu the key opens, for anybody who goes looking for it in
+        // the menus instead of learning a shortcut.
+        let quick = NSMenuItem(title: "Quick menu",
+                               action: #selector(openQuick), keyEquivalent: "k")
+        quick.target = self
+        look.addItem(quick)
 
         // Ask this page again, rather than being shown what it said last time.
         let again = NSMenuItem(title: "Ask again",
@@ -7770,7 +7799,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // The introduction, whenever you want to look at it.
         let intro = NSMenuItem(title: "Show the introduction",
-                               action: #selector(Main.replaySetup), keyEquivalent: "f")
+                               action: #selector(Main.replaySetup), keyEquivalent: "")
         intro.target = main
         look.addItem(intro)
         look.addItem(.separator())
@@ -7820,6 +7849,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         return bar
     }
+
+    @objc private func openQuick() { Quick.shared.toggle() }
 
     @objc private func toggleLogin(_ sender: NSMenuItem) {
         if let trouble = Login.set(sender.state != .on) {

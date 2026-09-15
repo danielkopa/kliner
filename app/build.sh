@@ -67,7 +67,7 @@ for arch in arm64 x86_64; do
     if swiftc -O -whole-module-optimization \
         -target "${arch}-apple-macos12.0" \
         -o "$build/Kliner-$arch" \
-        app/Sources/main.swift 2>"$build/$arch.log"
+        app/Sources/*.swift 2>"$build/$arch.log"
     then
         slices="$slices $build/Kliner-$arch"
         echo "    $arch"

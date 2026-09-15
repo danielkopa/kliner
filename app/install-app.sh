@@ -105,8 +105,9 @@ printf '\n'
 good "Kliner is in $(printf '%s' "$dest" | sed "s|$HOME|~|")"
 good "It is running — look at the top right of your screen, beside the clock."
 printf '\n'
-say "${dim}Click the face. Everything asks before it changes anything,${off}"
-say "${dim}and \"Put it all back\" reverses the lot.${off}"
+say "${dim}Press ⌘K anywhere to open the menu, or click the face.${off}"
+say "${dim}Everything asks before it changes anything, and${off}"
+say "${dim}\"Put it all back\" reverses the lot.${off}"
 printf '\n'
 say "${dim}To have it there every morning: the menu has \"Open nimo at login\".${off}"
 say "${dim}To remove it: drag Kliner out of Applications. That is all it is.${off}"
