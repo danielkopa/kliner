@@ -74,6 +74,10 @@ enum Words {
     /// The command a row stands for, set in the terminal's own letters so it
     /// reads as something you could type, because it is.
     static let typed  = NSFont.monospacedSystemFont(ofSize: 12.5, weight: .regular)
+    /// The name along the top of a card. Set in sentence case at a readable
+    /// size, not in small spaced capitals: a card's name is a name, and the
+    /// capitals were a label on a filing box.
+    static let cardName = NSFont.systemFont(ofSize: 19, weight: .semibold)
 }
 
 /// Every gap in the window is one of these. Four points apart, so two things
@@ -126,59 +130,69 @@ enum Paint {
         }
     }
 
-    // ---- the surfaces, darkest first ---------------------------------------
-    /// Over the blur, so the window keeps the depth of glass without taking
-    /// the wallpaper's colour with it. Straight glass went brown over a warm
-    /// photograph; this is a cool grey, thin enough to see through.
-    /// Opaque, on purpose. At 80% a warm wallpaper came through the blur
-    /// and the whole window went brown — the thing the comment above was
-    /// written about, still happening. Nothing shows through now.
-    static let veil = duo(0xF6F7F8, 0x0F1113)
-    /// The list stands on the veil, so this is only a name for the same
-    /// thing: what the side of the window is.
-    static let rail   = duo(0xF1F2F4, 0x0C0D0F)
-    /// The work sits on one card, and the card is the *lighter* thing. A page
-    /// darker than the frame round it reads as a hole in the window.
-    static let card   = duo(0xFCFCFD, 0x131518)
+    // ---- the surfaces, lightest first --------------------------------------
+    //
+    // Kliner is a light window with one warm colour in it. The ground is a
+    // grey you can tell from the cards standing on it; the cards are the
+    // lighter thing, because a card darker than the page reads as a hole.
+    /// The window's own ground.
+    static let veil = duo(0xE9E8E6, 0x121211)
+    /// The side of the window. The same ground: the list stands on the page
+    /// rather than in a compartment of its own.
+    static let rail   = duo(0xE9E8E6, 0x121211)
+    /// A card standing on the ground.
+    static let card   = duo(0xF6F5F3, 0x1C1C1B)
     /// And a panel standing on that card is lighter again.
-    static let panel  = duo(0xFFFFFF, 0x383C42)
+    static let panel  = duo(0xFFFFFF, 0x242423)
     /// Kept for anything measured against the page rather than drawn on it.
-    static let ground = duo(0xF7F8FA, 0x2B2F34)
+    static let ground = duo(0xF1F0EE, 0x181817)
 
-    static let line   = duo(0xDCE0E5, 0x474B52)
-    static let hover  = duo(0xE2E6EA, 0x2E3236)
+    static let line   = duo(0xE4E2DE, 0x2E2E2C)
+    static let hover  = duo(0xEDECE9, 0x272726)
     /// The row you are on, and the fill under anything chosen.
-    static let picked = duo(0xDCE1E6, 0x32363A)
+    static let picked = duo(0xE6E4E0, 0x2B2B29)
     /// The unlit half of anything that fills, and the ground under a chip.
-    static let track  = duo(0xDFE4E9, 0x45494D)
+    static let track  = duo(0xEAE8E4, 0x2A2A28)
 
     // ---- what is written on them -------------------------------------------
-    static let ink    = duo(0x14171A, 0xF8F9FC)
-    static let body   = duo(0x2B2F34, 0xBDC0C3)
-    static let muted  = duo(0x6B6F76, 0x9B9EA5)
-    static let faint  = duo(0x91959C, 0x7C8087)
+    static let ink    = duo(0x171614, 0xF7F6F4)
+    static let body   = duo(0x3A3835, 0xC9C7C3)
+    static let muted  = duo(0x7A7772, 0x94918C)
+    static let faint  = duo(0xA9A6A0, 0x6E6B67)
 
-    /// The window has no colour in it.
+    /// One warm colour, and nothing else.
     ///
-    /// Every dashboard reaches for a brand hue and puts it on the button, the
+    /// Every dashboard reaches for a hue and then puts it on the button, the
     /// selected row, the first bar of the chart and the icon beside a job —
-    /// four coloured things, which is four things shouting. This one is grey
-    /// all the way down: what matters is brighter, what does not is dimmer,
-    /// and the only colour in the window is whatever is behind the glass.
-    ///
-    /// It is one constant. Kliner's teal goes back in here if it ever should.
-    static let accent   = duo(0x1D2024, 0xF0F2F5)
-    static let onAccent = duo(0xFFFFFF, 0x1B1E22)
+    /// four coloured things, which is four things shouting. There is one here,
+    /// and it is spent in one place at a time. Everything that would have been
+    /// a second and a third colour is a *texture* instead: the same orange,
+    /// hatched, dotted, barred. A breakdown in five hues is a chart to be
+    /// decoded; the same breakdown in five weaves is read in order.
+    static let accent   = duo(0xC2510D, 0xE2721C)
+    static let onAccent = duo(0xFFFFFF, 0xFFFFFF)
+    /// The two steps down from it, for a breakdown that wants three.
+    static let accentMid  = duo(0xE8761F, 0xC9631A)
+    static let accentSoft = duo(0xF6B183, 0x8F4715)
+    /// Better than it was. The only other colour in the window, and it is
+    /// never the thing you look at first.
+    static let better   = duo(0x1E9E63, 0x35B87A)
     /// A lift rather than a tint: the same light the card is made of, a
     /// little more of it.
-    static let wash     = duo(0x000000, 0xFFFFFF).withAlphaComponent(0.07)
+    static let wash     = duo(0x000000, 0xFFFFFF).withAlphaComponent(0.05)
 
     /// A breakdown drawn in five hues is a chart to be decoded. Drawn as one
     /// light falling away it is the same reading, in order, and the eye
     /// starts at the biggest slice without being told to.
     static func band(_ i: Int) -> NSColor {
-        let steps: [CGFloat] = [0.90, 0.60, 0.42, 0.30, 0.22, 0.16, 0.12]
-        return ink.withAlphaComponent(i < steps.count ? steps[i] : 0.09)
+        switch i {
+        case 0:  return accent
+        case 1:  return accentMid
+        case 2:  return accentSoft
+        default: break
+        }
+        let steps: [CGFloat] = [0.34, 0.26, 0.20, 0.15, 0.11]
+        return ink.withAlphaComponent(i - 3 < steps.count ? steps[i - 3] : 0.09)
     }
 
     /// The one button, and the words on it.
@@ -6852,8 +6866,8 @@ func leaded(_ text: String, _ font: NSFont, _ colour: NSColor) -> NSAttributedSt
 /// rounded a little more than the next is a window somebody assembled rather
 /// than drew.
 enum Panel {
-    static let round: CGFloat = 14
-    static let pad: CGFloat = 14
+    static let round: CGFloat = 22
+    static let pad: CGFloat = 22
 
     static func dress(_ view: NSView) {
         view.wantsLayer = true
@@ -6884,6 +6898,28 @@ enum Panel {
         view.layer?.backgroundColor = NSColor.clear.cgColor
     }
 
+    /// A card: a soft rounded rectangle a shade lighter than the page, no
+    /// hairline round it and no shadow to speak of. The corner does the work
+    /// an outline used to do.
+    static func soft(_ view: NSView) {
+        view.wantsLayer = true
+        view.layer?.cornerRadius = round
+        view.layer?.borderWidth = 0
+        view.layer?.masksToBounds = false
+        view.layer?.shadowOpacity = 1
+        view.layer?.shadowRadius = 10
+        view.layer?.shadowOffset = CGSize(width: 0, height: -1)
+        colour(view)
+    }
+
+    static func colour(_ view: NSView) {
+        view.effectiveAppearance.performAsCurrentDrawingAppearance {
+            view.layer?.backgroundColor = Paint.card.cgColor
+            view.layer?.shadowColor = NSColor.black
+                .withAlphaComponent(dark(view) ? 0.28 : 0.05).cgColor
+        }
+    }
+
     static func paint(_ view: NSView) {
         view.effectiveAppearance.performAsCurrentDrawingAppearance {
             view.layer?.backgroundColor = Paint.panel.cgColor
@@ -6904,10 +6940,9 @@ enum Panel {
     static func label(_ words: String) -> NSTextField {
         let name = NSTextField(labelWithString: "")
         name.attributedStringValue = NSAttributedString(
-            string: words.uppercased(),
-            attributes: [.font: Words.label,
-                         .foregroundColor: Paint.faint,
-                         .kern: 0.7])
+            string: words,
+            attributes: [.font: Words.cardName,
+                         .foregroundColor: Paint.ink])
         name.translatesAutoresizingMaskIntoConstraints = false
         return name
     }
@@ -6936,7 +6971,12 @@ final class Bars: NSView {
         for (i, part) in self.parts.enumerated() {
             let pole = NSView()
             pole.wantsLayer = true
-            pole.layer?.cornerRadius = 3
+            // Round like a lozenge, not like a brick with the corners taken
+            // off: a bar chart where the bars are soft reads as a picture of
+            // quantities rather than as a table stood on end.
+            pole.layer?.cornerRadius = 11
+            pole.layer?.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner,
+                                         .layerMinXMinYCorner, .layerMaxXMinYCorner]
             pole.layer?.backgroundColor = Paint.band(min(i, 6)).cgColor
             pole.toolTip = asBytes ? "\(part.name)  \(size(part.size))"
                                    : "\(part.name)  \(Int(part.size.rounded()))"
@@ -7202,17 +7242,10 @@ final class Card: NSView {
     init(_ title: String, trailing: NSView? = nil) {
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
-        Panel.flat(self)
+        Panel.soft(self)
 
         let name = Panel.label(title)
         addSubview(name)
-
-        let rule = NSBox()
-        rule.boxType = .custom
-        rule.borderWidth = 0
-        rule.fillColor = Paint.line
-        rule.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(rule)
 
         body.orientation = .vertical
         body.alignment = .leading
@@ -7221,25 +7254,21 @@ final class Card: NSView {
         addSubview(body)
 
         NSLayoutConstraint.activate([
-            name.leadingAnchor.constraint(equalTo: leadingAnchor),
-            name.topAnchor.constraint(equalTo: topAnchor),
+            name.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Panel.pad),
+            name.topAnchor.constraint(equalTo: topAnchor, constant: Panel.pad),
 
-            rule.leadingAnchor.constraint(equalTo: leadingAnchor),
-            rule.trailingAnchor.constraint(equalTo: trailingAnchor),
-            rule.topAnchor.constraint(equalTo: name.bottomAnchor, constant: 10),
-            rule.heightAnchor.constraint(equalToConstant: 1),
-
-            body.leadingAnchor.constraint(equalTo: leadingAnchor),
-            body.trailingAnchor.constraint(equalTo: trailingAnchor),
-            body.topAnchor.constraint(equalTo: rule.bottomAnchor, constant: Step.close),
-            body.bottomAnchor.constraint(equalTo: bottomAnchor),
+            body.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Panel.pad),
+            body.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Panel.pad),
+            body.topAnchor.constraint(equalTo: name.bottomAnchor, constant: Step.close),
+            body.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -Panel.pad),
         ])
 
         if let control = trailing {
             control.translatesAutoresizingMaskIntoConstraints = false
             addSubview(control)
             NSLayoutConstraint.activate([
-                control.trailingAnchor.constraint(equalTo: trailingAnchor),
+                control.trailingAnchor.constraint(equalTo: trailingAnchor,
+                                                  constant: -Panel.pad),
                 control.centerYAnchor.constraint(equalTo: name.centerYAnchor),
                 control.leadingAnchor.constraint(greaterThanOrEqualTo: name.trailingAnchor,
                                                  constant: 12),
@@ -7283,7 +7312,7 @@ final class Card: NSView {
     }
 
     private func paint() {
-        Panel.flat(self)
+        Panel.colour(self)
     }
 }
 
@@ -7434,7 +7463,7 @@ final class Split: NSView {
         for part in self.parts {
             let piece = NSView()
             piece.wantsLayer = true
-            piece.layer?.cornerRadius = 3
+            piece.layer?.cornerRadius = 12
             piece.layer?.backgroundColor = part.colour.cgColor
             addSubview(piece)
             pieces.append(piece)

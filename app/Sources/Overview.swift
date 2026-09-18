@@ -124,24 +124,26 @@ final class Swatch: NSView {
     override func draw(_ dirty: NSRect) {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             self.weave.draw(in: self.bounds.insetBy(dx: 1, dy: 1),
-                            colour: Paint.ink.withAlphaComponent(0.85))
+                            colour: Paint.accent)
         }
     }
 }
 
 // MARK: - a frame that is four corners, not a box
 
-/// Kliner frames a panel with four corner brackets. A box says "this is a
-/// container"; four corners say "look here" and leave the page open behind
-/// them, which is why every panel can be framed without the page filling up
-/// with edges.
+/// A card.
+///
+/// This was four corner brackets, which is how the site frames things: a box
+/// says "container", four corners say "look here" and leave the page open
+/// behind them. On a page of two panels it read as open; on a page of six it
+/// read as unfinished. A soft rounded card a shade lighter than the ground
+/// says the same thing without asking the eye to close the shape itself.
 final class Framed: NSView {
-    private let inset: CGFloat
-
-    init(_ content: NSView, inset: CGFloat = 26) {
-        self.inset = inset
+    init(_ content: NSView, inset: CGFloat = Panel.pad) {
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
+        Panel.soft(self)
+
         content.translatesAutoresizingMaskIntoConstraints = false
         addSubview(content)
         NSLayoutConstraint.activate([
@@ -156,36 +158,7 @@ final class Framed: NSView {
 
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
-        needsDisplay = true
-    }
-
-    override func draw(_ dirty: NSRect) {
-        effectiveAppearance.performAsCurrentDrawingAppearance {
-            let arm: CGFloat = 13
-            let r = self.bounds.insetBy(dx: 1, dy: 1)
-            let path = NSBezierPath()
-            path.lineWidth = 1
-
-            // top left, top right, bottom left, bottom right
-            path.move(to: NSPoint(x: r.minX, y: r.minY + arm))
-            path.line(to: NSPoint(x: r.minX, y: r.minY))
-            path.line(to: NSPoint(x: r.minX + arm, y: r.minY))
-
-            path.move(to: NSPoint(x: r.maxX - arm, y: r.minY))
-            path.line(to: NSPoint(x: r.maxX, y: r.minY))
-            path.line(to: NSPoint(x: r.maxX, y: r.minY + arm))
-
-            path.move(to: NSPoint(x: r.minX, y: r.maxY - arm))
-            path.line(to: NSPoint(x: r.minX, y: r.maxY))
-            path.line(to: NSPoint(x: r.minX + arm, y: r.maxY))
-
-            path.move(to: NSPoint(x: r.maxX - arm, y: r.maxY))
-            path.line(to: NSPoint(x: r.maxX, y: r.maxY))
-            path.line(to: NSPoint(x: r.maxX, y: r.maxY - arm))
-
-            Paint.ink.withAlphaComponent(0.26).setStroke()
-            path.stroke()
-        }
+        Panel.colour(self)
     }
 }
 
@@ -327,7 +300,7 @@ final class Ring: NSView {
 
                 NSGraphicsContext.saveGraphicsState()
                 wedge.setClip()
-                Weave.at(i).draw(in: self.bounds, colour: Paint.ink.withAlphaComponent(0.9))
+                Weave.at(i).draw(in: self.bounds, colour: Paint.band(i))
                 NSGraphicsContext.restoreGraphicsState()
 
                 // A hairline between slices, so two textures that happen to
@@ -442,7 +415,7 @@ final class Funnel: NSView {
                 // Each leg a step quieter: the shape is already falling, and
                 // the tone falling with it says the same thing twice, which
                 // is what makes it read at a glance.
-                Paint.ink.withAlphaComponent(0.92 - Double(leg) * 0.36).setFill()
+                Paint.band(leg).setFill()
                 band.fill()
             }
         }
@@ -501,8 +474,8 @@ final class Heat: NSView {
             for (i, value) in self.values.enumerated() {
                 let x = (w + gap) * CGFloat(i)
                 let cell = NSRect(x: x, y: 22, width: w, height: 26)
-                Paint.ink.withAlphaComponent(0.16 + (value / top) * 0.78).setFill()
-                NSBezierPath(rect: cell).fill()
+                Paint.accent.withAlphaComponent(0.13 + (value / top) * 0.87).setFill()
+                NSBezierPath(roundedRect: cell, xRadius: 7, yRadius: 7).fill()
 
                 // Every other month named. All twelve is a crowd at this size.
                 guard i % 2 == 0, i / 2 < self.months.count else { continue }
@@ -700,9 +673,10 @@ final class Scale: NSView {
             let gap: CGFloat = 3
             let w = (self.bounds.width - gap * 3) / 4
             for i in 0 ..< 4 {
-                Paint.ink.withAlphaComponent(0.16 + Double(i) * 0.26).setFill()
-                NSBezierPath(rect: NSRect(x: (w + gap) * CGFloat(i), y: 0,
-                                          width: w, height: self.bounds.height)).fill()
+                Paint.accent.withAlphaComponent(0.13 + Double(i) * 0.29).setFill()
+                NSBezierPath(roundedRect: NSRect(x: (w + gap) * CGFloat(i), y: 0,
+                                                 width: w, height: self.bounds.height),
+                             xRadius: 4, yRadius: 4).fill()
             }
         }
     }
