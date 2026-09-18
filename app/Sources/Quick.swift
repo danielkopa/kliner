@@ -206,6 +206,15 @@ final class Quick: NSObject, NSTextFieldDelegate {
     /// because the menu knows nothing about the window.
     var onOpenPage: ((Int) -> Void)?
 
+    /// What the window read last time it looked, so the menu can say it too.
+    ///
+    /// The point of a key you can press anywhere is that you do not have to
+    /// go anywhere. A menu that only lists page names makes you open the
+    /// window to learn anything; with the figures on it, ⌘K answers the
+    /// question by itself and you open the window only to act.
+    var headline: String?
+    var figures: [Int: String] = [:]
+
     private var status: NSStatusItem?
     private var hotkey: Hotkey?
 
@@ -214,6 +223,7 @@ final class Quick: NSObject, NSTextFieldDelegate {
     private var list: NSStackView?
     private var listHeight: NSLayoutConstraint?
 
+    private var foot: NSTextField?
     private var rows: [QuickRow] = []
     private var sel = 0
     /// Whether Kliner had a window on the screen before the menu opened. If
@@ -267,6 +277,7 @@ final class Quick: NSObject, NSTextFieldDelegate {
         borrowed = !NSApp.isActive
 
         field?.stringValue = ""
+        foot?.stringValue = tail()
         fill("")
         place()
 
@@ -346,12 +357,13 @@ final class Quick: NSObject, NSTextFieldDelegate {
         blur.addSubview(stack)
         list = stack
 
-        let foot = NSTextField(labelWithString:
-            "↑↓ choose · ⏎ open · esc close · \(Combo.written) anywhere")
+        let foot = NSTextField(labelWithString: self.tail())
         foot.font = Words.small
         foot.textColor = Paint.faint
+        foot.lineBreakMode = .byTruncatingTail
         foot.translatesAutoresizingMaskIntoConstraints = false
         blur.addSubview(foot)
+        self.foot = foot
 
         let height = stack.heightAnchor.constraint(equalToConstant: 38)
         listHeight = height
@@ -390,6 +402,13 @@ final class Quick: NSObject, NSTextFieldDelegate {
     }
 
     @objc private func slipped() { hide() }
+
+    /// The line along the bottom: what the window last read, then the keys.
+    private func tail() -> String {
+        let keys = "↑↓ choose · ⏎ open · esc close"
+        guard let said = headline, !said.isEmpty else { return keys }
+        return said + "  ·  " + keys
+    }
 
     // MARK: what is in it
 
@@ -433,7 +452,8 @@ final class Quick: NSObject, NSTextFieldDelegate {
         let hits = matching(typed)
         for entry in hits {
             let row = QuickRow(index: entry.index, title: entry.title,
-                               hint: entry.hint, symbol: entry.symbol)
+                               hint: figures[entry.index] ?? entry.hint,
+                               symbol: entry.symbol)
             row.onRun = { [weak self] index in self?.run(index) }
             row.onPoint = { [weak self] row in self?.point(to: row) }
             stack.addArrangedSubview(row)

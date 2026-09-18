@@ -1652,6 +1652,11 @@ final class Main: NSObject, NSWindowDelegate {
     /// you were finally shown was the last frame of it. Every complaint about
     /// the start was a complaint about never having seen it.
     func open() {
+        // A rail of pictures is the shape this window was drawn as, and with
+        // ⌘K answering from anywhere there is no longer much for a column of
+        // names to do. ⌘B opens it, and the choice is remembered.
+        if Config.value("rail") != "list" { fold(true, animated: false) }
+
         if Config.value("welcomed") != Main.setup {
             welcoming = true
             for row in rows { row.choose(false) }
@@ -2580,6 +2585,16 @@ final class Main: NSObject, NSWindowDelegate {
                 row.holds(tally(count("Desktop") + count("Downloads")))
             }
         }
+
+        // Hand the readings to the menu behind ⌘K, so pressing it anywhere
+        // answers "how bad is it" without opening this window at all.
+        Quick.shared.headline = junk > 0 ? size(junk) + " worth freeing"
+                                         : "nothing worth freeing"
+        Quick.shared.figures = [
+            1: figures["Desktop"] ?? "",
+            2: figures["Downloads"] ?? "",
+            6: junk > 0 ? size(junk) : "",
+        ].filter { !$0.value.isEmpty }
 
         // ---- the one number, and where the room is ---------------------------
         let head = NSStackView()
@@ -4548,7 +4563,16 @@ final class Main: NSObject, NSWindowDelegate {
     /// it was — same rows, same order, same fills — only the words go, and
     /// each row keeps its name as a tooltip so nothing is lost.
     @objc func foldSide() {
-        narrow.toggle()
+        fold(!narrow, animated: true)
+        // Remembered, because a window that opens the wrong shape every
+        // morning is a window you fold every morning.
+        Config.set("rail", narrow ? "icons" : "list")
+    }
+
+    /// The shape the window opens in, and the shape ⌘B toggles it to.
+    func fold(_ yes: Bool, animated: Bool) {
+        guard narrow != yes else { return }
+        narrow = yes
 
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.14
@@ -4571,6 +4595,10 @@ final class Main: NSObject, NSWindowDelegate {
         chromeLeading.constant = narrow ? 90 : 76
         foldButton.toolTip = narrow ? "Show the list  ⌘B" : "Hide the list  ⌘B"
 
+        guard animated else {
+            window.contentView?.layoutSubtreeIfNeeded()
+            return
+        }
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.22
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
