@@ -2703,7 +2703,8 @@ final class Main: NSObject, NSWindowDelegate {
         if total > 0 {
             let shape = Funnel([(value: total, name: "On the disk"),
                                 (value: used,  name: "In use"),
-                                (value: max(junk, total * 0.004), name: "Worth freeing")])
+                                (value: max(junk, total * 0.004), name: "Worth freeing")],
+                               bytes: true)
             left.addArrangedSubview(shape)
             shape.widthAnchor.constraint(equalTo: left.widthAnchor).isActive = true
         }

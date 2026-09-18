@@ -27,7 +27,10 @@ enum Weave {
     /// Draw this texture inside whatever is currently clipped.
     func draw(in rect: NSRect, colour: NSColor) {
         NSGraphicsContext.saveGraphicsState()
-        NSBezierPath(rect: rect).setClip()
+        // addClip, not setClip. setClip *replaces* the clip, so a texture
+        // drawn inside a wedge threw the wedge away and filled the square —
+        // which is why the ring came out as a block of dots.
+        NSBezierPath(rect: rect).addClip()
         colour.setStroke()
         colour.setFill()
 
@@ -349,7 +352,10 @@ final class Ring: NSView {
 final class Funnel: NSView {
     private let stops: [(value: Double, name: String)]
 
-    init(_ stops: [(value: Double, name: String)]) {
+    /// Whether the numbers are sizes or counts. Without this the disk read
+    /// "228 000 000 000", three readings ran into each other, and the row
+    /// under the shape was unreadable.
+    init(_ stops: [(value: Double, name: String)], bytes: Bool = false) {
         self.stops = stops
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
@@ -371,14 +377,19 @@ final class Funnel: NSView {
             one.alignment = .centerX
             one.spacing = 3
 
-            let big = NSTextField(labelWithString: whole(stop.value))
+            let big = NSTextField(labelWithString: bytes ? size(stop.value)
+                                                          : whole(stop.value))
             big.font = Words.head
+            big.alignment = .center
+            big.lineBreakMode = .byTruncatingTail
             big.textColor = Paint.ink
             one.addArrangedSubview(big)
 
             let name = NSTextField(labelWithString: stop.name)
             name.font = Words.small
             name.textColor = Paint.faint
+            name.alignment = .center
+            name.lineBreakMode = .byTruncatingTail
             one.addArrangedSubview(name)
 
             row.addArrangedSubview(one)

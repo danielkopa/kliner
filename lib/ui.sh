@@ -328,12 +328,20 @@ nimo_meter() {
 }
 
 # nimo_fact <label> <value> [extra]
+# Two spaces after the name, not one.
+#
+# The window tells a fact's name from its value by splitting on two or more
+# spaces, and %-12s only guarantees that while the name is short enough to be
+# padded. "Downloads older" is fifteen characters: it came out with a single
+# space, so the window read the whole line as a name with no value and the
+# fact silently never arrived. One space was the difference between a fact
+# nimo prints and a fact anything can use.
 nimo_fact() {
     if [ -n "${3:-}" ] && nimo_room_for_note; then
-        printf '%s%s%-12s%s %s  %s%s%s\n' "$NIMO_PAD" \
+        printf '%s%s%-12s%s  %s  %s%s%s\n' "$NIMO_PAD" \
             "$NIMO_C_DIM" "$1" "$NIMO_C_RESET" "$2" "$NIMO_C_DIM" "$3" "$NIMO_C_RESET"
     else
-        printf '%s%s%-12s%s %s\n' "$NIMO_PAD" "$NIMO_C_DIM" "$1" "$NIMO_C_RESET" "$2"
+        printf '%s%s%-12s%s  %s\n' "$NIMO_PAD" "$NIMO_C_DIM" "$1" "$NIMO_C_RESET" "$2"
     fi
 }
 
