@@ -1612,12 +1612,13 @@ final class Main: NSObject, NSWindowDelegate {
         window.title = "Kliner"
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
-        // Glass, with a veil of Kliner's own slate over it. Straight glass
-        // took its colour from the wallpaper — on a warm photograph the whole
-        // app went brown — and a flat opaque window threw the depth away with
-        // it. The blur stays; the hue does not reach the page.
-        window.isOpaque = false
-        window.backgroundColor = .clear
+        // No glass. A veil over the blur was supposed to stop the wallpaper's
+        // colour reaching the page, and it did not: inside a vibrant
+        // NSVisualEffectView macOS blends what stands on it with the material
+        // behind, so a cool grey list still went brown over a warm photograph.
+        // Depth is not worth a window that changes colour with the desktop.
+        window.isOpaque = true
+        window.backgroundColor = Paint.veil
         window.isMovableByWindowBackground = true
         window.minSize = NSSize(width: 760, height: 520)
         window.delegate = self
@@ -1688,12 +1689,15 @@ final class Main: NSObject, NSWindowDelegate {
     // MARK: building it
 
     private func build() {
-        let glass = NSVisualEffectView()
-        glass.material = .sidebar
-        glass.blendingMode = .behindWindow
-        glass.state = .followsWindowActiveState
-        window.contentView = glass
-        let content: NSView = glass
+        let ground = Surface(Paint.veil)
+        // Surface turns the autoresizing mask off, because everything else in
+        // the window is laid out with constraints. A content view is not: the
+        // window sets its frame directly, and one with the mask off and no
+        // constraints of its own collapses to nothing.
+        ground.translatesAutoresizingMaskIntoConstraints = true
+        ground.autoresizingMask = [.width, .height]
+        window.contentView = ground
+        let content: NSView = ground
 
         // First thing in, so everything else stands on it: the slate that
         // stops the wallpaper's colour coming through the blur.
@@ -2839,7 +2843,7 @@ final class Main: NSObject, NSWindowDelegate {
         for piece in pieces {
             guard case .row(let label, let value, _, _, _) = piece,
                   !label.isEmpty, weigh(value) != nil else { continue }
-            return bytes(value) != nil
+            return hasUnit(value)
         }
         return true
     }
@@ -4480,6 +4484,21 @@ func size(_ value: Double) -> String {
         return String(format: value / scale >= 10 ? "%.0f %@" : "%.1f %@", value / scale, name)
     }
     return String(format: "%.0f B", value)
+}
+
+/// Whether a figure nimo printed carries a unit.
+///
+/// `2.1 GB` is a size. `142` is a hundred and forty-two things. `bytes` is
+/// deliberately forgiving and reads a bare number as bytes, which is right
+/// when you already know you are holding a size and wrong when you are asking
+/// whether you are — and that is how a desktop with 142 things on it came to
+/// be reported as 284 B, in a column headed Size.
+func hasUnit(_ text: String) -> Bool {
+    let tail = text.trimmingCharacters(in: .whitespaces)
+        .drop { $0.isNumber || $0 == "." || $0 == "," }
+        .trimmingCharacters(in: .whitespaces)
+        .uppercased()
+    return ["B", "KB", "MB", "GB", "TB"].contains(tail)
 }
 
 /// Sizes as nimo prints them, back into numbers, so they can be drawn.
