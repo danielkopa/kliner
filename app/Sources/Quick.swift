@@ -95,61 +95,91 @@ final class QuickRow: NSView {
     var onRun: ((Int) -> Void)?
     var onPoint: ((QuickRow) -> Void)?
 
-    private var lit = false
+    /// Every row is this tall. The menu works its own height out rather than
+    /// measuring, so this is the one place the number lives.
+    static let tall: CGFloat = 46
 
-    init(index: Int, title: String, hint: String, symbol: String) {
+    private var lit = false
+    private let tile = NSView()
+    private let mark = NSImageView()
+    private let figure = NSTextField(labelWithString: "")
+
+    init(index: Int, title: String, command: String, figure said: String, symbol: String) {
         self.index = index
         super.init(frame: .zero)
 
         translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
-        layer?.cornerRadius = 6
+        layer?.cornerRadius = 9
 
-        let picture = NSImageView()
-        if let image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) {
-            image.isTemplate = true
-            picture.image = image
+        // The picture sits in a tile of its own. A bare glyph beside a name
+        // is a bullet; a tile is a thing the row is about.
+        tile.wantsLayer = true
+        tile.layer?.cornerRadius = 8
+        tile.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(tile)
+
+        if let picture = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) {
+            picture.isTemplate = true
+            mark.image = picture
         }
-        picture.contentTintColor = Paint.muted
-        picture.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(picture)
+        mark.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(mark)
 
         let name = NSTextField(labelWithString: title)
-        name.font = Words.body
+        name.font = Words.strong
         name.textColor = Paint.ink
         name.lineBreakMode = .byTruncatingTail
         name.translatesAutoresizingMaskIntoConstraints = false
         addSubview(name)
 
-        let command = NSTextField(labelWithString: hint)
-        command.font = Words.small
-        command.textColor = Paint.faint
-        command.alignment = .right
-        command.lineBreakMode = .byTruncatingHead
-        command.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        command.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(command)
+        // The command the row stands for, under its name. Everything this
+        // window does the terminal does too, and a row that shows
+        // `min desktop` teaches the tool underneath instead of hiding it.
+        let typed = NSTextField(labelWithString: command)
+        typed.font = Words.typed
+        typed.textColor = Paint.faint
+        typed.lineBreakMode = .byTruncatingTail
+        typed.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(typed)
+
+        figure.stringValue = said
+        figure.font = Words.small
+        figure.textColor = Paint.muted
+        figure.alignment = .right
+        figure.lineBreakMode = .byTruncatingHead
+        figure.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
+        figure.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(figure)
 
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 38),
+            heightAnchor.constraint(equalToConstant: QuickRow.tall),
 
-            picture.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
-            picture.centerYAnchor.constraint(equalTo: centerYAnchor),
-            picture.widthAnchor.constraint(equalToConstant: 16),
-            picture.heightAnchor.constraint(equalToConstant: 16),
+            tile.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 9),
+            tile.centerYAnchor.constraint(equalTo: centerYAnchor),
+            tile.widthAnchor.constraint(equalToConstant: 30),
+            tile.heightAnchor.constraint(equalToConstant: 30),
 
-            name.leadingAnchor.constraint(equalTo: picture.trailingAnchor, constant: 10),
-            name.centerYAnchor.constraint(equalTo: centerYAnchor),
+            mark.centerXAnchor.constraint(equalTo: tile.centerXAnchor),
+            mark.centerYAnchor.constraint(equalTo: tile.centerYAnchor),
 
-            command.leadingAnchor.constraint(greaterThanOrEqualTo: name.trailingAnchor, constant: 12),
-            command.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
-            command.centerYAnchor.constraint(equalTo: centerYAnchor),
+            name.leadingAnchor.constraint(equalTo: tile.trailingAnchor, constant: 12),
+            name.topAnchor.constraint(equalTo: topAnchor, constant: 7),
+            name.trailingAnchor.constraint(lessThanOrEqualTo: figure.leadingAnchor, constant: -12),
+
+            typed.leadingAnchor.constraint(equalTo: name.leadingAnchor),
+            typed.topAnchor.constraint(equalTo: name.bottomAnchor, constant: 1),
+            typed.trailingAnchor.constraint(lessThanOrEqualTo: figure.leadingAnchor, constant: -12),
+
+            figure.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            figure.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
+        paint()
     }
 
     required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
 
-    /// The whole row is the button. The label inside it is not.
+    /// The whole row is the button. The labels inside it are not.
     override func hitTest(_ point: NSPoint) -> NSView? {
         bounds.contains(convert(point, from: superview)) ? self : nil
     }
@@ -158,13 +188,12 @@ final class QuickRow: NSView {
         super.updateTrackingAreas()
         for area in trackingAreas { removeTrackingArea(area) }
         addTrackingArea(NSTrackingArea(rect: .zero,
-                                       options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+                                       options: [.mouseEnteredAndExited, .activeAlways,
+                                                 .inVisibleRect],
                                        owner: self, userInfo: nil))
     }
 
     override func mouseEntered(with event: NSEvent) { onPoint?(self) }
-    /// Taking the press as well as the release: a view that only answers
-    /// mouseUp never gets one, because the press went to somebody else.
     override func mouseDown(with event: NSEvent) { }
     override func mouseUp(with event: NSEvent) { onRun?(index) }
 
@@ -184,8 +213,38 @@ final class QuickRow: NSView {
     private func paint() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             self.layer?.backgroundColor = self.lit ? Paint.picked.cgColor : NSColor.clear.cgColor
+            self.tile.layer?.backgroundColor = self.lit ? Paint.hover.cgColor : Paint.track.cgColor
+            self.mark.contentTintColor = self.lit ? Paint.ink : Paint.muted
+            self.figure.textColor = self.lit ? Paint.ink : Paint.muted
         }
     }
+}
+
+/// The small word over a run of rows. Places, then the things that do
+/// something, then the places you can go: a list of ten with no headings is
+/// ten things to read, and with them it is three.
+final class QuickGroup: NSView {
+    static let tall: CGFloat = 27
+
+    init(_ words: String) {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+
+        let name = NSTextField(labelWithString: "")
+        name.attributedStringValue = NSAttributedString(
+            string: words.uppercased(),
+            attributes: [.font: Words.label, .foregroundColor: Paint.faint, .kern: 0.8])
+        name.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(name)
+
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: QuickGroup.tall),
+            name.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            name.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
 }
 
 // MARK: - the panel itself
@@ -225,6 +284,9 @@ final class Quick: NSObject, NSTextFieldDelegate {
 
     private var foot: NSTextField?
     private var rows: [QuickRow] = []
+    /// How many headings are in the list. The menu works its own height out
+    /// rather than measuring it, so it has to know.
+    private var heads = 0
     private var sel = 0
     /// Whether Kliner had a window on the screen before the menu opened. If
     /// it did not, closing the menu hands the screen back to whatever you
@@ -233,6 +295,7 @@ final class Quick: NSObject, NSTextFieldDelegate {
 
     private struct Entry {
         let index: Int
+        let group: String
         let title: String
         let hint: String
         let symbol: String
@@ -313,7 +376,7 @@ final class Quick: NSObject, NSTextFieldDelegate {
     private func make() -> MenuPanel {
         if let panel = panel { return panel }
 
-        let panel = MenuPanel(contentRect: NSRect(x: 0, y: 0, width: 460, height: 260),
+        let panel = MenuPanel(contentRect: NSRect(x: 0, y: 0, width: 560, height: 260),
                               styleMask: [.borderless, .nonactivatingPanel],
                               backing: .buffered, defer: false)
         panel.isOpaque = false
@@ -405,37 +468,60 @@ final class Quick: NSObject, NSTextFieldDelegate {
 
     /// The line along the bottom: what the window last read, then the keys.
     private func tail() -> String {
+        // The promise last, because it is the one line worth reading twice:
+        // this menu is a way in, never a trigger.
         let keys = "↑↓ choose · ⏎ open · esc close"
-        guard let said = headline, !said.isEmpty else { return keys }
-        return said + "  ·  " + keys
+        let vow = "It opens the page — it never runs it"
+        guard let said = headline, !said.isEmpty else { return keys + "   ·   " + vow }
+        return said + "   ·   " + keys + "   ·   " + vow
     }
 
     // MARK: what is in it
 
     private var entries: [Entry] {
-        var out = Action.all.enumerated().map { pair in
-            Entry(index: pair.offset,
-                  title: pair.element.title,
-                  hint: pair.element.arguments.isEmpty
-                        ? "" : "min " + pair.element.arguments.joined(separator: " "),
-                  symbol: pair.element.symbol)
+        // The headings are the window's own: "Your desk", "Your screen", and
+        // the rest, exactly as they read down the side. Somebody who has used
+        // the window once already knows where a row will be.
+        var out = Action.all.enumerated().map { pair -> Entry in
+            let item = pair.element
+            return Entry(index: pair.offset,
+                         group: item.group.isEmpty ? "Kliner" : item.group,
+                         title: item.title,
+                         hint: item.arguments.isEmpty
+                               ? "" : "min " + item.arguments.joined(separator: " "),
+                         symbol: item.symbol)
         }
-        out.append(Entry(index: Action.all.count, title: "Settings",
-                         hint: "", symbol: "gearshape"))
-        return out
+        out.append(Entry(index: Action.all.count, group: "Kliner", title: "Settings",
+                         hint: "What Kliner may touch", symbol: "gearshape"))
+
+        // Rows of one heading together, headings in the order they first
+        // appear, and inside a heading the order the window already uses.
+        // Kliner's own two pages go last: pressing the key is how you reach
+        // somewhere on your Mac, and Home is where you already are.
+        var order: [String: Int] = [:]
+        for entry in out where order[entry.group] == nil {
+            order[entry.group] = order.count
+        }
+        func rank(_ group: String) -> Int {
+            group == "Kliner" ? 99 : (order[group] ?? 0)
+        }
+        return out.sorted { a, b in
+            let one = rank(a.group), two = rank(b.group)
+            return one == two ? a.index < b.index : one < two
+        }
     }
 
     private func matching(_ typed: String) -> [Entry] {
         let want = typed.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let all = entries
-        guard !want.isEmpty else { return Array(all.prefix(6)) }
+        guard !want.isEmpty else { return Array(all.prefix(7)) }
         let hits = all.filter { entry in
             entry.title.lowercased().contains(want)
                 || entry.hint.lowercased().contains(want)
                 || (entry.index < Action.all.count
                     && Action.all[entry.index].blurb.lowercased().contains(want))
         }
-        return Array(hits.prefix(6))
+        return Array(hits.prefix(7))
     }
 
     private func fill(_ typed: String) {
@@ -450,9 +536,21 @@ final class Quick: NSObject, NSTextFieldDelegate {
         rows = []
 
         let hits = matching(typed)
+        var seen = ""
+        heads = 0
         for entry in hits {
-            let row = QuickRow(index: entry.index, title: entry.title,
-                               hint: figures[entry.index] ?? entry.hint,
+            if entry.group != seen {
+                seen = entry.group
+                let head = QuickGroup(entry.group)
+                stack.addArrangedSubview(head)
+                head.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+                heads += 1
+            }
+            // The figure the window last read, when it has one.
+            let row = QuickRow(index: entry.index,
+                               title: entry.title,
+                               command: entry.hint,
+                               figure: figures[entry.index] ?? "",
                                symbol: entry.symbol)
             row.onRun = { [weak self] index in self?.run(index) }
             row.onPoint = { [weak self] row in self?.point(to: row) }
@@ -472,7 +570,8 @@ final class Quick: NSObject, NSTextFieldDelegate {
         }
 
         let count = max(1, rows.count)
-        listHeight?.constant = CGFloat(count) * 38 + CGFloat(count - 1) * 2
+        listHeight?.constant = CGFloat(count) * QuickRow.tall + CGFloat(count - 1) * 2
+            + CGFloat(heads) * (QuickGroup.tall + 2)
 
         sel = 0
         for (i, row) in rows.enumerated() { row.light(i == sel) }
@@ -512,9 +611,10 @@ final class Quick: NSObject, NSTextFieldDelegate {
         // the hairline, the hairline, 8, the rows, 9, the footer, 12 below.
         let count = max(1, rows.count)
         let height: CGFloat = 13 + 22 + 12 + 1 + 8
-            + CGFloat(count) * 38 + CGFloat(count - 1) * 2
+            + CGFloat(count) * QuickRow.tall + CGFloat(count - 1) * 2
+            + CGFloat(heads) * (QuickGroup.tall + 2)
             + 9 + 16 + 12
-        panel.setContentSize(NSSize(width: 460, height: height))
+        panel.setContentSize(NSSize(width: 560, height: height))
         place()
     }
 
