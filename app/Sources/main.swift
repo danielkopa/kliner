@@ -1499,6 +1499,17 @@ final class Main: NSObject, NSWindowDelegate {
     private var wordmark: Wordmark!
     private var groupLabels: [NSTextField] = []
     private var narrow = false
+
+    /// Two things the row along the top says about the window as a whole,
+    /// rather than about the page you happen to be on.
+    private var agePill: Pill!
+    private var modePill: Pill!
+    private var lastRead: Date?
+    private var ageTimer: Timer?
+    /// When on, the buttons on every page read instead of doing. Not a label
+    /// on a promise: `go` takes a different path, so there is no path left
+    /// that changes a file while it is on.
+    private var previewOnly = false
     private var welcoming = false
     /// The rows on the asking page, so each can be told what macOS said
     /// without the page being drawn again underneath them.
@@ -1656,6 +1667,16 @@ final class Main: NSObject, NSWindowDelegate {
         // ⌘K answering from anywhere there is no longer much for a column of
         // names to do. ⌘B opens it, and the choice is remembered.
         if Config.value("rail") != "list" { fold(true, animated: false) }
+        if Config.value("preview") == "on" {
+            previewOnly = true
+            modePill.lit(true)
+        }
+        // Every few seconds, because "scanned 12s ago" that still says 12s a
+        // minute later is worse than not saying it at all.
+        ageTimer?.invalidate()
+        ageTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            self?.sayAge()
+        }
 
         if Config.value("welcomed") != Main.setup {
             welcoming = true
@@ -1802,6 +1823,7 @@ final class Main: NSObject, NSWindowDelegate {
 
         let rolling = NSScrollView()
         rolling.drawsBackground = false
+        rolling.backgroundColor = .clear
         rolling.borderType = .noBorder
         rolling.hasVerticalScroller = true
         rolling.autohidesScrollers = true
@@ -1965,6 +1987,21 @@ final class Main: NSObject, NSWindowDelegate {
         buttons.alignment = .centerY
         buttons.spacing = Step.tight
         buttons.translatesAutoresizingMaskIntoConstraints = false
+        // How old the reading is. A page of figures about a disk is out of
+        // date the moment it is drawn, and a window that does not say so is a
+        // window quietly asking to be believed.
+        let age = Pill("")
+        age.isHidden = true
+        agePill = age
+        buttons.addArrangedSubview(age)
+
+        // And whether the buttons are allowed to do anything.
+        let mode = Pill("Preview only", strong: previewOnly)
+        mode.toolTip = "Read, never change"
+        mode.onClick = { [weak self] in self?.flipPreview() }
+        modePill = mode
+        buttons.addArrangedSubview(mode)
+
         buttons.addArrangedSubview(doIt)
         content.addSubview(buttons)
 
@@ -3166,6 +3203,9 @@ final class Main: NSObject, NSWindowDelegate {
     }
 
     private func draw(_ pieces: [Piece]) {
+        lastRead = Date()
+        sayAge()
+
         for view in report.arrangedSubviews {
             report.removeArrangedSubview(view)
             view.removeFromSuperview()
@@ -4354,6 +4394,14 @@ final class Main: NSObject, NSWindowDelegate {
     private func go() {
         let item = Action.all[chosen]
 
+        // Read, never change. The dialog is skipped because there is nothing
+        // to agree to: the same command runs with --preview and nothing on
+        // the disk moves.
+        if previewOnly {
+            run(item, preview: true)
+            return
+        }
+
         if let question = item.asks {
             let alert = NSAlert()
             alert.messageText = item.verb
@@ -4615,6 +4663,25 @@ final class Main: NSObject, NSWindowDelegate {
 
     @objc func openSettings() {
         show(Action.all.count)
+    }
+
+    /// Turn "read, never change" on or off.
+    private func flipPreview() {
+        previewOnly.toggle()
+        modePill.lit(previewOnly)
+        Config.set("preview", previewOnly ? "on" : "off")
+        primary.set(previewOnly ? "Look only" : Action.all[min(chosen, Action.all.count - 1)].verb)
+    }
+
+    /// "scanned 12s ago", and the same sentence a minute later.
+    private func sayAge() {
+        guard let read = lastRead else { agePill.isHidden = true; return }
+        let gone = Int(Date().timeIntervalSince(read))
+        agePill.isHidden = false
+        if gone < 5        { agePill.set("scanned just now") }
+        else if gone < 90  { agePill.set("scanned \(gone)s ago") }
+        else if gone < 5400 { agePill.set("scanned \(gone / 60)m ago") }
+        else               { agePill.set("scanned \(gone / 3600)h ago") }
     }
 
     /// The menu behind ⌘K hands a page over. It never runs anything itself:
@@ -7500,6 +7567,23 @@ final class Stat: NSView {
 /// above it and its content pushed to the floor. One override fixes the lot.
 final class TopClip: NSClipView {
     override var isFlipped: Bool { true }
+
+    /// And it draws nothing of its own.
+    ///
+    /// This is the brown. A scroll view told `drawsBackground = false` still
+    /// has a clip view inside it that draws, and what it draws is
+    /// `controlBackgroundColor` — a system colour, which macOS tints with the
+    /// desktop wallpaper when "Allow wallpaper tinting in windows" is on. So
+    /// the list down the side came out the colour of whatever photograph was
+    /// behind the window, on a window with no glass left in it, over a slate
+    /// painted specifically to stop exactly this. Every fix aimed at the
+    /// window was aimed at the wrong view.
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        drawsBackground = false
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
 }
 
 // MARK: - thinking

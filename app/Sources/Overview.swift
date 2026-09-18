@@ -188,10 +188,15 @@ final class Framed: NSView {
 
 // MARK: - a pill
 
-/// A fact that belongs to a row but is not its name or its size: how old the
-/// things in it are, whether anything has ever opened them.
+/// A fact that belongs beside something rather than in it: how old a reading
+/// is, whether a mode is on, what a row is besides its name and its size.
+/// Clickable when it is given something to do, and plainly not when it is not.
 final class Pill: NSView {
-    private let strong: Bool
+    var onClick: (() -> Void)?
+
+    private var strong: Bool
+    private let label = NSTextField(labelWithString: "")
+    private var hovering = false
 
     init(_ text: String, strong: Bool = false) {
         self.strong = strong
@@ -199,9 +204,9 @@ final class Pill: NSView {
         translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
 
-        let label = NSTextField(labelWithString: text)
+        label.stringValue = text
         label.font = Words.small
-        label.textColor = strong ? Paint.onAccent : Paint.muted
+        label.lineBreakMode = .byTruncatingTail
         label.translatesAutoresizingMaskIntoConstraints = false
         addSubview(label)
 
@@ -216,17 +221,51 @@ final class Pill: NSView {
 
     required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
 
+    func set(_ text: String) { label.stringValue = text }
+
+    /// Whether whatever this pill stands for is on.
+    func lit(_ yes: Bool) {
+        guard strong != yes else { return }
+        strong = yes
+        paint()
+    }
+
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         paint()
     }
 
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        for area in trackingAreas { removeTrackingArea(area) }
+        guard onClick != nil else { return }
+        addTrackingArea(NSTrackingArea(rect: .zero,
+                                       options: [.mouseEnteredAndExited, .activeInKeyWindow,
+                                                 .inVisibleRect],
+                                       owner: self, userInfo: nil))
+    }
+
+    override func mouseEntered(with event: NSEvent) { hovering = true;  paint() }
+    override func mouseExited(with event: NSEvent)  { hovering = false; paint() }
+    override func mouseDown(with event: NSEvent) { }
+    override func mouseUp(with event: NSEvent) { onClick?() }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        guard onClick != nil else { return nil }
+        return bounds.contains(convert(point, from: superview)) ? self : nil
+    }
+
+    override func resetCursorRects() {
+        if onClick != nil { addCursorRect(bounds, cursor: .pointingHand) }
+    }
+
     private func paint() {
         layer?.cornerRadius = 13
+        label.textColor = strong ? Paint.onAccent : Paint.muted
         effectiveAppearance.performAsCurrentDrawingAppearance {
             self.layer?.backgroundColor = self.strong
                 ? Paint.accent.cgColor
-                : Paint.ink.withAlphaComponent(0.07).cgColor
+                : Paint.ink.withAlphaComponent(self.hovering ? 0.12 : 0.07).cgColor
         }
     }
 }
