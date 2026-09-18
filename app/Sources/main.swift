@@ -1650,6 +1650,12 @@ final class Main: NSObject, NSWindowDelegate {
         super.init()
 
         window.title = "Kliner"
+        // Kliner is drawn as a light window — a grey page with paler cards on
+        // it and one warm colour. Handed to a Mac in dark mode it would come
+        // out as a different design wearing the same layout, so it asks for
+        // the light one whatever the system is set to. Every colour in Paint
+        // still has its dark half, ready for the day this becomes a choice.
+        window.appearance = NSAppearance(named: .aqua)
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         // No glass. A veil over the blur was supposed to stop the wallpaper's
@@ -6941,8 +6947,8 @@ enum Panel {
         let name = NSTextField(labelWithString: "")
         name.attributedStringValue = NSAttributedString(
             string: words,
-            attributes: [.font: Words.cardName,
-                         .foregroundColor: Paint.ink])
+            attributes: [.font: Words.body,
+                         .foregroundColor: Paint.muted])
         name.translatesAutoresizingMaskIntoConstraints = false
         return name
     }
@@ -7137,10 +7143,15 @@ final class Meter: NSView {
 /// things stand before a single row of anything is read.
 final class Metric: NSView {
     init(_ name: String, note: String, big: String,
-         of whole: String? = nil, part: Double? = nil) {
+         of whole: String? = nil, part: Double? = nil, pill: String? = nil) {
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
         Panel.flat(self)
+
+        // No padding: these stand on the page rather than in a card, and a
+        // figure inset from nothing is a figure that does not line up with
+        // the heading above it.
+        let edge: CGFloat = 0
 
         // The name of the figure, and under it the figure. The line of prose
         // that used to sit between them ("Space in use" under "Disk") said
@@ -7156,10 +7167,10 @@ final class Metric: NSView {
         addSubview(number)
 
         NSLayoutConstraint.activate([
-            title.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Panel.pad),
+            title.leadingAnchor.constraint(equalTo: leadingAnchor, constant: edge),
             title.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor,
                                             constant: -Step.tight),
-            title.topAnchor.constraint(equalTo: topAnchor, constant: Panel.pad),
+            title.topAnchor.constraint(equalTo: topAnchor, constant: edge),
 
             number.leadingAnchor.constraint(equalTo: title.leadingAnchor),
             number.topAnchor.constraint(equalTo: title.bottomAnchor, constant: Step.tight),
@@ -7179,7 +7190,19 @@ final class Metric: NSView {
             ])
         } else {
             number.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor,
-                                             constant: -Panel.pad).isActive = true
+                                             constant: -edge).isActive = true
+        }
+
+        // A fact that belongs to the figure but is not the figure, set beside
+        // it rather than under it.
+        if let said = pill {
+            let badge = Pill(said)
+            addSubview(badge)
+            NSLayoutConstraint.activate([
+                badge.leadingAnchor.constraint(equalTo: number.trailingAnchor, constant: 10),
+                badge.centerYAnchor.constraint(equalTo: number.centerYAnchor),
+                badge.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
+            ])
         }
 
         // The word under the number is the one that is worth reading: what
@@ -7244,7 +7267,13 @@ final class Card: NSView {
         translatesAutoresizingMaskIntoConstraints = false
         Panel.soft(self)
 
-        let name = Panel.label(title)
+        // A card's name is a name: sentence case, big enough to be the first
+        // thing read on the card.
+        let name = NSTextField(labelWithString: title)
+        name.font = Words.cardName
+        name.textColor = Paint.ink
+        name.lineBreakMode = .byTruncatingTail
+        name.translatesAutoresizingMaskIntoConstraints = false
         addSubview(name)
 
         body.orientation = .vertical
