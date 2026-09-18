@@ -546,7 +546,10 @@ final class Entry: NSView {
             badge = one
         }
 
-        let stops = badge ?? amount
+        // Not `badge ?? amount`: the two sides are a Pill and an NSTextField,
+        // and ?? wants one type, not the nearest thing both happen to be.
+        var stops: NSView = amount
+        if let one = badge { stops = one }
 
         NSLayoutConstraint.activate([
             mark.leadingAnchor.constraint(equalTo: leadingAnchor),
