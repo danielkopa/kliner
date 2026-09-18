@@ -22,11 +22,13 @@
 	<string>12.0</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
-	<!-- The window is set in Poppins, which travels inside the app: macOS
-	     registers everything in this folder when Kliner launches, so there
-	     is nothing to install and nothing to go missing on somebody else's
-	     Mac. Licensed under the SIL Open Font License; the licence is in
-	     the folder beside them. -->
+	<!-- The window is set in Geist, the face kliner.app is set in, which
+	     travels inside the app: macOS registers everything in this folder
+	     when Kliner launches, so there is nothing to install and nothing to
+	     go missing on somebody else's Mac. Poppins is in there too, as the
+	     fallback for the weights Geist asks for on its variable axis. Both
+	     are under the SIL Open Font License, and both licences travel with
+	     them. -->
 	<key>ATSApplicationFontsPath</key>
 	<string>fonts</string>
 	<key>NSHighResolutionCapable</key>

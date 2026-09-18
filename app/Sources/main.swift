@@ -13,6 +13,7 @@
 //  because a project file is one more thing to drift.
 
 import AppKit
+import CoreText
 import Foundation
 import QuartzCore
 import ServiceManagement
@@ -24,24 +25,41 @@ import UserNotifications
 /// the outside. There are six here, and nothing outside this enum names a
 /// point size.
 enum Words {
-    /// Poppins, which travels inside the app.
+    /// Geist, which travels inside the app.
     ///
     /// The system font is the right answer for a window that wants to look
     /// like part of macOS. This one does not: it is drawn to a design, and a
     /// design set in the system font is a design wearing somebody else's
-    /// voice. Poppins is geometric — circular o, pointed v, a single-storey
-    /// g — which is the shape the drawing was made in.
+    /// voice.
     ///
-    /// Never force-unwrapped. If the file is ever missing from the bundle the
-    /// window falls back to the system font and is plain rather than broken.
+    /// Geist rather than the geometric face that was here before, for two
+    /// reasons: it is the face kliner.app is already set in, so the window
+    /// and the site stop being two different products; and the drawing this
+    /// follows is a neutral grotesk, not a geometric one — its o is an
+    /// ellipse, not a circle.
     private static func face(_ size: CGFloat, _ weight: NSFont.Weight) -> NSFont {
-        let name: String
+        let want: CGFloat
+        let backup: String
         switch weight {
-        case .semibold, .bold, .heavy, .black: name = "Poppins-SemiBold"
-        case .medium:                          name = "Poppins-Medium"
-        default:                               name = "Poppins-Regular"
+        case .semibold, .bold, .heavy, .black: want = 600; backup = "Poppins-SemiBold"
+        case .medium:                          want = 500; backup = "Poppins-Medium"
+        default:                               want = 400; backup = "Poppins-Regular"
         }
-        return NSFont(name: name, size: size) ?? NSFont.systemFont(ofSize: size, weight: weight)
+
+        // Geist is one file with a weight axis in it rather than one file per
+        // weight, so the weight is asked for rather than picked. 'wght' as a
+        // four-character code is 0x77676874.
+        let described = NSFontDescriptor(fontAttributes: [
+            .family: "Geist",
+            NSFontDescriptor.AttributeName(kCTFontVariationAttribute as String): [0x77676874: want],
+        ])
+        if let cut = NSFont(descriptor: described, size: size) { return cut }
+
+        // Three ways down, each one a real typeface before it gives up: the
+        // axis may not take, and a window that loses its font should look
+        // plain rather than broken.
+        if let still = NSFont(name: backup, size: size) { return still }
+        return NSFont.systemFont(ofSize: size, weight: weight)
     }
 
     /// The name of the page, in the row along the top, on the same line as
@@ -145,69 +163,62 @@ enum Paint {
         }
     }
 
-    // ---- the surfaces, lightest first --------------------------------------
+    // ---- the surfaces, darkest first ---------------------------------------
     //
-    // Kliner is a light window with one warm colour in it. The ground is a
-    // grey you can tell from the cards standing on it; the cards are the
-    // lighter thing, because a card darker than the page reads as a hole.
+    // Back to a dark window with no colour in it. The warm one was drawn to a
+    // different reference; this one is the drawing Kliner is actually for,
+    // and it is the one the site is in.
     /// The window's own ground.
-    static let veil = duo(0xE9E8E6, 0x121211)
-    /// The side of the window. The same ground: the list stands on the page
-    /// rather than in a compartment of its own.
-    static let rail   = duo(0xE9E8E6, 0x121211)
-    /// A card standing on the ground.
-    static let card   = duo(0xF6F5F3, 0x1C1C1B)
+    static let veil   = duo(0xF4F4F3, 0x0A0A0A)
+    /// The side of the window: the same ground.
+    static let rail   = duo(0xF4F4F3, 0x0A0A0A)
+    /// A card standing on it, barely lighter — the hairline does the telling.
+    static let card   = duo(0xFFFFFF, 0x101010)
     /// And a panel standing on that card is lighter again.
-    static let panel  = duo(0xFFFFFF, 0x242423)
+    static let panel  = duo(0xFFFFFF, 0x151515)
     /// Kept for anything measured against the page rather than drawn on it.
-    static let ground = duo(0xF1F0EE, 0x181817)
+    static let ground = duo(0xFAFAF9, 0x0D0D0D)
 
-    static let line   = duo(0xE4E2DE, 0x2E2E2C)
-    static let hover  = duo(0xEDECE9, 0x272726)
+    static let line   = duo(0xE6E5E2, 0x1F1F1F)
+    static let hover  = duo(0xF0EFED, 0x181818)
     /// The row you are on, and the fill under anything chosen.
-    static let picked = duo(0xE6E4E0, 0x2B2B29)
+    static let picked = duo(0xE9E8E5, 0x1C1C1C)
     /// The unlit half of anything that fills, and the ground under a chip.
-    static let track  = duo(0xEAE8E4, 0x2A2A28)
+    static let track  = duo(0xECEBE8, 0x1A1A1A)
 
     // ---- what is written on them -------------------------------------------
-    static let ink    = duo(0x171614, 0xF7F6F4)
-    static let body   = duo(0x3A3835, 0xC9C7C3)
-    static let muted  = duo(0x7A7772, 0x94918C)
-    static let faint  = duo(0xA9A6A0, 0x6E6B67)
+    static let ink    = duo(0x121212, 0xEDEDED)
+    static let body   = duo(0x333333, 0xC4C4C4)
+    static let muted  = duo(0x6F6F6F, 0x8A8A8A)
+    static let faint  = duo(0x9B9B9B, 0x5A5A5A)
 
-    /// One warm colour, and nothing else.
+    /// The window has no colour in it.
     ///
-    /// Every dashboard reaches for a hue and then puts it on the button, the
-    /// selected row, the first bar of the chart and the icon beside a job —
-    /// four coloured things, which is four things shouting. There is one here,
-    /// and it is spent in one place at a time. Everything that would have been
-    /// a second and a third colour is a *texture* instead: the same orange,
-    /// hatched, dotted, barred. A breakdown in five hues is a chart to be
-    /// decoded; the same breakdown in five weaves is read in order.
-    static let accent   = duo(0xC2510D, 0xE2721C)
-    static let onAccent = duo(0xFFFFFF, 0xFFFFFF)
-    /// The two steps down from it, for a breakdown that wants three.
-    static let accentMid  = duo(0xE8761F, 0xC9631A)
-    static let accentSoft = duo(0xF6B183, 0x8F4715)
-    /// Better than it was. The only other colour in the window, and it is
-    /// never the thing you look at first.
-    static let better   = duo(0x1E9E63, 0x35B87A)
+    /// What is brighter matters and what is dimmer does not, and everything
+    /// that would have been a second hue is a *texture* — the same grey
+    /// hatched, dotted, barred. A breakdown in five colours is a chart to be
+    /// decoded; the same breakdown in five weaves is read in the order it is
+    /// drawn, and it survives being printed, screenshotted, or looked at by
+    /// somebody who cannot tell one colour from another.
+    static let accent   = duo(0x121212, 0xF2F2F2)
+    static let onAccent = duo(0xFFFFFF, 0x0A0A0A)
+
+    /// The only two coloured things in the window, and they are never what
+    /// you look at first: up and down. A number that moved says which way in
+    /// its own colour, because that is the one reading where the direction
+    /// matters more than the figure.
+    static let better = duo(0x179A62, 0x3FCF8E)
+    static let worse  = duo(0xC93C4A, 0xF0616D)
+
     /// A lift rather than a tint: the same light the card is made of, a
     /// little more of it.
-    static let wash     = duo(0x000000, 0xFFFFFF).withAlphaComponent(0.05)
+    static let wash   = duo(0x000000, 0xFFFFFF).withAlphaComponent(0.06)
 
-    /// A breakdown drawn in five hues is a chart to be decoded. Drawn as one
-    /// light falling away it is the same reading, in order, and the eye
-    /// starts at the biggest slice without being told to.
+    /// A breakdown drawn as one light falling away: the same reading, in
+    /// order, and the eye starts at the biggest slice without being told to.
     static func band(_ i: Int) -> NSColor {
-        switch i {
-        case 0:  return accent
-        case 1:  return accentMid
-        case 2:  return accentSoft
-        default: break
-        }
-        let steps: [CGFloat] = [0.34, 0.26, 0.20, 0.15, 0.11]
-        return ink.withAlphaComponent(i - 3 < steps.count ? steps[i - 3] : 0.09)
+        let steps: [CGFloat] = [0.92, 0.68, 0.50, 0.37, 0.28, 0.21, 0.16]
+        return ink.withAlphaComponent(i < steps.count ? steps[i] : 0.12)
     }
 
     /// The one button, and the words on it.
@@ -1665,12 +1676,6 @@ final class Main: NSObject, NSWindowDelegate {
         super.init()
 
         window.title = "Kliner"
-        // Kliner is drawn as a light window — a grey page with paler cards on
-        // it and one warm colour. Handed to a Mac in dark mode it would come
-        // out as a different design wearing the same layout, so it asks for
-        // the light one whatever the system is set to. Every colour in Paint
-        // still has its dark half, ready for the day this becomes a choice.
-        window.appearance = NSAppearance(named: .aqua)
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         // No glass. A veil over the blur was supposed to stop the wallpaper's
@@ -6932,8 +6937,8 @@ func leaded(_ text: String, _ font: NSFont, _ colour: NSColor) -> NSAttributedSt
 /// rounded a little more than the next is a window somebody assembled rather
 /// than drew.
 enum Panel {
-    static let round: CGFloat = 22
-    static let pad: CGFloat = 22
+    static let round: CGFloat = 16
+    static let pad: CGFloat = 20
 
     static func dress(_ view: NSView) {
         view.wantsLayer = true
@@ -6970,19 +6975,22 @@ enum Panel {
     static func soft(_ view: NSView) {
         view.wantsLayer = true
         view.layer?.cornerRadius = round
-        view.layer?.borderWidth = 0
+        view.layer?.borderWidth = 1
         view.layer?.masksToBounds = false
-        view.layer?.shadowOpacity = 1
-        view.layer?.shadowRadius = 10
-        view.layer?.shadowOffset = CGSize(width: 0, height: -1)
+        view.layer?.shadowOpacity = 0
         colour(view)
     }
 
+    /// A card is a hairline and a corner, not a slab.
+    ///
+    /// On a dark page a filled card has to be lighter than the ground to be
+    /// seen at all, and six of those read as six tiles floating over
+    /// something. A barely-lighter fill with one hairline round it reads as a
+    /// card without any of them shouting.
     static func colour(_ view: NSView) {
         view.effectiveAppearance.performAsCurrentDrawingAppearance {
             view.layer?.backgroundColor = Paint.card.cgColor
-            view.layer?.shadowColor = NSColor.black
-                .withAlphaComponent(dark(view) ? 0.28 : 0.05).cgColor
+            view.layer?.borderColor = Paint.line.cgColor
         }
     }
 
@@ -7040,9 +7048,7 @@ final class Bars: NSView {
             // Round like a lozenge, not like a brick with the corners taken
             // off: a bar chart where the bars are soft reads as a picture of
             // quantities rather than as a table stood on end.
-            pole.layer?.cornerRadius = 11
-            pole.layer?.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner,
-                                         .layerMinXMinYCorner, .layerMaxXMinYCorner]
+            pole.layer?.cornerRadius = 4
             pole.layer?.backgroundColor = Paint.band(min(i, 6)).cgColor
             pole.toolTip = asBytes ? "\(part.name)  \(size(part.size))"
                                    : "\(part.name)  \(Int(part.size.rounded()))"
@@ -7552,7 +7558,7 @@ final class Split: NSView {
         for part in self.parts {
             let piece = NSView()
             piece.wantsLayer = true
-            piece.layer?.cornerRadius = 12
+            piece.layer?.cornerRadius = 5
             piece.layer?.backgroundColor = part.colour.cgColor
             addSubview(piece)
             pieces.append(piece)
