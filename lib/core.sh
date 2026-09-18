@@ -309,6 +309,49 @@ nimo_kb_to_bytes() { awk -v k="${1:-0}" 'BEGIN {printf "%.0f", k * 1024}'; }
 # moved 137, because it was also counting the dotfiles Finder hides and the
 # folder nimo itself had made to tidy into. A count nobody can reproduce by
 # looking is worse than no count.
+# nimo_older_count <dir> <days> -> how many things sitting directly in it
+# have not been touched in that long. Shallow on purpose: what is loose in a
+# folder is the question, not what is buried in the folders inside it.
+nimo_older_count() {
+    [ -d "${1:-}" ] || { printf '0'; return 0; }
+    find "$1" -mindepth 1 -maxdepth 1 -mtime "+${2:-30}" 2>/dev/null \
+        | wc -l | tr -d ' '
+}
+
+# nimo_month_counts -> twelve numbers, oldest first, comma separated.
+#
+# How many things on the desktop and in downloads were last changed in each of
+# the last twelve months. Last *changed*, not last opened: macOS keeps a
+# last-used date in Spotlight, but reading it means one mdls per file and that
+# is minutes, not milliseconds. Modification time is honest, free, and answers
+# the question anybody actually has — when did this pile build up.
+#
+# find -mtime, not stat: the one that spells the same on BSD and on GNU.
+nimo_month_counts() {
+    local desk down i lo hi n d out=""
+    desk=$(nimo_desktop_dir)
+    down=$(nimo_downloads_dir)
+    for i in 11 10 9 8 7 6 5 4 3 2 1 0; do
+        lo=$((i * 30))
+        hi=$(((i + 1) * 30))
+        n=0
+        for d in "$desk" "$down"; do
+            [ -d "$d" ] || continue
+            if [ "$i" -eq 0 ]; then
+                # +0 means "more than a day old", which drops today.
+                n=$((n + $(find "$d" -mindepth 1 -maxdepth 1 -mtime "-$hi" \
+                    2>/dev/null | wc -l | tr -d ' ')))
+            else
+                n=$((n + $(find "$d" -mindepth 1 -maxdepth 1 -mtime "+$lo" \
+                    -mtime "-$hi" 2>/dev/null | wc -l | tr -d ' ')))
+            fi
+        done
+        out="$out$n"
+        [ "$i" -gt 0 ] && out="$out,"
+    done
+    printf '%s' "$out"
+}
+
 nimo_count_dir_items() {
     [ -d "$1" ] || { printf '0'; return 0; }
     local item name n=0

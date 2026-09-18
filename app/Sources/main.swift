@@ -2772,6 +2772,57 @@ final class Main: NSObject, NSWindowDelegate {
             side.addArrangedSubview(ringRow)
             ringRow.widthAnchor.constraint(equalTo: side.widthAnchor).isActive = true
 
+            // Twelve months of the pile building up — but only if nimo said so.
+            // Last *changed*, not last opened: macOS keeps a last-used date in
+            // Spotlight and reading it means one mdls per file, which is
+            // minutes. This is free, true, and answers the question anybody
+            // has, which is when all this arrived.
+            let months = (figures["Months"] ?? "")
+                .split(separator: ",")
+                .compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
+            if months.count == 12, months.contains(where: { $0 > 0 }) {
+                side.setCustomSpacing(30, after: ringRow)
+
+                let strip = NSStackView()
+                strip.orientation = .horizontal
+                strip.spacing = 12
+                let stripName = NSTextField(labelWithString: "Last changed")
+                stripName.font = Words.body
+                stripName.textColor = Paint.muted
+                strip.addArrangedSubview(stripName)
+                strip.addArrangedSubview(stretch())
+
+                // The key is the thing itself, four cells of it, so there is
+                // nothing to learn before the strip can be read.
+                let fewer = NSTextField(labelWithString: "fewer")
+                fewer.font = Words.small
+                fewer.textColor = Paint.faint
+                strip.addArrangedSubview(fewer)
+                strip.addArrangedSubview(Scale())
+                let more = NSTextField(labelWithString: "more")
+                more.font = Words.small
+                more.textColor = Paint.faint
+                strip.addArrangedSubview(more)
+
+                side.addArrangedSubview(strip)
+                strip.widthAnchor.constraint(equalTo: side.widthAnchor).isActive = true
+                side.setCustomSpacing(12, after: strip)
+
+                let shape = DateFormatter()
+                shape.dateFormat = "MMM"
+                var names: [String] = []
+                for back in stride(from: 11, through: 0, by: -2) {
+                    if let when = Calendar.current.date(byAdding: .month,
+                                                        value: -back, to: Date()) {
+                        names.append(shape.string(from: when))
+                    }
+                }
+
+                let heat = Heat(months, months: names)
+                side.addArrangedSubview(heat)
+                heat.widthAnchor.constraint(equalTo: side.widthAnchor).isActive = true
+            }
+
             head.addArrangedSubview(side)
             side.widthAnchor.constraint(equalToConstant: 392).isActive = true
         }
@@ -2794,11 +2845,12 @@ final class Main: NSObject, NSWindowDelegate {
 
         var left_ = 0
         func entry(_ weave: Weave, _ name: String, _ command: String, _ blurb: String,
-                   figure: String, done: Bool, verb: String, page: Int) {
+                   figure: String, done: Bool, verb: String, page: Int,
+                   pill: String? = nil) {
             if !done { left_ += 1 }
             let first = !done && left_ == 1
             let one = Entry(weave: weave, name: name, command: command, blurb: blurb,
-                            pill: nil, figure: figure,
+                            pill: pill, figure: figure,
                             verb: done ? nil : verb, strong: first)
             one.onOpen = { [weak self] in self?.show(page) }
             one.onDo = { [weak self] in self?.startOn(page) }
@@ -2829,13 +2881,15 @@ final class Main: NSObject, NSWindowDelegate {
               "Everything loose on it moves into one dated folder, sorted by what it "
             + "is. Nothing is renamed and nothing is lost.",
               figure: figures["Desktop"] ?? "nothing on it",
-              done: count("Desktop") == 0, verb: "Clear it", page: 1)
+              done: count("Desktop") == 0, verb: "Clear it", page: 1,
+              pill: figures["Desktop older"])
 
         entry(.back, "Downloads", "min downloads",
               "The folder everything lands in and nothing ever leaves, sorted the "
             + "same way.",
               figure: figures["Downloads"] ?? "nothing in it",
-              done: count("Downloads") == 0, verb: "Sort it", page: 2)
+              done: count("Downloads") == 0, verb: "Sort it", page: 2,
+              pill: figures["Downloads older"])
 
         entry(.dots, "Worth freeing", "min clean",
               "Caches, old installers and the trash. The trash is the only thing "

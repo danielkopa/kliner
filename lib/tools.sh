@@ -283,6 +283,23 @@ nimo_cmd_doctor() {
     nimo_blank
     nimo_fact "Desktop" "$(nimo_plural "$(nimo_count_dir_items "$(nimo_desktop_dir)")" item)"
     nimo_fact "Downloads" "$(nimo_plural "$(nimo_count_dir_items "$(nimo_downloads_dir)")" item)"
+
+    # How much of that has just been sitting there. A count on its own says
+    # how full a folder is; the same count with "and most of it a month old"
+    # beside it says whether that is a problem. Both are shallow finds and
+    # cost nothing.
+    local nimo_desk_old nimo_down_old
+    nimo_desk_old=$(nimo_older_count "$(nimo_desktop_dir)" 30)
+    nimo_down_old=$(nimo_older_count "$(nimo_downloads_dir)" 30)
+    [ "${nimo_desk_old:-0}" -gt 0 ] \
+        && nimo_fact "Desktop older" "$nimo_desk_old over 30 days"
+    [ "${nimo_down_old:-0}" -gt 0 ] \
+        && nimo_fact "Downloads older" "$nimo_down_old over 30 days"
+
+    # Twelve numbers the window draws as a strip. Printed only for the window:
+    # a row of commas is no use to somebody reading this in a terminal.
+    [ "${NIMO_FROM_APP:-0}" = "1" ] \
+        && nimo_fact "Months" "$(nimo_month_counts)"
     # One source for what is in the bin, whatever this system calls it.
     if nimo_has_trash; then
         if [ "$(nimo_platform)" = "windows" ]; then

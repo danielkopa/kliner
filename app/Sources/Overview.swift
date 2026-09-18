@@ -663,3 +663,36 @@ func stretch() -> NSView {
     air.setContentCompressionResistancePriority(.init(1), for: .horizontal)
     return air
 }
+
+/// The key for the heat strip: four cells of the thing itself, faint to full.
+/// A key drawn in the same marks as the chart needs no explaining; a key drawn
+/// in words needs reading first.
+final class Scale: NSView {
+    init() {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            widthAnchor.constraint(equalToConstant: 58),
+            heightAnchor.constraint(equalToConstant: 12),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
+    override func draw(_ dirty: NSRect) {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            let gap: CGFloat = 3
+            let w = (self.bounds.width - gap * 3) / 4
+            for i in 0 ..< 4 {
+                Paint.ink.withAlphaComponent(0.16 + Double(i) * 0.26).setFill()
+                NSBezierPath(rect: NSRect(x: (w + gap) * CGFloat(i), y: 0,
+                                          width: w, height: self.bounds.height)).fill()
+            }
+        }
+    }
+}
