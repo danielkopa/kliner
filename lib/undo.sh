@@ -124,7 +124,10 @@ nimo_cmd_undo() {
             *)       lines="" ;;
         esac
 
-        labels="$labels$(printf '%-22s %-18s %s' "$label" "$when" "$lines")
+        # Two spaces between the columns, for the same reason nimo_fact has
+        # them: anything reading this back splits on two or more, and %-22s
+        # only holds that apart while the label is short enough to be padded.
+        labels="$labels$(printf '%-22s  %-18s  %s' "$label" "$when" "$lines")
 "
         actions="${actions}${kind}	$f
 "
