@@ -2668,6 +2668,51 @@ final class Main: NSObject, NSWindowDelegate {
             6: junk > 0 ? size(junk) : "",
         ].filter { !$0.value.isEmpty }
 
+        // ---- the name of the page, once, big -------------------------------
+        //
+        // The trail along the top says where you are among the pages. This
+        // says what you are looking at, and it is the first thing on it.
+        let heading = NSTextField(labelWithString: "Overview")
+        heading.font = Words.page
+        heading.textColor = Paint.ink
+        heading.translatesAutoresizingMaskIntoConstraints = false
+        line(heading)
+        gap(Step.close)
+
+        // ---- four readings, standing on the page ----------------------------
+        //
+        // Not in cards. Four figures each in a box of its own is four boxes;
+        // standing on the page they read as one row of readings, which is
+        // what they are.
+        let across = NSStackView()
+        across.orientation = .horizontal
+        across.distribution = .fillEqually
+        across.alignment = .top
+        across.spacing = Step.wide
+        across.translatesAutoresizingMaskIntoConstraints = false
+
+        if total > 0 {
+            across.addArrangedSubview(Metric("Disk", note: "", big: size(used),
+                                             of: size(total), part: used / total,
+                                             pill: "\(Int((used / total * 100).rounded()))% used"))
+            across.addArrangedSubview(Metric("Free", note: "", big: size(free),
+                                             part: free / total,
+                                             pill: junk > 0 ? size(junk) + " to spare" : nil))
+        }
+        if figures["Desktop"] != nil {
+            across.addArrangedSubview(Metric("Desktop", note: "", big: String(count("Desktop")),
+                                             pill: figures["Desktop older"]))
+        }
+        if figures["Downloads"] != nil {
+            across.addArrangedSubview(Metric("Downloads", note: "",
+                                             big: String(count("Downloads")),
+                                             pill: figures["Downloads older"]))
+        }
+        if !across.arrangedSubviews.isEmpty {
+            line(across)
+            gap(Step.wide)
+        }
+
         // ---- the one number, and where the room is ---------------------------
         let head = NSStackView()
         head.orientation = .horizontal
