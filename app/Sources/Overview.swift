@@ -397,11 +397,42 @@ final class Funnel: NSView {
             row.addArrangedSubview(one)
         }
 
+        // What is left by each stop, as a share of what went in, sitting on
+        // the shape rather than under it. The shape says a lot goes and the
+        // number says how much — one is no use without the other.
+        let marks = NSStackView()
+        marks.orientation = .horizontal
+        marks.distribution = .fillEqually
+        marks.alignment = .centerY
+        marks.spacing = 0
+        marks.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(marks)
+
+        let first = stops.first?.value ?? 0
+        for stop in stops {
+            let cell = NSStackView()
+            cell.orientation = .horizontal
+            cell.alignment = .centerY
+            cell.addArrangedSubview(stretch())
+            let share = first > 0 ? stop.value / first * 100 : 0
+            cell.addArrangedSubview(Pill(String(Int(share.rounded())) + "%",
+                                         strong: stop.value == first))
+            cell.addArrangedSubview(stretch())
+            marks.addArrangedSubview(cell)
+        }
+
         NSLayoutConstraint.activate([
             row.leadingAnchor.constraint(equalTo: leadingAnchor),
             row.trailingAnchor.constraint(equalTo: trailingAnchor),
             row.bottomAnchor.constraint(equalTo: bottomAnchor),
             row.heightAnchor.constraint(equalToConstant: 42),
+
+            marks.leadingAnchor.constraint(equalTo: leadingAnchor),
+            marks.trailingAnchor.constraint(equalTo: trailingAnchor),
+            // The shape is drawn from y 52 for 112 points in a view 176 tall,
+            // so its middle is 68 down from the top; half a pill above that
+            // puts the pills through the middle of the band.
+            marks.topAnchor.constraint(equalTo: topAnchor, constant: 55),
         ])
     }
 
@@ -709,4 +740,88 @@ final class Scale: NSView {
             }
         }
     }
+}
+
+// MARK: - a bar made of dashes
+
+/// A share, drawn as a row of dashes with the first so many lit.
+///
+/// A solid bar beside a solid bar beside a solid bar is three solid bars, and
+/// the eye has to measure them against each other. Dashes count: the lit ones
+/// are a number you can read at a glance without a scale under them.
+final class Dots: NSView {
+    private let share: Double
+
+    init(_ share: Double) {
+        self.share = max(0, min(1, share))
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        heightAnchor.constraint(equalToConstant: 6).isActive = true
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
+    override func draw(_ dirty: NSRect) {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            let wide: CGFloat = 5, gap: CGFloat = 3
+            let many = max(1, Int((self.bounds.width + gap) / (wide + gap)))
+            // Round up, so any share above nothing lights at least one dash:
+            // a bar that reads empty for a real number is a bar that lies.
+            let lit = self.share > 0 ? max(1, Int((Double(many) * self.share).rounded(.up))) : 0
+            for i in 0 ..< many {
+                let x = CGFloat(i) * (wide + gap)
+                Paint.ink.withAlphaComponent(i < lit ? 0.82 : 0.14).setFill()
+                NSBezierPath(roundedRect: NSRect(x: x, y: 1.5, width: wide, height: 3),
+                             xRadius: 1.5, yRadius: 1.5).fill()
+            }
+        }
+    }
+}
+
+// MARK: - which way it went
+
+/// A figure that moved, and the direction in its own colour.
+///
+/// The only two coloured things in the window. A change is the one reading
+/// where the direction matters more than the number, so the direction is what
+/// carries the colour and the number stays the size of everything else.
+final class Moved: NSView {
+    init(by share: Double, saying: String) {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+
+        let up = share >= 0
+        let arrow = NSTextField(labelWithString: up ? "\u{2191}" : "\u{2193}")
+        arrow.font = Words.small
+        arrow.textColor = up ? Paint.worse : Paint.better
+        arrow.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(arrow)
+
+        // Up is not good news here. More arriving than last month means the
+        // pile is growing, so the arrow that points up is the red one —
+        // which is the opposite of a sales chart and the right way round for
+        // a tidying tool.
+        let said = NSTextField(labelWithString: saying)
+        said.font = Words.small
+        said.textColor = Paint.muted
+        said.lineBreakMode = .byTruncatingTail
+        said.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(said)
+
+        NSLayoutConstraint.activate([
+            arrow.leadingAnchor.constraint(equalTo: leadingAnchor),
+            arrow.centerYAnchor.constraint(equalTo: centerYAnchor),
+            said.leadingAnchor.constraint(equalTo: arrow.trailingAnchor, constant: 4),
+            said.trailingAnchor.constraint(equalTo: trailingAnchor),
+            said.centerYAnchor.constraint(equalTo: centerYAnchor),
+            heightAnchor.constraint(equalToConstant: 18),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
 }

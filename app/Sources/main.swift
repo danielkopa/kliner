@@ -2837,6 +2837,11 @@ final class Main: NSObject, NSWindowDelegate {
             keys.alignment = .leading
             keys.spacing = 12
             for (i, band) in bands.enumerated() {
+                let one = NSStackView()
+                one.orientation = .vertical
+                one.alignment = .leading
+                one.spacing = 6
+
                 let row = NSStackView()
                 row.orientation = .horizontal
                 row.alignment = .centerY
@@ -2851,8 +2856,16 @@ final class Main: NSObject, NSWindowDelegate {
                 much.font = Words.body
                 much.textColor = Paint.ink
                 row.addArrangedSubview(much)
-                keys.addArrangedSubview(row)
-                row.widthAnchor.constraint(equalTo: keys.widthAnchor).isActive = true
+                one.addArrangedSubview(row)
+
+                // The share again, counted rather than measured.
+                let dashes = Dots(band.size / (total > 0 ? total : 1))
+                one.addArrangedSubview(dashes)
+
+                keys.addArrangedSubview(one)
+                one.widthAnchor.constraint(equalTo: keys.widthAnchor).isActive = true
+                row.widthAnchor.constraint(equalTo: one.widthAnchor).isActive = true
+                dashes.widthAnchor.constraint(equalTo: one.widthAnchor).isActive = true
             }
             ringRow.addArrangedSubview(keys)
             side.addArrangedSubview(ringRow)
@@ -2876,6 +2889,21 @@ final class Main: NSObject, NSWindowDelegate {
                 stripName.font = Words.body
                 stripName.textColor = Paint.muted
                 strip.addArrangedSubview(stripName)
+
+                // This month against the one before it, from the same twelve
+                // numbers the strip is drawn from. Only said when there is
+                // something to say: a month with nothing in it makes every
+                // percentage infinite.
+                let now = months[11], before = months[10]
+                if before > 0, now > 0 {
+                    let by = (now - before) / before
+                    if abs(by) >= 0.05 {
+                        strip.addArrangedSubview(Moved(
+                            by: by,
+                            saying: String(Int((abs(by) * 100).rounded())) + "% "
+                                  + (by >= 0 ? "more" : "less") + " than last month"))
+                    }
+                }
                 strip.addArrangedSubview(stretch())
 
                 // The key is the thing itself, four cells of it, so there is
