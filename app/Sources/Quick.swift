@@ -14,7 +14,9 @@
 //
 
 import AppKit
-import Carbon.HIToolbox
+import Foundation
+import QuartzCore
+import Carbon
 
 // MARK: - the key combination
 
@@ -161,6 +163,9 @@ final class QuickRow: NSView {
     }
 
     override func mouseEntered(with event: NSEvent) { onPoint?(self) }
+    /// Taking the press as well as the release: a view that only answers
+    /// mouseUp never gets one, because the press went to somebody else.
+    override func mouseDown(with event: NSEvent) { }
     override func mouseUp(with event: NSEvent) { onRun?(index) }
 
     override func resetCursorRects() { addCursorRect(bounds, cursor: .pointingHand) }
@@ -243,8 +248,8 @@ final class Quick: NSObject, NSTextFieldDelegate {
         }
     }
 
-    /// Whether the key was taken. The window says so in Settings if it was
-    /// not, rather than leaving somebody pressing a key that does nothing.
+    /// Whether macOS gave us the key. Something else may already hold it,
+    /// in which case the mark in the menu bar is the whole of the way in.
     var hotkeyWorks: Bool { hotkey != nil }
 
     @objc private func tapped() { toggle() }

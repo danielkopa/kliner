@@ -115,13 +115,16 @@ enum Paint {
     /// Over the blur, so the window keeps the depth of glass without taking
     /// the wallpaper's colour with it. Straight glass went brown over a warm
     /// photograph; this is a cool grey, thin enough to see through.
-    static let veil = duo(0xEBEEF1, 0x24282C).withAlphaComponent(0.80)
+    /// Opaque, on purpose. At 80% a warm wallpaper came through the blur
+    /// and the whole window went brown — the thing the comment above was
+    /// written about, still happening. Nothing shows through now.
+    static let veil = duo(0xF6F7F8, 0x0F1113)
     /// The list stands on the veil, so this is only a name for the same
     /// thing: what the side of the window is.
-    static let rail   = duo(0xE7EAEE, 0x25292D)
+    static let rail   = duo(0xF6F7F8, 0x0F1113)
     /// The work sits on one card, and the card is the *lighter* thing. A page
     /// darker than the frame round it reads as a hole in the window.
-    static let card   = duo(0xFFFFFF, 0x33373D).withAlphaComponent(0.88)
+    static let card   = duo(0xFCFCFD, 0x131518)
     /// And a panel standing on that card is lighter again.
     static let panel  = duo(0xFFFFFF, 0x383C42)
     /// Kept for anything measured against the page rather than drawn on it.
@@ -3593,7 +3596,8 @@ final class Main: NSObject, NSWindowDelegate {
     /// The keys, where somebody looking for them would look.
     private func keys() -> [Sheet.Line] {
         [.over("Keys"),
-         Sheet.Line("Search the list", note: "⌘K"),
+         Sheet.Line("Search the list", note: "⌘F"),
+         Sheet.Line("The quick menu, from anywhere", note: "⌘K"),
          Sheet.Line("Ask this page again", note: "⌘R"),
          Sheet.Line("Show the introduction", note: "⌘F"),
          Sheet.Line("Hide the list", note: "⌘B"),
@@ -3940,7 +3944,8 @@ final class Main: NSObject, NSWindowDelegate {
             ("Back where you came from", "⌘["),
             ("Forward again", "⌘]"),
             ("Hide the list", "⌘B"),
-            ("Search the list", "⌘K"),
+            ("Search the list", "⌘F"),
+            ("The quick menu, from anywhere", "⌘K"),
         ])
 
         card("On the page", over: "Key", [
@@ -5706,7 +5711,7 @@ final class Seek: NSView, NSTextFieldDelegate {
 
     private let field = NSTextField()
     private let glass = NSImageView()
-    private let badge = NSTextField(labelWithString: "⌘K")
+    private let badge = NSTextField(labelWithString: "⌘F")
 
     init() {
         super.init(frame: .zero)
@@ -6474,6 +6479,20 @@ enum Panel {
         paint(view)
     }
 
+    /// A section of a page, drawn the way the site draws it: no box.
+    ///
+    /// A filled, rounded, shadowed slab makes a page read as a stack of
+    /// containers. The same content under one hairline, with a small capital
+    /// label over it, reads as one page that has parts — which is what it is.
+    /// The frame was doing the work the label and the spacing should do.
+    static func flat(_ view: NSView) {
+        view.wantsLayer = true
+        view.layer?.cornerRadius = 0
+        view.layer?.borderWidth = 0
+        view.layer?.shadowOpacity = 0
+        view.layer?.backgroundColor = NSColor.clear.cgColor
+    }
+
     static func paint(_ view: NSView) {
         view.effectiveAppearance.performAsCurrentDrawingAppearance {
             view.layer?.backgroundColor = Paint.panel.cgColor
@@ -6690,7 +6709,7 @@ final class Metric: NSView {
          of whole: String? = nil, part: Double? = nil) {
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
-        Panel.dress(self)
+        Panel.flat(self)
 
         // The name of the figure, and under it the figure. The line of prose
         // that used to sit between them ("Space in use" under "Disk") said
@@ -6773,14 +6792,18 @@ final class Metric: NSView {
     }
 
     private func paint() {
-        Panel.paint(self)
+        Panel.flat(self)
     }
 }
 
-/// A card: rounded, faintly filled, a hairline round it, a quiet title along
-/// the top and room for a control opposite. Everything on a page that is one
-/// subject goes in one of these, which is what makes a page read as a few
-/// things rather than forty lines.
+/// A section: a quiet title along the top, a hairline under it, the content
+/// below, and room for a control opposite the title. Everything on a page
+/// that is one subject goes in one of these, which is what makes a page read
+/// as a few things rather than forty lines.
+///
+/// It used to be a rounded, filled, shadowed card. Four of those down a page
+/// read as four containers somebody stacked; a label over a rule reads as one
+/// page with parts in it.
 final class Card: NSView {
     /// What goes inside, under the title.
     let body = NSStackView()
@@ -6788,10 +6811,17 @@ final class Card: NSView {
     init(_ title: String, trailing: NSView? = nil) {
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
-        Panel.dress(self)
+        Panel.flat(self)
 
         let name = Panel.label(title)
         addSubview(name)
+
+        let rule = NSBox()
+        rule.boxType = .custom
+        rule.borderWidth = 0
+        rule.fillColor = Paint.line
+        rule.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(rule)
 
         body.orientation = .vertical
         body.alignment = .leading
@@ -6800,20 +6830,25 @@ final class Card: NSView {
         addSubview(body)
 
         NSLayoutConstraint.activate([
-            name.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Panel.pad),
-            name.topAnchor.constraint(equalTo: topAnchor, constant: Panel.pad),
-            body.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Panel.pad),
-            body.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Panel.pad),
-            body.topAnchor.constraint(equalTo: name.bottomAnchor, constant: Step.close),
-            body.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -Panel.pad),
+            name.leadingAnchor.constraint(equalTo: leadingAnchor),
+            name.topAnchor.constraint(equalTo: topAnchor),
+
+            rule.leadingAnchor.constraint(equalTo: leadingAnchor),
+            rule.trailingAnchor.constraint(equalTo: trailingAnchor),
+            rule.topAnchor.constraint(equalTo: name.bottomAnchor, constant: 10),
+            rule.heightAnchor.constraint(equalToConstant: 1),
+
+            body.leadingAnchor.constraint(equalTo: leadingAnchor),
+            body.trailingAnchor.constraint(equalTo: trailingAnchor),
+            body.topAnchor.constraint(equalTo: rule.bottomAnchor, constant: Step.close),
+            body.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
 
         if let control = trailing {
             control.translatesAutoresizingMaskIntoConstraints = false
             addSubview(control)
             NSLayoutConstraint.activate([
-                control.trailingAnchor.constraint(equalTo: trailingAnchor,
-                                                  constant: -Step.close),
+                control.trailingAnchor.constraint(equalTo: trailingAnchor),
                 control.centerYAnchor.constraint(equalTo: name.centerYAnchor),
                 control.leadingAnchor.constraint(greaterThanOrEqualTo: name.trailingAnchor,
                                                  constant: 12),
@@ -6857,7 +6892,7 @@ final class Card: NSView {
     }
 
     private func paint() {
-        Panel.paint(self)
+        Panel.flat(self)
     }
 }
 
