@@ -59,6 +59,21 @@ enum Words {
     /// window's own text, because it is the only thing on its row and the
     /// first thing your eye lands on.
     static let ask    = NSFont.systemFont(ofSize: 17, weight: .regular)
+
+    // ---- the overview, which is read from further away ---------------------
+    /// The one number the page is about. Nothing else on the page is this big,
+    /// which is what makes it the one number the page is about.
+    static let huge   = NSFont.systemFont(ofSize: 58, weight: .medium)
+    /// GB, beside it. A unit set at the same size as its figure is a second
+    /// figure; set small and quiet it is a unit.
+    static let unit   = NSFont.systemFont(ofSize: 21, weight: .regular)
+    /// The paragraph under the number, and the line under a row's name.
+    static let lead   = NSFont.systemFont(ofSize: 15, weight: .regular)
+    /// The name of a row on the overview.
+    static let entry  = NSFont.systemFont(ofSize: 17, weight: .regular)
+    /// The command a row stands for, set in the terminal's own letters so it
+    /// reads as something you could type, because it is.
+    static let typed  = NSFont.monospacedSystemFont(ofSize: 12.5, weight: .regular)
 }
 
 /// Every gap in the window is one of these. Four points apart, so two things
@@ -2533,14 +2548,12 @@ final class Main: NSObject, NSWindowDelegate {
         }
         let junk = bytes(figures["Junk"] ?? "") ?? 0
         let used = max(0, total - free)
+        let yours = max(0, used - junk)
 
         func count(_ key: String) -> Int {
             Int(figures[key]?.components(separatedBy: " ").first ?? "") ?? 0
         }
 
-        // The list says how many things are in each place, the way every list
-        // down the side of a window does. Only once Home has counted them: a
-        // zero nobody has measured is a lie.
         func tally(_ many: Int) -> String? { many > 0 ? String(many) : nil }
         for row in rows {
             if row.isUnder {
@@ -2551,126 +2564,227 @@ final class Main: NSObject, NSWindowDelegate {
             }
         }
 
-        // The one place the name goes. A setup that asks you something and
-        // then never uses it is a form for its own sake.
-        let hour = Calendar.current.component(.hour, from: Date())
-        let part = hour < 12 ? "Good morning" : (hour < 18 ? "Good afternoon" : "Good evening")
-        var called = (Config.value("name") ?? "").trimmingCharacters(in: .whitespaces)
-        // Somebody called D.K. was greeted as "D.K..", because a name that
-        // ends in a full stop was given another one.
-        while called.hasSuffix(".") { called.removeLast() }
-        called = called.trimmingCharacters(in: .whitespaces)
-        words(called.isEmpty ? "\(part)." : "\(part), \(called).",
-              Words.hero, Paint.ink, top: Step.hair, bottom: Step.close)
+        // ---- the one number, and where the room is ---------------------------
+        let head = NSStackView()
+        head.orientation = .horizontal
+        head.alignment = .top
+        head.distribution = .fill
+        head.spacing = 44
+        head.translatesAutoresizingMaskIntoConstraints = false
 
-        // ---- how things stand ------------------------------------------------
-        let across = NSStackView()
-        across.orientation = .horizontal
-        across.distribution = .fillEqually
-        across.alignment = .top
-        across.spacing = Step.tight
-        across.translatesAutoresizingMaskIntoConstraints = false
+        let left = NSStackView()
+        left.orientation = .vertical
+        left.alignment = .leading
+        left.spacing = 0
+        left.translatesAutoresizingMaskIntoConstraints = false
 
+        let over = NSTextField(labelWithString:
+            junk > 0 ? "Carrying weight it does not need" : "Nothing it does not need")
+        over.font = Words.body
+        over.textColor = Paint.muted
+        left.addArrangedSubview(over)
+        left.setCustomSpacing(14, after: over)
+
+        // The figure and its unit in one line, the unit small: a unit set at
+        // the same size as its figure reads as a second figure.
+        let said = size(junk > 0 ? junk : used)
+        let bits = said.split(separator: " ")
+        let shown = NSMutableAttributedString(
+            string: String(bits.first ?? "0"),
+            attributes: [.font: Words.huge, .foregroundColor: Paint.ink,
+                         .kern: -1.4])
+        if bits.count > 1 {
+            shown.append(NSAttributedString(string: "  " + String(bits[1]),
+                attributes: [.font: Words.unit, .foregroundColor: Paint.muted]))
+        }
+        let big = NSTextField(labelWithString: "")
+        big.attributedStringValue = shown
+        big.translatesAutoresizingMaskIntoConstraints = false
+        left.addArrangedSubview(big)
+        left.setCustomSpacing(16, after: big)
+
+        let touch = count("Desktop") + count("Downloads")
+        let prose = Wrapping(labelWithString: "")
+        prose.maximumNumberOfLines = 0
+        prose.lineBreakMode = .byWordWrapping
+        prose.attributedStringValue = leaded(
+            junk > 0
+                ? "Nothing here is deleted \u{2014} everything Kliner moves goes somewhere "
+                  + "you can find it, and one command puts it all back."
+                : "There is nothing worth freeing. Everything Kliner has moved is "
+                  + "still where you can find it.",
+            Words.lead, Paint.muted)
+        prose.translatesAutoresizingMaskIntoConstraints = false
+        left.addArrangedSubview(prose)
+        prose.widthAnchor.constraint(lessThanOrEqualToConstant: 380).isActive = true
+        left.setCustomSpacing(18, after: prose)
+
+        if touch > 0 {
+            let read = NSTextField(labelWithString:
+                whole(Double(touch)) + " things on your desktop and in downloads")
+            read.font = Words.small
+            read.textColor = Paint.faint
+            left.addArrangedSubview(read)
+            left.setCustomSpacing(26, after: read)
+        }
+
+        // Three readings of the disk as one narrowing shape. The point of the
+        // picture is the last stop: almost none of what Kliner looks at is
+        // ever thrown away.
         if total > 0 {
-            across.addArrangedSubview(Metric("Disk", note: "Space in use",
-                                             big: size(used), of: size(total),
-                                             part: used / total))
-            across.addArrangedSubview(Metric("Free", note: "Room left on it",
-                                             big: size(free), of: size(total),
-                                             part: free / total))
-        }
-        if figures["Desktop"] != nil {
-            across.addArrangedSubview(Metric("Desktop", note: "Things sitting on it",
-                                             big: String(count("Desktop"))))
-        }
-        if figures["Downloads"] != nil {
-            across.addArrangedSubview(Metric("Downloads", note: "Things landed in it",
-                                             big: String(count("Downloads"))))
-        }
-        if across.arrangedSubviews.count > 1 {
-            line(across)
-            gap(Step.close)
+            let shape = Funnel([(value: total, name: "On the disk"),
+                                (value: used,  name: "In use"),
+                                (value: max(junk, total * 0.004), name: "Worth freeing")])
+            left.addArrangedSubview(shape)
+            shape.widthAnchor.constraint(equalTo: left.widthAnchor).isActive = true
         }
 
-        // ---- what to do about it ---------------------------------------------
-        let list = Card("What to do")
-        var left = 0
+        head.addArrangedSubview(left)
 
-        func job(_ title: String, _ note: String, done: Bool, verb: String?,
-                 symbol: String, page: Int, spark: Spark.Kind? = nil) {
-            if !done { left += 1 }
-            let first = !done && left == 1
-            let one = Job(title, note: note, done: done, verb: done ? nil : verb,
-                          symbol: symbol, lead: first, spark: spark)
+        // ---- where the space sits -------------------------------------------
+        if total > 0 {
+            let side = NSStackView()
+            side.orientation = .vertical
+            side.alignment = .leading
+            side.spacing = 0
+            side.translatesAutoresizingMaskIntoConstraints = false
+
+            let cap = NSStackView()
+            cap.orientation = .horizontal
+            cap.spacing = 12
+            let capName = NSTextField(labelWithString: "Where the space sits")
+            capName.font = Words.body
+            capName.textColor = Paint.muted
+            let capSize = NSTextField(labelWithString: size(total))
+            capSize.font = Words.body
+            capSize.textColor = Paint.faint
+            cap.addArrangedSubview(capName)
+            cap.addArrangedSubview(stretch())
+            cap.addArrangedSubview(capSize)
+            side.addArrangedSubview(cap)
+            cap.widthAnchor.constraint(equalTo: side.widthAnchor).isActive = true
+            side.setCustomSpacing(22, after: cap)
+
+            let bands: [(name: String, size: Double)] = [
+                (name: "Your files", size: yours),
+                (name: "Worth freeing", size: junk),
+                (name: "Free", size: free),
+            ].filter { $0.size > 0 }
+
+            let ringRow = NSStackView()
+            ringRow.orientation = .horizontal
+            ringRow.alignment = .centerY
+            ringRow.spacing = 26
+            ringRow.addArrangedSubview(Ring(bands, side: 150))
+
+            let keys = NSStackView()
+            keys.orientation = .vertical
+            keys.alignment = .leading
+            keys.spacing = 12
+            for (i, band) in bands.enumerated() {
+                let row = NSStackView()
+                row.orientation = .horizontal
+                row.alignment = .centerY
+                row.spacing = 12
+                row.addArrangedSubview(Swatch(Weave.at(i), side: 18))
+                let name = NSTextField(labelWithString: band.name)
+                name.font = Words.body
+                name.textColor = Paint.muted
+                row.addArrangedSubview(name)
+                row.addArrangedSubview(stretch())
+                let much = NSTextField(labelWithString: size(band.size))
+                much.font = Words.body
+                much.textColor = Paint.ink
+                row.addArrangedSubview(much)
+                keys.addArrangedSubview(row)
+                row.widthAnchor.constraint(equalTo: keys.widthAnchor).isActive = true
+            }
+            ringRow.addArrangedSubview(keys)
+            side.addArrangedSubview(ringRow)
+            ringRow.widthAnchor.constraint(equalTo: side.widthAnchor).isActive = true
+
+            head.addArrangedSubview(side)
+            side.widthAnchor.constraint(equalToConstant: 392).isActive = true
+        }
+
+        line(Framed(head))
+        gap(Step.close)
+
+        // ---- everything ------------------------------------------------------
+        let all = NSStackView()
+        all.orientation = .vertical
+        all.alignment = .leading
+        all.spacing = 0
+        all.translatesAutoresizingMaskIntoConstraints = false
+
+        let title = NSTextField(labelWithString: "Everything")
+        title.font = Words.body
+        title.textColor = Paint.muted
+        all.addArrangedSubview(title)
+        all.setCustomSpacing(16, after: title)
+
+        var left_ = 0
+        func entry(_ weave: Weave, _ name: String, _ command: String, _ blurb: String,
+                   figure: String, done: Bool, verb: String, page: Int) {
+            if !done { left_ += 1 }
+            let first = !done && left_ == 1
+            let one = Entry(weave: weave, name: name, command: command, blurb: blurb,
+                            pill: nil, figure: figure,
+                            verb: done ? nil : verb, strong: first)
             one.onOpen = { [weak self] in self?.show(page) }
             one.onDo = { [weak self] in self?.startOn(page) }
-            list.add(one)
+            all.addArrangedSubview(one)
+            one.widthAnchor.constraint(equalTo: all.widthAnchor).isActive = true
+            let hair = rule()
+            all.addArrangedSubview(hair)
+            hair.widthAnchor.constraint(equalTo: all.widthAnchor).isActive = true
         }
 
         let sighted = Access.may(Access.desktop) && Access.may(Access.downloads)
         if !sighted {
-            left += 1
-            let one = Job("Let Kliner see your files",
-                          note: "macOS has not been asked yet", done: false, verb: "Ask",
-                          symbol: "lock", lead: true)
-            one.onDo = { [weak self] in self?.askFromHome() }
-            one.onOpen = { [weak self] in self?.askFromHome() }
-            list.add(one)
+            let ask = Entry(weave: .grid, name: "Let Kliner see your files",
+                            command: "macOS has not been asked yet",
+                            blurb: "It cannot read your desktop or your downloads until "
+                                 + "you say so. Nothing is read before that.",
+                            pill: nil, figure: "", verb: "Ask", strong: true)
+            ask.onDo = { [weak self] in self?.askFromHome() }
+            all.addArrangedSubview(ask)
+            ask.widthAnchor.constraint(equalTo: all.widthAnchor).isActive = true
+            let hair = rule()
+            all.addArrangedSubview(hair)
+            hair.widthAnchor.constraint(equalTo: all.widthAnchor).isActive = true
+            left_ += 1
         }
 
-        job("Clear your desktop",
-            figures["Desktop"] ?? "nothing on it",
-            done: count("Desktop") == 0, verb: "Clear it",
-            symbol: "macwindow.on.rectangle", page: 1,
-            spark: .count(count("Desktop")))
+        entry(.diagonal, "Desktop", "min desktop",
+              "Everything loose on it moves into one dated folder, sorted by what it "
+            + "is. Nothing is renamed and nothing is lost.",
+              figure: figures["Desktop"] ?? "nothing on it",
+              done: count("Desktop") == 0, verb: "Clear it", page: 1)
 
-        job("Sort your downloads",
-            figures["Downloads"] ?? "nothing in it",
-            done: count("Downloads") == 0, verb: "Sort it",
-            symbol: "arrow.down.circle", page: 2,
-            spark: .count(count("Downloads")))
+        entry(.back, "Downloads", "min downloads",
+              "The folder everything lands in and nothing ever leaves, sorted the "
+            + "same way.",
+              figure: figures["Downloads"] ?? "nothing in it",
+              done: count("Downloads") == 0, verb: "Sort it", page: 2)
 
-        job("Free up space",
-            junk > 0 ? size(junk) : "nothing to free",
-            done: junk == 0, verb: "Free it",
-            symbol: "internaldrive", page: 6,
-            spark: total > 0 ? .share(junk, of: total) : nil)
+        entry(.dots, "Worth freeing", "min clean",
+              "Caches, old installers and the trash. The trash is the only thing "
+            + "Kliner deletes, and only when you say so.",
+              figure: junk > 0 ? size(junk) : "nothing to free",
+              done: junk == 0, verb: "Free it", page: 6)
 
-        if left == 0 {
+        if left_ == 0 {
             let clear = NSTextField(labelWithString: "Nothing needs doing. Your Mac is clear.")
-            clear.font = Words.strong
+            clear.font = Words.lead
             clear.textColor = Paint.ink
-            list.add(clear, gap: Step.tight)
+            all.addArrangedSubview(clear)
         }
-        line(list)
+
+        line(Framed(all))
         gap(Step.close)
 
-        // ---- what is taking the room -----------------------------------------
-        if total > 0 {
-            let yours = max(0, total - free - junk)
-            let card = Card("What is on your disk")
-
-            func told(_ much: Double) -> String {
-                "\(size(much))  ·  \(Int((much / total * 100).rounded()))%"
-            }
-
-            // The bar and the table under it were the same three numbers
-            // twice, which is why the page ran on and said nothing new. One
-            // bar, with the reading written along under it.
-            let bands: [(name: String, share: Double, colour: NSColor, note: String)] = [
-                (name: "Your files", share: yours, colour: Paint.band(1), note: told(yours)),
-                (name: "Worth freeing", share: junk, colour: Paint.band(0), note: told(junk)),
-                (name: "Free", share: free, colour: Paint.band(4), note: told(free)),
-            ]
-            card.add(Split(bands))
-            card.foot("Look at what is big") { [weak self] in self?.show(5) }
-            line(card)
-            gap(Step.close)
-        }
-
-        // The page stopped two thirds of the way down, and what was under it
-        // was nothing. This is the thing worth saying last, and the one
-        // question anybody has before they press any of the buttons above.
+        // ---- and what it has already done ------------------------------------
         let changed = (figures["Last change"] ?? "").trimmingCharacters(in: .whitespaces)
         let safe = Card(changed.isEmpty ? "Nothing here is deleted" : "What Kliner has done")
         let told = Wrapping(labelWithString: "")
@@ -2683,12 +2797,9 @@ final class Main: NSObject, NSWindowDelegate {
                   + "it back the way it was."
                 : "Kliner moves things and writes down every move, so you can "
                   + "have any of it back the way it was.",
-            Words.body, Paint.muted)
+            Words.lead, Paint.muted)
         safe.add(told, gap: Step.hair)
         if !changed.isEmpty {
-            // The last thing it did, said out loud on the page somebody
-            // arrives at. "What has this actually changed?" is the first
-            // question anybody has about a tool that moves their files.
             let done = Job(changed.components(separatedBy: ", ").first ?? changed,
                            note: changed.components(separatedBy: ", ").dropFirst()
                                         .joined(separator: ", "),
