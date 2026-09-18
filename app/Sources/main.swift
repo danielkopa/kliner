@@ -136,7 +136,7 @@ enum Paint {
     static let veil = duo(0xF6F7F8, 0x0F1113)
     /// The list stands on the veil, so this is only a name for the same
     /// thing: what the side of the window is.
-    static let rail   = duo(0xF6F7F8, 0x0F1113)
+    static let rail   = duo(0xF1F2F4, 0x0C0D0F)
     /// The work sits on one card, and the card is the *lighter* thing. A page
     /// darker than the frame round it reads as a hole in the window.
     static let card   = duo(0xFCFCFD, 0x131518)
@@ -1730,6 +1730,23 @@ final class Main: NSObject, NSWindowDelegate {
         // the card is the page.
         let pane = Surface(Paint.card, round: 18, edged: true)
         content.addSubview(pane)
+
+        // The list stands on its own slate.
+        //
+        // It used to stand on whatever the window's background happened to
+        // be, and over a warm wallpaper that came out a warm grey — the brown
+        // everybody could see and which no colour in this file could account
+        // for, because none of them is warm. Taking the glass away was not
+        // enough. This is opaque and it is the list's own, so there is
+        // nothing behind it to come through.
+        let slate = Surface(Paint.rail)
+        content.addSubview(slate)
+        NSLayoutConstraint.activate([
+            slate.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            slate.topAnchor.constraint(equalTo: content.topAnchor),
+            slate.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            slate.trailingAnchor.constraint(equalTo: pane.leadingAnchor),
+        ])
 
         // ---- down the side ----------------------------------------------
         let stack = NSStackView()
