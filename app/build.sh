@@ -54,6 +54,10 @@ rm -rf "$iconset"
 # every picture the app draws itself with, at every scale a Mac may ask for
 cp app/Resources/*.png "$app/Contents/Resources/"
 
+# the typeface, which travels with the app rather than being installed
+mkdir -p "$app/Contents/Resources/fonts"
+cp app/Resources/fonts/* "$app/Contents/Resources/fonts/"
+
 # --- the plist ----------------------------------------------------------
 sed "s/__VERSION__/$version/g" app/Info.plist > "$app/Contents/Info.plist"
 printf 'APPL????' > "$app/Contents/PkgInfo"

@@ -24,60 +24,75 @@ import UserNotifications
 /// the outside. There are six here, and nothing outside this enum names a
 /// point size.
 enum Words {
-    /// The name of the page, once, at the top of it.
+    /// Poppins, which travels inside the app.
+    ///
+    /// The system font is the right answer for a window that wants to look
+    /// like part of macOS. This one does not: it is drawn to a design, and a
+    /// design set in the system font is a design wearing somebody else's
+    /// voice. Poppins is geometric — circular o, pointed v, a single-storey
+    /// g — which is the shape the drawing was made in.
+    ///
+    /// Never force-unwrapped. If the file is ever missing from the bundle the
+    /// window falls back to the system font and is plain rather than broken.
+    private static func face(_ size: CGFloat, _ weight: NSFont.Weight) -> NSFont {
+        let name: String
+        switch weight {
+        case .semibold, .bold, .heavy, .black: name = "Poppins-SemiBold"
+        case .medium:                          name = "Poppins-Medium"
+        default:                               name = "Poppins-Regular"
+        }
+        return NSFont(name: name, size: size) ?? NSFont.systemFont(ofSize: size, weight: weight)
+    }
+
     /// The name of the page, in the row along the top, on the same line as
     /// everything else in it. Two weights, because it is written as a trail:
-    /// where you are, in the place it belongs. Small, because a title bar is
-    /// a title bar and not a headline.
-    static let title  = NSFont.systemFont(ofSize: 14, weight: .semibold)
-    static let trail  = NSFont.systemFont(ofSize: 14, weight: .regular)
+    /// where you are, in the place it belongs.
+    static let title  = face(14, .semibold)
+    static let trail  = face(14, .regular)
     /// The one line that opens the setup.
-    static let hero   = NSFont.systemFont(ofSize: 25, weight: .semibold)
-    /// A number worth reading across the room. Monospaced digits, so a figure
-    /// that changes does not shuffle the words after it.
-    static let figure = NSFont.monospacedDigitSystemFont(ofSize: 28, weight: .semibold)
+    static let hero   = face(25, .semibold)
+    /// A number worth reading across the room.
+    static let figure = face(28, .semibold)
     /// The top of a card, or a line that opens a group.
-    static let head   = NSFont.systemFont(ofSize: 15, weight: .semibold)
+    static let head   = face(15, .semibold)
     /// Everything anybody actually reads.
-    ///
-    /// Fourteen, not thirteen. Measured off the picture: its running text is
-    /// about fourteen points set on twenty-seven, and beside it a Mac app at
-    /// the system thirteen on seventeen reads as something squashed to fit.
-    static let body   = NSFont.systemFont(ofSize: 14, weight: .regular)
-    static let strong = NSFont.systemFont(ofSize: 14, weight: .medium)
+    static let body   = face(14, .regular)
+    static let strong = face(14, .medium)
     /// A caption under something, or a column heading over one.
-    static let small  = NSFont.systemFont(ofSize: 12, weight: .regular)
+    static let small  = face(12, .regular)
     /// A label on a control, and nothing else.
-    static let tiny   = NSFont.systemFont(ofSize: 11, weight: .medium)
+    static let tiny   = face(11, .medium)
     /// The word over a card or a figure, set small and spaced in capitals.
-    static let label  = NSFont.systemFont(ofSize: 11, weight: .semibold)
+    static let label  = face(11, .semibold)
 
     /// A figure in a table, which has to line up with the figure above it.
+    /// System, not Poppins: a column of numbers that does not line up is a
+    /// column nobody can read down, and that beats matching the face.
     static let column = NSFont.monospacedDigitSystemFont(ofSize: 14, weight: .regular)
 
     /// The line you type into in the menu that ⌘K opens. Bigger than the
     /// window's own text, because it is the only thing on its row and the
     /// first thing your eye lands on.
-    static let ask    = NSFont.systemFont(ofSize: 17, weight: .regular)
+    static let ask    = face(17, .regular)
 
     // ---- the overview, which is read from further away ---------------------
     /// The one number the page is about. Nothing else on the page is this big,
     /// which is what makes it the one number the page is about.
-    static let huge   = NSFont.systemFont(ofSize: 58, weight: .medium)
+    static let huge   = face(58, .medium)
     /// GB, beside it. A unit set at the same size as its figure is a second
     /// figure; set small and quiet it is a unit.
-    static let unit   = NSFont.systemFont(ofSize: 21, weight: .regular)
+    static let unit   = face(21, .regular)
     /// The paragraph under the number, and the line under a row's name.
-    static let lead   = NSFont.systemFont(ofSize: 15, weight: .regular)
+    static let lead   = face(15, .regular)
     /// The name of a row on the overview.
-    static let entry  = NSFont.systemFont(ofSize: 17, weight: .regular)
+    static let entry  = face(17, .regular)
     /// The command a row stands for, set in the terminal's own letters so it
     /// reads as something you could type, because it is.
     static let typed  = NSFont.monospacedSystemFont(ofSize: 12.5, weight: .regular)
-    /// The name along the top of a card. Set in sentence case at a readable
-    /// size, not in small spaced capitals: a card's name is a name, and the
-    /// capitals were a label on a filing box.
-    static let cardName = NSFont.systemFont(ofSize: 19, weight: .semibold)
+    /// The name along the top of a card.
+    static let cardName = face(19, .semibold)
+    /// The name of the page, once, big, the way the drawing has it.
+    static let page   = face(40, .semibold)
 }
 
 /// Every gap in the window is one of these. Four points apart, so two things
