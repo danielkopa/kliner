@@ -2837,11 +2837,34 @@ final class Main: NSObject, NSWindowDelegate {
         all.spacing = 0
         all.translatesAutoresizingMaskIntoConstraints = false
 
+        let header = NSStackView()
+        header.orientation = .horizontal
+        header.alignment = .centerY
+        header.spacing = 12
+        header.translatesAutoresizingMaskIntoConstraints = false
+
         let title = NSTextField(labelWithString: "Everything")
         title.font = Words.body
         title.textColor = Paint.muted
-        all.addArrangedSubview(title)
-        all.setCustomSpacing(16, after: title)
+        header.addArrangedSubview(title)
+        header.addArrangedSubview(stretch())
+
+        // The two that only move things can go together behind one question.
+        // The one that empties the trash cannot: it is the only thing in
+        // Kliner that deletes, so it keeps its own button and its own yes.
+        let moving = [1, 2].filter { page in
+            page == 1 ? count("Desktop") > 0 : count("Downloads") > 0
+        }
+        if moving.count > 1 {
+            let sweep = Chip(.quiet)
+            sweep.set("Tidy both")
+            sweep.onClick = { [weak self] in self?.askTidy(moving) }
+            header.addArrangedSubview(sweep)
+        }
+
+        all.addArrangedSubview(header)
+        header.widthAnchor.constraint(equalTo: all.widthAnchor).isActive = true
+        all.setCustomSpacing(16, after: header)
 
         var left_ = 0
         func entry(_ weave: Weave, _ name: String, _ command: String, _ blurb: String,
@@ -4717,6 +4740,52 @@ final class Main: NSObject, NSWindowDelegate {
 
     @objc func openSettings() {
         show(Action.all.count)
+    }
+
+    /// One question for the places that only move things, then each of them
+    /// in turn. Not `min tidy`: that one also sets your wallpaper and walks
+    /// you through setup, and neither of those belongs behind a button
+    /// somebody pressed to clear their desktop.
+    private func askTidy(_ pages: [Int]) {
+        let names = pages.map { Action.all[$0].title.lowercased() }
+        let said = names.count > 1
+            ? names.dropLast().joined(separator: ", ") + " and " + (names.last ?? "")
+            : (names.first ?? "")
+
+        if previewOnly {
+            // The mode says the buttons change nothing, so this one does not
+            // either. It reads both pages instead.
+            queueTidy(pages, change: false)
+            return
+        }
+
+        let alert = NSAlert()
+        alert.messageText = "Tidy " + said + "?"
+        alert.informativeText = "Everything loose in them moves into one dated "
+            + "folder each, sorted by what it is. Nothing is deleted, nothing is "
+            + "renamed, and nothing outside those two folders is touched.\n\n"
+            + "\"Put it all back\" reverses every one of these moves."
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Do it")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        queueTidy(pages, change: true)
+    }
+
+    /// One at a time, each waiting for the one before it. Two of these at once
+    /// is two processes walking the same folder.
+    private func queueTidy(_ pages: [Int], change: Bool) {
+        guard let page = pages.first else { return }
+        let rest = Array(pages.dropFirst())
+        // Two minutes, because a desktop with three thousand things on it is
+        // not quick, and giving up halfway is worse than waiting.
+        once({ [weak self] in
+            guard let self = self else { return }
+            self.show(page)
+            self.run(Action.all[page], preview: !change)
+            self.queueTidy(rest, change: change)
+        }, tries: 1200)
     }
 
     /// Turn "read, never change" on or off.
