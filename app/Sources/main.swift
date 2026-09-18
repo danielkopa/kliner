@@ -2593,11 +2593,11 @@ final class Main: NSObject, NSWindowDelegate {
         var left = 0
 
         func job(_ title: String, _ note: String, done: Bool, verb: String?,
-                 symbol: String, page: Int) {
+                 symbol: String, page: Int, spark: Spark.Kind? = nil) {
             if !done { left += 1 }
             let first = !done && left == 1
             let one = Job(title, note: note, done: done, verb: done ? nil : verb,
-                          symbol: symbol, lead: first)
+                          symbol: symbol, lead: first, spark: spark)
             one.onOpen = { [weak self] in self?.show(page) }
             one.onDo = { [weak self] in self?.startOn(page) }
             list.add(one)
@@ -2617,17 +2617,20 @@ final class Main: NSObject, NSWindowDelegate {
         job("Clear your desktop",
             figures["Desktop"] ?? "nothing on it",
             done: count("Desktop") == 0, verb: "Clear it",
-            symbol: "macwindow.on.rectangle", page: 1)
+            symbol: "macwindow.on.rectangle", page: 1,
+            spark: .count(count("Desktop")))
 
         job("Sort your downloads",
             figures["Downloads"] ?? "nothing in it",
             done: count("Downloads") == 0, verb: "Sort it",
-            symbol: "arrow.down.circle", page: 2)
+            symbol: "arrow.down.circle", page: 2,
+            spark: .count(count("Downloads")))
 
         job("Free up space",
             junk > 0 ? size(junk) : "nothing to free",
             done: junk == 0, verb: "Free it",
-            symbol: "internaldrive", page: 6)
+            symbol: "internaldrive", page: 6,
+            spark: total > 0 ? .share(junk, of: total) : nil)
 
         if left == 0 {
             let clear = NSTextField(labelWithString: "Nothing needs doing. Your Mac is clear.")
@@ -6307,7 +6310,7 @@ final class Job: NSView {
     private var hovering = false
 
     init(_ title: String, note: String, done: Bool, verb: String?,
-         symbol: String = "circle", lead: Bool = false) {
+         symbol: String = "circle", lead: Bool = false, spark: Spark.Kind? = nil) {
         self.done = done
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
@@ -6352,6 +6355,15 @@ final class Job: NSView {
         much.translatesAutoresizingMaskIntoConstraints = false
         addSubview(much)
 
+        // The row's own numbers, drawn. Which line is the big one becomes a
+        // shape rather than two figures to compare.
+        var picture: Spark?
+        if let kind = spark {
+            let drawn = Spark(kind, dim: done)
+            addSubview(drawn)
+            picture = drawn
+        }
+
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: 46),
 
@@ -6387,9 +6399,22 @@ final class Job: NSView {
 
         NSLayoutConstraint.activate([
             much.centerYAnchor.constraint(equalTo: centerYAnchor),
-            much.leadingAnchor.constraint(greaterThanOrEqualTo: name.trailingAnchor,
-                                          constant: Step.close),
         ])
+
+        if let drawn = picture {
+            // The picture keeps its place; the name gives way first, because a
+            // truncated name is still readable and half a chart is not.
+            NSLayoutConstraint.activate([
+                drawn.centerYAnchor.constraint(equalTo: centerYAnchor),
+                drawn.trailingAnchor.constraint(equalTo: much.leadingAnchor,
+                                                constant: -Step.close),
+                drawn.leadingAnchor.constraint(greaterThanOrEqualTo: name.trailingAnchor,
+                                               constant: Step.close),
+            ])
+        } else {
+            much.leadingAnchor.constraint(greaterThanOrEqualTo: name.trailingAnchor,
+                                          constant: Step.close).isActive = true
+        }
 
         repaint()
     }
