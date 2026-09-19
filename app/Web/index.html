@@ -1,0 +1,2561 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Nothing here reaches the network, and nothing can load from anywhere
+     but this folder: no scripts, no pictures, no connections. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src file: data:; img-src data:; connect-src 'none'; media-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="color-scheme" content="dark light">
+<title>Kliner</title>
+<style>
+/* ── Kliner's window ─────────────────────────────────────────────────────
+   One stylesheet for the whole window. Dark is the design; light follows
+   the Mac when the Mac is light. Every colour is a token, and every token
+   is defined in both, so nothing is ever one theme's ink on the other's
+   ground.                                                              */
+
+@font-face {
+    font-family: "Geist";
+    src: url("../fonts/Geist-Variable.ttf") format("truetype");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: block;
+}
+
+:root {
+    color-scheme: dark;
+    --bg:      #0a0a0a;
+    --rail:    #0a0a0a;
+    --raise:   #0f0f0f;
+    --well:    #0d0d0d;
+    --hover:   #151515;
+    --sel:     #1b1b1b;
+    --sel-2:   #242424;
+    --line:    #1f1f1f;
+    --line-2:  #2c2c2c;
+    --ink:     #ededed;
+    --body:    #c4c4c4;
+    --muted:   #8a8a8a;
+    --faint:   #5c5c5c;
+    --ghost:   #3a3a3a;
+    --good:    #3fcf8e;
+    --bad:     #f0616d;
+    --on:      #f2f2f2;       /* the one filled button */
+    --on-ink:  #0a0a0a;
+    --w0: #e9e9e9; --w1: #bdbdbd; --w2: #949494; --w3: #707070; --w4: #4f4f4f; --w5: #383838;
+    --shadow: 0 30px 80px rgba(0,0,0,.65);
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        color-scheme: light;
+        --bg:      #fafafa;
+        --rail:    #f4f4f3;
+        --raise:   #ffffff;
+        --well:    #f6f6f5;
+        --hover:   #efefee;
+        --sel:     #e9e9e8;
+        --sel-2:   #dededc;
+        --line:    #e6e6e4;
+        --line-2:  #cfcfcc;
+        --ink:     #111111;
+        --body:    #333333;
+        --muted:   #6f6f6f;
+        --faint:   #9a9a98;
+        --ghost:   #c4c4c2;
+        --good:    #13a15f;
+        --bad:     #d93a48;
+        --on:      #111111;
+        --on-ink:  #fafafa;
+        --w0: #1a1a1a; --w1: #454545; --w2: #6d6d6d; --w3: #939393; --w4: #b7b7b7; --w5: #d2d2d0;
+        --shadow: 0 24px 70px rgba(0,0,0,.18);
+    }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
+
+html, body { height: 100%; overflow: hidden; }
+body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Geist", -apple-system, "SF Pro Text", system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: default;
+}
+button { font: inherit; color: inherit; background: none; border: 0; cursor: default; }
+input { font: inherit; color: inherit; }
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--line-2); outline-offset: 2px; border-radius: 6px; }
+svg { display: block; }
+.ic { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.6;
+      stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
+
+/* ── the frame: a rail, a bar, and the page ─────────────────────────── */
+
+.app { display: grid; grid-template-columns: 76px 1fr; height: 100vh; }
+.app.wide { grid-template-columns: 216px 1fr; }
+
+.rail {
+    background: var(--rail);
+    border-right: 1px solid var(--line);
+    display: flex; flex-direction: column;
+    padding: 52px 0 14px;          /* the lights live in the top 52 */
+    min-height: 0;
+}
+.rail .places { display: flex; flex-direction: column; gap: 4px; padding: 0 20px; }
+.rail .foot   { margin-top: auto; display: flex; flex-direction: column; gap: 4px; padding: 0 20px; }
+.rail .sep    { height: 1px; background: var(--line); margin: 10px 8px; }
+.rail .label  { display: none; }
+
+.spot {
+    position: relative;
+    height: 36px; min-width: 36px;
+    border-radius: 9px;
+    display: flex; align-items: center; gap: 11px;
+    padding: 0 10px;
+    color: var(--faint);
+    transition: background .14s ease, color .14s ease;
+}
+.spot .ic { width: 16px; height: 16px; }
+.spot:hover { color: var(--body); background: var(--hover); }
+.spot.on { color: var(--ink); background: var(--sel); }
+.spot .count {
+    position: absolute; top: 3px; right: 3px;
+    min-width: 15px; height: 15px; padding: 0 4px;
+    border-radius: 999px; background: var(--sel-2); color: var(--body);
+    font-size: 9.5px; font-weight: 500; line-height: 15px; text-align: center;
+}
+.spot.on .count { background: var(--on); color: var(--on-ink); }
+
+.app.wide .rail .places, .app.wide .rail .foot { padding: 0 12px; }
+.app.wide .rail .label { display: block; font-size: 13px; color: inherit; white-space: nowrap; }
+.app.wide .spot .count { position: static; margin-left: auto; }
+.app.wide .rail .kids { display: flex; }
+.rail .kids { display: none; flex-direction: column; gap: 2px; margin: 2px 0 6px 27px; }
+.kid { height: 28px; border-radius: 7px; padding: 0 10px; display: flex; align-items: center;
+       color: var(--faint); font-size: 12.5px; }
+.kid:hover { color: var(--body); background: var(--hover); }
+.kid.on { color: var(--ink); background: var(--sel); }
+
+/* the name beside a picture, when the rail is only pictures */
+.tip {
+    position: fixed; z-index: 60; pointer-events: none;
+    background: var(--raise); color: var(--ink);
+    border: 1px solid var(--line-2); border-radius: 7px;
+    padding: 4px 9px; font-size: 12px; white-space: nowrap;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    opacity: 0; transform: translateX(-4px);
+    transition: opacity .12s ease, transform .12s ease;
+}
+.tip.show { opacity: 1; transform: none; }
+.tip kbd { font: inherit; color: var(--faint); margin-left: 8px; }
+
+.main { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+
+.bar {
+    height: 52px; flex: 0 0 auto;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 16px 0 14px;
+}
+.bar .nav { display: flex; gap: 2px; }
+.sq {
+    width: 28px; height: 28px; border-radius: 7px;
+    display: grid; place-items: center; color: var(--faint);
+    transition: background .14s ease, color .14s ease;
+}
+.sq:hover { background: var(--hover); color: var(--body); }
+.sq[disabled] { opacity: .35; pointer-events: none; }
+.sq .ic { width: 15px; height: 15px; }
+
+.where { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.where .ic { color: var(--muted); width: 15px; height: 15px; }
+.where .group { color: var(--faint); font-size: 13px; white-space: nowrap; }
+.where .slash { color: var(--ghost); }
+.where .name { font-size: 13.5px; font-weight: 500; white-space: nowrap; }
+
+.tabs { display: flex; gap: 2px; margin-left: 6px; padding: 2px; border-radius: 9px;
+        background: var(--well); border: 1px solid var(--line); }
+.tab { height: 24px; padding: 0 10px; border-radius: 7px; font-size: 12.5px; color: var(--muted);
+       display: flex; align-items: center; white-space: nowrap; }
+.tab:hover { color: var(--body); }
+.tab.on { background: var(--sel); color: var(--ink); }
+
+.bar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.age { color: var(--faint); font-size: 12px; white-space: nowrap; }
+.mode {
+    height: 28px; padding: 0 10px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--well);
+    display: flex; align-items: center; gap: 7px;
+    color: var(--muted); font-size: 12.5px; white-space: nowrap;
+}
+.mode:hover { color: var(--body); border-color: var(--line-2); }
+.mode .ic { width: 14px; height: 14px; }
+.mode.on { color: var(--on-ink); background: var(--on); border-color: var(--on); }
+
+.find {
+    height: 30px; padding: 0 8px 0 10px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--well);
+    display: flex; align-items: center; gap: 8px;
+    color: var(--muted); font-size: 12.5px; min-width: 150px;
+}
+.find:hover { border-color: var(--line-2); color: var(--body); }
+.find .ic { width: 14px; height: 14px; }
+.find kbd { margin-left: auto; font: inherit; font-size: 11px; color: var(--faint);
+            border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; line-height: 17px; }
+
+.bell { position: relative; width: 30px; height: 30px; border-radius: 8px;
+        border: 1px solid var(--line); background: var(--well);
+        display: grid; place-items: center; color: var(--muted); }
+.bell:hover { color: var(--body); border-color: var(--line-2); }
+.bell .ic { width: 15px; height: 15px; }
+.bell .dot { position: absolute; top: 6px; right: 7px; width: 6px; height: 6px;
+             border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 2px var(--well); }
+
+.face { width: 30px; height: 30px; border-radius: 8px; background: var(--sel);
+        display: grid; place-items: center; }
+.face svg { width: 20px; height: 20px; }
+.face .body { fill: var(--ink); }
+.face .eye  { fill: var(--sel); }
+
+/* ── the page ───────────────────────────────────────────────────────── */
+
+.scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+.page { padding: 18px 20px 40px; max-width: 1360px; }
+/* a page is a column of blocks with one gap between them — never margins,
+   which leak into grids and double up */
+.page > div { display: grid; gap: 14px; align-content: start; }
+
+.head { display: flex; align-items: flex-start; gap: 20px; padding: 6px 4px 6px; }
+.head .words { min-width: 0; flex: 1; }
+.head h1 { font-size: 24px; font-weight: 600; letter-spacing: -.02em; line-height: 1.15; }
+.head p  { margin-top: 6px; color: var(--muted); font-size: 13px; max-width: 64ch; text-wrap: pretty; }
+.head .cmd { margin-top: 10px; display: inline-flex; align-items: center; gap: 8px;
+             font-family: var(--mono); font-size: 11.5px; color: var(--faint);
+             border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; background: var(--well); }
+.head .acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end;
+              padding-top: 2px; }
+
+/* buttons: one filled, the rest quiet */
+.btn {
+    height: 32px; padding: 0 13px; border-radius: 8px;
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 500; white-space: nowrap;
+    transition: background .14s ease, border-color .14s ease, color .14s ease, opacity .14s ease, transform .08s ease;
+}
+.btn .ic { width: 15px; height: 15px; }
+.btn.fill { background: var(--on); color: var(--on-ink); }
+.btn.fill:hover { opacity: .9; }
+.btn.fill:active { transform: scale(.985); }
+.btn.line { border: 1px solid var(--line); background: var(--well); color: var(--body); font-weight: 450; }
+.btn.line:hover { border-color: var(--line-2); color: var(--ink); }
+.btn.bare { color: var(--muted); padding: 0 8px; font-weight: 450; }
+.btn.bare:hover { color: var(--ink); background: var(--hover); }
+.btn[disabled] { opacity: .4; pointer-events: none; }
+.btn.small { height: 28px; padding: 0 10px; font-size: 12.5px; }
+
+.pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    height: 20px; padding: 0 8px; border-radius: 999px;
+    background: var(--sel); color: var(--body);
+    font-size: 11.5px; font-weight: 450; white-space: nowrap;
+}
+.pill.hi { background: var(--on); color: var(--on-ink); }
+.pill.good { color: var(--good); background: color-mix(in srgb, var(--good) 12%, transparent); }
+.pill.bad  { color: var(--bad);  background: color-mix(in srgb, var(--bad) 12%, transparent); }
+.pill .ic { width: 11px; height: 11px; stroke-width: 2; }
+
+/* ── a panel is four corners and nothing else ───────────────────────── */
+
+.grid { display: grid; gap: 14px; }
+.grid.two  { grid-template-columns: 1fr 1fr; }
+.grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.panel { position: relative; padding: 20px; min-width: 0; }
+.panel > .c { position: absolute; width: 13px; height: 13px; pointer-events: none; border-color: var(--line-2); border-style: solid; border-width: 0; }
+.panel > .c.a { left: 0; top: 0; border-left-width: 1px; border-top-width: 1px; }
+.panel > .c.b { right: 0; top: 0; border-right-width: 1px; border-top-width: 1px; }
+.panel > .c.d { left: 0; bottom: 0; border-left-width: 1px; border-bottom-width: 1px; }
+.panel > .c.e { right: 0; bottom: 0; border-right-width: 1px; border-bottom-width: 1px; }
+.panel.solid { background: var(--raise); border: 1px solid var(--line); border-radius: 12px; }
+.panel.solid > .c { display: none; }
+
+.cap { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; min-height: 18px; }
+.cap .ic { width: 14px; height: 14px; }
+.cap .r { margin-left: auto; color: var(--faint); font-size: 11.5px; display: flex; align-items: center; gap: 8px; }
+.cap .r .btn { height: 24px; font-size: 12px; }
+
+.big { display: flex; align-items: flex-start; gap: 14px; }
+.big .n { font-size: 30px; font-weight: 600; letter-spacing: -.025em; line-height: 1.05; white-space: nowrap; }
+.big .n small { font-size: 15px; font-weight: 500; color: var(--muted); letter-spacing: 0; margin-left: 5px; }
+.big .sub { margin-top: 6px; color: var(--muted); font-size: 12.5px; }
+.big .move { margin-left: auto; text-align: right; flex: 0 0 auto; }
+.big .move .d { font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+.big .move .d.good { color: var(--good); }
+.big .move .d.bad  { color: var(--bad); }
+.big .move .d .ic { width: 12px; height: 12px; stroke-width: 2; }
+.big .move .w { color: var(--faint); font-size: 11.5px; margin-top: 3px; }
+
+/* metric tiles */
+.tile { padding: 16px 18px 16px; }
+.tile .k { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 7px; }
+.tile .k .ic { width: 13px; height: 13px; }
+.tile .v { margin-top: 10px; font-size: 24px; font-weight: 600; letter-spacing: -.02em; line-height: 1.05; }
+.tile .v small { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; margin-left: 4px; }
+.tile .f { margin-top: 10px; display: flex; align-items: center; gap: 8px; min-height: 20px; }
+.tile .f .t { color: var(--faint); font-size: 11.5px; }
+.meter { margin-top: 12px; height: 4px; border-radius: 4px; background: var(--sel); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--w1); border-radius: 4px;
+           transform-origin: left; animation: grow .7s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes grow { from { transform: scaleX(0); } }
+
+/* ── the funnel ─────────────────────────────────────────────────────── */
+.funnel { position: relative; margin-top: 18px; height: 250px; }
+.funnel svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.funnel .tops, .funnel .pcts, .funnel .names { position: absolute; left: 0; right: 0; display: grid; }
+.funnel .tops  { top: 0; }
+.funnel .tops div { text-align: center; font-size: 13.5px; font-weight: 600; }
+.funnel .pcts  { top: calc(50% + 6px); transform: translateY(-50%); }
+.funnel .pcts span { justify-self: start; transform: translateX(-4px); }
+.funnel .names { bottom: 0; color: var(--faint); font-size: 11.5px; }
+.funnel .names div { text-align: center; }
+.funnel .rule { position: absolute; top: 26px; bottom: 22px; width: 1px; background: var(--line); }
+
+/* ── the ring and its key ───────────────────────────────────────────── */
+.ringrow { margin-top: 18px; display: flex; gap: 30px; align-items: center; }
+.ringrow svg.ring { width: 190px; height: 190px; flex: 0 0 auto; overflow: visible; }
+.key { flex: 1; min-width: 0; display: grid; gap: 12px; }
+.key .k { display: grid; grid-template-columns: 14px minmax(0,1fr) auto auto; gap: 12px; align-items: center; font-size: 12.5px; }
+.key .k .n { color: var(--body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.key .k .p { color: var(--muted); }
+.key .k .v { color: var(--ink); min-width: 58px; text-align: right; }
+.sw { width: 14px; height: 14px; border-radius: 3px; overflow: hidden; }
+.sw svg { width: 14px; height: 14px; }
+
+/* dashes: a share, counted */
+.dash { display: flex; gap: 3px; margin-top: 7px; }
+.dash i { height: 3px; flex: 1; border-radius: 2px; background: var(--sel-2); }
+.dash i.on { background: var(--w1); }
+
+/* rows with a figure and dashes under them */
+.list { margin-top: 16px; display: grid; gap: 14px; }
+.list .l { display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; }
+.list .l b { font-weight: 400; color: var(--body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list .l .pill { transform: translateY(-1px); }
+.list .l span.v { margin-left: auto; color: var(--ink); white-space: nowrap; }
+
+/* ── nothing is deleted ─────────────────────────────────────────────── */
+.promise { margin-top: 18px; text-align: center; }
+.promise .marks { display: flex; justify-content: center; margin-bottom: 14px; }
+.promise .marks span { width: 36px; height: 36px; border-radius: 50%; background: var(--sel);
+    border: 2px solid var(--bg); display: grid; place-items: center; margin-left: -9px; color: var(--muted); }
+.promise .marks span:first-child { margin-left: 0; }
+.promise .marks .ic { width: 16px; height: 16px; }
+.promise h4 { font-size: 14px; font-weight: 500; }
+.promise p { color: var(--muted); font-size: 12.5px; margin: 6px auto 0; max-width: 26ch; text-wrap: balance; }
+.promise .btn { margin-top: 14px; }
+
+/* ── last changed ───────────────────────────────────────────────────── */
+.pair { display: flex; gap: 28px; margin-top: 14px; }
+.pair .n { font-size: 21px; font-weight: 600; letter-spacing: -.015em; line-height: 1.15; }
+.pair .c { color: var(--faint); font-size: 11.5px; margin-top: 3px; }
+.heat { margin-top: 18px; }
+.heat .row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; }
+.heat .row i { height: 26px; border-radius: 4px; background: var(--sel); }
+.heat .ax { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; margin-top: 7px;
+            color: var(--faint); font-size: 10.5px; }
+.heat .ax span { text-align: center; }
+.scale { display: flex; align-items: center; gap: 5px; color: var(--faint); font-size: 10.5px; margin-top: 12px; }
+.scale i { width: 11px; height: 11px; border-radius: 3px; }
+
+/* ── a thing to do ──────────────────────────────────────────────────── */
+.todo { margin-top: 12px; display: grid; gap: 2px; }
+.todo .t {
+    display: grid; grid-template-columns: 32px minmax(0,1fr) auto; gap: 12px; align-items: center;
+    padding: 10px 10px; margin: 0 -10px; border-radius: 10px;
+    transition: background .14s ease;
+}
+.todo .t:hover { background: var(--hover); }
+.todo .t .ico { width: 32px; height: 32px; border-radius: 9px; background: var(--sel);
+                display: grid; place-items: center; color: var(--muted); }
+.todo .t .ico .ic { width: 15px; height: 15px; }
+.todo .t .nm { font-size: 13px; color: var(--ink); display: flex; align-items: center; gap: 8px; min-width: 0; }
+.todo .t .nm span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.todo .t .cm { font-family: var(--mono); font-size: 11px; color: var(--faint); margin-top: 2px; }
+.todo .t .go { display: flex; align-items: center; gap: 10px; }
+.todo .t .fig { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.todo .t.done .nm span { color: var(--faint); text-decoration: line-through; text-decoration-color: var(--ghost); }
+.todo .t.done .ico { color: var(--faint); }
+.todo .empty { padding: 14px 0 4px; color: var(--muted); }
+
+/* ── a breakdown: bars, then the table they came from ───────────────── */
+.bars { margin-top: 18px; height: 150px; display: flex; align-items: flex-end; gap: 6px; }
+.bars .b { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: stretch; gap: 7px; height: 100%; justify-content: flex-end; }
+.bars .b .col { border-radius: 5px 5px 2px 2px; min-height: 3px; transform-origin: bottom;
+                animation: rise .6s cubic-bezier(.2,.7,.2,1) both; overflow: hidden; }
+.bars .b .col svg { width: 100%; height: 100%; }
+.bars .b .lb { font-size: 10.5px; color: var(--faint); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@keyframes rise { from { transform: scaleY(0); } }
+
+.table { margin-top: 18px; }
+.table .th, .table .tr {
+    display: grid; grid-template-columns: 16px minmax(0,1.6fr) minmax(90px,1fr) 52px 88px 16px;
+    gap: 12px; align-items: center; padding: 0 10px; margin: 0 -10px;
+}
+.table .th { color: var(--faint); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding-bottom: 9px; border-bottom: 1px solid var(--line); }
+.table .th .num, .table .tr .num { text-align: right; }
+.table .tr { min-height: 40px; border-radius: 9px; font-size: 13px; transition: background .14s ease; }
+.table .tr + .tr { box-shadow: inset 0 1px 0 var(--line); }
+.table .tr.can:hover { background: var(--hover); box-shadow: none; }
+.table .tr.can:hover + .tr { box-shadow: none; }
+.table .tr .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--body); }
+.table .tr.can .nm { color: var(--ink); }
+.table .tr .share { height: 4px; border-radius: 4px; background: var(--sel); overflow: hidden; }
+.table .tr .share i { display: block; height: 100%; border-radius: 4px; background: var(--w1); transform-origin: left; animation: grow .7s cubic-bezier(.2,.7,.2,1) both; }
+.table .tr .pc { color: var(--muted); font-size: 12px; }
+.table .tr .sz { color: var(--ink); }
+.table .tr .chev { color: var(--faint); opacity: 0; transition: opacity .14s ease; }
+.table .tr.can:hover .chev { opacity: 1; }
+.table .tr .chev .ic { width: 14px; height: 14px; }
+.table .total { display: flex; justify-content: space-between; padding: 12px 0 0; margin-top: 4px;
+                border-top: 1px solid var(--line); font-size: 13px; }
+.table .total b { font-weight: 500; }
+.table .total span { color: var(--muted); }
+
+/* plain rows: a fact and its value */
+.facts { margin-top: 14px; display: grid; }
+.fact { display: grid; grid-template-columns: minmax(120px, 34%) minmax(0,1fr) auto; gap: 14px; align-items: center;
+        min-height: 40px; padding: 0 10px; margin: 0 -10px; border-radius: 9px; font-size: 13px; }
+.fact + .fact { box-shadow: inset 0 1px 0 var(--line); }
+.fact .k { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fact .v { color: var(--ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fact .v.strong { font-weight: 600; }
+.fact .n { color: var(--faint); font-size: 12px; white-space: nowrap; }
+.fact.can:hover { background: var(--hover); box-shadow: none; }
+.fact.can:hover + .fact { box-shadow: none; }
+.fact .meter { margin: 0; width: 140px; }
+.fact.total { font-weight: 500; }
+.fact.total .k { color: var(--ink); }
+
+/* what nimo said, as sentences */
+.said { margin-top: 12px; display: grid; gap: 8px; }
+.said .s { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--body); }
+.said .s .ic { width: 15px; height: 15px; margin-top: 2px; color: var(--muted); }
+.said .s.good { color: var(--ink); font-weight: 500; }
+.said .s.good .ic { color: var(--good); }
+.said .s.warn .ic { color: var(--bad); }
+.said .s.quiet { color: var(--faint); font-size: 12px; }
+.said code, .notes code { font-family: var(--mono); font-size: 11.5px; color: var(--body);
+    background: var(--sel); border-radius: 5px; padding: 1px 6px; }
+
+.notes { margin-top: 16px; display: grid; gap: 5px; color: var(--faint); font-size: 12px; }
+
+/* the banner after something has been done */
+.done {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px; border-radius: 12px; margin-bottom: 14px;
+    background: var(--raise); border: 1px solid var(--line);
+    animation: drop .45s cubic-bezier(.2,.7,.2,1) both;
+}
+.done .tick { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
+              background: color-mix(in srgb, var(--good) 14%, transparent); color: var(--good); flex: 0 0 auto; }
+.done .tick .ic { width: 16px; height: 16px; stroke-width: 2; }
+.done .w { min-width: 0; flex: 1; }
+.done .w b { font-weight: 500; font-size: 13.5px; display: block; }
+.done .w span { color: var(--muted); font-size: 12.5px; }
+.done > .btn { flex: 0 0 auto; }
+.done.plain .tick { background: var(--sel); color: var(--muted); }
+@keyframes drop { from { opacity: 0; transform: translateY(-6px); } }
+
+/* startup rows with their own switch */
+.stops { margin-top: 14px; display: grid; }
+.stop { display: grid; grid-template-columns: 32px minmax(0,1fr) auto; gap: 12px; align-items: center;
+        min-height: 52px; padding: 0 10px; margin: 0 -10px; border-radius: 10px; }
+.stop + .stop { box-shadow: inset 0 1px 0 var(--line); }
+.stop:hover { background: var(--hover); box-shadow: none; }
+.stop:hover + .stop { box-shadow: none; }
+.stop .ico { width: 32px; height: 32px; border-radius: 9px; background: var(--sel); display: grid; place-items: center; color: var(--muted); }
+.stop .nm { font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stop .kd { font-size: 12px; color: var(--faint); margin-top: 1px; }
+
+/* the undo list */
+.log { margin-top: 14px; display: grid; }
+.log .e { display: grid; grid-template-columns: 26px minmax(0,1fr) auto auto; gap: 14px; align-items: center;
+          min-height: 48px; padding: 0 2px; font-size: 13px; }
+.log .e + .e { box-shadow: inset 0 1px 0 var(--line); }
+.log .e .no { width: 24px; height: 24px; border-radius: 7px; background: var(--sel); color: var(--muted);
+              display: grid; place-items: center; font-size: 11.5px; font-weight: 500; }
+.log .e .what { color: var(--ink); }
+.log .e .when { color: var(--faint); font-size: 12px; }
+.log .e .many { color: var(--muted); font-size: 12px; min-width: 64px; text-align: right; }
+
+/* wallpapers */
+.walls { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.wall { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 6px; }
+.wall .no { color: var(--faint); font-size: 11px; }
+.wall .nm { font-size: 13px; }
+.wall.pick { border-color: var(--line-2); background: var(--raise); }
+
+/* ── waiting ────────────────────────────────────────────────────────── */
+.wait { display: grid; place-items: center; padding: 70px 0 30px; text-align: center; }
+.wait .mascot { width: 72px; height: 72px; }
+.wait .mascot .body { fill: var(--ink); }
+.wait .mascot .eye { fill: var(--bg); }
+.wait .mascot g.eyes { transform-origin: 50px 38px; animation: look 2.8s ease-in-out infinite; }
+.wait .mascot g.whole { transform-origin: 50px 90px; animation: bob 1.6s ease-in-out infinite; }
+@keyframes look { 0%, 100% { transform: translateX(0) } 30% { transform: translateX(-3px) } 60% { transform: translateX(3px) } 82% { transform: translateX(0) scaleY(.1) } 86% { transform: translateX(0) scaleY(1) } }
+@keyframes bob { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+.wait h3 { margin-top: 16px; font-size: 14px; font-weight: 500; }
+.wait p { margin-top: 5px; color: var(--faint); font-size: 12.5px; }
+.ghost { margin-top: 26px; width: min(720px, 100%); display: grid; gap: 10px; }
+.ghost i { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--sel) 0%, var(--sel-2) 50%, var(--sel) 100%);
+           background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+.ghost i:nth-child(2) { width: 82%; } .ghost i:nth-child(3) { width: 64%; }
+@keyframes shimmer { from { background-position: 200% 0 } to { background-position: -200% 0 } }
+
+/* ── settings ───────────────────────────────────────────────────────── */
+.set { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 16px; align-items: center;
+       min-height: 58px; padding: 10px 0; }
+.set + .set { box-shadow: inset 0 1px 0 var(--line); }
+.set .t { font-size: 13px; color: var(--ink); }
+.set .d { font-size: 12px; color: var(--faint); margin-top: 2px; max-width: 60ch; }
+.set .state { display: inline-flex; align-items: center; gap: 6px; }
+.set .state i { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+.set .state.yes i { background: var(--good); }
+
+.switch { width: 36px; height: 22px; border-radius: 999px; background: var(--sel-2); position: relative;
+          transition: background .18s ease; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%;
+                 background: var(--bg); box-shadow: 0 1px 2px rgba(0,0,0,.4); transition: transform .18s cubic-bezier(.2,.7,.2,1); }
+.switch.on { background: var(--on); }
+.switch.on::after { transform: translateX(14px); background: var(--on-ink); }
+.switch[disabled] { opacity: .4; pointer-events: none; }
+
+.seg { display: inline-flex; padding: 2px; border-radius: 9px; background: var(--well); border: 1px solid var(--line); }
+.seg button { height: 26px; padding: 0 11px; border-radius: 7px; color: var(--muted); font-size: 12.5px; }
+.seg button:hover { color: var(--body); }
+.seg button.on { background: var(--sel-2); color: var(--ink); }
+
+.field { height: 36px; border-radius: 9px; border: 1px solid var(--line); background: var(--well);
+         padding: 0 12px; font-size: 14px; color: var(--ink); width: 100%;
+         -webkit-user-select: text; user-select: text; cursor: text; }
+.field:focus { border-color: var(--line-2); }
+.field::placeholder { color: var(--faint); }
+
+/* ── help ───────────────────────────────────────────────────────────── */
+.keys { display: grid; }
+.keys .kr { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 16px; align-items: center; min-height: 40px; font-size: 13px; }
+.keys .kr + .kr { box-shadow: inset 0 1px 0 var(--line); }
+.keys .kr span { color: var(--body); }
+.keys kbd { font: inherit; font-size: 12px; color: var(--muted); border: 1px solid var(--line); background: var(--well);
+            border-radius: 6px; padding: 1px 7px; }
+
+/* ── the first minute ───────────────────────────────────────────────── */
+.welcome { min-height: 100%; display: grid; grid-template-columns: 300px minmax(0,1fr); }
+.welcome .side { border-right: 1px solid var(--line); padding: 64px 32px 32px; display: flex; flex-direction: column; gap: 18px; }
+.welcome .side .mascot { width: 64px; height: 64px; }
+.welcome .side .mascot .body { fill: var(--ink); }
+.welcome .side .mascot .eye { fill: var(--bg); }
+.welcome .side p { color: var(--muted); font-size: 12.5px; max-width: 30ch; }
+.welcome .steps { display: grid; gap: 6px; margin-top: 8px; }
+.welcome .steps div { display: flex; align-items: center; gap: 10px; color: var(--faint); font-size: 12.5px; }
+.welcome .steps div i { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line-2); display: grid; place-items: center; font-style: normal; font-size: 10.5px; }
+.welcome .steps div.on { color: var(--ink); }
+.welcome .steps div.on i { background: var(--on); color: var(--on-ink); border-color: var(--on); }
+.welcome .steps div.past i { background: var(--sel-2); color: var(--muted); border-color: var(--sel-2); }
+.welcome .pane { padding: 64px 56px 28px; display: flex; flex-direction: column; max-width: 760px; }
+.welcome h2 { font-size: 28px; font-weight: 600; letter-spacing: -.025em; line-height: 1.15; text-wrap: balance; }
+.welcome .lead { margin-top: 10px; color: var(--muted); font-size: 14px; max-width: 54ch; text-wrap: pretty; }
+.welcome .body { margin-top: 28px; display: grid; gap: 14px; }
+.welcome .note { color: var(--faint); font-size: 12px; margin-top: 6px; }
+.welcome .way { margin-top: auto; padding-top: 32px; display: flex; gap: 10px; align-items: center; }
+.welcome .way .gap { flex: 1; }
+.choice { display: grid; grid-template-columns: 22px minmax(0,1fr); gap: 12px; align-items: flex-start;
+          padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--well);
+          transition: border-color .14s ease, background .14s ease; }
+.choice:hover { border-color: var(--line-2); }
+.choice.on { border-color: var(--ink); background: var(--raise); }
+.choice .dot { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--line-2); margin-top: 1px; position: relative; }
+.choice.on .dot { border-color: var(--ink); }
+.choice.on .dot::after { content: ""; position: absolute; inset: 3.5px; border-radius: 50%; background: var(--ink); }
+.choice b { font-weight: 500; font-size: 13.5px; display: block; }
+.choice span { color: var(--muted); font-size: 12.5px; }
+.gate { display: grid; grid-template-columns: 32px minmax(0,1fr) auto; gap: 12px; align-items: center; min-height: 52px; }
+.gate + .gate { box-shadow: inset 0 1px 0 var(--line); }
+.gate .ico { width: 32px; height: 32px; border-radius: 9px; background: var(--sel); display: grid; place-items: center; color: var(--muted); }
+.gate .st { font-size: 12px; color: var(--faint); display: flex; align-items: center; gap: 6px; }
+.gate .st.yes { color: var(--good); }
+.gate .st.no { color: var(--muted); }
+.gate .st.now { color: var(--ink); }
+
+/* ── the little popover for what Kliner has done ────────────────────── */
+.pop { position: fixed; z-index: 50; top: 48px; right: 14px; width: 340px;
+       background: var(--raise); border: 1px solid var(--line-2); border-radius: 12px;
+       box-shadow: var(--shadow); padding: 8px; animation: drop .18s ease both; }
+.pop .ph { padding: 8px 10px 6px; color: var(--faint); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.pop .pr { display: grid; grid-template-columns: 18px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 8px; font-size: 12.5px; }
+.pop .pr:hover { background: var(--hover); }
+.pop .pr .ic { width: 14px; height: 14px; color: var(--muted); }
+.pop .pr .ic.good { color: var(--good); }
+.pop .pr span { color: var(--faint); font-size: 11.5px; white-space: nowrap; }
+.pop .none { padding: 16px 10px; color: var(--faint); font-size: 12.5px; }
+
+/* ── a toast at the bottom ──────────────────────────────────────────── */
+.toast { position: fixed; z-index: 70; left: 50%; bottom: 22px; transform: translateX(-50%);
+         display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 14px;
+         background: var(--raise); border: 1px solid var(--line-2); border-radius: 12px;
+         box-shadow: var(--shadow); font-size: 13px; white-space: nowrap;
+         animation: up .3s cubic-bezier(.2,.7,.2,1) both; }
+.toast .ic { width: 15px; height: 15px; color: var(--good); stroke-width: 2; }
+.toast .btn { height: 26px; font-size: 12px; }
+@keyframes up { from { opacity: 0; transform: translate(-50%, 8px); } }
+
+/* pages arrive, they are not swapped */
+.arrive > * { animation: in .38s cubic-bezier(.2,.7,.2,1) both; }
+.arrive > *:nth-child(2) { animation-delay: .04s; }
+.arrive > *:nth-child(3) { animation-delay: .08s; }
+.arrive > *:nth-child(4) { animation-delay: .12s; }
+.arrive > *:nth-child(n+5) { animation-delay: .16s; }
+@keyframes in { from { opacity: 0; transform: translateY(6px); } }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* narrower windows: the four cards go two by two, the two go one by one */
+@media (max-width: 1180px) {
+    .grid.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.two { grid-template-columns: 1fr; }
+}
+@media (max-width: 980px) {
+    .ringrow svg.ring { width: 160px; height: 160px; }
+    .welcome { grid-template-columns: 1fr; }
+    .welcome .side { display: none; }
+}
+@media (max-width: 860px) {
+    .find span, .age { display: none; }
+    .find { min-width: 0; }
+    .table .th, .table .tr { grid-template-columns: 16px minmax(0,1.6fr) 0 52px 80px 16px; }
+    .table .tr .share { display: none; }
+}
+
+/* the button that is working */
+.btn.fill.working { position: relative; color: transparent !important; opacity: 1 !important; }
+.btn.fill.working .ic { opacity: 0; }
+.btn.fill.working::after { content: ""; position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px;
+    border-radius: 50%; border: 2px solid var(--on-ink); border-right-color: transparent; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <pattern id="weave0" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" style="fill:var(--sel)"/><rect width="2.4" height="6" style="fill:var(--w0)"/></pattern>
+  <pattern id="weave1" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><rect width="7" height="7" style="fill:var(--sel)"/><rect width="1.8" height="7" style="fill:var(--w1)"/></pattern>
+  <pattern id="weave2" width="5" height="5" patternUnits="userSpaceOnUse"><rect width="5" height="5" style="fill:var(--sel)"/><rect width="1.7" height="5" style="fill:var(--w2)"/></pattern>
+  <pattern id="weave3" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" style="fill:var(--sel)"/><circle cx="3" cy="3" r="1.35" style="fill:var(--w2)"/></pattern>
+  <pattern id="weave4" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" style="fill:var(--sel)"/><rect width="6" height="1.7" style="fill:var(--w3)"/></pattern>
+  <pattern id="weave5" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" style="fill:var(--w5)"/></pattern>
+</defs></svg>
+<div id="app" class="app"></div>
+<div id="tip" class="tip" role="tooltip"></div>
+<script>
+'use strict';
+/* the face: traced once, drawn everywhere */
+const MASCOT = {"body": "M 45.4 2.9 C 46 2.8 46.6 2.8 47.2 2.8 C 47.8 2.8 48.5 2.8 49.1 2.8 C 49.7 2.8 50.3 2.8 50.9 2.8 C 51.5 2.9 52.1 2.9 52.7 2.9 C 53.2 3 53.8 3.1 54.4 3.2 C 55 3.2 55.5 3.4 56.1 3.5 C 56.7 3.6 57.2 3.8 57.7 4 C 58.3 4.1 58.8 4.3 59.4 4.5 C 59.9 4.7 60.4 5 60.9 5.2 C 61.4 5.4 61.9 5.7 62.4 6 C 62.9 6.3 63.4 6.6 63.9 6.9 C 64.3 7.2 64.8 7.6 65.3 8 C 65.7 8.3 66.2 8.7 66.6 9.1 C 67 9.5 67.4 10 67.8 10.4 C 68.2 10.8 68.6 11.3 68.9 11.8 C 69.3 12.2 69.6 12.7 69.9 13.2 C 70.2 13.7 70.5 14.2 70.8 14.6 C 71.1 15.1 71.4 15.6 71.6 16.1 C 71.9 16.7 72.1 17.2 72.4 17.7 C 72.6 18.2 72.8 18.7 73.1 19.2 C 73.4 19.7 73.6 20.2 73.9 20.7 C 74.2 21.2 74.6 21.7 74.9 22.1 C 75.3 22.6 75.7 23 76.1 23.4 C 76.5 23.8 76.9 24.2 77.4 24.6 C 77.9 24.9 78.3 25.2 78.8 25.6 C 79.3 25.9 79.8 26.1 80.3 26.4 C 80.8 26.7 81.3 26.9 81.8 27.2 C 82.3 27.4 82.9 27.6 83.4 27.9 C 83.9 28.1 84.4 28.4 84.9 28.6 C 85.4 28.8 85.9 29.1 86.5 29.3 C 87 29.6 87.5 29.8 88 30 C 88.5 30.3 89 30.5 89.5 30.8 C 90 31.1 90.5 31.3 91 31.6 C 91.5 31.9 92 32.3 92.5 32.6 C 92.9 32.9 93.4 33.3 93.9 33.6 C 94.3 34 94.8 34.4 95.2 34.8 C 95.6 35.2 96 35.7 96.4 36.1 C 96.8 36.6 97.2 37 97.5 37.5 C 97.8 38 98.1 38.5 98.4 39 C 98.6 39.5 98.9 40 99.1 40.5 C 99.3 41.1 99.4 41.6 99.6 42.2 C 99.7 42.7 99.8 43.3 99.9 43.9 C 100 44.5 100 45.1 100 45.7 C 100 46.3 100 46.9 100 47.5 C 100 48.1 100 48.7 99.9 49.3 C 99.8 49.9 99.8 50.5 99.7 51 C 99.6 51.6 99.4 52.2 99.3 52.7 C 99.2 53.3 99 53.8 98.8 54.3 C 98.7 54.9 98.5 55.4 98.3 56 C 98.1 56.5 97.9 57 97.7 57.5 C 97.4 58.1 97.2 58.6 97 59.1 C 96.7 59.6 96.5 60.1 96.2 60.6 C 96 61.1 95.7 61.6 95.4 62.1 C 95.1 62.6 94.8 63.1 94.5 63.6 C 94.2 64.1 93.9 64.6 93.6 65 C 93.3 65.5 93 66 92.6 66.5 C 92.3 67 92 67.4 91.6 67.9 C 91.3 68.4 91 68.9 90.6 69.3 C 90.3 69.8 90 70.3 89.8 70.8 C 89.5 71.3 89.3 71.8 89 72.3 C 88.8 72.9 88.6 73.4 88.4 73.9 C 88.2 74.4 88 75 87.8 75.5 C 87.6 76.1 87.5 76.6 87.3 77.1 C 87.1 77.7 87 78.2 86.8 78.8 C 86.6 79.3 86.5 79.9 86.3 80.4 C 86.1 80.9 86 81.5 85.8 82 C 85.6 82.6 85.5 83.1 85.3 83.6 C 85.1 84.2 84.9 84.7 84.7 85.2 C 84.4 85.8 84.2 86.3 84 86.8 C 83.7 87.3 83.5 87.8 83.2 88.3 C 83 88.8 82.7 89.3 82.4 89.8 C 82.1 90.3 81.7 90.8 81.4 91.2 C 81 91.7 80.6 92.1 80.2 92.5 C 79.7 93 79.3 93.4 78.8 93.7 C 78.4 94.1 77.9 94.4 77.4 94.7 C 76.9 95 76.4 95.3 75.9 95.6 C 75.4 95.8 74.9 96.1 74.4 96.3 C 73.8 96.5 73.3 96.7 72.7 96.8 C 72.2 96.9 71.6 97.1 71 97.1 C 70.5 97.2 69.9 97.2 69.3 97.2 C 68.7 97.2 68.1 97.2 67.5 97.2 C 66.9 97.1 66.3 97 65.7 96.9 C 65.2 96.8 64.6 96.7 64.1 96.5 C 63.5 96.4 63 96.2 62.4 96 C 61.9 95.8 61.4 95.6 60.9 95.4 C 60.4 95.1 59.8 94.9 59.3 94.6 C 58.8 94.4 58.3 94.1 57.8 93.8 C 57.3 93.6 56.8 93.3 56.4 93 C 55.9 92.7 55.4 92.4 54.9 92.1 C 54.4 91.8 53.9 91.5 53.4 91.2 C 52.9 90.9 52.5 90.5 52 90.3 C 51.5 90.1 51 89.8 50.5 89.8 C 50 89.7 49.6 89.8 49.1 89.9 C 48.6 90 48.1 90.3 47.6 90.6 C 47.1 90.9 46.7 91.2 46.2 91.5 C 45.7 91.8 45.2 92.1 44.7 92.4 C 44.2 92.7 43.7 93 43.2 93.3 C 42.8 93.6 42.3 93.9 41.8 94.2 C 41.3 94.4 40.8 94.7 40.3 95 C 39.7 95.2 39.2 95.4 38.7 95.6 C 38.2 95.8 37.6 96 37.1 96.2 C 36.6 96.4 36 96.5 35.4 96.6 C 34.9 96.8 34.3 96.9 33.7 97 C 33.2 97 32.6 97.1 32 97.1 C 31.4 97.2 30.8 97.2 30.2 97.1 C 29.6 97.1 29.1 97 28.5 96.9 C 27.9 96.8 27.4 96.7 26.8 96.6 C 26.3 96.4 25.7 96.2 25.2 96 C 24.7 95.8 24.2 95.6 23.7 95.3 C 23.1 95.1 22.7 94.8 22.2 94.4 C 21.7 94.1 21.2 93.8 20.8 93.4 C 20.4 93 19.9 92.6 19.5 92.1 C 19.1 91.7 18.7 91.3 18.4 90.8 C 18 90.3 17.7 89.9 17.4 89.4 C 17.1 88.9 16.8 88.4 16.5 87.9 C 16.3 87.4 16 86.9 15.8 86.3 C 15.6 85.8 15.4 85.3 15.2 84.8 C 15 84.2 14.8 83.7 14.6 83.2 C 14.5 82.6 14.3 82.1 14.1 81.5 C 13.9 81 13.8 80.5 13.6 79.9 C 13.4 79.4 13.3 78.8 13.1 78.3 C 12.9 77.7 12.8 77.2 12.6 76.7 C 12.4 76.1 12.2 75.6 12 75.1 C 11.8 74.5 11.6 74 11.4 73.5 C 11.2 72.9 11 72.4 10.7 71.9 C 10.5 71.4 10.2 70.9 10 70.4 C 9.7 69.9 9.3 69.4 9 68.9 C 8.7 68.5 8.4 68 8 67.5 C 7.7 67 7.4 66.6 7.1 66.1 C 6.8 65.6 6.4 65.1 6.1 64.6 C 5.8 64.1 5.5 63.7 5.2 63.2 C 4.9 62.7 4.6 62.2 4.4 61.7 C 4.1 61.2 3.8 60.7 3.6 60.2 C 3.3 59.7 3.1 59.2 2.9 58.6 C 2.6 58.1 2.4 57.6 2.2 57.1 C 1.9 56.6 1.8 56 1.6 55.5 C 1.4 55 1.2 54.4 1.1 53.9 C 0.9 53.3 0.8 52.8 0.6 52.2 C 0.5 51.6 0.4 51.1 0.3 50.5 C 0.2 49.9 0.1 49.4 0.1 48.8 C 0 48.2 0 47.6 0 47 C 0 46.4 0 45.8 0.1 45.2 C 0.1 44.6 0.2 44 0.3 43.4 C 0.4 42.9 0.5 42.3 0.7 41.8 C 0.8 41.2 1 40.7 1.2 40.1 C 1.4 39.6 1.7 39.1 1.9 38.6 C 2.2 38.1 2.4 37.6 2.8 37.1 C 3.1 36.6 3.4 36.1 3.8 35.7 C 4.1 35.2 4.5 34.8 4.9 34.3 C 5.4 33.9 5.8 33.5 6.3 33.1 C 6.7 32.7 7.2 32.4 7.6 32 C 8.1 31.7 8.6 31.4 9.1 31.1 C 9.6 30.9 10.1 30.6 10.6 30.3 C 11.1 30.1 11.6 29.8 12.1 29.6 C 12.7 29.4 13.2 29.1 13.7 28.9 C 14.2 28.7 14.7 28.4 15.2 28.2 C 15.8 28 16.3 27.8 16.8 27.5 C 17.3 27.3 17.8 27.1 18.3 26.8 C 18.8 26.6 19.4 26.3 19.9 26 C 20.4 25.8 20.9 25.5 21.4 25.2 C 21.8 24.9 22.3 24.6 22.8 24.3 C 23.2 23.9 23.7 23.6 24.1 23.2 C 24.5 22.8 24.9 22.3 25.3 21.9 C 25.6 21.4 26 21 26.3 20.5 C 26.6 20 26.9 19.5 27.2 19 C 27.4 18.5 27.6 18 27.9 17.4 C 28.1 16.9 28.3 16.4 28.5 15.9 C 28.8 15.4 29 14.9 29.3 14.4 C 29.5 13.8 29.8 13.3 30.1 12.9 C 30.4 12.4 30.7 11.9 31 11.4 C 31.3 10.9 31.6 10.4 32 10 C 32.4 9.5 32.7 9.1 33.2 8.6 C 33.6 8.2 34 7.8 34.4 7.4 C 34.9 7 35.3 6.6 35.8 6.3 C 36.3 5.9 36.8 5.6 37.3 5.3 C 37.8 5 38.3 4.8 38.8 4.6 C 39.3 4.3 39.8 4.2 40.4 4 C 40.9 3.8 41.5 3.6 42 3.5 C 42.6 3.3 43.1 3.2 43.7 3.1 C 44.3 3 44.8 2.9 45.4 2.9 Z", "left": "M 41.7 34 C 41.9 33.9 42.2 33.9 42.5 33.8 C 42.8 33.8 43.1 33.8 43.4 33.8 C 43.8 33.8 44.1 33.8 44.4 33.8 C 44.7 33.8 45 33.8 45.3 33.8 C 45.6 33.8 45.9 33.8 46.2 33.9 C 46.5 34 46.8 34.1 47 34.2 C 47.3 34.4 47.5 34.6 47.7 34.8 C 48 35 48.2 35.2 48.4 35.4 C 48.6 35.7 48.8 35.9 48.9 36.2 C 49 36.4 49.2 36.7 49.2 37 C 49.3 37.2 49.3 37.6 49.3 37.8 C 49.3 38.1 49.2 38.3 49 38.5 C 48.9 38.7 48.7 38.8 48.5 38.9 C 48.2 38.9 47.9 38.9 47.6 39 C 47.4 39.1 47.1 39.1 46.8 39.2 C 46.5 39.3 46.3 39.5 46 39.6 C 45.8 39.8 45.5 39.9 45.3 40.1 C 45 40.2 44.7 40.3 44.5 40.4 C 44.2 40.5 44 40.7 43.7 40.9 C 43.5 41 43.3 41.3 43.2 41.5 C 43.1 41.8 43 42 42.9 42.3 C 42.9 42.6 42.9 42.9 42.9 43.2 C 42.9 43.5 42.9 43.9 42.9 44.2 C 42.9 44.5 42.9 44.8 42.9 45.1 C 42.9 45.4 42.9 45.8 42.9 46.1 C 42.9 46.4 42.9 46.7 42.8 46.9 C 42.8 47.1 42.7 47.3 42.6 47.4 C 42.5 47.5 42.4 47.4 42.2 47.3 C 42.1 47.2 41.9 46.9 41.8 46.7 C 41.7 46.5 41.6 46.2 41.5 45.9 C 41.3 45.7 41.2 45.4 41.1 45.1 C 41 44.9 40.8 44.6 40.7 44.4 C 40.6 44.1 40.4 43.8 40.4 43.5 C 40.3 43.2 40.3 42.9 40.3 42.6 C 40.3 42.3 40.3 42 40.3 41.7 C 40.3 41.4 40.3 41.1 40.3 40.8 C 40.3 40.4 40.3 40.1 40.3 39.8 C 40.3 39.5 40.3 39.2 40.3 38.9 C 40.3 38.6 40.3 38.2 40.3 37.9 C 40.3 37.6 40.3 37.3 40.3 37 C 40.3 36.7 40.3 36.4 40.3 36.1 C 40.3 35.8 40.4 35.5 40.5 35.2 C 40.6 34.9 40.8 34.7 41 34.5 C 41.2 34.3 41.4 34.1 41.7 34 Z", "right": "M 54.7 34 C 54.9 33.9 55.2 33.9 55.5 33.8 C 55.8 33.8 56.1 33.8 56.4 33.8 C 56.7 33.8 57.1 33.8 57.4 33.8 C 57.7 33.8 58 33.8 58.3 33.8 C 58.6 33.8 58.9 33.8 59.2 33.9 C 59.5 34 59.7 34.1 60 34.2 C 60.3 34.4 60.5 34.6 60.7 34.8 C 60.9 35 61.2 35.2 61.4 35.4 C 61.6 35.7 61.8 35.9 61.9 36.2 C 62 36.4 62.1 36.7 62.2 37 C 62.3 37.2 62.3 37.6 62.3 37.8 C 62.2 38.1 62.2 38.3 62 38.5 C 61.9 38.7 61.7 38.8 61.5 38.9 C 61.2 38.9 60.9 38.9 60.6 39 C 60.4 39.1 60.1 39.1 59.8 39.2 C 59.5 39.3 59.3 39.5 59 39.6 C 58.8 39.8 58.5 39.9 58.3 40.1 C 58 40.2 57.7 40.3 57.5 40.4 C 57.2 40.5 56.9 40.7 56.7 40.9 C 56.5 41 56.3 41.3 56.2 41.5 C 56.1 41.8 56 42 55.9 42.3 C 55.9 42.6 55.9 42.9 55.9 43.2 C 55.8 43.5 55.8 43.9 55.8 44.2 C 55.8 44.5 55.8 44.8 55.8 45.1 C 55.8 45.4 55.9 45.8 55.8 46.1 C 55.8 46.4 55.8 46.7 55.8 46.9 C 55.8 47.1 55.7 47.3 55.6 47.4 C 55.5 47.5 55.4 47.4 55.2 47.3 C 55.1 47.2 54.9 46.9 54.8 46.7 C 54.7 46.5 54.6 46.2 54.4 45.9 C 54.3 45.7 54.2 45.4 54.1 45.1 C 53.9 44.9 53.8 44.6 53.7 44.4 C 53.5 44.1 53.4 43.8 53.4 43.5 C 53.3 43.2 53.3 42.9 53.3 42.6 C 53.2 42.3 53.2 42 53.2 41.7 C 53.2 41.4 53.2 41.1 53.2 40.8 C 53.2 40.4 53.2 40.1 53.2 39.8 C 53.2 39.5 53.2 39.2 53.2 38.9 C 53.2 38.6 53.2 38.2 53.2 37.9 C 53.2 37.6 53.2 37.3 53.2 37 C 53.3 36.7 53.2 36.4 53.3 36.1 C 53.3 35.8 53.4 35.5 53.5 35.2 C 53.6 34.9 53.8 34.7 53.9 34.5 C 54.1 34.3 54.4 34.1 54.7 34 Z"};
+/* ── small things everything else is built from ─────────────────────── */
+
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+/** An element. Strings become text — never markup — so nothing nimo prints
+ *  (a file name, a folder name) can ever be read as HTML. */
+function h(tag, attrs, ...kids) {
+    const node = document.createElement(tag);
+    if (attrs) {
+        for (const [key, value] of Object.entries(attrs)) {
+            if (value == null || value === false) continue;
+            if (key === 'class') node.className = value;
+            else if (key === 'style') node.style.cssText = value;
+            else if (key.startsWith('on')) node.addEventListener(key.slice(2), value);
+            else node.setAttribute(key, value === true ? '' : value);
+        }
+    }
+    for (const kid of kids.flat(Infinity)) {
+        if (kid == null || kid === false) continue;
+        node.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+    }
+    return node;
+}
+
+function s(tag, attrs, ...kids) {
+    const node = document.createElementNS(SVGNS, tag);
+    if (attrs) for (const [key, value] of Object.entries(attrs)) {
+        if (value == null) continue;
+        node.setAttribute(key, value);
+    }
+    for (const kid of kids.flat(Infinity)) if (kid) node.append(kid);
+    return node;
+}
+
+/* one line of pictures, drawn the same way everywhere: 24 square, stroked */
+const PATHS = {
+    home:    ['M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'],
+    grid:    ['M3.5 3.5h7v7h-7z', 'M13.5 3.5h7v7h-7z', 'M3.5 13.5h7v7h-7z', 'M13.5 13.5h7v7h-7z'],
+    desk:    ['M3 4.5h18a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1z', 'M8 21h8', 'M12 16.5V21'],
+    download:['M12 4v11', 'm7 10 5 5 5-5', 'M5 20h14'],
+    photo:   ['M4 4h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z', 'M9 10.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z', 'm21 15-5-5L5 20'],
+    power:   ['M12 3v9', 'M6.4 6.4a8 8 0 1 0 11.2 0'],
+    bars:    ['M5 20v-8', 'M12 20V4', 'M19 20v-5', 'M3 20h18'],
+    sparkles:['M12 3.5 13.7 8l4.5 1.7-4.5 1.8L12 16l-1.7-4.5L5.8 9.7 10.3 8z', 'M18.5 14.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z'],
+    pulse:   ['M3 12h4l3-7 4 14 3-7h4'],
+    undo:    ['M9 14 4 9l5-5', 'M4 9h11a5 5 0 0 1 0 10h-3'],
+    gear:    ['M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z'],
+    help:    ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3', 'M12 17h.01'],
+    disk:    ['M22 12H2', 'M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z', 'M6 16h.01', 'M10 16h.01'],
+    cpu:     ['M7 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z', 'M9.5 9.5h5v5h-5z', 'M9 2v3', 'M15 2v3', 'M9 19v3', 'M15 19v3', 'M2 9h3', 'M2 15h3', 'M19 9h3', 'M19 15h3'],
+    tray:    ['M22 12h-6l-2 3h-4l-2-3H2', 'M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z'],
+    right:   ['m9 18 6-6-6-6'],
+    left:    ['m15 18-6-6 6-6'],
+    down:    ['m6 9 6 6 6-6'],
+    eye:     ['M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z', 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'],
+    refresh: ['M20.5 12a8.5 8.5 0 1 1-2.5-6l2.5 2.5', 'M20.5 3.5v5h-5'],
+    play:    ['M7 4.5v15l12.5-7.5z'],
+    search:  ['M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z', 'm20 20-4-4'],
+    bell:    ['M6 8.5a6 6 0 0 1 12 0c0 6.5 2.5 8.5 2.5 8.5h-17S6 15 6 8.5', 'M10.3 20.5a2 2 0 0 0 3.4 0'],
+    sidebar: ['M4 3.5h16a.5.5 0 0 1 .5.5v16a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5z', 'M9.5 3.5v17'],
+    check:   ['M20 6 9 17l-5-5'],
+    x:       ['M18 6 6 18', 'm6 6 12 12'],
+    clock:   ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 7v5l3 2'],
+    folder:  ['M4 20h16a2 2 0 0 0 2-2V8.5a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3.5H4a2 2 0 0 0-2 2V18a2 2 0 0 0 2 2z'],
+    finder:  ['M15 3h6v6', 'M10 14 21 3', 'M18 13.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5.5'],
+    up:      ['M12 19V5', 'm5 12 7-7 7 7'],
+    arrdown: ['M12 5v14', 'm19 12-7 7-7-7'],
+    trash:   ['M3 6h18', 'M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6', 'M8.5 6V4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v2'],
+    plus:    ['M12 5v14', 'M5 12h14'],
+    file:    ['M14 2.5H6.5a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V8z', 'M14 2.5V8h5.5'],
+    bolt:    ['M13 2 4 14h8l-1 8 9-12h-8z'],
+    terminal:['m4 17 6-5-6-5', 'M12 19h8'],
+    lock:    ['M5 11h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1z', 'M8 11V7a4 4 0 0 1 8 0v4'],
+    shield:  ['M12 21.5s8-3.8 8-9.5V5.5l-8-3-8 3V12c0 5.7 8 9.5 8 9.5z'],
+    slash:   ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'm5.7 5.7 12.6 12.6'],
+    wait:    ['M5 22h14', 'M5 2h14', 'M17 22v-4.2a2 2 0 0 0-.6-1.4L12 12l-4.4 4.4a2 2 0 0 0-.6 1.4V22', 'M7 2v4.2a2 2 0 0 0 .6 1.4L12 12l4.4-4.4a2 2 0 0 0 .6-1.4V2'],
+    camera:  ['M4 7.5h3l1.5-2.5h7L17 7.5h3a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8.5a1 1 0 0 1 1-1z', 'M12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z'],
+    film:    ['M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z', 'M7 3v18', 'M17 3v18', 'M3 7.5h4', 'M3 12h18', 'M3 16.5h4', 'M17 7.5h4', 'M17 16.5h4'],
+    music:   ['M9 18V5l12-2v13', 'M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M18 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'],
+    box:     ['M21 8v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8', 'M2 3h20v5H2z', 'M10 12h4'],
+    code:    ['m16 18 6-6-6-6', 'm8 6-6 6 6 6'],
+    cube:    ['M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z', 'M3.3 7 12 12l8.7-5', 'M12 22V12'],
+    dot:     ['M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z'],
+    list:    ['M8 6h13', 'M8 12h13', 'M8 18h13', 'M3 6h.01', 'M3 12h.01', 'M3 18h.01'],
+    moon:    ['M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z'],
+};
+
+/* what macOS calls a picture, and what it is here */
+const SYMBOLS = {
+    'house': 'home', 'square.grid.2x2': 'grid', 'arrow.down.circle': 'download',
+    'photo': 'photo', 'power': 'power', 'chart.bar': 'bars', 'sparkles': 'sparkles',
+    'waveform.path.ecg': 'pulse', 'arrow.uturn.backward': 'undo', 'gearshape': 'gear',
+    'questionmark.circle': 'help', 'display': 'desk', 'internaldrive': 'disk',
+    'cpu': 'cpu', 'tray.and.arrow.down': 'tray', 'chevron.right': 'right',
+    'chevron.left': 'left', 'eye': 'eye', 'arrow.clockwise': 'refresh', 'play': 'play',
+    'menubar.dock.rectangle': 'desk', 'doc.text': 'file', 'bell': 'bell',
+    'camera.viewfinder': 'camera', 'doc.on.doc': 'file',
+};
+
+function icon(name, cls) {
+    const key = SYMBOLS[name] || name;
+    const paths = PATHS[key] || PATHS.dot;
+    return s('svg', { class: 'ic' + (cls ? ' ' + cls : ''), viewBox: '0 0 24 24', 'aria-hidden': 'true' },
+             paths.map(d => s('path', { d })));
+}
+
+/* ── the face ─────────────────────────────────────────────────────────── */
+
+function mascot(cls) {
+    const svg = s('svg', { class: cls || '', viewBox: '0 0 100 100', 'aria-hidden': 'true' });
+    const whole = s('g', { class: 'whole' });
+    whole.append(s('path', { class: 'body', d: MASCOT.body }));
+    const eyes = s('g', { class: 'eyes' });
+    eyes.append(s('path', { class: 'eye', d: MASCOT.left }), s('path', { class: 'eye', d: MASCOT.right }));
+    whole.append(eyes);
+    svg.append(whole);
+    return svg;
+}
+
+/* ── numbers, the way nimo writes them ────────────────────────────────── */
+
+/** "2.1 GB" → bytes. A bare number reads as bytes, the way nimo's own does. */
+function bytes(text) {
+    const m = /^\s*(-?[\d.]+)\s*([KMGT]?B)?\s*$/i.exec(String(text || ''));
+    if (!m) return null;
+    const value = parseFloat(m[1]);
+    if (!isFinite(value)) return null;
+    const unit = (m[2] || 'B').toUpperCase();
+    const scale = { B: 1, KB: 1e3, MB: 1e6, GB: 1e9, TB: 1e12 }[unit] || 1;
+    return value * scale;
+}
+
+/** Whether a figure carries a unit. `142` is a hundred and forty-two things. */
+function hasUnit(text) {
+    return /^\s*[\d.,]+\s*([KMGT]?B)\s*$/i.test(String(text || ''));
+}
+
+/** And back again, the way nimo would have said it. */
+function size(value) {
+    const units = [[1e12, 'TB'], [1e9, 'GB'], [1e6, 'MB'], [1e3, 'KB']];
+    for (const [scale, name] of units) {
+        if (value >= scale) {
+            const n = value / scale;
+            // one decimal under a hundred, the way nimo prints them
+            return (n >= 100 ? Math.round(n).toString() : n.toFixed(1)) + ' ' + name;
+        }
+    }
+    return Math.round(value) + ' B';
+}
+
+/** Split "29.5 GB" into the figure and its unit, so the unit can be small. */
+function figure(text) {
+    const m = /^\s*([\d.,]+)\s*(.*)$/.exec(String(text || ''));
+    return m ? [m[1], m[2]] : [String(text || ''), ''];
+}
+
+/** The first whole number in a phrase: "34 items" → 34. */
+function count(text) {
+    const m = /(\d[\d,]*)/.exec(String(text || ''));
+    return m ? parseInt(m[1].replace(/,/g, ''), 10) : 0;
+}
+
+function whole(n) {
+    return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+function percent(part, of) {
+    if (!(of > 0)) return '0%';
+    const p = part / of * 100;
+    if (p > 0 && p < 0.1) return '<0.1%';
+    if (p < 10) return p.toFixed(1).replace(/\.0$/, '') + '%';
+    return Math.round(p) + '%';
+}
+
+function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+
+/* ── reading nimo back ────────────────────────────────────────────────── */
+
+/* nimo draws a panel for a terminal: box corners, a heading, columns held
+   apart by two or more spaces. This reads it back into what it meant —
+   headings, rows, a total, sentences — the same way the Swift window always
+   did, so the two can never disagree about what nimo said. */
+const BOX = new Set('─╭╮╰╯│');
+const ANSI = /\x1b\[[0-9;]*m/g;
+
+function parse(raw) {
+    const out = [];
+    for (const line of String(raw || '').split('\n')) {
+        const strong = line.includes('\x1b[1m');
+        const bare = line.replace(ANSI, '');
+        const t = bare.trim();
+        if (!t) continue;
+        if (t.startsWith('◍')) continue;              // the wordmark; the window has a title
+        if (t.startsWith('╰')) continue;              // the bottom of a panel is a shape
+
+        if (t.startsWith('╭')) {
+            const title = t.replace(/^[─╭╮╰╯│\s]+/, '').replace(/[─╭╮╰╯│\s]+$/, '');
+            if (title) out.push({ k: 'heading', text: title });
+            continue;
+        }
+        if ([...t].every(c => BOX.has(c))) { out.push({ k: 'rule' }); continue; }
+        if (t.startsWith('✓')) { out.push({ k: 'good', text: t.slice(1).trim() }); continue; }
+        if (t.startsWith('✗') || t.startsWith('!')) { out.push({ k: 'warn', text: t.slice(1).trim() }); continue; }
+
+        const indent = bare.length - bare.replace(/^ +/, '').length;
+        const parts = t.split(/ {2,}/).filter(Boolean);
+        const last = parts[parts.length - 1] || '';
+        const isBar = parts.length > 1 && /^[█·]+$/.test(last);
+
+        // A numbered line — the undo log, the wallpapers — is an entry, not
+        // a label and a value. The Swift reader filed these as notes and
+        // dropped them, which is why "Put it all back" never listed anything.
+        if (!isBar && parts.length >= 2 && /^\d{1,3}$/.test(parts[0])) {
+            out.push({ k: 'item', no: parseInt(parts[0], 10), parts: parts.slice(1), strong });
+            continue;
+        }
+
+        if (indent >= 4 && parts.length >= 2) {
+            const label = parts.shift();
+            let bar = null;
+            if (isBar) {
+                const cells = [...parts.pop()];
+                bar = cells.filter(c => c === '█').length / cells.length;
+            }
+            out.push({ k: 'row', label, value: parts[0] || '', note: parts.slice(1).join('  '), bar, strong });
+            continue;
+        }
+        out.push(indent <= 3 ? { k: 'note', text: t } : { k: 'text', text: t });
+    }
+    return out;
+}
+
+/** The rows of a reading, by label, for pages that read figures off it. */
+function facts(pieces) {
+    const map = {};
+    for (const p of pieces) if (p.k === 'row' && !(p.label in map)) map[p.label] = p;
+    return map;
+}
+
+/** A reading, cut at its headings: one section per panel nimo drew. */
+function sections(pieces) {
+    const out = [];
+    let cur = { title: '', pieces: [] };
+    for (const p of pieces) {
+        if (p.k === 'heading') {
+            if (cur.title || cur.pieces.length) out.push(cur);
+            cur = { title: p.text, pieces: [] };
+        } else cur.pieces.push(p);
+    }
+    if (cur.title || cur.pieces.length) out.push(cur);
+    return out;
+}
+
+/** Words with nimo's commands in them, the commands set as code. Only
+ *  nimo's own verbs count, so "8 min" stays a duration. */
+const COMMAND = /(\bmin (?:desktop|downloads|screenshots|clean|preview|top|doctor|undo|startup|wallpaper|next|prev|tidy|clear|empty|duplicates|apps|setup|update|dock|hide|zen|dark|light|blank|menu|help)(?: (?:--?[a-z][a-z-]*|desktop|downloads|all|<[a-z]+>))*)/;
+function prose(text) {
+    const frag = document.createDocumentFragment();
+    const bits = String(text).split(COMMAND);
+    for (const bit of bits) {
+        if (/^min /.test(bit)) frag.append(h('code', null, bit));
+        else if (bit) frag.append(document.createTextNode(bit));
+    }
+    return frag;
+}
+
+/* ── Kliner's window ─────────────────────────────────────────────────────
+
+   This page is the window. It draws; it never decides what runs. Every
+   request it makes names a page by number, and the Swift side looks the
+   command up in its own list, asks you with a real macOS dialog before
+   anything changes, and only then runs nimo. There is no way from here to
+   hand nimo an argument, open a URL, or reach the network.              */
+
+/* ── talking to the app ───────────────────────────────────────────────── */
+
+const native = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.kliner;
+let serial = 0;
+const owed = new Map();
+
+/** Ask the app for something and wait for its answer. */
+function ask(op, args) {
+    return new Promise(resolve => {
+        if (!native) { resolve({ ok: false, text: '', missing: true }); return; }
+        const id = ++serial;
+        owed.set(id, resolve);
+        native.postMessage(Object.assign({}, args || {}, { id, op }));
+    });
+}
+
+/** Tell the app something that needs no answer. */
+function tell(op, args) {
+    if (native) native.postMessage(Object.assign({}, args || {}, { id: 0, op }));
+}
+
+/* ── what the window knows ────────────────────────────────────────────── */
+
+const K = {
+    meta: null,
+    page: -1,
+    behind: [],
+    ahead: [],
+    kept: {},           // page → what it last said
+    walls: null,        // the wallpapers, read once
+    busy: false,
+    walked: [],         // how far into a folder you have clicked
+    walkedFrom: -1,
+    preview: false,
+    wide: false,
+    jobs: [],           // what Kliner has done since it opened
+    unread: false,
+    lastRead: 0,
+    sighted: true,
+    welcome: null,
+    home: null,         // the figures Home read, for the rail and ⌘K
+};
+
+const $ = sel => document.querySelector(sel);
+const pages = () => (K.meta ? K.meta.pages : []);
+const SETTINGS = () => pages().length;
+const HELP = () => pages().length + 1;
+const isAction = i => i >= 0 && i < pages().length;
+const kind = i => (isAction(i) ? pages()[i].kind : i === SETTINGS() ? 'settings' : 'help');
+
+function titleOf(i) {
+    if (isAction(i)) return pages()[i].title;
+    return i === SETTINGS() ? 'Settings' : 'Help';
+}
+function placeOf(i) {
+    return (K.meta.places || []).find(p => p.holds.includes(i)) || null;
+}
+
+/* ── the frame ────────────────────────────────────────────────────────── */
+
+function drawFrame() {
+    const app = $('#app');
+    app.replaceChildren();
+    app.className = 'app' + (K.wide ? ' wide' : '');
+
+    // the rail: every place, then Settings and Help at the foot
+    const places = h('div', { class: 'places' });
+    for (const place of K.meta.places) {
+        const first = place.holds[0];
+        const spot = h('button', {
+            class: 'spot', 'data-page': first, 'data-tip': place.title,
+            onclick: () => show(first),
+        }, icon(place.symbol), h('span', { class: 'label' }, place.title));
+        places.append(spot);
+        if (place.holds.length > 1) {
+            const kids = h('div', { class: 'kids' });
+            for (const i of place.holds) {
+                kids.append(h('button', { class: 'kid', 'data-kid': i, onclick: () => show(i) }, titleOf(i)));
+            }
+            places.append(kids);
+        }
+    }
+    const foot = h('div', { class: 'foot' },
+        h('button', { class: 'spot', 'data-page': HELP(), 'data-tip': 'Help', onclick: () => show(HELP()) },
+          icon('help'), h('span', { class: 'label' }, 'Help')),
+        h('button', { class: 'spot', 'data-page': SETTINGS(), 'data-tip': 'Settings', 'data-keys': '⌘,',
+                      onclick: () => show(SETTINGS()) },
+          icon('gear'), h('span', { class: 'label' }, 'Settings')));
+    const rail = h('nav', { class: 'rail' }, places, foot);
+
+    // the bar along the top
+    const bar = h('header', { class: 'bar' },
+        h('div', { class: 'nav' },
+            h('button', { class: 'sq', id: 'fold', 'data-hole': '', 'data-tip': 'Show names', 'data-keys': '⌘B', onclick: fold }, icon('sidebar')),
+            h('button', { class: 'sq', id: 'back', 'data-hole': '', 'data-tip': 'Back', 'data-keys': '⌘[', onclick: back }, icon('left')),
+            h('button', { class: 'sq', id: 'fwd', 'data-hole': '', 'data-tip': 'Forward', 'data-keys': '⌘]', onclick: forward }, icon('right'))),
+        h('div', { class: 'where', id: 'where' }),
+        h('div', { class: 'right' },
+            h('span', { class: 'age', id: 'age' }),
+            h('button', { class: 'mode', id: 'mode', 'data-hole': '', onclick: flipPreview,
+                          'data-tip': 'Every button reads instead of changing' },
+              icon('eye'), h('span', null, 'Only look')),
+            h('button', { class: 'find', 'data-hole': '', onclick: () => tell('quick') },
+              icon('search'), h('span', null, 'Search'), h('kbd', null, '⌘K')),
+            h('button', { class: 'bell', id: 'bell', 'data-hole': '', 'data-tip': 'What Kliner has done', onclick: toggleActivity },
+              icon('bell')),
+            h('button', { class: 'face', 'data-hole': '', 'data-tip': 'Help', onclick: () => show(HELP()) }, mascot())));
+
+    const scroll = h('div', { class: 'scroll', id: 'scroll' }, h('div', { class: 'page', id: 'page' }));
+    app.append(rail, h('main', { class: 'main' }, bar, scroll));
+
+    wireTips(app);
+    setFrame();
+    reportChrome();
+}
+
+/** Everything in the frame that depends on where you are. */
+function setFrame() {
+    const i = K.page;
+    for (const spot of document.querySelectorAll('.spot')) {
+        const n = parseInt(spot.dataset.page, 10);
+        const place = placeOf(i);
+        spot.classList.toggle('on', place ? place.holds[0] === n : n === i);
+    }
+    for (const kid of document.querySelectorAll('.kid')) {
+        kid.classList.toggle('on', parseInt(kid.dataset.kid, 10) === i);
+    }
+
+    const where = $('#where');
+    if (where) {
+        where.replaceChildren();
+        const place = placeOf(i);
+        const symbol = place ? place.symbol : (i === SETTINGS() ? 'gear' : 'help');
+        where.append(icon(symbol));
+        if (i === 0) {
+            where.append(h('span', { class: 'name' }, 'Overview'));
+        } else if (place && place.holds.length > 1) {
+            where.append(h('span', { class: 'group' }, place.title));
+            const tabs = h('div', { class: 'tabs', 'data-hole': '' });
+            for (const n of place.holds) {
+                tabs.append(h('button', { class: 'tab' + (n === i ? ' on' : ''), onclick: () => show(n) }, titleOf(n)));
+            }
+            where.append(tabs);
+        } else {
+            where.append(h('span', { class: 'name' }, titleOf(i)));
+        }
+        const reveal = isAction(i) ? pages()[i].reveal : '';
+        const trail = K.walked.length && K.walked[0] === reveal ? K.walked.slice(1) : K.walked;
+        if (trail.length) {
+            where.append(h('span', { class: 'slash' }, '/'),
+                         h('span', { class: 'group' }, trail.join(' / ')));
+        }
+    }
+
+    const backBtn = $('#back'), fwdBtn = $('#fwd');
+    if (backBtn) backBtn.disabled = !K.behind.length && !K.walked.length;
+    if (fwdBtn) fwdBtn.disabled = !K.ahead.length;
+    const mode = $('#mode');
+    if (mode) mode.classList.toggle('on', K.preview);
+    const bell = $('#bell');
+    if (bell) {
+        const dot = bell.querySelector('.dot');
+        if (K.unread && !dot) bell.append(h('span', { class: 'dot' }));
+        if (!K.unread && dot) dot.remove();
+    }
+    tally();
+    sayAge();
+    reportChrome();
+}
+
+/** The count on a place: how many things are waiting there. */
+function tally() {
+    const f = K.home;
+    for (const spot of document.querySelectorAll('.spot')) {
+        spot.querySelector('.count')?.remove();
+        if (!f) continue;
+        const n = parseInt(spot.dataset.page, 10);
+        const place = (K.meta.places || []).find(p => p.holds[0] === n);
+        if (!place) continue;
+        let many = 0;
+        if (place.holds.includes(1)) many += f.desk || 0;
+        if (place.holds.includes(2)) many += f.downloads || 0;
+        if (many > 0) spot.append(h('span', { class: 'count' }, many > 999 ? '999+' : String(many)));
+    }
+}
+
+function sayAge() {
+    const age = $('#age');
+    if (!age) return;
+    if (!K.lastRead || !isAction(K.page)) { age.textContent = ''; return; }
+    const gone = Math.round((Date.now() - K.lastRead) / 1000);
+    age.textContent = gone < 5 ? 'read just now'
+        : gone < 90 ? `read ${gone}s ago`
+        : gone < 5400 ? `read ${Math.round(gone / 60)}m ago`
+        : `read ${Math.round(gone / 3600)}h ago`;
+}
+setInterval(sayAge, 5000);
+
+/** Where the window can be dragged by: the top 52 points, less anything
+ *  in them you can press. The app does the dragging; this only says where. */
+let chromeTimer = 0;
+function reportChrome() {
+    clearTimeout(chromeTimer);
+    chromeTimer = setTimeout(() => {
+        const holes = [];
+        for (const el of document.querySelectorAll('[data-hole], .bar button, .welcome .way button')) {
+            const r = el.getBoundingClientRect();
+            if (r.width > 0 && r.height > 0 && r.top < 52) holes.push([r.left, r.top, r.width, r.height]);
+        }
+        tell('chrome', { height: 52, holes });
+    }, 30);
+}
+window.addEventListener('resize', reportChrome);
+
+/* ── tooltips, for a rail of pictures ─────────────────────────────────── */
+
+let tipTimer = 0;
+function wireTips(root) {
+    for (const el of root.querySelectorAll('[data-tip]')) {
+        el.addEventListener('mouseenter', () => {
+            clearTimeout(tipTimer);
+            tipTimer = setTimeout(() => showTip(el), el.closest('.rail') ? 250 : 600);
+        });
+        el.addEventListener('mouseleave', hideTip);
+        el.addEventListener('mousedown', hideTip);
+    }
+}
+function showTip(el) {
+    if (el.closest('.rail') && K.wide) return;
+    const tip = $('#tip');
+    tip.replaceChildren(el.dataset.tip, el.dataset.keys ? h('kbd', null, el.dataset.keys) : null);
+    const r = el.getBoundingClientRect();
+    tip.classList.add('show');
+    const w = tip.offsetWidth, th = tip.offsetHeight;
+    if (el.closest('.rail')) {
+        tip.style.left = (r.right + 10) + 'px';
+        tip.style.top = (r.top + r.height / 2 - th / 2) + 'px';
+    } else {
+        tip.style.left = Math.min(window.innerWidth - w - 8, Math.max(8, r.left + r.width / 2 - w / 2)) + 'px';
+        tip.style.top = (r.bottom + 8) + 'px';
+    }
+}
+function hideTip() { clearTimeout(tipTimer); $('#tip').classList.remove('show'); }
+
+/* ── going places ─────────────────────────────────────────────────────── */
+
+function show(i, opts) {
+    const remember = !opts || opts.remember !== false;
+    if (!K.meta || K.welcome) return;
+    if (i < 0 || i > HELP()) return;
+    closeActivity();
+    hideTip();
+    if (remember && i !== K.page && K.page >= 0) { K.behind.push(K.page); K.ahead = []; }
+    const same = i === K.page;
+    K.page = i;
+    K.walked = [];
+    setFrame();
+    if (!same) $('#scroll').scrollTop = 0;
+    if (!isAction(i)) { drawPage(); return; }
+    const kept = K.kept[i];
+    if (kept) {
+        drawPage();
+        if (i === 0 && kept.fast) setTimeout(() => look(0, true), 60);
+        return;
+    }
+    look(i);
+}
+
+function back() {
+    if (K.walked.length) { walkUp(); return; }
+    if (!K.behind.length) return;
+    K.ahead.push(K.page);
+    show(K.behind.pop(), { remember: false });
+}
+function forward() {
+    if (!K.ahead.length) return;
+    K.behind.push(K.page);
+    show(K.ahead.pop(), { remember: false });
+}
+function fold() {
+    K.wide = !K.wide;
+    tell('setConfig', { key: 'rail', value: K.wide ? 'list' : 'icons' });
+    drawFrame();
+    drawPage(true);
+}
+function flipPreview() {
+    K.preview = !K.preview;
+    tell('setConfig', { key: 'preview', value: K.preview ? 'on' : 'off' });
+    setFrame();
+    drawPage(true);
+}
+
+/* ── reading and doing ────────────────────────────────────────────────── */
+
+async function look(i, quietly) {
+    if (K.busy && !quietly) { K.owedLook = i; drawWaiting(i); return; }
+    if (K.busy) return;
+    const fast = i === 0 && !K.kept[0];
+    K.busy = true;
+    if (!quietly) drawWaiting(i);
+    let reply;
+    try {
+        reply = await ask('look', { page: i, fast });
+    } finally {
+        K.busy = false;
+    }
+    if (reply.missing) reply = { ok: false, text: '! The window could not reach Kliner.' };
+
+    if (reply.ready) {
+        K.kept[i] = { ready: true, at: Date.now() };
+    } else {
+        K.kept[i] = { pieces: parse(reply.text), ok: reply.ok, at: Date.now(), fast };
+    }
+    if (typeof reply.sighted === 'boolean') K.sighted = reply.sighted;
+    if (i === 0 || kind(i) === 'doctor') readHome(K.kept[i].pieces || []);
+    K.lastRead = Date.now();
+
+    // a page opened while this one was running is owed its own reading
+    if (K.owedLook != null && K.owedLook !== i) {
+        const owedPage = K.owedLook;
+        K.owedLook = null;
+        if (owedPage === K.page) { look(owedPage); return; }
+    }
+    K.owedLook = null;
+    if (i === K.page) drawPage(quietly);
+
+    // Home in two halves: the instant readings first, then the one that
+    // walks every cache on the disk
+    if (fast && i === 0) setTimeout(() => look(0, true), 60);
+
+    // the wallpapers come from their own, harmless reading
+    if (kind(i) === 'next' && !K.walls) readWalls();
+}
+
+async function readWalls() {
+    const reply = await ask('walls');
+    if (reply && reply.text) {
+        K.walls = parse(reply.text).filter(p => p.k === 'item');
+        if (kind(K.page) === 'next') drawPage(true);
+    }
+}
+
+/** The big button on a page. The app asks first; this only waits. */
+async function act(i) {
+    if (K.busy || !isAction(i)) return;
+    K.busy = true;
+    busyButtons(true);
+    let reply;
+    try {
+        reply = await ask('go', { page: i, preview: K.preview });
+    } finally {
+        K.busy = false;
+    }
+    busyButtons(false);
+    if (reply.cancelled || reply.missing) return;
+    afterRun(i, reply, pages()[i].verb);
+}
+
+async function extra(i, n) {
+    if (K.busy || !isAction(i)) return;
+    const ex = pages()[i].extras[n];
+    if (!ex) return;
+    K.busy = true;
+    busyButtons(true);
+    let reply;
+    try {
+        reply = await ask('extra', { page: i, index: n, preview: K.preview });
+    } finally {
+        K.busy = false;
+    }
+    busyButtons(false);
+    if (reply.cancelled || reply.missing) return;
+    afterRun(i, reply, ex.title);
+}
+
+/** Desktop and Downloads behind one question. */
+async function tidyBoth(which) {
+    if (K.busy) return;
+    K.busy = true;
+    busyButtons(true);
+    let reply;
+    try {
+        reply = await ask('tidy', { pages: which, preview: K.preview });
+    } finally {
+        K.busy = false;
+    }
+    busyButtons(false);
+    if (reply.cancelled || reply.missing || !reply.results) return;
+    for (const one of reply.results) afterRun(one.page, one, pages()[one.page].verb, true);
+    const said = reply.results.map(one => (parse(one.text).find(p => p.k === 'good') || {}).text).filter(Boolean);
+    delete K.kept[0];
+    show(0);
+    if (said.length) toast(said.join(' · '), null);
+}
+
+function afterRun(i, reply, what, quiet) {
+    const pieces = parse(reply.text);
+    const good = pieces.find(p => p.k === 'good');
+    const warn = pieces.find(p => p.k === 'warn');
+    K.kept[i] = { pieces, ok: reply.ok, at: Date.now(), result: true, changed: !!reply.changed, preview: !!reply.preview };
+    K.lastRead = Date.now();
+    if (reply.changed) {
+        // what changed changes the readings of Home and the log of what was done
+        for (const n of Object.keys(K.kept)) {
+            if (+n !== i) delete K.kept[n];
+        }
+        if (kind(i) === 'next' && K.walls) readWalls();
+    }
+    const line = good ? good.text : warn ? warn.text : (reply.ok ? 'Done' : 'Kliner could not finish that');
+    K.jobs.unshift({ page: i, title: titleOf(i), line, good: !!good && reply.ok, at: new Date(), preview: !!reply.preview });
+    K.jobs = K.jobs.slice(0, 30);
+    if (reply.changed) K.unread = true;
+    setFrame();
+    if (!quiet && i === K.page) drawPage();
+    // somewhere else, say so; here, the banner says it
+    if (!quiet && reply.changed && good && i !== K.page) toast(good.text, null);
+}
+
+async function walk(path) {
+    if (K.busy) return;
+    K.walked = path;
+    K.walkedFrom = K.page;
+    setFrame();
+    K.busy = true;
+    drawWaiting(K.page, path[path.length - 1]);
+    let reply;
+    try {
+        reply = await ask('walk', { path });
+    } finally {
+        K.busy = false;
+    }
+    if (reply.missing || K.walked !== path) return;
+    K.walkedPieces = parse(reply.text);
+    K.lastRead = Date.now();
+    setFrame();
+    drawPage();
+}
+function walkInto(name) { walk(K.walked.concat([name])); }
+function walkUp() {
+    const path = K.walked.slice(0, -1);
+    if (!path.length) {
+        K.walked = [];
+        setFrame();
+        drawPage();
+        return;
+    }
+    walk(path);
+}
+
+/** A file in a folder you have walked into: shown in the Finder, never
+ *  opened — a cleaner that launches things is not one anybody trusts. */
+function revealThing(name) {
+    tell('show', { path: K.walked.concat([name]) });
+}
+
+async function stopOne(name) {
+    if (K.busy) return;
+    K.busy = true;
+    busyButtons(true);
+    let reply;
+    try {
+        reply = await ask('stop', { name });
+    } finally {
+        K.busy = false;
+    }
+    busyButtons(false);
+    if (reply.cancelled || reply.missing) return;
+    afterRun(K.page, reply, 'Stop ' + name);
+}
+
+function busyButtons(on) {
+    for (const b of document.querySelectorAll('.page .btn, .page .todo button')) {
+        if (on) { b.dataset.was = b.disabled ? '1' : ''; b.disabled = true; }
+        else { b.disabled = b.dataset.was === '1'; }
+    }
+    for (const b of document.querySelectorAll('.page .btn.fill')) b.classList.toggle('working', on);
+}
+
+/* ── Home's figures, read once and used everywhere ────────────────────── */
+
+function readHome(pieces) {
+    const f = facts(pieces);
+    if (!f.Disk && !f.Desktop) return;
+    let total = 0, free = 0;
+    if (f.Disk) {
+        const [a, b] = f.Disk.value.split(' of ');
+        free = bytes((a || '').replace(/\s*free$/, '')) || 0;
+        total = bytes(b) || 0;
+    }
+    const junk = f.Junk ? bytes(f.Junk.value) : null;
+    const home = {
+        total, free, used: Math.max(0, total - free), junk,
+        desk: f.Desktop ? count(f.Desktop.value) : null,
+        downloads: f.Downloads ? count(f.Downloads.value) : null,
+        trash: f.Trash ? count(f.Trash.value) : null,
+        deskOld: f['Desktop older'] ? f['Desktop older'].value : '',
+        downloadsOld: f['Downloads older'] ? f['Downloads older'].value : '',
+        months: f.Months ? f.Months.value.split(',').map(x => parseFloat(x)).filter(x => !isNaN(x)) : [],
+        last: f['Last change'] ? f['Last change'].value : '',
+        f,
+    };
+    // the fast half has no junk figure; keep the last one rather than a hole
+    if (home.junk == null && K.home && K.home.junk != null) home.junk = K.home.junk;
+    K.home = home;
+
+    // and hand the menu behind ⌘K the same readings
+    const figures = {};
+    if (f.Desktop) figures['1'] = f.Desktop.value;
+    if (f.Downloads) figures['2'] = f.Downloads.value;
+    const cleanPage = pages().findIndex(p => p.kind === 'clean');
+    if (home.junk > 0 && cleanPage >= 0) figures[String(cleanPage)] = size(home.junk);
+    tell('figures', {
+        headline: home.junk == null ? '' : home.junk > 0 ? size(home.junk) + ' worth freeing' : 'nothing worth freeing',
+        figures,
+    });
+    tally();
+}
+
+/* Home reads itself again every half minute, only while you are looking */
+setInterval(() => {
+    if (K.page === 0 && !K.busy && !K.welcome && document.visibilityState === 'visible'
+        && K.kept[0] && Date.now() - K.kept[0].at > 29000) look(0, true);
+}, 5000);
+
+/* ── the page ─────────────────────────────────────────────────────────── */
+
+function drawPage(still) {
+    const page = $('#page');
+    if (!page) return;
+    const i = K.page;
+    const out = h('div', { class: still ? '' : 'arrive' });
+
+    if (i === SETTINGS()) drawSettings(out);
+    else if (i === HELP()) drawHelp(out);
+    else if (K.walked.length) drawWalk(out);
+    else {
+        const kept = K.kept[i];
+        if (!kept) { drawWaiting(i); return; }
+        if (i === 0) drawHome(out, kept);
+        else drawAction(out, i, kept);
+    }
+    page.replaceChildren(out);
+    reportChrome();
+}
+
+function drawWaiting(i, what) {
+    const page = $('#page');
+    if (!page) return;
+    const name = what || (isAction(i) ? pages()[i].title.toLowerCase() : '');
+    const line = i === 0 && !what ? 'Looking at your Mac…'
+        : kind(i) === 'top' || what ? `Measuring ${what || 'your home folder'}…`
+        : kind(i) === 'clean' ? 'Looking for what is safe to clear…'
+        : `Looking at ${name}…`;
+    page.replaceChildren(h('div', { class: 'wait' },
+        mascot('mascot'),
+        h('h3', null, line),
+        h('p', null, 'Nothing is changed while Kliner looks.'),
+        h('div', { class: 'ghost' }, h('i'), h('i'), h('i'))));
+}
+
+/** The four-cornered frame every panel stands in. */
+function panel(cls, ...kids) {
+    return h('section', { class: 'panel' + (cls ? ' ' + cls : '') },
+             h('i', { class: 'c a' }), h('i', { class: 'c b' }), h('i', { class: 'c d' }), h('i', { class: 'c e' }),
+             kids);
+}
+
+function cap(symbol, text, right) {
+    return h('div', { class: 'cap' }, symbol ? icon(symbol) : null, h('span', null, text),
+             right ? h('div', { class: 'r' }, right) : null);
+}
+
+function bigFigure(text, sub, move) {
+    const [n, unit] = figure(text);
+    return h('div', { class: 'big' },
+        h('div', null,
+            h('div', { class: 'n' }, n, unit ? h('small', null, unit) : null),
+            sub ? h('div', { class: 'sub' }, sub) : null),
+        move ? h('div', { class: 'move' },
+            h('div', { class: 'd ' + (move.tone || '') }, move.icon ? icon(move.icon) : null, move.d),
+            move.w ? h('div', { class: 'w' }, move.w) : null) : null);
+}
+
+function tile(label, symbol, value, opts) {
+    opts = opts || {};
+    const [n, unit] = figure(value);
+    return panel('tile',
+        h('div', { class: 'k' }, icon(symbol), label),
+        h('div', { class: 'v' }, n, unit ? h('small', null, unit) : null),
+        opts.part != null ? h('div', { class: 'meter' }, h('i', { style: `width:${Math.max(1.5, Math.min(100, opts.part * 100))}%` })) : null,
+        h('div', { class: 'f' },
+            opts.pill ? h('span', { class: 'pill' + (opts.pillTone ? ' ' + opts.pillTone : '') }, opts.pill) : null,
+            opts.foot ? h('span', { class: 't' }, opts.foot) : null));
+}
+
+function dashes(share, many) {
+    many = many || 22;
+    const on = share > 0 ? Math.max(1, Math.round(share * many)) : 0;
+    const out = h('div', { class: 'dash' });
+    for (let n = 0; n < many; n++) out.append(h('i', { class: n < on ? 'on' : '' }));
+    return out;
+}
+
+/* weaves, not hues: a breakdown is told apart by texture */
+const WEAVES = 6;
+function swatch(n) {
+    const svg = s('svg', { viewBox: '0 0 14 14' });
+    svg.append(s('rect', { width: 14, height: 14, fill: `url(#weave${n % WEAVES})` }));
+    return h('span', { class: 'sw' }, svg);
+}
+
+/* ── Home ─────────────────────────────────────────────────────────────── */
+
+function greeting() {
+    const hour = new Date().getHours();
+    const part = hour < 5 ? 'Good evening' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    const name = (K.meta.config.name || '').trim().split(/\s+/)[0];
+    return name ? `${part}, ${name}.` : 'Hello.';
+}
+
+function drawHome(out, kept) {
+    const pieces = kept.pieces || [];
+    const home = K.home || {};
+    const f = facts(pieces);
+    const total = home.total || 0, free = home.free || 0, used = home.used || 0;
+    const junk = home.junk;
+
+    out.append(h('div', { class: 'head' },
+        h('div', { class: 'words' },
+            h('h1', null, greeting()),
+            h('p', null, pages()[0].blurb)),
+        h('div', { class: 'acts' },
+            h('button', { class: 'btn line small', onclick: () => { delete K.kept[0]; look(0); } },
+              icon('refresh'), 'Look again'))));
+
+    if (!f.Disk && !f.Desktop) {
+        drawAction(out, 0, kept, true);
+        return;
+    }
+
+    // four readings, standing on the page
+    const across = h('div', { class: 'grid four' });
+    if (total > 0) {
+        across.append(tile('Disk', 'disk', size(used), {
+            part: used / total, pill: percent(used, total) + ' used', foot: 'of ' + size(total) }));
+        across.append(tile('Free', 'sparkles', size(free), {
+            part: free / total,
+            pill: junk > 0 ? '+' + size(junk) + ' to spare' : null, pillTone: junk > 0 ? 'good' : '',
+            foot: junk === 0 ? 'nothing worth freeing' : junk == null ? 'still measuring…' : null }));
+    }
+    if (home.desk != null) across.append(tile('Desktop', 'desk', String(home.desk), {
+        pill: home.deskOld || null, foot: home.deskOld ? null : home.desk === 1 ? 'thing on it' : 'things on it' }));
+    if (home.downloads != null) across.append(tile('Downloads', 'download', String(home.downloads), {
+        pill: home.downloadsOld || null, foot: home.downloadsOld ? null : home.downloads === 1 ? 'thing in it' : 'things in it' }));
+    if (across.children.length) out.append(across);
+
+    // the one number, and where the room is
+    if (total > 0) {
+        const two = h('div', { class: 'grid two' });
+        const worth = junk == null ? null : junk;
+        two.append(panel('',
+            bigFigure(worth == null ? '…' : worth > 0 ? size(worth) : '0 B',
+                      worth == null ? 'Measuring what your apps keep that they can rebuild…'
+                          : worth > 0 ? 'Worth freeing — caches your apps rebuild, and the trash'
+                          : 'Nothing worth freeing. Your Mac is carrying nothing it does not need.',
+                      worth > 0 ? { d: '+' + size(worth), icon: 'up', tone: 'good', w: 'on top of ' + size(free) + ' free' }
+                                : { d: size(free), w: 'free right now' }),
+            funnel([
+                { value: total, name: 'On the disk' },
+                { value: used, name: 'In use' },
+                { value: worth || 0, name: 'Worth freeing' },
+            ])));
+
+        const bands = [
+            { name: 'Your files', value: Math.max(0, used - (worth || 0)) },
+            { name: 'Worth freeing', value: worth || 0 },
+            { name: 'Free', value: free },
+        ].filter(b => b.value > 0);
+        two.append(panel('',
+            bigFigure(size(used), 'In use, of ' + size(total) + ' on this Mac',
+                      { d: percent(used, total) + ' used', w: size(free) + ' free' }),
+            ringRow(bands, total, percent(used, total), 'used')));
+        out.append(two);
+    }
+
+    // four cards
+    const four = h('div', { class: 'grid four' });
+    four.append(deskCard(home));
+    four.append(promiseCard(home));
+    four.append(home.months && home.months.length === 12 && home.months.some(x => x > 0)
+        ? monthsCard(home) : machineCard(f));
+    four.append(todoCard(home));
+    out.append(four);
+}
+
+function deskCard(home) {
+    const rows = [
+        { name: 'Desktop', n: home.desk, old: home.deskOld, page: 1 },
+        { name: 'Downloads', n: home.downloads, old: home.downloadsOld, page: 2 },
+        { name: 'Trash', n: home.trash, old: '', page: -1 },
+    ].filter(r => r.n != null);
+    const most = Math.max(1, ...rows.map(r => r.n || 0));
+    const list = h('div', { class: 'list' });
+    for (const r of rows) {
+        const one = h('div', { style: r.page >= 0 ? 'cursor:pointer' : '', onclick: r.page >= 0 ? () => show(r.page) : null },
+            h('div', { class: 'l' }, h('b', null, r.name),
+              r.old ? h('span', { class: 'pill' }, r.old) : null,
+              h('span', { class: 'v' }, plural(r.n, 'item'))),
+            dashes(r.n / most));
+        list.append(one);
+    }
+    return panel('', cap('grid', 'On your desk', 'right now'), list);
+}
+
+function promiseCard(home) {
+    const last = (home.last || '').trim();
+    const undoPage = pages().findIndex(p => p.kind === 'undo');
+    const first = last ? last.split(', ')[0] : '';
+    return panel('', cap('list', 'Nothing is deleted'),
+        h('div', { class: 'promise' },
+            h('div', { class: 'marks' },
+                h('span', null, icon('tray')), h('span', null, icon('plus')), h('span', null, icon('undo'))),
+            h('h4', null, first ? first.charAt(0).toUpperCase() + first.slice(1) : 'Everything can go back'),
+            h('p', null, 'Kliner moves things and writes down every move, so any of it can go back the way it was.'),
+            undoPage >= 0 ? h('button', { class: 'btn fill small', onclick: () => show(undoPage) }, 'Put it all back') : null));
+}
+
+function monthsCard(home) {
+    const months = home.months;
+    const most = Math.max(...months);
+    const names = [];
+    const now = new Date();
+    for (let back = 11; back >= 0; back--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - back, 1);
+        names.push(d.toLocaleString('en', { month: 'short' }));
+    }
+    const busiest = names[months.indexOf(most)];
+    const all = months.reduce((a, b) => a + b, 0);
+    const row = h('div', { class: 'row' });
+    const shades = ['var(--sel)', 'var(--w4)', 'var(--w3)', 'var(--w2)', 'var(--w0)'];
+    months.forEach((m, n) => {
+        const level = m <= 0 ? 0 : Math.min(4, 1 + Math.floor((m / most) * 3.999));
+        row.append(h('i', { style: `background:${shades[level]}`, title: `${names[n]}: ${m}` }));
+    });
+    const ax = h('div', { class: 'ax' });
+    names.forEach((n, k) => ax.append(h('span', null, k % 2 === 1 ? n : '')));
+    const scale = h('div', { class: 'scale' }, 'fewer',
+        shades.map(c => h('i', { style: `background:${c}` })), 'more');
+
+    let move = null;
+    const nowM = months[11], before = months[10];
+    if (before > 0 && nowM > 0) {
+        const by = (nowM - before) / before;
+        if (Math.abs(by) >= 0.05) move = h('span', { class: 'pill ' + (by > 0 ? 'bad' : 'good') },
+            icon(by > 0 ? 'up' : 'arrdown'), Math.round(Math.abs(by) * 100) + '% vs last month');
+    }
+    return panel('', cap('clock', 'Last changed', move || '12 months'),
+        h('div', { class: 'pair' },
+            h('div', null, h('div', { class: 'n' }, whole(all)), h('div', { class: 'c' }, 'things, by the month they arrived')),
+            h('div', null, h('div', { class: 'n' }, busiest), h('div', { class: 'c' }, 'busiest month'))),
+        h('div', { class: 'heat' }, row, ax, scale));
+}
+
+function machineCard(f) {
+    const keys = ['System', 'Memory', 'Battery', 'Uptime'].filter(k => f[k]);
+    const list = h('div', { class: 'facts' });
+    for (const k of keys) {
+        list.append(h('div', { class: 'fact' }, h('span', { class: 'k' }, k),
+            h('span', { class: 'v' }, f[k].value), h('span')));
+    }
+    const doctor = pages().findIndex((p, n) => n > 0 && p.kind === 'doctor');
+    return panel('', cap('cpu', 'This Mac', doctor > 0 ? h('button', { class: 'btn bare small', onclick: () => show(doctor) }, 'More') : null), list);
+}
+
+function todoCard(home) {
+    const cleanPage = pages().findIndex(p => p.kind === 'clean');
+    const undoPage = pages().findIndex(p => p.kind === 'undo');
+    const items = [];
+    if (!K.sighted) items.push({ name: 'Let Kliner see your files', cmd: 'macOS has not been asked yet', fig: '', icon: 'lock', verb: 'Ask',
+                                 go: async () => { await ask('askFolders'); delete K.kept[0]; look(0); } });
+    items.push({ name: 'Clear the desktop', cmd: 'min desktop', fig: home.desk ? plural(home.desk, 'item') : 'already clear',
+                 icon: 'desk', done: home.desk === 0, page: 1, verb: 'Clear' });
+    items.push({ name: 'Sort the downloads', cmd: 'min downloads', fig: home.downloads ? plural(home.downloads, 'item') : 'already sorted',
+                 icon: 'download', done: home.downloads === 0, page: 2, verb: 'Sort' });
+    if (cleanPage >= 0) items.push({ name: 'Free up space', cmd: 'min clean',
+                 fig: home.junk == null ? 'measuring…' : home.junk > 0 ? size(home.junk) : 'nothing to free',
+                 icon: 'sparkles', done: home.junk === 0, page: cleanPage, verb: 'Free' });
+    if (undoPage >= 0) items.push({ name: 'Put it all back', cmd: 'min undo --all', fig: '', icon: 'undo', page: undoPage, verb: 'Open' });
+
+    const list = h('div', { class: 'todo' });
+    for (const it of items) {
+        const row = h('div', { class: 't' + (it.done ? ' done' : ''), style: 'cursor:pointer',
+                               onclick: () => (it.page != null ? show(it.page) : it.go()) },
+            h('span', { class: 'ico' }, icon(it.icon)),
+            h('div', { style: 'min-width:0' }, h('div', { class: 'nm' }, h('span', null, it.name)), h('div', { class: 'cm' }, it.cmd)),
+            h('div', { class: 'go' }, it.fig ? h('span', { class: 'fig' }, it.fig) : null, icon('right')));
+        list.append(row);
+    }
+    const both = [1, 2].filter(n => (n === 1 ? home.desk : home.downloads) > 0);
+    return panel('', cap('bolt', 'Everything',
+        both.length > 1 ? h('button', { class: 'btn line small', onclick: () => tidyBoth(both) }, 'Tidy both') : null), list);
+}
+
+/* ── the funnel: three readings of one disk, narrowing ────────────────── */
+
+function funnel(stops) {
+    const W = 1000, H = 250, top = 30, bottom = 26, room = H - top - bottom;
+    const max = stops[0].value || 1;
+    const floor = 3;
+    const hs = stops.map(st => Math.max(floor, (st.value / max) * room));
+    const box = h('div', { class: 'funnel' });
+    const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none' });
+    const cols = stops.length, cw = W / cols, mid = top + room / 2;
+    const fills = ['var(--w0)', 'var(--w2)', 'var(--w4)'];
+    for (let c = 0; c < cols; c++) {
+        const x0 = c * cw, a = hs[c], b = c + 1 < cols ? hs[c + 1] : hs[c];
+        const upper = [], lower = [];
+        for (let k = 0; k <= 40; k++) {
+            const t = k / 40, x = x0 + cw * t;
+            let hh = a;
+            if (c + 1 < cols && t > 0.42) {
+                const u = (t - 0.42) / 0.58;
+                const e = u * u * (3 - 2 * u);
+                hh = a + (b - a) * e;
+            }
+            upper.push([x, mid - hh / 2]);
+            lower.push([x, mid + hh / 2]);
+        }
+        const d = 'M' + upper.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L')
+            + ' L' + lower.reverse().map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L') + 'Z';
+        svg.append(s('path', { d, style: `fill:${fills[c] || fills[2]}` }));
+    }
+    box.append(svg);
+    const tpl = `repeat(${cols}, 1fr)`;
+    const tops = h('div', { class: 'tops', style: `grid-template-columns:${tpl}` });
+    const pcts = h('div', { class: 'pcts', style: `grid-template-columns:${tpl}` });
+    const names = h('div', { class: 'names', style: `grid-template-columns:${tpl}` });
+    stops.forEach((st, c) => {
+        tops.append(h('div', null, size(st.value)));
+        pcts.append(h('span', { class: 'pill' + (c === 0 ? ' hi' : '') }, percent(st.value, max)));
+        names.append(h('div', null, st.name));
+    });
+    box.append(tops, pcts, names);
+    for (let c = 1; c < cols; c++) box.append(h('i', { class: 'rule', style: `left:${(c / cols * 100).toFixed(3)}%` }));
+    return box;
+}
+
+/* ── the ring, and its key ────────────────────────────────────────────── */
+
+function ringRow(bands, whole_, centre, under) {
+    const R = 92, r0 = 58, C = 100;
+    const svg = s('svg', { class: 'ring', viewBox: '0 0 200 200' });
+    const sum = bands.reduce((a, b) => a + b.value, 0) || 1;
+    let a0 = -Math.PI / 2;
+    const minShare = 0.012;
+    const shares = bands.map(b => Math.max(b.value / sum, b.value > 0 ? minShare : 0));
+    const norm = shares.reduce((a, b) => a + b, 0);
+    bands.forEach((b, n) => {
+        const f = shares[n] / norm;
+        if (f <= 0) return;
+        const a1 = a0 + f * Math.PI * 2 - (bands.length > 1 ? 0.035 : 0);
+        const big = (a1 - a0) > Math.PI ? 1 : 0;
+        const p = (rad, ang) => [C + rad * Math.cos(ang), C + rad * Math.sin(ang)];
+        const [x0, y0] = p(R, a0), [x1, y1] = p(R, a1), [x2, y2] = p(r0, a1), [x3, y3] = p(r0, a0);
+        const d = `M${x0} ${y0} A${R} ${R} 0 ${big} 1 ${x1} ${y1} L${x2} ${y2} A${r0} ${r0} 0 ${big} 0 ${x3} ${y3}Z`;
+        svg.append(s('path', { d, fill: `url(#weave${n % WEAVES})` }));
+        a0 = a0 + f * Math.PI * 2;
+    });
+    if (centre) {
+        const t1 = s('text', { x: C, y: C + 2, 'text-anchor': 'middle', style: 'fill:var(--ink);font-size:22px;font-weight:600;letter-spacing:-.02em' });
+        t1.textContent = centre;
+        const t2 = s('text', { x: C, y: C + 20, 'text-anchor': 'middle', style: 'fill:var(--faint);font-size:11px' });
+        t2.textContent = under || '';
+        svg.append(t1, t2);
+    }
+    const key = h('div', { class: 'key' });
+    bands.forEach((b, n) => {
+        key.append(h('div', null,
+            h('div', { class: 'k' }, swatch(n), h('span', { class: 'n' }, b.name),
+              h('span', { class: 'p' }, percent(b.value, whole_)), h('span', { class: 'v' }, b.fmt || size(b.value))),
+            dashes(b.value / (whole_ || 1), 30)));
+    });
+    return h('div', { class: 'ringrow' }, svg, key);
+}
+
+/* ── every other page ─────────────────────────────────────────────────── */
+
+function head(i, extraActs) {
+    const item = pages()[i];
+    const acts = h('div', { class: 'acts' });
+    if (item.reveal) {
+        acts.append(h('button', { class: 'btn bare small', onclick: () => walk([item.reveal]) }, icon('folder'), 'Look inside'));
+        acts.append(h('button', { class: 'btn bare small', onclick: () => tell('reveal', { page: i }) }, icon('finder'), 'Show in Finder'));
+    }
+    item.extras.forEach((ex, n) => {
+        acts.append(h('button', { class: 'btn line', onclick: () => extra(i, n) }, ex.symbol ? icon(ex.symbol) : null, ex.title));
+    });
+    if (extraActs) acts.append(extraActs);
+    if (item.verb) {
+        const verb = K.preview && item.asks ? 'Only look' : item.verb;
+        acts.append(h('button', { class: 'btn fill', onclick: () => act(i) },
+                      icon(K.preview && item.asks ? 'eye' : item.does), verb));
+    }
+    return h('div', { class: 'head' },
+        h('div', { class: 'words' },
+            h('h1', null, item.title),
+            h('p', null, item.blurb),
+            item.command ? h('div', { class: 'cmd' }, icon('terminal'), item.command) : null),
+        acts);
+}
+
+function drawAction(out, i, kept, bodyOnly) {
+    if (!bodyOnly) out.append(head(i));
+    const k = kind(i);
+    let pieces = kept.pieces || [];
+    if (kept.result) {
+        out.append(banner(pieces, kept, i));
+        const said = pieces.find(p => p.k === 'good') || pieces.find(p => p.k === 'warn');
+        pieces = pieces.filter(p => p !== said);
+    }
+    if (k === 'next') { drawWalls(out, i, kept.result ? (kept.pieces || []) : []); return; }
+    if (kept.ready) {
+        drawReady(out, i);
+        return;
+    }
+
+    if (k === 'startup') { drawStartup(out, pieces); return; }
+    if (k === 'undo') { drawUndo(out, i, pieces); return; }
+    if (k === 'doctor') { drawDoctor(out, pieces); return; }
+    drawSections(out, i, pieces);
+}
+
+/** What came back after something was done, said once, at the top. */
+function banner(pieces, kept, i) {
+    const good = pieces.find(p => p.k === 'good');
+    const warn = pieces.find(p => p.k === 'warn');
+    const said = good || warn;
+    if (!said) return null;
+    // the lines under the ✓ are its details; the ones telling a terminal
+    // what to type next are for a terminal
+    const after = [];
+    let seen = false;
+    for (const p of pieces) {
+        if (p === said) { seen = true; continue; }
+        if (!seen) continue;
+        if (p.k === 'note' || p.k === 'text') {
+            if (/^(run |changed your mind|in a terminal|to see )/.test(p.text)) continue;
+            // "7 of 8 · min next  min prev" — the commands are a terminal's
+            const kept_ = p.text.split(/\s+·\s+/).filter(bit => !/^min /.test(bit.trim())).join(' · ').trim();
+            if (kept_) after.push(kept_);
+        } else if (p.k === 'row') after.push(p.label + '  ' + p.value);
+        if (after.length >= 2) break;
+    }
+    let way = null;
+    if (kept.changed && isAction(i)) {
+        const undo = pages()[i].extras.findIndex(e => e.symbol === 'arrow.uturn.backward' && /back/i.test(e.title));
+        if (undo >= 0) way = h('button', { class: 'btn line small', onclick: () => extra(i, undo) }, icon('undo'), pages()[i].extras[undo].title);
+    }
+    return h('div', { class: 'done' + (good ? '' : ' plain') },
+        h('span', { class: 'tick' }, icon(good ? (kept.preview ? 'eye' : 'check') : 'x')),
+        h('div', { class: 'w' }, h('b', null, said.text),
+          after.length ? h('span', null, prose(after.join(' · '))) : kept.preview ? h('span', null, 'Only looked — nothing was changed.') : null),
+        way);
+}
+
+function drawReady(out, i) {
+    out.append(panel('', h('div', { class: 'promise' },
+        mascot('mascot'),
+        h('h4', { style: 'margin-top:12px' }, 'Ready when you are.'),
+        h('p', null, 'Nothing happens until you press ' + pages()[i].verb + '.'))));
+}
+
+/** A reading cut into panels, one for each panel nimo drew. */
+function drawSections(out, i, pieces) {
+    const parts = sections(pieces);
+    const reveal = pages()[i].reveal;
+    let drew = 0;
+    for (const sec of parts) {
+        const rows = sec.pieces.filter(p => p.k === 'row' && p.label);
+        if (!sec.title && !rows.length && !sec.pieces.some(p => p.k === 'good' || p.k === 'warn' || p.k === 'text' || p.k === 'item')) continue;
+        const sized = rows.filter(r => weigh(r.value) != null);
+        if (sized.length > 1) out.append(breakdown(sec, i, { walkable: kind(i) === 'top' || !!reveal }));
+        else out.append(plainPanel(sec, i));
+        drew++;
+    }
+    const notes = footnotes(pieces);
+    if (notes) out.append(notes);
+    if (!drew && !pieces.some(p => p.k === 'good' || p.k === 'warn')) {
+        out.append(panel('', h('div', { class: 'said' }, h('div', { class: 's quiet' }, 'Kliner said nothing at all.'))));
+    }
+}
+
+function weigh(value) {
+    if (hasUnit(value)) return bytes(value);
+    const m = /^\s*(\d[\d,]*)\s+[a-z]/i.exec(String(value || ''));
+    if (!m) return null;
+    const n = parseInt(m[1].replace(/,/g, ''), 10);
+    return n > 0 ? n : null;
+}
+
+const KIND_ICON = {
+    screenshots: 'camera', images: 'photo', pictures: 'photo', documents: 'file', video: 'film', videos: 'film',
+    archives: 'box', folders: 'folder', audio: 'music', music: 'music', apps: 'cube', applications: 'cube',
+    code: 'code', installers: 'box', other: 'dot',
+};
+
+function title(text) { return text ? text.charAt(0).toUpperCase() + text.slice(1) : ''; }
+
+/** A list of things with a size each: the bars, then the table they came from. */
+function breakdown(sec, i, opts) {
+    const rows = [];
+    let total = null;
+    const after = [];
+    let ruled = false;
+    for (const p of sec.pieces) {
+        if (p.k === 'rule') { ruled = true; continue; }
+        if (p.k !== 'row' || !p.label) { if (p.k !== 'note') after.push(p); continue; }
+        if (ruled && !total) { total = p; continue; }
+        if (ruled) { after.push(p); continue; }
+        const much = weigh(p.value);
+        if (much == null) { after.push(p); continue; }
+        rows.push({ name: p.label, value: much, raw: p.value, note: p.note, folder: /\/$/.test(p.label) });
+    }
+    const asBytes = rows.some(r => hasUnit(r.raw));
+    const amount = v => (asBytes ? size(v) : whole(v));
+    rows.sort((a, b) => b.value - a.value);
+    const sum = rows.reduce((a, r) => a + r.value, 0) || 1;
+
+    const box = panel('');
+    const big = total ? total.value : amount(sum);
+    box.append(cap(asBytes ? 'bars' : 'grid', title(sec.title) || titleOf(i),
+        h('span', null, `${rows.length} ${asBytes ? (rows.some(r => r.folder) ? 'places' : 'things') : 'kinds'}`)));
+    box.append(h('div', { style: 'margin-top:14px' }, bigFigure(big,
+        total ? total.label : asBytes ? 'together' : 'altogether',
+        rows[0] ? { d: rows[0].name.replace(/\/$/, ''), w: 'is the biggest — ' + percent(rows[0].value, sum) } : null)));
+
+    // the bars: biggest first, weaves falling with them — and only when
+    // there are enough of them to be a picture rather than two blocks
+    const bars = h('div', { class: 'bars' });
+    if (rows.length < 4) bars.hidden = true;
+    const top = rows[0] ? rows[0].value : 1;
+    rows.slice(0, 14).forEach((r, n) => {
+        const col = h('div', { class: 'col', style: `height:${Math.max(2, r.value / top * 100)}%;animation-delay:${n * 25}ms` });
+        // no viewBox: the weave is drawn at the screen's own scale, not
+        // stretched with the bar
+        const svg = s('svg', { width: '100%', height: '100%' });
+        svg.append(s('rect', { width: '100%', height: '100%', fill: `url(#weave${Math.min(n, WEAVES - 1)})` }));
+        col.append(svg);
+        bars.append(h('div', { class: 'b', title: `${r.name}  ${amount(r.value)}` }, col,
+                      h('div', { class: 'lb' }, r.name.replace(/\/$/, ''))));
+    });
+    box.append(bars);
+
+    // and the table
+    const table = h('div', { class: 'table' },
+        h('div', { class: 'th' }, h('span'), h('span', null, asBytes ? 'Name' : 'What it is'), h('span', null, 'Share'),
+          h('span', { class: 'num' }, '%'), h('span', { class: 'num' }, asBytes ? 'Size' : 'How many'), h('span')));
+    rows.forEach((r, n) => {
+        const canWalk = opts.walkable && r.folder;
+        const canOpen = !canWalk && K.walked.length > 0;
+        const kindIcon = KIND_ICON[r.name.toLowerCase()];
+        const tr = h('div', { class: 'tr' + (canWalk || canOpen ? ' can' : ''), style: canWalk || canOpen ? 'cursor:pointer' : '',
+                               onclick: canWalk ? () => walkInto(r.name.replace(/\/$/, '')) : canOpen ? () => revealThing(r.name) : null },
+            swatch(Math.min(n, WEAVES - 1)),
+            h('span', { class: 'nm' }, kindIcon && !asBytes ? null : null, r.name),
+            h('span', { class: 'share' }, h('i', { style: `width:${Math.max(1, r.value / sum * 100)}%` })),
+            h('span', { class: 'num pc' }, percent(r.value, sum)),
+            h('span', { class: 'num sz' }, asBytes ? amount(r.value) : plural(Math.round(r.value), 'item')),
+            h('span', { class: 'chev' }, canWalk ? icon('right') : canOpen ? icon('finder') : null));
+        table.append(tr);
+    });
+    if (total) table.append(h('div', { class: 'total' }, h('b', null, total.label), h('span', null, total.value)));
+    box.append(table);
+
+    const extraRows = after.filter(p => p.k === 'row');
+    if (extraRows.length) box.append(factList(extraRows));
+    const said = sentences(after.filter(p => p.k !== 'row'));
+    if (said) box.append(said);
+    return box;
+}
+
+/** A panel of plain facts, sentences, and entries. */
+function plainPanel(sec, i) {
+    const box = panel('');
+    if (sec.title) box.append(cap(null, title(sec.title)));
+    const rows = [];
+    const rest = [];
+    let ruled = false;
+    for (const p of sec.pieces) {
+        if (p.k === 'rule') { ruled = true; continue; }
+        if (p.k === 'row' && p.label) rows.push(Object.assign({ total: ruled }, p));
+        else if (p.k !== 'note') rest.push(p);
+    }
+    const said = sentences(rest.filter(p => p.k !== 'item'));
+    if (said) box.append(said);
+    if (rows.length) box.append(factList(rows, i));
+    const items = rest.filter(p => p.k === 'item');
+    if (items.length) box.append(entryList(items));
+    return box;
+}
+
+function factList(rows, i) {
+    const list = h('div', { class: 'facts' });
+    for (const r of rows) {
+        const halves = r.value.split(' of ');
+        let meter = null;
+        if (halves.length === 2) {
+            const a = bytes(halves[0].replace(/\s*free$/, '')), b = bytes(halves[1]);
+            if (a != null && b > 0) {
+                const part = /free$/.test(halves[0]) ? 1 - a / b : a / b;
+                meter = h('div', { class: 'meter' }, h('i', { style: `width:${(part * 100).toFixed(1)}%` }));
+            }
+        } else if (r.bar != null) {
+            meter = h('div', { class: 'meter' }, h('i', { style: `width:${Math.max(2, r.bar * 100)}%` }));
+        }
+        const note = r.note ? r.note.replace(/^[→·\s]+/, '') : '';
+        list.append(h('div', { class: 'fact' + (r.total ? ' total' : '') },
+            h('span', { class: 'k' }, r.label),
+            h('span', { class: 'v' + (r.strong ? ' strong' : '') }, /^min /.test(r.value) ? prose(r.value) : r.value),
+            meter || (note ? h('span', { class: 'n' }, prose(note)) : h('span'))));
+    }
+    return list;
+}
+
+function entryList(items) {
+    const log = h('div', { class: 'log' });
+    for (const it of items) {
+        log.append(h('div', { class: 'e' },
+            h('span', { class: 'no' }, String(it.no)),
+            h('span', { class: 'what' }, it.parts[0] || ''),
+            h('span', { class: 'when' }, it.parts[1] || ''),
+            h('span', { class: 'many' }, it.parts.slice(2).join(' · '))));
+    }
+    return log;
+}
+
+function sentences(list) {
+    const kept = list.filter(p => p.k === 'good' || p.k === 'warn' || p.k === 'text');
+    if (!kept.length) return null;
+    const box = h('div', { class: 'said' });
+    for (const p of kept) {
+        if (p.k === 'text') { box.append(h('div', { class: 's quiet' }, h('span', null, prose(p.text)))); continue; }
+        box.append(h('div', { class: 's ' + (p.k === 'good' ? 'good' : 'warn') },
+            icon(p.k === 'good' ? 'check' : 'x'), h('span', null, prose(p.text))));
+    }
+    return box;
+}
+
+/** nimo's last lines, under the panels, minus the ones for a terminal. */
+function footnotes(pieces) {
+    const lines = [];
+    let pastGood = false;
+    for (const p of pieces) {
+        if (p.k === 'good') pastGood = true;
+        if (p.k !== 'note') continue;
+        const t = p.text;
+        if (pastGood) continue;                     // those went into the banner
+        if (/^(run |in a terminal|to see what|looking around|changed your mind)/.test(t)) continue;
+        lines.push(t);
+    }
+    if (!lines.length) return null;
+    return h('div', { class: 'notes' }, lines.map(t => h('div', null, prose(t.replace(/\s{2,}/g, ' ')))));
+}
+
+/* ── Startup: each thing with its own Stop ────────────────────────────── */
+
+function drawStartup(out, pieces) {
+    const secs = sections(pieces);
+    let stoppable = true;
+    let drew = false;
+    for (const sec of secs) {
+        const rows = [];
+        let total = null, ruled = false;
+        for (const p of sec.pieces) {
+            // nimo lists what it can stop, then says it "only reports" the
+            // rest: nothing after that sentence is Kliner's to stop
+            if ((p.k === 'note' || p.k === 'text') && /only reports/.test(p.text)) stoppable = false;
+            if (p.k === 'rule') { ruled = true; continue; }
+            if (p.k === 'row' && p.label) {
+                if (ruled) total = p;
+                else rows.push(Object.assign({ stoppable }, p));
+            }
+        }
+        if (!rows.length && !total) {
+            const said = sentences(sec.pieces);
+            if (said) { out.append(panel('', sec.title ? cap(null, title(sec.title)) : null, said)); drew = true; }
+            continue;
+        }
+        const list = h('div', { class: 'stops' });
+        for (const r of rows) {
+            const agent = /agent/i.test(r.value);
+            list.append(h('div', { class: 'stop' },
+                h('span', { class: 'ico' }, icon(agent ? 'cpu' : 'power')),
+                h('div', { style: 'min-width:0' }, h('div', { class: 'nm' }, r.label), h('div', { class: 'kd' }, r.value)),
+                r.stoppable ? h('button', { class: 'btn line small', onclick: () => stopOne(r.label) }, icon('slash'), 'Stop')
+                            : h('span', { class: 'pill' }, 'reported only')));
+        }
+        out.append(panel('', cap('power', title(sec.title), total ? h('span', null, total.label + ' · ' + total.value) : null), list));
+        drew = true;
+    }
+    const notes = footnotes(pieces);
+    if (notes) out.append(notes);
+    if (!drew) out.append(panel('', sentences(pieces) || h('div', { class: 'said' }, h('div', { class: 's quiet' }, 'Kliner said nothing at all.'))));
+}
+
+/* ── Put it all back: the log, newest first ───────────────────────────── */
+
+function drawUndo(out, i, pieces) {
+    if (K.kept[i] && K.kept[i].result) {
+        const notes = footnotes(pieces);
+        if (notes) out.append(notes);
+        return;
+    }
+    const items = pieces.filter(p => p.k === 'item');
+    const count_ = pieces.find(p => p.k === 'text' && /to put back/.test(p.text));
+    if (!items.length) {
+        const good = pieces.find(p => p.k === 'good');
+        out.append(panel('', h('div', { class: 'promise' },
+            h('div', { class: 'marks' }, h('span', null, icon('tray')), h('span', null, icon('check'))),
+            h('h4', null, good ? good.text : 'Nothing to put back.'),
+            h('p', null, 'Every move Kliner makes is written down here first, so there is always a way back.'))));
+        const notes = footnotes(pieces);
+        if (notes) out.append(notes);
+        return;
+    }
+    out.append(panel('', cap('undo', count_ ? title(count_.text) : 'What Kliner has done', h('span', null, 'newest first')),
+                     entryList(items)));
+    const notes = footnotes(pieces);
+    if (notes) out.append(notes);
+}
+
+/* ── Wallpaper ────────────────────────────────────────────────────────── */
+
+function drawWalls(out, i, pieces) {
+    const now = pieces.find(p => p.k === 'good');
+    if (!K.walls) {
+        out.append(panel('', h('div', { class: 'promise' }, mascot('mascot'),
+            h('h4', { style: 'margin-top:12px' }, 'Ready when you are.'),
+            h('p', null, 'Nothing changes until you press Next.'))));
+        return;
+    }
+    const grid = h('div', { class: 'walls' });
+    for (const w of K.walls) {
+        const pick = now ? w.parts[0] === now.text : /would pick/.test(w.parts.slice(1).join(' '));
+        grid.append(h('div', { class: 'wall' + (pick ? ' pick' : '') },
+            h('span', { class: 'no' }, String(w.no)),
+            h('span', { class: 'nm' }, w.parts[0]),
+            pick ? h('span', { class: 'pill' + (now ? ' hi' : '') }, now ? 'showing now' : 'Kliner would pick this') : null));
+    }
+    out.append(panel('', cap('photo', 'Wallpapers this Mac ships with', h('span', null, plural(K.walls.length, 'wallpaper'))), grid));
+}
+
+/* ── How it is ────────────────────────────────────────────────────────── */
+
+function drawDoctor(out, pieces) {
+    const f = facts(pieces);
+    const across = h('div', { class: 'grid four' });
+    if (f.Disk) {
+        const [a, b] = f.Disk.value.split(' of ');
+        const free = bytes((a || '').replace(/\s*free$/, '')) || 0, total = bytes(b) || 0;
+        if (total > 0) across.append(tile('Disk', 'disk', size(total - free), { part: (total - free) / total, pill: percent(total - free, total) + ' used', foot: 'of ' + size(total) }));
+    }
+    if (f.Memory) across.append(tile('Memory', 'cpu', f.Memory.value, { foot: 'installed' }));
+    if (f.Battery) {
+        const pct = count(f.Battery.value);
+        const rest = f.Battery.value.replace(/^\s*\d+%\s*·?\s*/, '');
+        across.append(tile('Battery', 'bolt', pct + '%', { part: pct / 100, foot: rest }));
+    }
+    if (f.Uptime) across.append(tile('Uptime', 'clock', f.Uptime.value, { foot: 'since it last started' }));
+    if (across.children.length) out.append(across);
+    // readings are facts, each its own kind of thing — a battery is not a
+    // share of a disk — so they are listed, never charted against each other
+    const own = new Set(['Months', 'Desktop older', 'Downloads older', 'Last change']);
+    for (const sec of sections(pieces)) {
+        const kept = sec.pieces.filter(p => !(p.k === 'row' && own.has(p.label)));
+        if (!kept.some(p => p.k !== 'note')) continue;
+        out.append(plainPanel({ title: sec.title, pieces: kept }, K.page));
+    }
+    const notes = footnotes(pieces);
+    if (notes) out.append(notes);
+}
+
+/* ── walking into a folder ────────────────────────────────────────────── */
+
+function drawWalk(out) {
+    const where = K.walked[K.walked.length - 1];
+    out.append(h('div', { class: 'head' },
+        h('div', { class: 'words' },
+            h('h1', null, where),
+            h('p', null, 'What is taking the room in ' + K.walked.join('/') + ', biggest first. This only measures — nothing here is changed.')),
+        h('div', { class: 'acts' },
+            h('button', { class: 'btn line', onclick: walkUp }, icon('left'), 'Back out'))));
+    const pieces = K.walkedPieces || [];
+    const parts = sections(pieces);
+    for (const sec of parts) {
+        const rows = sec.pieces.filter(p => p.k === 'row' && p.label && weigh(p.value) != null);
+        if (rows.length > 1) out.append(breakdown(sec, K.page, { walkable: true }));
+        else out.append(plainPanel(sec, K.page));
+    }
+}
+
+/* ── Settings ─────────────────────────────────────────────────────────── */
+
+async function drawSettings(out) {
+    out.append(h('div', { class: 'head' }, h('div', { class: 'words' },
+        h('h1', null, 'Settings'), h('p', null, 'How Kliner behaves, what macOS lets it touch, and where it starts from.'))));
+    const holder = h('div');
+    out.append(holder);
+    const st = await ask('settings');
+    if (K.page !== SETTINGS()) return;
+    holder.replaceChildren(settingsBody(st || {}));
+}
+
+function settingsBody(st) {
+    const days = String((K.meta.config.days || '30'));
+    const kliner = panel('', cap('gear', 'Kliner'),
+        setting('Open when I sign in', st.login && st.login.possible ? 'Kliner is in the menu bar from the moment you sign in.' : 'Opening at login needs macOS 13 or newer.',
+            h('button', { class: 'switch' + (st.login && st.login.on ? ' on' : ''), disabled: !(st.login && st.login.possible),
+                          onclick: async e => { const b = e.currentTarget; const r = await ask('setLogin', { on: !b.classList.contains('on') }); b.classList.toggle('on', !!(r && r.on)); } })),
+        setting('Old means older than', 'What Home counts as having sat there too long.',
+            seg(['7', '30', '90'], days, v => { K.meta.config.days = v; tell('setConfig', { key: 'days', value: v }); }, v => v + ' days')),
+        setting('Only look', 'Every button reads instead of changing. Nothing on your Mac moves while this is on.',
+            h('button', { class: 'switch' + (K.preview ? ' on' : ''), onclick: e => { flipPreview(); e.currentTarget.classList.toggle('on', K.preview); } })),
+        setting('In a terminal', 'The same nimo, with every command it knows.',
+            h('button', { class: 'btn line small', onclick: () => tell('terminal') }, icon('terminal'), 'Open')),
+        setting('The introduction', 'The four short pages from the first time Kliner opened.',
+            h('button', { class: 'btn line small', onclick: startWelcome }, 'Show it again')));
+
+    const fd = !!st.fullDisk, folders = !!st.folders;
+    const allowed = panel('', cap('shield', 'What macOS lets Kliner touch'),
+        setting(h('span', { class: 'state' + (fd ? ' yes' : '') }, h('i'), fd ? 'Full Disk Access, on' : 'Full Disk Access, off'),
+            'With it on, macOS stops asking about each folder one at a time. Kliner still only reads inside your home folder.',
+            h('button', { class: 'btn line small', onclick: async () => { await ask('fullDisk'); drawPage(true); } }, fd ? 'Settings' : 'Turn on')),
+        setting(h('span', { class: 'state' + (folders ? ' yes' : '') }, h('i'), folders ? 'Your folders' : 'Your folders, not yet'),
+            'Desktop, Downloads, Pictures and Documents.',
+            h('button', { class: 'btn line small', onclick: async () => { await ask('askFolders'); drawPage(true); } }, folders ? 'Check again' : 'Ask')),
+        setting('Changing your wallpaper', 'macOS asks once before Kliner may set a wallpaper for you.',
+            h('button', { class: 'btn line small', onclick: () => tell('automation') }, 'Settings')));
+
+    const promise = panel('', cap('lock', 'What Kliner will never do'),
+        h('div', { class: 'said' },
+            ['It never asks for an administrator.', 'It never uses the network — there is no socket in it.',
+             'It never touches anything outside your home folder.', 'It writes down every move first, so Put it all back can reverse it.']
+                .map(t => h('div', { class: 's' }, icon('check'), h('span', null, t)))));
+
+    return h('div', { style: 'display:grid;gap:14px' }, h('div', { class: 'grid two' }, kliner, h('div', { style: 'display:grid;gap:14px;align-content:start' }, allowed, promise)),
+        h('div', { class: 'notes' }, h('div', null, `Kliner ${K.meta.version} · MIT · kliner.app`)));
+}
+
+function setting(t, d, control) {
+    return h('div', { class: 'set' }, h('div', null, h('div', { class: 't' }, t), d ? h('div', { class: 'd' }, d) : null), control);
+}
+
+function seg(values, current, pick, label) {
+    const box = h('div', { class: 'seg' });
+    for (const v of values) {
+        box.append(h('button', { class: v === current ? 'on' : '', onclick: e => {
+            for (const b of box.children) b.classList.remove('on');
+            e.currentTarget.classList.add('on');
+            pick(v);
+        } }, label ? label(v) : v));
+    }
+    return box;
+}
+
+/* ── Help ─────────────────────────────────────────────────────────────── */
+
+function drawHelp(out) {
+    out.append(h('div', { class: 'head' }, h('div', { class: 'words' },
+        h('h1', null, 'Help'), h('p', null, 'Every key Kliner answers to, and what each page does.'))));
+    const keys = [
+        ['The quick menu, from anywhere', '⌘K'], ['Ask this page again', '⌘R'], ['Back', '⌘['], ['Forward', '⌘]'],
+        ['A page by its number', '⌘1 – ⌘9'], ['Settings', '⌘,'], ['Names beside the pictures', '⌘B'], ['Up and down the places', '↑ ↓'],
+    ];
+    const left = panel('', cap('bolt', 'Keys'), h('div', { class: 'keys', style: 'margin-top:10px' },
+        keys.map(([t, k]) => h('div', { class: 'kr' }, h('span', null, t), h('kbd', null, k)))));
+    const list = h('div', { class: 'todo' });
+    pages().forEach((p, n) => {
+        list.append(h('div', { class: 't', style: 'cursor:pointer', onclick: () => show(n) },
+            h('span', { class: 'ico' }, icon(p.symbol)),
+            h('div', { style: 'min-width:0' }, h('div', { class: 'nm' }, h('span', null, p.title)), h('div', { class: 'cm' }, p.command || '')),
+            h('div', { class: 'go' }, h('span', { class: 'fig' }, n < 9 ? '⌘' + (n + 1) : ''), icon('right'))));
+    });
+    const right = panel('', cap('list', 'Every page'), list);
+    out.append(h('div', { class: 'grid two' }, left, right));
+}
+
+/* ── what Kliner has done, since it opened ────────────────────────────── */
+
+function toggleActivity() {
+    const open = $('.pop');
+    if (open) { open.remove(); return; }
+    K.unread = false;
+    setFrame();
+    const pop = h('div', { class: 'pop' }, h('div', { class: 'ph' }, 'Since Kliner opened'));
+    if (!K.jobs.length) pop.append(h('div', { class: 'none' }, 'Nothing yet. Whatever Kliner does is listed here.'));
+    for (const j of K.jobs) {
+        pop.append(h('div', { class: 'pr', style: 'cursor:pointer', onclick: () => { show(j.page); } },
+            icon(j.preview ? 'eye' : j.good ? 'check' : 'x', j.good && !j.preview ? 'good' : ''),
+            h('div', { style: 'min-width:0' }, h('div', null, j.title), h('div', { style: 'color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis' }, j.line)),
+            h('span', null, j.at.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }))));
+    }
+    document.body.append(pop);
+}
+function closeActivity() { const open = $('.pop'); if (open) open.remove(); }
+document.addEventListener('mousedown', e => {
+    const pop = $('.pop');
+    if (pop && !pop.contains(e.target) && !e.target.closest('#bell')) pop.remove();
+});
+
+let toastTimer = 0;
+function toast(text, action) {
+    document.querySelector('.toast')?.remove();
+    clearTimeout(toastTimer);
+    const el = h('div', { class: 'toast' }, icon('check'), h('span', null, text),
+        action ? h('button', { class: 'btn line small', onclick: () => { el.remove(); action[1](); } }, action[0]) : null);
+    document.body.append(el);
+    toastTimer = setTimeout(() => el.remove(), 7000);
+}
+
+/* ── the first minute ─────────────────────────────────────────────────── */
+
+function startWelcome() {
+    const cfg = K.meta.config;
+    K.welcome = { step: 0, name: cfg.name || K.meta.user || '', start: cfg.start || 'desktop', tidy: cfg.tidy || 'Tidy',
+                  login: !!(K.meta.login && K.meta.login.on), answers: [], asked: false };
+    drawWelcome();
+}
+
+function drawWelcome() {
+    const w = K.welcome;
+    const app = $('#app');
+    app.className = 'app';
+    app.style.gridTemplateColumns = '1fr';
+    const steps = ['Your name', 'Where to start', 'Where things go', 'What macOS allows'];
+    const side = h('aside', { class: 'side' },
+        mascot('mascot'),
+        h('p', null, 'Four short pages, then I ask macOS for what I need. Nothing runs on your Mac until you press something.'),
+        h('div', { class: 'steps' }, steps.map((t, n) =>
+            h('div', { class: n === w.step ? 'on' : n < w.step ? 'past' : '' }, h('i', null, n < w.step ? '✓' : String(n + 1)), t))));
+    const pane = h('div', { class: 'pane arrive' });
+    const body = h('div', { class: 'body' });
+    const way = h('div', { class: 'way' });
+
+    if (w.step === 0) {
+        pane.append(h('h2', null, 'First, what should I call you?'),
+                    h('p', { class: 'lead' }, 'It goes at the top of Home and nowhere else. Kliner has no account, and nothing about you leaves this Mac.'));
+        const field = h('input', { class: 'field', id: 'name', value: w.name, placeholder: 'Your name', maxlength: '60',
+                                   oninput: e => { w.name = e.target.value; },
+                                   onkeydown: e => { if (e.key === 'Enter') { w.step = 1; drawWelcome(); } } });
+        body.append(h('div', null, field, h('div', { class: 'note' }, 'Leave it blank and Home simply says hello.')));
+        setTimeout(() => field.focus(), 30);
+    } else if (w.step === 1) {
+        pane.append(h('h2', null, 'What should I start with?'),
+                    h('p', { class: 'lead' }, 'Kliner takes you straight there when this is done. The rest are down the side whenever you want them.'));
+        for (const st of K.meta.starts) {
+            body.append(h('div', { class: 'choice' + (st.value === w.start ? ' on' : ''), style: 'cursor:pointer',
+                                   onclick: () => { w.start = st.value; drawWelcome(); } },
+                h('span', { class: 'dot' }), h('div', null, h('b', null, st.title), h('span', null, st.note))));
+        }
+    } else if (w.step === 2) {
+        pane.append(h('h2', null, 'Where should things go?'),
+                    h('p', { class: 'lead' }, 'Kliner never deletes what it sorts. Everything it moves goes into one folder beside where it was, and Put it all back empties that folder again.'));
+        const note = h('div', { class: 'note' });
+        const say = () => { note.textContent = `So a sorted desktop becomes Desktop/${(w.tidy || '').trim() || 'Tidy'}.`; };
+        say();
+        body.append(h('div', { style: 'max-width:280px' },
+            h('input', { class: 'field', id: 'tidy', value: w.tidy, placeholder: 'Tidy', maxlength: '40',
+                         oninput: e => { w.tidy = e.target.value.replace(/[\/\\:]/g, ''); if (e.target.value !== w.tidy) e.target.value = w.tidy; say(); } }),
+            note));
+        if (K.meta.login && K.meta.login.possible) {
+            body.append(setting('Open Kliner when this Mac starts', 'It sits in the menu bar, and ⌘K works from the moment you sign in.',
+                h('button', { class: 'switch' + (w.login ? ' on' : ''), onclick: e => { w.login = !w.login; e.currentTarget.classList.toggle('on', w.login); } })));
+        }
+    } else {
+        pane.append(h('h2', null, 'One last thing, and it is yours to decide.'),
+                    h('p', { class: 'lead' }, 'macOS decides what I may read, not me. One at a time, and only when you have answered does the next one come up.'));
+        (K.meta.gates || []).forEach((g, n) => {
+            const a = w.answers[n];
+            const st = a ? (a.yes ? h('span', { class: 'st yes' }, icon('check'), 'allowed')
+                                  : h('span', { class: 'st no' }, icon('slash'), 'not allowed — Settings can change it later'))
+                : n === w.answers.length && w.asking ? h('span', { class: 'st now' }, icon('wait'), 'asking macOS now…')
+                : h('span', { class: 'st' }, 'waiting its turn');
+            body.append(h('div', { class: 'gate' }, h('span', { class: 'ico' }, icon(g.symbol)), h('div', null, g.title), st));
+        });
+    }
+
+    if (w.step > 0 && w.step < 3) way.append(h('button', { class: 'btn line', onclick: () => { w.step--; drawWelcome(); } }, 'Back'));
+    way.append(h('span', { class: 'gap' }));
+    if (w.step === 2) way.append(h('button', { class: 'btn bare', onclick: finishWelcome }, 'Skip for now'));
+    if (w.step < 2) way.append(h('button', { class: 'btn fill', onclick: () => { w.step++; drawWelcome(); } }, 'Next', icon('right')));
+    else if (w.step === 2) way.append(h('button', { class: 'btn fill', onclick: () => { w.step = 3; w.answers = []; drawWelcome(); askGates(); } }, 'Ask macOS'));
+    else if (w.asked) way.append(h('button', { class: 'btn fill', onclick: finishWelcome }, 'Start', icon('right')));
+
+    pane.append(body, way);
+    app.replaceChildren(h('div', { class: 'welcome', style: 'grid-column:1/-1' }, side, pane));
+    reportChrome();
+}
+
+async function askGates() {
+    const w = K.welcome;
+    const gates = K.meta.gates || [];
+    for (let n = 0; n < gates.length; n++) {
+        if (!K.welcome || w.step !== 3) return;
+        w.asking = true;
+        drawWelcome();
+        await new Promise(r => setTimeout(r, 120));
+        const reply = await ask('gate', { index: n });
+        w.answers.push({ yes: !!(reply && reply.yes) });
+        drawWelcome();
+        await new Promise(r => setTimeout(r, 340));
+    }
+    w.asking = false;
+    w.asked = true;
+    drawWelcome();
+}
+
+async function finishWelcome() {
+    const w = K.welcome;
+    const reply = await ask('finishSetup', { name: (w.name || '').trim(), start: w.start, tidy: (w.tidy || '').trim(), login: !!w.login });
+    K.meta.config.name = (w.name || '').trim();
+    K.meta.config.start = w.start;
+    K.welcome = null;
+    const app = $('#app');
+    app.style.gridTemplateColumns = '';
+    drawFrame();
+    const start = reply && typeof reply.page === 'number' ? reply.page : 0;
+    K.page = -1;
+    show(start, { remember: false });
+}
+
+/* ── the keyboard ─────────────────────────────────────────────────────── */
+
+document.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('input, textarea')) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === 'Escape') {
+        if ($('.pop')) { closeActivity(); return; }
+        if (K.walked.length) { walkUp(); return; }
+    }
+    if (K.welcome) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        const order = [];
+        for (const p of K.meta.places) order.push(...p.holds);
+        order.push(HELP(), SETTINGS());
+        const at = order.indexOf(K.page);
+        const next = order[(at + (e.key === 'ArrowDown' ? 1 : -1) + order.length) % order.length];
+        e.preventDefault();
+        show(next);
+    }
+});
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+/* ── what the app says to the window ──────────────────────────────────── */
+
+const commands = {
+    open: n => {
+        // ⌘K can ask for a page before this page has finished starting
+        if (!K.meta) { K.pendingOpen = Number(n); return; }
+        if (K.welcome) return;
+        show(Number(n));
+    },
+    back, forward, fold,
+    refresh: () => {
+        if (K.welcome) return;
+        if (K.walked.length) { walk(K.walked.slice()); return; }
+        if (isAction(K.page)) { delete K.kept[K.page]; look(K.page); }
+        else drawPage(true);
+    },
+    settings: () => show(SETTINGS()),
+    help: () => show(HELP()),
+    setup: () => startWelcome(),
+};
+
+window.kliner = {
+    reply(id, data) {
+        const done = owed.get(id);
+        if (!done) return;
+        owed.delete(id);
+        done(data || {});
+    },
+    command(name, arg) {
+        const run = commands[name];
+        if (run) run(arg);
+    },
+};
+
+/* ── starting ─────────────────────────────────────────────────────────── */
+
+async function boot() {
+    const meta = await ask('boot');
+    if (!meta || meta.missing || !meta.pages) {
+        $('#app').replaceChildren(h('div', { class: 'wait', style: 'grid-column:1/-1' }, mascot('mascot'),
+            h('h3', null, 'This window has to be opened by Kliner.'),
+            h('p', null, 'It is the inside of the app, not a web page.')));
+        return;
+    }
+    K.meta = meta;
+    K.meta.config = K.meta.config || {};
+    K.wide = K.meta.config.rail === 'list';
+    K.preview = K.meta.config.preview === 'on';
+    if (!meta.welcomed) { startWelcome(); return; }
+    drawFrame();
+    const first = K.pendingOpen != null ? K.pendingOpen : 0;
+    K.pendingOpen = null;
+    show(first, { remember: false });
+}
+
+window.__kliner = K;   // for the tests, and nothing else
+boot();
+
+</script>
+</body>
+</html>

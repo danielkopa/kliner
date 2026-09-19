@@ -58,6 +58,11 @@ cp app/Resources/*.png "$app/Contents/Resources/"
 mkdir -p "$app/Contents/Resources/fonts"
 cp app/Resources/fonts/* "$app/Contents/Resources/fonts/"
 
+# the window itself: one page, drawn by the WebKit every Mac already has,
+# loaded from inside the app and never from the network
+mkdir -p "$app/Contents/Resources/web"
+cp app/Web/index.html "$app/Contents/Resources/web/"
+
 # --- the plist ----------------------------------------------------------
 sed "s/__VERSION__/$version/g" app/Info.plist > "$app/Contents/Info.plist"
 printf 'APPL????' > "$app/Contents/PkgInfo"

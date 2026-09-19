@@ -8284,18 +8284,37 @@ final class Said: NSView {
 // MARK: - the app
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var main: Main!
+    /// The window, drawn by the page in Resources/web.
+    private var web: Web?
+    /// The older window, drawn in AppKit: `ui = native` in ~/.nimo/config.
+    private var main: Main?
+
+    /// Whichever of the two this Mac is using, for the menu to point at.
+    /// Both answer the same menu commands by the same names.
+    private var face: NSObject? {
+        if let web = web { return web }
+        return main
+    }
+
+    private var window: NSWindow? {
+        if let web = web { return web.window }
+        return main?.window
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // The window first: the menu points at it, so it has to exist.
-        main = Main()
+        if Config.value("ui") == "native" {
+            main = Main()
+        } else {
+            web = Web()
+        }
         NSApp.mainMenu = buildMenu()
 
         // On the screen before it has anything to say, so that what it has to
         // say is watched rather than missed. It fades up rather than being
         // there, which is the difference between an app arriving and an app
         // having been dropped on the desktop.
-        let window = main.window
+        guard let window = window else { return }
         window.alphaValue = 0
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -8304,11 +8323,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             window.animator().alphaValue = 1
         }
-        main.open()
+        main?.open()
+        web?.open()
 
         // The other half of the app: a mark in the menu bar, and ⌘K from
         // anywhere. The window is a place you go; this is a place you reach.
-        Quick.shared.onOpenPage = { [weak self] index in self?.main.openPage(index) }
+        Quick.shared.onOpenPage = { [weak self] index in
+            self?.web?.openPage(index)
+            self?.main?.openPage(index)
+        }
         Quick.shared.start()
     }
 
@@ -8319,7 +8342,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool { true }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !flag { main?.window.makeKeyAndOrderFront(nil) }
+        if !flag { window?.makeKeyAndOrderFront(nil) }
         return true
     }
 
@@ -8338,7 +8361,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let settings = NSMenuItem(title: "Settings…",
                                   action: #selector(Main.openSettings), keyEquivalent: ",")
-        settings.target = main
+        settings.target = face
         app.addItem(.separator())
         app.addItem(settings)
 
@@ -8369,14 +8392,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let look = NSMenu(title: "View")
         let fold = NSMenuItem(title: "Hide the list",
                               action: #selector(Main.foldSide), keyEquivalent: "b")
-        fold.target = main
+        fold.target = face
         look.addItem(fold)
 
         // ⌘K belongs to the quick menu now, everywhere, so searching inside
         // the window takes the key every other Mac app uses for finding.
         let find = NSMenuItem(title: "Search",
                               action: #selector(Main.focusSearch), keyEquivalent: "f")
-        find.target = main
+        find.target = face
         look.addItem(find)
 
         // The same menu the key opens, for anybody who goes looking for it in
@@ -8389,21 +8412,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Ask this page again, rather than being shown what it said last time.
         let again = NSMenuItem(title: "Ask again",
                                action: #selector(Main.refresh), keyEquivalent: "r")
-        again.target = main
+        again.target = face
         look.addItem(again)
 
         // The introduction, whenever you want to look at it.
         let intro = NSMenuItem(title: "Show the introduction",
                                action: #selector(Main.replaySetup), keyEquivalent: "")
-        intro.target = main
+        intro.target = face
         look.addItem(intro)
         look.addItem(.separator())
 
         let back = NSMenuItem(title: "Back", action: #selector(Main.goBack), keyEquivalent: "[")
-        back.target = main
+        back.target = face
         look.addItem(back)
         let on = NSMenuItem(title: "Forward", action: #selector(Main.goForward), keyEquivalent: "]")
-        on.target = main
+        on.target = face
         look.addItem(on)
         view.submenu = look
 
@@ -8415,7 +8438,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let entry = NSMenuItem(title: item.title,
                                    action: #selector(Main.goByNumber(_:)),
                                    keyEquivalent: String(i + 1))
-            entry.target = main
+            entry.target = face
             entry.tag = i
             go.addItem(entry)
         }
