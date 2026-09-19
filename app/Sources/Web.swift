@@ -16,6 +16,9 @@
 //    - reach the network. The page loads from the app's own folder, every
 //      other address is refused before it is fetched, and nothing is stored.
 //    - open a file. A thing it shows you is shown in the Finder, not run.
+//    - read one. For Desktop and Downloads it is told names, sizes and
+//      dates, and handed small pictures of the pictures there, drawn on
+//      this side by the Mac's own image reader. Nothing else leaves a file.
 //
 //  The older window, drawn in AppKit, is still in main.swift. `ui = native`
 //  in ~/.nimo/config brings it back.
@@ -23,6 +26,7 @@
 
 import AppKit
 import Foundation
+import ImageIO
 import WebKit
 
 // MARK: - the surface the page is drawn on
@@ -59,6 +63,11 @@ final class Canvas: WKWebView {
         }
         super.mouseDown(with: event)
     }
+
+    /// The first click on the window, while another app is in front, is a
+    /// click and not only a way of bringing it forward. Nothing a single
+    /// click reaches changes anything without the question after it.
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     /// No Reload, no Inspect Element: the page is the app, not a web page.
     override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
@@ -277,6 +286,10 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         case "walk":        walk(body, id)
         case "show":        show(body)
         case "reveal":      reveal(body)
+        case "list":        list(body, id)
+        case "thumbs":      thumbs(body, id)
+        case "picture":     picture(body, id)
+        case "copies":      copies(body, id)
         case "stop":        stop(body, id)
         case "setConfig":   remember(body)
         case "settings":    reply(id, settings())
@@ -663,6 +676,147 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         guard let item = page(body), let name = item.reveal else { return }
         let url = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(name)
         _ = NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: url.path)
+    }
+
+    // MARK: what is in a folder
+
+    /// The folder a page is about, inside your home — Desktop or Downloads —
+    /// or nothing at all.
+    private func folder(of body: [String: Any]) -> URL? {
+        guard let item = page(body), let name = item.reveal, Web.plain(name) else { return nil }
+        return FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(name, isDirectory: true)
+    }
+
+    /// Everything one level inside that folder, by name, size and date, so
+    /// the page can open one kind of thing the way nimo counted it. Names
+    /// that start with a dot are not sent: nimo never touches those either.
+    /// Nothing here opens, moves or reads what is inside a file.
+    private func list(_ body: [String: Any], _ id: Int) {
+        guard let folder = folder(of: body) else {
+            reply(id, ["items": [Any]()])
+            return
+        }
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let manager = FileManager.default
+            let keys: [URLResourceKey] = [.fileSizeKey, .contentModificationDateKey]
+            let found = (try? manager.contentsOfDirectory(at: folder, includingPropertiesForKeys: keys,
+                                                           options: [])) ?? []
+            var items: [[String: Any]] = []
+            for url in found {
+                let name = url.lastPathComponent
+                if name.hasPrefix(".") { continue }
+                // nimo asks [ -e ] and [ -d ], and both follow a link: a link
+                // to a folder is a folder, and a link to nothing is nothing.
+                var directory: ObjCBool = false
+                guard manager.fileExists(atPath: url.path, isDirectory: &directory) else { continue }
+                var one: [String: Any] = ["name": name, "dir": directory.boolValue]
+                let values = try? url.resourceValues(forKeys: Set(keys))
+                if !directory.boolValue, let bytes = values?.fileSize { one["size"] = bytes }
+                if let date = values?.contentModificationDate {
+                    one["modified"] = Int(date.timeIntervalSince1970 * 1000)
+                }
+                items.append(one)
+                if items.count >= 20_000 { break }
+            }
+            DispatchQueue.main.async { self?.reply(id, ["items": items]) }
+        }
+    }
+
+    /// `min duplicates` in that folder. nimo sets files side by side by size
+    /// first and reads only the ones that match, to see which really are the
+    /// same file. It deletes none of them, and neither does anything here.
+    private func copies(_ body: [String: Any], _ id: Int) {
+        guard let item = page(body), let name = item.reveal, Web.plain(name) else {
+            reply(id, ["ok": false, "text": ""])
+            return
+        }
+        read(["duplicates", name], id)
+    }
+
+    /// A picture in that folder the page may see drawn: one plain name, a
+    /// real file once links are followed, still inside your home, and not so
+    /// big that drawing it would stall the Mac. The file is only ever read.
+    private static func drawable(_ name: String, in folder: URL, home base: String) -> URL? {
+        guard Web.plain(name) else { return nil }
+        let real = folder.appendingPathComponent(name).resolvingSymlinksInPath()
+        guard real.path.hasPrefix(base + "/"),
+              let values = try? real.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]),
+              values.isRegularFile == true,
+              let bytes = values.fileSize, bytes > 0, bytes <= 64 << 20 else { return nil }
+        return real
+    }
+
+    /// Small pictures of the screenshots and images in that folder, drawn by
+    /// the Mac's own image reader, a dozen or so at a time.
+    private func thumbs(_ body: [String: Any], _ id: Int) {
+        let names = (body["names"] as? [Any] ?? []).compactMap { $0 as? String }
+        guard let folder = folder(of: body), !names.isEmpty, names.count <= 24 else {
+            reply(id, ["thumbs": [String: String]()])
+            return
+        }
+        let base = FileManager.default.homeDirectoryForCurrentUser.resolvingSymlinksInPath().path
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            var out: [String: String] = [:]
+            for name in names {
+                guard let url = Web.drawable(name, in: folder, home: base),
+                      let jpeg = Web.thumbnail(of: url, side: 360, quality: 0.72) else { continue }
+                out[name] = "data:image/jpeg;base64," + jpeg.base64EncodedString()
+            }
+            DispatchQueue.main.async { self?.reply(id, ["thumbs": out]) }
+        }
+    }
+
+    /// One of them, big enough to look at in Kliner's own viewer. It is
+    /// drawn here and shown there; nothing is opened in another app.
+    private func picture(_ body: [String: Any], _ id: Int) {
+        guard let name = words(body, "name"), let folder = folder(of: body) else {
+            reply(id, [:])
+            return
+        }
+        let base = FileManager.default.homeDirectoryForCurrentUser.resolvingSymlinksInPath().path
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            var payload: [String: Any] = [:]
+            if let url = Web.drawable(name, in: folder, home: base),
+               let jpeg = Web.thumbnail(of: url, side: 1800, quality: 0.84) {
+                payload["picture"] = "data:image/jpeg;base64," + jpeg.base64EncodedString()
+            }
+            DispatchQueue.main.async { self?.reply(id, payload) }
+        }
+    }
+
+    /// One picture, at most `side` pixels along its longer edge, as JPEG.
+    /// What is see-through — the shadow round a window screenshot — is laid
+    /// on light grey first, because JPEG has nowhere to keep it.
+    private static func thumbnail(of url: URL, side: Int, quality: Double) -> Data? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: side,
+        ]
+        guard var image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+        switch image.alphaInfo {
+        case .none, .noneSkipFirst, .noneSkipLast:
+            break
+        default:
+            guard let space = CGColorSpace(name: CGColorSpace.sRGB),
+                  let context = CGContext(data: nil, width: image.width, height: image.height,
+                                          bitsPerComponent: 8, bytesPerRow: 0, space: space,
+                                          bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue) else { return nil }
+            let whole = CGRect(x: 0, y: 0, width: image.width, height: image.height)
+            context.setFillColor(red: 0.91, green: 0.93, blue: 0.94, alpha: 1)
+            context.fill(whole)
+            context.draw(image, in: whole)
+            guard let flat = context.makeImage() else { return nil }
+            image = flat
+        }
+        let data = NSMutableData()
+        guard let target = CGImageDestinationCreateWithData(data as CFMutableData, "public.jpeg" as CFString,
+                                                            1, nil) else { return nil }
+        CGImageDestinationAddImage(target, image,
+                                   [kCGImageDestinationLossyCompressionQuality: quality] as CFDictionary)
+        guard CGImageDestinationFinalize(target) else { return nil }
+        return data as Data
     }
 
     /// Stopping one thing from starting at sign-in, by the name nimo listed.

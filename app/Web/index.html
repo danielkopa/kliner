@@ -24,52 +24,62 @@
 
 :root {
     color-scheme: dark;
-    --bg:      #0a0a0a;
-    --rail:    #0a0a0a;
-    --raise:   #0f0f0f;
-    --well:    #0d0d0d;
-    --hover:   #151515;
-    --sel:     #1b1b1b;
-    --sel-2:   #242424;
-    --line:    #1f1f1f;
-    --line-2:  #2c2c2c;
-    --ink:     #ededed;
-    --body:    #c4c4c4;
-    --muted:   #8a8a8a;
-    --faint:   #5c5c5c;
-    --ghost:   #3a3a3a;
-    --good:    #3fcf8e;
-    --bad:     #f0616d;
-    --on:      #f2f2f2;       /* the one filled button */
-    --on-ink:  #0a0a0a;
-    --w0: #e9e9e9; --w1: #bdbdbd; --w2: #949494; --w3: #707070; --w4: #4f4f4f; --w5: #383838;
-    --shadow: 0 30px 80px rgba(0,0,0,.65);
+    --bg:      #0B0F11;
+    --rail:    #090C0E;
+    --raise:   #11171A;
+    --well:    #0E1316;
+    --hover:   #141B1F;
+    --sel:     #182126;
+    --sel-2:   #202B31;
+    --line:    #1B2429;
+    --line-2:  #28343B;
+    --ink:     #EDF1F2;
+    --body:    #C3CBCF;
+    --muted:   #8B959B;
+    --faint:   #5B666C;
+    --ghost:   #36424A;
+    --good:    #5FD3C6;
+    --bad:     #F0707C;
+    --accent:  #5FD3C6;       /* Kliner's own teal, from kliner.app */
+    --accent-2: rgba(95, 211, 198, .14);
+    --accent-ink: #042220;
+    --on:      #EDF1F2;
+    --on-ink:  #0B0F11;
+    --w0: #E3E9EB; --w1: #B3BDC1; --w2: #8A969C; --w3: #67737A; --w4: #48545B; --w5: #333E44;
+    --shadow: 0 30px 80px rgba(0,0,0,.6);
+    --card: linear-gradient(180deg, rgba(255,255,255,.028), rgba(255,255,255,.008));
     --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    --shade: rgba(4, 7, 8, .72);
 }
 
 @media (prefers-color-scheme: light) {
     :root {
         color-scheme: light;
-        --bg:      #fafafa;
-        --rail:    #f4f4f3;
-        --raise:   #ffffff;
-        --well:    #f6f6f5;
-        --hover:   #efefee;
-        --sel:     #e9e9e8;
-        --sel-2:   #dededc;
-        --line:    #e6e6e4;
-        --line-2:  #cfcfcc;
-        --ink:     #111111;
-        --body:    #333333;
-        --muted:   #6f6f6f;
-        --faint:   #9a9a98;
-        --ghost:   #c4c4c2;
-        --good:    #13a15f;
-        --bad:     #d93a48;
-        --on:      #111111;
-        --on-ink:  #fafafa;
-        --w0: #1a1a1a; --w1: #454545; --w2: #6d6d6d; --w3: #939393; --w4: #b7b7b7; --w5: #d2d2d0;
-        --shadow: 0 24px 70px rgba(0,0,0,.18);
+        --bg:      #F6F8F8;
+        --rail:    #EEF2F2;
+        --raise:   #FFFFFF;
+        --well:    #F2F5F5;
+        --hover:   #EAEFEF;
+        --sel:     #E3EAEA;
+        --sel-2:   #D6DFE0;
+        --line:    #E1E7E8;
+        --line-2:  #C9D2D4;
+        --ink:     #0E1416;
+        --body:    #2F393D;
+        --muted:   #66727A;
+        --faint:   #95A0A6;
+        --ghost:   #C0C9CC;
+        --good:    #13937F;
+        --bad:     #D23B4A;
+        --accent:  #13937F;
+        --accent-2: rgba(19, 147, 127, .12);
+        --accent-ink: #FFFFFF;
+        --on:      #0E1416;
+        --on-ink:  #F6F8F8;
+        --w0: #1A2226; --w1: #45535A; --w2: #6D7B82; --w3: #95A2A8; --w4: #B8C3C7; --w5: #D3DBDD;
+        --shadow: 0 24px 70px rgba(14,20,22,.16);
+        --card: linear-gradient(180deg, #FFFFFF, #FBFCFC);
+        --shade: rgba(14, 20, 22, .40);
     }
 }
 
@@ -103,6 +113,7 @@ svg { display: block; }
 .app.wide { grid-template-columns: 216px 1fr; }
 
 .rail {
+    position: relative;
     background: var(--rail);
     border-right: 1px solid var(--line);
     display: flex; flex-direction: column;
@@ -126,13 +137,18 @@ svg { display: block; }
 .spot .ic { width: 16px; height: 16px; }
 .spot:hover { color: var(--body); background: var(--hover); }
 .spot.on { color: var(--ink); background: var(--sel); }
+.spot:hover .ic { transform: scale(1.08); }
+.spot .ic { transition: transform .18s cubic-bezier(.2,.7,.2,1); }
+/* the one marker for where you are, sliding between places */
+.rail .mark { position: absolute; top: 0; left: 0; width: 3px; height: 20px; border-radius: 0 3px 3px 0; background: var(--accent);
+              box-shadow: 0 0 12px rgba(95,211,198,.6); transition: transform .35s cubic-bezier(.2,.8,.2,1), opacity .2s ease; }
 .spot .count {
-    position: absolute; top: 3px; right: 3px;
+    position: absolute; top: 2px; right: 1px;
     min-width: 15px; height: 15px; padding: 0 4px;
     border-radius: 999px; background: var(--sel-2); color: var(--body);
     font-size: 9.5px; font-weight: 500; line-height: 15px; text-align: center;
 }
-.spot.on .count { background: var(--on); color: var(--on-ink); }
+.spot.on .count { background: var(--accent); color: var(--accent-ink); }
 
 .app.wide .rail .places, .app.wide .rail .foot { padding: 0 12px; }
 .app.wide .rail .label { display: block; font-size: 13px; color: inherit; white-space: nowrap; }
@@ -186,7 +202,11 @@ svg { display: block; }
 .tab { height: 24px; padding: 0 10px; border-radius: 7px; font-size: 12.5px; color: var(--muted);
        display: flex; align-items: center; white-space: nowrap; }
 .tab:hover { color: var(--body); }
-.tab.on { background: var(--sel); color: var(--ink); }
+.tab.on { color: var(--ink); }
+.tabs { position: relative; }
+.tabs .slide { position: absolute; top: 2px; bottom: 2px; border-radius: 7px; background: var(--sel-2);
+               transition: transform .3s cubic-bezier(.2,.8,.2,1), width .3s cubic-bezier(.2,.8,.2,1); }
+.tab { position: relative; z-index: 1; }
 
 .bar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .age { color: var(--faint); font-size: 12px; white-space: nowrap; }
@@ -198,7 +218,7 @@ svg { display: block; }
 }
 .mode:hover { color: var(--body); border-color: var(--line-2); }
 .mode .ic { width: 14px; height: 14px; }
-.mode.on { color: var(--on-ink); background: var(--on); border-color: var(--on); }
+.mode.on { color: var(--accent); background: var(--accent-2); border-color: rgba(95,211,198,.45); }
 
 .find {
     height: 30px; padding: 0 8px 0 10px; border-radius: 8px;
@@ -251,11 +271,16 @@ svg { display: block; }
     transition: background .14s ease, border-color .14s ease, color .14s ease, opacity .14s ease, transform .08s ease;
 }
 .btn .ic { width: 15px; height: 15px; }
-.btn.fill { background: var(--on); color: var(--on-ink); }
-.btn.fill:hover { opacity: .9; }
+.btn.fill { background: var(--accent); color: var(--accent-ink); font-weight: 600;
+             box-shadow: 0 0 0 1px rgba(95,211,198,.25), 0 8px 24px rgba(95,211,198,.18); position: relative; overflow: hidden; }
+.btn.fill::before { content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; transform: skewX(-20deg);
+                    background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent); transition: left .6s ease; }
+.btn.fill:hover::before { left: 130%; }
+.btn.fill:hover { transform: translateY(-1px); box-shadow: 0 0 0 1px rgba(95,211,198,.35), 0 12px 30px rgba(95,211,198,.25); }
 .btn.fill:active { transform: scale(.985); }
 .btn.line { border: 1px solid var(--line); background: var(--well); color: var(--body); font-weight: 450; }
-.btn.line:hover { border-color: var(--line-2); color: var(--ink); }
+.btn.line:hover { border-color: var(--line-2); color: var(--ink); transform: translateY(-1px); }
+.btn:active { transform: scale(.97); }
 .btn.bare { color: var(--muted); padding: 0 8px; font-weight: 450; }
 .btn.bare:hover { color: var(--ink); background: var(--hover); }
 .btn[disabled] { opacity: .4; pointer-events: none; }
@@ -279,14 +304,20 @@ svg { display: block; }
 .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
-.panel { position: relative; padding: 20px; min-width: 0; }
-.panel > .c { position: absolute; width: 13px; height: 13px; pointer-events: none; border-color: var(--line-2); border-style: solid; border-width: 0; }
-.panel > .c.a { left: 0; top: 0; border-left-width: 1px; border-top-width: 1px; }
-.panel > .c.b { right: 0; top: 0; border-right-width: 1px; border-top-width: 1px; }
-.panel > .c.d { left: 0; bottom: 0; border-left-width: 1px; border-bottom-width: 1px; }
-.panel > .c.e { right: 0; bottom: 0; border-right-width: 1px; border-bottom-width: 1px; }
-.panel.solid { background: var(--raise); border: 1px solid var(--line); border-radius: 12px; }
-.panel.solid > .c { display: none; }
+/* a panel is a card: one hairline, a breath of light at the top, and a
+   glow that follows the pointer across it */
+.panel { position: relative; padding: 20px; min-width: 0; border-radius: 16px;
+         background: var(--card), var(--well); border: 1px solid var(--line);
+         box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+         transition: border-color .2s ease, transform .2s ease; overflow: hidden; }
+.panel::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; opacity: 0;
+                background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 50%), var(--accent-2), transparent 60%);
+                transition: opacity .25s ease; }
+.panel:hover::after { opacity: 1; }
+.panel:hover { border-color: var(--line-2); }
+.panel > .c { display: none; }
+.panel.go { cursor: pointer; }
+.panel.go:hover { transform: translateY(-1px); }
 
 .cap { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; min-height: 18px; }
 .cap .ic { width: 14px; height: 14px; }
@@ -654,6 +685,212 @@ svg { display: block; }
     border-radius: 50%; border: 2px solid var(--on-ink); border-right-color: transparent; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ── Home's first card: what there is to do, in one sentence ─────────── */
+.hero { display: grid; grid-template-columns: 64px minmax(0,1fr) auto; gap: 18px; align-items: center; padding: 20px 22px;
+        background: radial-gradient(120% 160% at 0% 0%, rgba(95,211,198,.10), transparent 55%), var(--card), var(--well); }
+.hero .face-big { width: 64px; height: 64px; }
+.hero .face-big .body { fill: var(--ink); }
+.hero .face-big .eye { fill: var(--bg); }
+.hero h2 { font-size: 22px; font-weight: 600; letter-spacing: -.02em; line-height: 1.2; text-wrap: balance; }
+.hero h2 em { font-style: normal; color: var(--accent); }
+.hero p { margin-top: 5px; color: var(--muted); font-size: 13px; }
+.hero .acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* "Only look" is on: said where the buttons are, not only in the corner */
+.looking { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 12px;
+           background: var(--accent-2); border: 1px solid rgba(95,211,198,.35); color: var(--ink); font-size: 13px; }
+.looking .ic { color: var(--accent); }
+.looking b { font-weight: 600; }
+.looking span { color: var(--body); }
+.looking .btn { margin-left: auto; }
+
+/* ── the ring, drawn as strokes so each slice can be pointed at ─────── */
+svg.ring .seg { fill: none; transition: stroke-width .25s cubic-bezier(.2,.8,.2,1), opacity .2s ease; cursor: pointer; }
+svg.ring .seg.dim { opacity: .28; }
+svg.ring .seg.hot { stroke-width: 44; }
+svg.ring .track { fill: none; stroke: var(--sel); }
+svg.ring text { transition: opacity .2s ease; }
+.key .k { cursor: pointer; border-radius: 8px; padding: 4px 6px; margin: -4px -6px; transition: background .15s ease; }
+.key .k.hot { background: var(--hover); }
+.key > div.dim { opacity: .45; }
+.key > div { transition: opacity .2s ease; }
+
+/* ── the funnel reveals left to right, and each stage can be pointed at ─ */
+.funnel svg { animation: wipe 1.1s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.funnel .stage { position: absolute; top: 0; bottom: 0; cursor: pointer; border-radius: 10px; transition: background .2s ease; }
+.funnel .stage:hover { background: rgba(95,211,198,.05); }
+.funnel .pcts span, .funnel .tops div { transition: transform .2s ease; }
+
+/* a small label that follows the pointer over a chart */
+.chip { position: fixed; z-index: 80; pointer-events: none; padding: 7px 10px; border-radius: 9px; font-size: 12px;
+        background: var(--raise); border: 1px solid var(--line-2); box-shadow: 0 10px 30px rgba(0,0,0,.4);
+        color: var(--ink); white-space: nowrap; opacity: 0; transform: translateY(4px); transition: opacity .12s ease, transform .12s ease; }
+.chip.show { opacity: 1; transform: none; }
+.chip b { font-weight: 600; margin-left: 6px; }
+.chip span { color: var(--muted); margin-left: 6px; }
+
+/* ── every picture arrives ───────────────────────────────────────────── */
+.dash i { transition: background .3s ease; }
+.dash i.on { animation: lit .5s ease both; }
+@keyframes lit { from { background: var(--sel-2); } }
+.heat .row i { animation: pop .45s cubic-bezier(.2,.8,.2,1) both; transition: transform .15s ease, outline-color .15s ease; outline: 1px solid transparent; }
+.heat .row i:hover { transform: scaleY(1.15); outline-color: var(--accent); }
+@keyframes pop { from { opacity: 0; transform: scaleY(.3); } }
+.table .tr { animation: in .4s cubic-bezier(.2,.7,.2,1) both; }
+.table .tr.lit, .table .tr.can.lit { background: var(--hover); box-shadow: none; }
+.bars .b { cursor: pointer; }
+.bars .b .col { transition: filter .2s ease, transform .2s ease; }
+.bars .b:hover .col, .bars .b.lit .col { filter: brightness(1.35); }
+.bars .b.dim .col { filter: brightness(.55); }
+.bars .b .lb { transition: color .2s ease; }
+.bars .b.lit .lb { color: var(--ink); }
+.done .tick path { stroke-dasharray: 30; animation: draw .6s .15s ease-out both; }
+@keyframes draw { from { stroke-dashoffset: 30; } to { stroke-dashoffset: 0; } }
+.tile { cursor: pointer; }
+.tile .v, .big .n { transition: color .2s ease; }
+
+/* ── one kind of thing, opened: the files themselves ─────────────────── */
+.kind { animation: in .35s cubic-bezier(.2,.7,.2,1) both; }
+.kind .kh { display: flex; align-items: center; gap: 12px; }
+.kind .kh h3 { font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+.kind .kh .pill { margin-left: 2px; }
+.kind .kh .r { margin-left: auto; display: flex; gap: 8px; }
+.thumbs { margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(138px, 1fr)); gap: 10px; }
+.thumb { display: block; width: 100%; padding: 0; text-align: left;
+         border-radius: 11px; overflow: hidden; border: 1px solid var(--line); background: var(--sel); cursor: pointer;
+         animation: in .35s cubic-bezier(.2,.7,.2,1) both; transition: transform .18s ease, border-color .18s ease; }
+.thumb:hover { transform: translateY(-2px); border-color: rgba(95,211,198,.5); }
+.thumb .img { aspect-ratio: 16 / 10; padding: 10px; background: var(--sel) center / contain no-repeat; background-origin: content-box;
+              display: grid; place-items: center; color: var(--faint); }
+.thumb .img.got { animation: develop .45s ease both; }
+@keyframes develop { from { opacity: .0; filter: blur(6px); } to { opacity: 1; filter: none; } }
+.thumb .img .ic { width: 22px; height: 22px; }
+.thumb .cap2 { padding: 7px 9px 8px; font-size: 11.5px; color: var(--body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.thumb .cap2 span { display: block; color: var(--faint); font-size: 10.5px; margin-top: 1px; }
+.files { margin-top: 12px; display: grid; }
+.file { display: grid; grid-template-columns: 28px minmax(0,1fr) 90px 110px 16px; gap: 12px; align-items: center; min-height: 40px;
+        padding: 0 10px; margin: 0 -10px; border-radius: 9px; font-size: 13px; cursor: pointer; animation: in .3s ease both; }
+.file + .file { box-shadow: inset 0 1px 0 var(--line); }
+.file:hover { background: var(--hover); box-shadow: none; }
+.file:hover + .file { box-shadow: none; }
+.file .ico { width: 28px; height: 28px; border-radius: 8px; background: var(--sel); display: grid; place-items: center; color: var(--muted); }
+.file .ico .ic { width: 14px; height: 14px; }
+.file .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file .sz, .file .age { color: var(--muted); font-size: 12px; text-align: right; }
+.file .go2 { color: var(--faint); opacity: 0; transition: opacity .15s ease; }
+.file:hover .go2 { opacity: 1; }
+.more { margin-top: 12px; color: var(--faint); font-size: 12px; }
+
+/* the face watches */
+.face svg .eyes, .hero .face-big .eyes { transition: transform .12s ease-out; transform-origin: 50px 38px; }
+
+/* bottom cards: two by two until there is real room for four */
+@media (max-width: 1500px) {
+    .grid.four.cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* the open kind's row, and its arrow turned down to what opened */
+.table .tr.open { background: var(--sel); box-shadow: none; }
+.table .tr.open + .tr { box-shadow: none; }
+.table .tr.open .nm { color: var(--ink); font-weight: 500; }
+.table .tr.open .chev { opacity: 1; color: var(--accent); }
+.table .tr .chev .ic { transition: transform .25s cubic-bezier(.2,.8,.2,1); }
+.table .tr.open .chev .ic { transform: rotate(90deg); }
+
+/* ── one picture, big ────────────────────────────────────────────────── */
+.light { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 64px 40px 32px; }
+.light .shade { position: absolute; inset: 0; background: var(--shade); backdrop-filter: blur(14px) saturate(1.1);
+                -webkit-backdrop-filter: blur(14px) saturate(1.1); animation: fade .22s ease both; }
+.light .sheet { position: relative; margin: 0; width: min(1180px, 100%); max-height: 100%; display: flex; flex-direction: column;
+                border-radius: 18px; overflow: hidden; background: var(--raise); border: 1px solid var(--line-2);
+                box-shadow: 0 40px 120px rgba(0,0,0,.55), 0 0 0 1px rgba(95,211,198,.06);
+                animation: rise .32s cubic-bezier(.2,.8,.2,1) both; }
+.light.going .shade { animation: fade .18s ease reverse both; }
+.light.going .sheet { animation: rise .18s ease reverse both; }
+@keyframes fade { from { opacity: 0; } }
+@keyframes rise { from { opacity: 0; transform: translateY(14px) scale(.975); } }
+.light .stage { position: relative; flex: 0 0 auto; min-height: 240px; height: min(68vh, 760px); display: grid; place-items: center; overflow: hidden;
+                background: var(--well); background-image:
+                  linear-gradient(45deg, var(--sel) 25%, transparent 25%), linear-gradient(-45deg, var(--sel) 25%, transparent 25%),
+                  linear-gradient(45deg, transparent 75%, var(--sel) 75%), linear-gradient(-45deg, transparent 75%, var(--sel) 75%);
+                background-size: 22px 22px; background-position: 0 0, 0 11px, 11px -11px, -11px 0; }
+.light .pic { position: absolute; inset: 0; margin: auto; max-width: calc(100% - 48px); max-height: calc(100% - 48px); border-radius: 6px;
+              box-shadow: 0 12px 40px rgba(0,0,0,.35); filter: blur(10px); opacity: .85;
+              transition: filter .35s ease, opacity .35s ease; }
+.light .stage.sharp .pic { filter: none; opacity: 1; }
+.light .stage.empty .pic { opacity: 0; }
+.light .loading { position: absolute; color: var(--faint); opacity: 0; transition: opacity .2s ease; }
+.light .loading .ic { width: 28px; height: 28px; }
+.light .stage.empty:not(.sharp) .loading { opacity: 1; animation: breathe 1.2s ease-in-out infinite; }
+@keyframes breathe { 50% { opacity: .35; } }
+.light figcaption { display: flex; align-items: center; gap: 16px; padding: 14px 16px 14px 20px; border-top: 1px solid var(--line); }
+.light figcaption .t { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.light figcaption .t b { font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.light figcaption .t span { color: var(--muted); font-size: 12px; }
+.light figcaption .acts { display: flex; align-items: center; gap: 8px; }
+.light figcaption .of { color: var(--muted); font-size: 12px; min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
+.light .sq:disabled { opacity: .35; }
+
+/* ── the same file, kept more than once ──────────────────────────────── */
+.loadingline { animation: breathe 1.4s ease-in-out infinite; }
+.copybody { margin-top: 14px; }
+.copybody .clear { display: flex; align-items: center; gap: 12px; padding: 6px 0 2px; }
+.copybody .clear .tick { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+                         color: var(--accent); background: var(--accent-2); }
+.copybody .clear .tick .ic { width: 15px; height: 15px; stroke-width: 2; }
+.copybody .clear b { display: block; font-weight: 500; font-size: 13.5px; }
+.copybody .clear span { color: var(--muted); font-size: 12.5px; }
+.copylist { margin-top: 18px; display: grid; }
+.group { animation: in .35s cubic-bezier(.2,.7,.2,1) both; border-radius: 12px; }
+.group + .group { box-shadow: inset 0 1px 0 var(--line); }
+.group.open { background: var(--well); box-shadow: none; }
+.group.open + .group { box-shadow: none; }
+.gtop { width: 100%; display: grid; grid-template-columns: 48px minmax(0, 1fr) auto 104px 84px 16px; gap: 14px; align-items: center;
+        padding: 10px 12px; text-align: left; border-radius: 12px; cursor: pointer; transition: background .14s ease; }
+.gtop:hover { background: var(--hover); }
+.gtop .pic { width: 48px; height: 36px; border-radius: 7px; background: var(--sel) center / cover no-repeat; display: grid; place-items: center;
+             color: var(--muted); border: 1px solid var(--line); transition: transform .18s ease, border-color .18s ease; }
+.gtop .pic .ic { width: 15px; height: 15px; }
+.gtop .pic.got { animation: develop .45s ease both; cursor: zoom-in; }
+.gtop .pic.got:hover { transform: scale(1.06); border-color: rgba(95,211,198,.55); }
+.gtop .nm { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.gtop .nm b { font-weight: 500; font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gtop .nm span { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gtop .num { text-align: right; font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gtop .each { color: var(--muted); }
+.gtop .extra { color: var(--accent); font-weight: 500; }
+.gtop .chev { color: var(--faint); }
+.gtop .chev .ic { width: 14px; height: 14px; transition: transform .25s cubic-bezier(.2,.8,.2,1); }
+.group.open .gtop .chev .ic { transform: rotate(90deg); }
+.group .paths { display: none; padding: 2px 12px 10px 74px; }
+.group.open .paths { display: grid; animation: in .25s ease both; }
+.path { display: flex; align-items: center; gap: 10px; min-height: 30px; padding: 0 10px; margin: 0 -10px; border-radius: 8px;
+        text-align: left; cursor: pointer; font-size: 12.5px; color: var(--body); }
+.path:hover { background: var(--hover); }
+.path .nm { min-width: 0; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); font-size: 11.5px; }
+.path .go2 { display: inline-flex; align-items: center; gap: 6px; color: var(--faint); font-size: 11.5px; opacity: 0; transition: opacity .15s ease; }
+.path .go2 .ic { width: 12px; height: 12px; }
+.path:hover .go2 { opacity: 1; }
+.copycard { margin-top: 12px; }
+.copyfig .n { font-size: 34px; font-weight: 600; letter-spacing: -.03em; line-height: 1.1; color: var(--ink); }
+.copyfig .n small { font-size: 15px; font-weight: 500; color: var(--muted); margin-left: 4px; letter-spacing: 0; }
+.copyfig .sub { margin-top: 4px; color: var(--muted); font-size: 12.5px; }
+@media (max-width: 1100px) { .gtop { grid-template-columns: 48px minmax(0, 1fr) auto 84px 16px; } .gtop .each { display: none; } }
+
+/* the newest things on the desktop, on the home card about it */
+.nwcap { margin-top: 20px; color: var(--faint); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.newest { margin-top: 10px; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; min-height: 64px; }
+.newest .nw { display: flex; flex-direction: column; gap: 5px; padding: 0; text-align: left; cursor: pointer;
+              animation: in .35s cubic-bezier(.2,.7,.2,1) both; }
+.newest .img { aspect-ratio: 4 / 3; border-radius: 8px; border: 1px solid var(--line); display: grid; place-items: center;
+               color: var(--faint); background: var(--sel) center / cover no-repeat; transition: transform .18s ease, border-color .18s ease; }
+.newest .img .ic { width: 16px; height: 16px; }
+.newest .img.got { animation: develop .45s ease both; }
+.newest .nw:hover .img { transform: translateY(-2px); border-color: rgba(95,211,198,.5); }
+.newest .nm { color: var(--body); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+.newest .when { color: var(--faint); font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: -3px; }
+
 </style>
 </head>
 <body>
@@ -664,6 +901,7 @@ svg { display: block; }
   <pattern id="weave3" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" style="fill:var(--sel)"/><circle cx="3" cy="3" r="1.35" style="fill:var(--w2)"/></pattern>
   <pattern id="weave4" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" style="fill:var(--sel)"/><rect width="6" height="1.7" style="fill:var(--w3)"/></pattern>
   <pattern id="weave5" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" style="fill:var(--w5)"/></pattern>
+  <pattern id="weaveHot" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" style="fill:var(--accent-2)"/><rect width="2.6" height="6" style="fill:var(--accent)"/></pattern>
 </defs></svg>
 <div id="app" class="app"></div>
 <div id="tip" class="tip" role="tooltip"></div>
@@ -756,6 +994,7 @@ const PATHS = {
     dot:     ['M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z'],
     list:    ['M8 6h13', 'M8 12h13', 'M8 18h13', 'M3 6h.01', 'M3 12h.01', 'M3 18h.01'],
     moon:    ['M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z'],
+    copies:  ['M9 8h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z', 'M5 16V5a1 1 0 0 1 1-1h10'],
 };
 
 /* what macOS calls a picture, and what it is here */
@@ -1033,7 +1272,7 @@ function drawFrame() {
         h('button', { class: 'spot', 'data-page': SETTINGS(), 'data-tip': 'Settings', 'data-keys': '⌘,',
                       onclick: () => show(SETTINGS()) },
           icon('gear'), h('span', { class: 'label' }, 'Settings')));
-    const rail = h('nav', { class: 'rail' }, places, foot);
+    const rail = h('nav', { class: 'rail' }, h('i', { class: 'mark', id: 'railmark' }), places, foot);
 
     // the bar along the top
     const bar = h('header', { class: 'bar' },
@@ -1072,6 +1311,11 @@ function setFrame() {
     for (const kid of document.querySelectorAll('.kid')) {
         kid.classList.toggle('on', parseInt(kid.dataset.kid, 10) === i);
     }
+    const mark = $('#railmark'), onSpot = document.querySelector('.spot.on');
+    if (mark && onSpot) {
+        mark.style.opacity = 1;
+        mark.style.transform = `translateY(${onSpot.offsetTop + onSpot.offsetHeight / 2 - 10}px)`;
+    } else if (mark) mark.style.opacity = 0;
 
     const where = $('#where');
     if (where) {
@@ -1083,11 +1327,23 @@ function setFrame() {
             where.append(h('span', { class: 'name' }, 'Overview'));
         } else if (place && place.holds.length > 1) {
             where.append(h('span', { class: 'group' }, place.title));
-            const tabs = h('div', { class: 'tabs', 'data-hole': '' });
+            const slide = h('i', { class: 'slide' });
+            const tabs = h('div', { class: 'tabs', 'data-hole': '' }, slide);
             for (const n of place.holds) {
                 tabs.append(h('button', { class: 'tab' + (n === i ? ' on' : ''), onclick: () => show(n) }, titleOf(n)));
             }
             where.append(tabs);
+            // start where the pill was, then slide to where it goes
+            const from = K.tabPill && K.tabPill.place === place.title ? K.tabPill : null;
+            if (from) { slide.style.transition = 'none'; slide.style.transform = `translateX(${from.x}px)`; slide.style.width = from.w + 'px'; }
+            requestAnimationFrame(() => {
+                const on = tabs.querySelector('.tab.on');
+                if (!on) return;
+                slide.style.transition = '';
+                slide.style.transform = `translateX(${on.offsetLeft - 2}px)`;
+                slide.style.width = on.offsetWidth + 'px';
+                K.tabPill = { place: place.title, x: on.offsetLeft - 2, w: on.offsetWidth };
+            });
         } else {
             where.append(h('span', { class: 'name' }, titleOf(i)));
         }
@@ -1196,6 +1452,7 @@ function show(i, opts) {
     if (!K.meta || K.welcome) return;
     if (i < 0 || i > HELP()) return;
     closeActivity();
+    closeLight();
     hideTip();
     if (remember && i !== K.page && K.page >= 0) { K.behind.push(K.page); K.ahead = []; }
     const same = i === K.page;
@@ -1347,6 +1604,7 @@ function afterRun(i, reply, what, quiet) {
     K.kept[i] = { pieces, ok: reply.ok, at: Date.now(), result: true, changed: !!reply.changed, preview: !!reply.preview };
     K.lastRead = Date.now();
     if (reply.changed) {
+        K.copies = {};
         // what changed changes the readings of Home and the log of what was done
         for (const n of Object.keys(K.kept)) {
             if (+n !== i) delete K.kept[n];
@@ -1487,6 +1745,12 @@ function drawPage(still) {
         else drawAction(out, i, kept);
     }
     page.replaceChildren(out);
+    if (K.scrollTo) {
+        const to = out.querySelector(K.scrollTo);
+        if (to) { K.scrollTo = null; requestAnimationFrame(() => to.scrollIntoView({ behavior: 'smooth', block: 'start' })); }
+    }
+    if (!still) runCounts(out);
+    else for (const el of out.querySelectorAll('[data-to]')) el.removeAttribute('data-to');
     reportChrome();
 }
 
@@ -1521,7 +1785,7 @@ function bigFigure(text, sub, move) {
     const [n, unit] = figure(text);
     return h('div', { class: 'big' },
         h('div', null,
-            h('div', { class: 'n' }, n, unit ? h('small', null, unit) : null),
+            h('div', { class: 'n' }, counted(n), unit ? h('small', null, unit) : null),
             sub ? h('div', { class: 'sub' }, sub) : null),
         move ? h('div', { class: 'move' },
             h('div', { class: 'd ' + (move.tone || '') }, move.icon ? icon(move.icon) : null, move.d),
@@ -1531,20 +1795,22 @@ function bigFigure(text, sub, move) {
 function tile(label, symbol, value, opts) {
     opts = opts || {};
     const [n, unit] = figure(value);
-    return panel('tile',
+    const card = panel('tile' + (opts.go != null ? ' go' : ''),
         h('div', { class: 'k' }, icon(symbol), label),
-        h('div', { class: 'v' }, n, unit ? h('small', null, unit) : null),
+        h('div', { class: 'v' }, counted(n), unit ? h('small', null, unit) : null),
         opts.part != null ? h('div', { class: 'meter' }, h('i', { style: `width:${Math.max(1.5, Math.min(100, opts.part * 100))}%` })) : null,
         h('div', { class: 'f' },
             opts.pill ? h('span', { class: 'pill' + (opts.pillTone ? ' ' + opts.pillTone : '') }, opts.pill) : null,
             opts.foot ? h('span', { class: 't' }, opts.foot) : null));
+    if (opts.go != null) card.addEventListener('click', () => show(opts.go));
+    return card;
 }
 
 function dashes(share, many) {
     many = many || 22;
     const on = share > 0 ? Math.max(1, Math.round(share * many)) : 0;
     const out = h('div', { class: 'dash' });
-    for (let n = 0; n < many; n++) out.append(h('i', { class: n < on ? 'on' : '' }));
+    for (let n = 0; n < many; n++) out.append(h('i', { class: n < on ? 'on' : '', style: n < on ? `animation-delay:${120 + n * 22}ms` : '' }));
     return out;
 }
 
@@ -1556,13 +1822,85 @@ function swatch(n) {
     return h('span', { class: 'sw' }, svg);
 }
 
+/* ── things that move ─────────────────────────────────────────────────── */
+
+/** A figure that counts up to itself when its page arrives. The text is the
+ *  final text from the start, so a page drawn quietly never shows a wrong
+ *  number — only a page arriving gets the count. */
+function counted(text) {
+    const m = /^(\D*?)(\d[\d, ]*(?:\.\d+)?)(.*)$/.exec(String(text));
+    if (!m) return document.createTextNode(String(text));
+    const digits = m[2].replace(/[, ]/g, '');
+    return h('span', { 'data-to': digits, 'data-dec': (digits.split('.')[1] || '').length,
+                       'data-pre': m[1], 'data-post': m[3], 'data-sep': /[ ]/.test(m[2]) ? 'thin' : '' }, String(text));
+}
+function runCounts(root) {
+    const els = [...root.querySelectorAll('[data-to]')];
+    if (!els.length || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const t0 = performance.now(), dur = 850;
+    const fmt = (el, v) => {
+        const dec = +el.dataset.dec;
+        let n = dec ? v.toFixed(dec) : String(Math.round(v));
+        if (el.dataset.sep === 'thin') n = n.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        return el.dataset.pre + n + el.dataset.post;
+    };
+    const step = now => {
+        const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        for (const el of els) if (el.isConnected) el.textContent = fmt(el, parseFloat(el.dataset.to) * e);
+        if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+}
+
+/** The small label that follows the pointer over a chart. */
+function chipAt(e, parts) {
+    let c = $('#chip');
+    if (!c) { c = h('div', { class: 'chip', id: 'chip' }); document.body.append(c); }
+    c.replaceChildren(...parts);
+    c.classList.add('show');
+    const w = c.offsetWidth, hh = c.offsetHeight;
+    c.style.left = Math.min(window.innerWidth - w - 8, e.clientX + 14) + 'px';
+    c.style.top = Math.max(8, e.clientY - hh - 12) + 'px';
+}
+function chipOff() { const c = $('#chip'); if (c) c.classList.remove('show'); }
+
+/* the glow on a card follows the pointer */
+document.addEventListener('pointermove', e => {
+    const card = e.target.closest && e.target.closest('.panel');
+    if (card) {
+        const r = card.getBoundingClientRect();
+        card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+        card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+    }
+    // and the face watches the pointer
+    for (const eyes of document.querySelectorAll('.face .eyes, .hero .face-big .eyes')) {
+        const svg = eyes.ownerSVGElement, r = svg.getBoundingClientRect();
+        const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height * .38);
+        const d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 400);
+        eyes.style.transform = `translate(${(dx / d * 3.2 * k).toFixed(2)}px, ${(dy / d * 2.4 * k).toFixed(2)}px)`;
+    }
+}, { passive: true });
+
+/* and blinks, now and then */
+(function blink() {
+    setTimeout(() => {
+        for (const eyes of document.querySelectorAll('.face .eyes, .hero .face-big .eyes')) {
+            const was = eyes.style.transform || '';
+            eyes.style.transform = was + ' scaleY(.1)';
+            setTimeout(() => { eyes.style.transform = was; }, 130);
+        }
+        blink();
+    }, 3800 + Math.random() * 3600);
+})();
+
 /* ── Home ─────────────────────────────────────────────────────────────── */
 
 function greeting() {
     const hour = new Date().getHours();
     const part = hour < 5 ? 'Good evening' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
     const name = (K.meta.config.name || '').trim().split(/\s+/)[0];
-    return name ? `${part}, ${name}.` : 'Hello.';
+    if (!name) return 'Hello.';
+    return /[.!?]$/.test(name) ? `${part}, ${name}` : `${part}, ${name}.`;
 }
 
 function drawHome(out, kept) {
@@ -1571,34 +1909,55 @@ function drawHome(out, kept) {
     const f = facts(pieces);
     const total = home.total || 0, free = home.free || 0, used = home.used || 0;
     const junk = home.junk;
+    const cleanPage = pages().findIndex(p => p.kind === 'clean');
+    const topPage = pages().findIndex(p => p.kind === 'top');
+    const doctorPage = pages().findIndex((p, n) => n > 0 && p.kind === 'doctor');
 
-    out.append(h('div', { class: 'head' },
-        h('div', { class: 'words' },
-            h('h1', null, greeting()),
-            h('p', null, pages()[0].blurb)),
+    // the first card says, in one sentence, what there is to do — and has
+    // the two buttons that do it
+    const bits = [];
+    if (home.desk) bits.push([String(home.desk), home.desk === 1 ? ' thing on your desktop' : ' things on your desktop']);
+    if (home.downloads) bits.push([String(home.downloads), ' in Downloads']);
+    if (junk > 0) bits.push([size(junk), ' worth freeing']);
+    const sentence = h('h2');
+    if (!bits.length) sentence.append('Nothing needs doing. ', h('em', null, 'Your Mac is clear.'));
+    bits.forEach((b, n) => {
+        if (n) sentence.append(n === bits.length - 1 ? ' and ' : ', ');
+        sentence.append(h('em', null, b[0]), b[1]);
+    });
+    if (bits.length) sentence.append('.');
+    const both = [1, 2].filter(n => (n === 1 ? home.desk : home.downloads) > 0);
+    out.append(panel('hero',
+        mascot('face-big'),
+        h('div', null, h('p', { style: 'margin:0 0 4px' }, greeting()), sentence,
+          h('p', null, 'Nothing here has been changed. Every button asks first, and every move can go back.')),
         h('div', { class: 'acts' },
-            h('button', { class: 'btn line small', onclick: () => { delete K.kept[0]; look(0); } },
-              icon('refresh'), 'Look again'))));
+            h('button', { class: 'btn line small', 'data-tip': 'Look again', onclick: () => { delete K.kept[0]; look(0); } }, icon('refresh')),
+            both.length > 1 ? h('button', { class: 'btn line', onclick: () => tidyBoth(both) }, icon('tray'), 'Tidy both') : null,
+            junk > 0 && cleanPage >= 0 ? h('button', { class: 'btn fill', onclick: () => show(cleanPage) }, icon('sparkles'), 'Free ' + size(junk)) : null)));
 
     if (!f.Disk && !f.Desktop) {
         drawAction(out, 0, kept, true);
         return;
     }
 
-    // four readings, standing on the page
+    // four readings, each a way into the page it is about
     const across = h('div', { class: 'grid four' });
     if (total > 0) {
         across.append(tile('Disk', 'disk', size(used), {
-            part: used / total, pill: percent(used, total) + ' used', foot: 'of ' + size(total) }));
+            part: used / total, pill: percent(used, total) + ' used', foot: 'of ' + size(total), go: topPage >= 0 ? topPage : null }));
         across.append(tile('Free', 'sparkles', size(free), {
             part: free / total,
             pill: junk > 0 ? '+' + size(junk) + ' to spare' : null, pillTone: junk > 0 ? 'good' : '',
-            foot: junk === 0 ? 'nothing worth freeing' : junk == null ? 'still measuring…' : null }));
+            foot: junk === 0 ? 'nothing worth freeing' : junk == null ? 'still measuring…' : null, go: cleanPage >= 0 ? cleanPage : null }));
     }
     if (home.desk != null) across.append(tile('Desktop', 'desk', String(home.desk), {
-        pill: home.deskOld || null, foot: home.deskOld ? null : home.desk === 1 ? 'thing on it' : 'things on it' }));
+        pill: home.deskOld || null, foot: home.deskOld ? null : home.desk === 1 ? 'thing on it' : 'things on it', go: 1 }));
     if (home.downloads != null) across.append(tile('Downloads', 'download', String(home.downloads), {
-        pill: home.downloadsOld || null, foot: home.downloadsOld ? null : home.downloads === 1 ? 'thing in it' : 'things in it' }));
+        pill: home.downloadsOld || null, foot: home.downloadsOld ? null : home.downloads === 1 ? 'thing in it' : 'things in it', go: 2 }));
+    // as many columns as there are readings, so none sits beside a hole
+    if (across.children.length === 3) across.className = 'grid three';
+    if (across.children.length === 2) across.className = 'grid two';
     if (across.children.length) out.append(across);
 
     // the one number, and where the room is
@@ -1613,15 +1972,15 @@ function drawHome(out, kept) {
                       worth > 0 ? { d: '+' + size(worth), icon: 'up', tone: 'good', w: 'on top of ' + size(free) + ' free' }
                                 : { d: size(free), w: 'free right now' }),
             funnel([
-                { value: total, name: 'On the disk' },
-                { value: used, name: 'In use' },
-                { value: worth || 0, name: 'Worth freeing' },
+                { value: total, name: 'On the disk', go: doctorPage, say: 'the whole disk' },
+                { value: used, name: 'In use', go: topPage, say: 'of the disk is in use' },
+                { value: worth || 0, name: 'Worth freeing', go: cleanPage, say: 'could be freed' },
             ])));
 
         const bands = [
-            { name: 'Your files', value: Math.max(0, used - (worth || 0)) },
-            { name: 'Worth freeing', value: worth || 0 },
-            { name: 'Free', value: free },
+            { name: 'Your files', value: Math.max(0, used - (worth || 0)), go: topPage },
+            { name: 'Worth freeing', value: worth || 0, go: cleanPage, hot: true },
+            { name: 'Free', value: free, go: doctorPage },
         ].filter(b => b.value > 0);
         two.append(panel('',
             bigFigure(size(used), 'In use, of ' + size(total) + ' on this Mac',
@@ -1630,10 +1989,10 @@ function drawHome(out, kept) {
         out.append(two);
     }
 
-    // four cards
-    const four = h('div', { class: 'grid four' });
+    // four cards, two by two until there is room for four
+    const four = h('div', { class: 'grid four cards' });
     four.append(deskCard(home));
-    four.append(promiseCard(home));
+    four.append(copiesCard(kept));
     four.append(home.months && home.months.length === 12 && home.months.some(x => x > 0)
         ? monthsCard(home) : machineCard(f));
     four.append(todoCard(home));
@@ -1656,7 +2015,11 @@ function deskCard(home) {
             dashes(r.n / most));
         list.append(one);
     }
-    return panel('', cap('grid', 'On your desk', 'right now'), list);
+    const deskPage = pages().findIndex(p => p.kind === 'desktop');
+    const strip = deskPage > 0 ? h('div', { class: 'newest' }) : null;
+    if (strip) fillNewest(strip, deskPage);
+    return panel('', cap('grid', 'On your desk', 'right now'), list,
+                 strip ? h('div', { class: 'nwcap' }, 'Newest on the desktop') : null, strip);
 }
 
 function promiseCard(home) {
@@ -1687,7 +2050,10 @@ function monthsCard(home) {
     const shades = ['var(--sel)', 'var(--w4)', 'var(--w3)', 'var(--w2)', 'var(--w0)'];
     months.forEach((m, n) => {
         const level = m <= 0 ? 0 : Math.min(4, 1 + Math.floor((m / most) * 3.999));
-        row.append(h('i', { style: `background:${shades[level]}`, title: `${names[n]}: ${m}` }));
+        const cell = h('i', { style: `background:${level === 4 ? 'var(--accent)' : shades[level]};animation-delay:${n * 35}ms` });
+        cell.addEventListener('mousemove', e => chipAt(e, [names[n], h('b', null, whole(m)), h('span', null, m === 1 ? 'thing arrived' : 'things arrived')]));
+        cell.addEventListener('mouseleave', chipOff);
+        row.append(cell);
     });
     const ax = h('div', { class: 'ax' });
     names.forEach((n, k) => ax.append(h('span', null, k % 2 === 1 ? n : '')));
@@ -1758,7 +2124,7 @@ function funnel(stops) {
     const box = h('div', { class: 'funnel' });
     const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none' });
     const cols = stops.length, cw = W / cols, mid = top + room / 2;
-    const fills = ['var(--w0)', 'var(--w2)', 'var(--w4)'];
+    const fills = ['var(--w0)', 'var(--w3)', 'var(--accent)'];
     for (let c = 0; c < cols; c++) {
         const x0 = c * cw, a = hs[c], b = c + 1 < cols ? hs[c + 1] : hs[c];
         const upper = [], lower = [];
@@ -1783,51 +2149,90 @@ function funnel(stops) {
     const pcts = h('div', { class: 'pcts', style: `grid-template-columns:${tpl}` });
     const names = h('div', { class: 'names', style: `grid-template-columns:${tpl}` });
     stops.forEach((st, c) => {
-        tops.append(h('div', null, size(st.value)));
+        tops.append(h('div', null, counted(size(st.value))));
         pcts.append(h('span', { class: 'pill' + (c === 0 ? ' hi' : '') }, percent(st.value, max)));
         names.append(h('div', null, st.name));
     });
     box.append(tops, pcts, names);
     for (let c = 1; c < cols; c++) box.append(h('i', { class: 'rule', style: `left:${(c / cols * 100).toFixed(3)}%` }));
+    // each stage is a way in to the page about it
+    stops.forEach((st, c) => {
+        const stage = h('div', { class: 'stage', style: `left:${(c / cols * 100).toFixed(3)}%;width:${(100 / cols).toFixed(3)}%` });
+        stage.addEventListener('mousemove', e => chipAt(e, [st.name, h('b', null, size(st.value)), h('span', null, percent(st.value, max) + ' ' + (st.say || ''))]));
+        stage.addEventListener('mouseleave', chipOff);
+        if (st.go != null && st.go >= 0) stage.addEventListener('click', () => { chipOff(); show(st.go); });
+        box.append(stage);
+    });
     return box;
 }
 
 /* ── the ring, and its key ────────────────────────────────────────────── */
 
 function ringRow(bands, whole_, centre, under) {
-    const R = 92, r0 = 58, C = 100;
+    // strokes on a circle, not wedges: each slice can be pointed at, grow,
+    // and say what it is, and they sweep in one after another
+    const C = 100, R = 72, W = 30, circ = 2 * Math.PI * R;
     const svg = s('svg', { class: 'ring', viewBox: '0 0 200 200' });
+    svg.append(s('circle', { class: 'track', cx: C, cy: C, r: R, 'stroke-width': W }));
+    const g = s('g', { transform: `rotate(-90 ${C} ${C})` });
+    svg.append(g);
     const sum = bands.reduce((a, b) => a + b.value, 0) || 1;
-    let a0 = -Math.PI / 2;
-    const minShare = 0.012;
+    const minShare = 0.012, gap = bands.length > 1 ? 3 : 0;
     const shares = bands.map(b => Math.max(b.value / sum, b.value > 0 ? minShare : 0));
-    const norm = shares.reduce((a, b) => a + b, 0);
+    const norm = shares.reduce((a, b) => a + b, 0) || 1;
+    let at = 0;
+    const segs = [];
     bands.forEach((b, n) => {
-        const f = shares[n] / norm;
-        if (f <= 0) return;
-        const a1 = a0 + f * Math.PI * 2 - (bands.length > 1 ? 0.035 : 0);
-        const big = (a1 - a0) > Math.PI ? 1 : 0;
-        const p = (rad, ang) => [C + rad * Math.cos(ang), C + rad * Math.sin(ang)];
-        const [x0, y0] = p(R, a0), [x1, y1] = p(R, a1), [x2, y2] = p(r0, a1), [x3, y3] = p(r0, a0);
-        const d = `M${x0} ${y0} A${R} ${R} 0 ${big} 1 ${x1} ${y1} L${x2} ${y2} A${r0} ${r0} 0 ${big} 0 ${x3} ${y3}Z`;
-        svg.append(s('path', { d, fill: `url(#weave${n % WEAVES})` }));
-        a0 = a0 + f * Math.PI * 2;
+        const len = Math.max(0, shares[n] / norm * circ - gap);
+        const seg = s('circle', { class: 'seg', cx: C, cy: C, r: R, 'stroke-width': W,
+                                  stroke: b.hot ? 'url(#weaveHot)' : `url(#weave${n % WEAVES})`,
+                                  'stroke-dasharray': `0 ${circ}`, 'stroke-dashoffset': String(-at) });
+        seg.style.transition = `stroke-dasharray .9s cubic-bezier(.2,.8,.2,1) ${n * 120}ms, stroke-width .25s cubic-bezier(.2,.8,.2,1), opacity .2s ease`;
+        g.append(seg);
+        segs.push(seg);
+        requestAnimationFrame(() => requestAnimationFrame(() => seg.setAttribute('stroke-dasharray', `${len} ${circ}`)));
+        at += len + gap;
     });
-    if (centre) {
-        const t1 = s('text', { x: C, y: C + 2, 'text-anchor': 'middle', style: 'fill:var(--ink);font-size:22px;font-weight:600;letter-spacing:-.02em' });
-        t1.textContent = centre;
-        const t2 = s('text', { x: C, y: C + 20, 'text-anchor': 'middle', style: 'fill:var(--faint);font-size:11px' });
-        t2.textContent = under || '';
-        svg.append(t1, t2);
-    }
+    const t1 = s('text', { x: C, y: C + 3, 'text-anchor': 'middle', style: 'fill:var(--ink);font-size:24px;font-weight:600;letter-spacing:-.02em' });
+    const t2 = s('text', { x: C, y: C + 22, 'text-anchor': 'middle', style: 'fill:var(--faint);font-size:11px' });
+    const rest = () => { t1.textContent = centre || ''; t2.textContent = under || ''; };
+    rest();
+    svg.append(t1, t2);
+
     const key = h('div', { class: 'key' });
+    const rows = [];
     bands.forEach((b, n) => {
-        key.append(h('div', null,
-            h('div', { class: 'k' }, swatch(n), h('span', { class: 'n' }, b.name),
+        const row = h('div', null,
+            h('div', { class: 'k' }, b.hot ? swatchHot() : swatch(n), h('span', { class: 'n' }, b.name),
               h('span', { class: 'p' }, percent(b.value, whole_)), h('span', { class: 'v' }, b.fmt || size(b.value))),
-            dashes(b.value / (whole_ || 1), 30)));
+            dashes(b.value / (whole_ || 1), 30));
+        key.append(row);
+        rows.push(row);
+    });
+    const point = n => {
+        segs.forEach((seg, k) => { seg.classList.toggle('hot', k === n); seg.classList.toggle('dim', n != null && k !== n); });
+        rows.forEach((row, k) => { row.classList.toggle('dim', n != null && k !== n); row.firstChild.classList.toggle('hot', k === n); });
+        if (n == null) { rest(); return; }
+        t1.textContent = bands[n].fmt || size(bands[n].value);
+        t2.textContent = bands[n].name.toLowerCase();
+    };
+    bands.forEach((b, n) => {
+        const go = () => { if (b.go != null && b.go >= 0) show(b.go); };
+        for (const el of [segs[n], rows[n]]) {
+            el.addEventListener('mouseenter', () => point(n));
+            el.addEventListener('mouseleave', () => { point(null); chipOff(); });
+            el.addEventListener('click', go);
+        }
+        segs[n].addEventListener('mousemove', e => chipAt(e, [b.name, h('b', null, b.fmt || size(b.value)), h('span', null, percent(b.value, whole_))]));
     });
     return h('div', { class: 'ringrow' }, svg, key);
+}
+
+/** The swatch for the slice Kliner can do something about: its own teal. */
+function swatchHot() {
+    const svg = s('svg', { viewBox: '0 0 14 14' });
+    svg.append(s('rect', { width: 14, height: 14, fill: 'url(#weaveHot)' }));
+    return h('span', { class: 'sw' }, svg);
 }
 
 /* ── every other page ─────────────────────────────────────────────────── */
@@ -1858,6 +2263,7 @@ function head(i, extraActs) {
 
 function drawAction(out, i, kept, bodyOnly) {
     if (!bodyOnly) out.append(head(i));
+    if (!bodyOnly && K.preview && (pages()[i].asks || !pages()[i].looksOnly)) out.append(looking());
     const k = kind(i);
     let pieces = kept.pieces || [];
     if (kept.result) {
@@ -1875,6 +2281,15 @@ function drawAction(out, i, kept, bodyOnly) {
     if (k === 'undo') { drawUndo(out, i, pieces); return; }
     if (k === 'doctor') { drawDoctor(out, pieces); return; }
     drawSections(out, i, pieces);
+    if (pages()[i].reveal) out.append(copiesPanel(i, kept));
+}
+
+/** Only look is on, said where the buttons are. */
+function looking() {
+    return h('div', { class: 'looking' }, icon('eye'),
+        h('div', null, h('b', null, 'Only look is on. '),
+          h('span', null, 'Every button reads instead of changing — nothing on your Mac moves until you turn it off.')),
+        h('button', { class: 'btn line small', onclick: flipPreview }, 'Turn it off'));
 }
 
 /** What came back after something was done, said once, at the top. */
@@ -1953,7 +2368,6 @@ const KIND_ICON = {
 
 function title(text) { return text ? text.charAt(0).toUpperCase() + text.slice(1) : ''; }
 
-/** A list of things with a size each: the bars, then the table they came from. */
 function breakdown(sec, i, opts) {
     const rows = [];
     let total = null;
@@ -1972,6 +2386,8 @@ function breakdown(sec, i, opts) {
     const amount = v => (asBytes ? size(v) : whole(v));
     rows.sort((a, b) => b.value - a.value);
     const sum = rows.reduce((a, r) => a + r.value, 0) || 1;
+    // a page about a folder lists kinds of thing: each one opens on the files
+    const kinds = !asBytes && isAction(i) && !!pages()[i].reveal && !K.walked.length;
 
     const box = panel('');
     const big = total ? total.value : amount(sum);
@@ -1981,40 +2397,59 @@ function breakdown(sec, i, opts) {
         total ? total.label : asBytes ? 'together' : 'altogether',
         rows[0] ? { d: rows[0].name.replace(/\/$/, ''), w: 'is the biggest — ' + percent(rows[0].value, sum) } : null)));
 
-    // the bars: biggest first, weaves falling with them — and only when
-    // there are enough of them to be a picture rather than two blocks
+    // what pressing a bar or a row does
+    const open = r => {
+        chipOff();
+        if (kinds) return openKind(i, r.name);
+        if (opts.walkable && r.folder) return walkInto(r.name.replace(/\/$/, ''));
+        if (K.walked.length) return revealThing(r.name);
+    };
+    const canOpen = r => kinds || (opts.walkable && r.folder) || K.walked.length > 0;
+
+    // the bars: biggest first, the biggest in Kliner's own teal
     const bars = h('div', { class: 'bars' });
     if (rows.length < 4) bars.hidden = true;
     const top = rows[0] ? rows[0].value : 1;
+    const barEls = [], rowEls = [];
+    const light = n => {
+        barEls.forEach((b, k) => { b.classList.toggle('lit', k === n); b.classList.toggle('dim', n != null && k !== n); });
+        rowEls.forEach((r, k) => r.classList.toggle('lit', k === n));
+    };
     rows.slice(0, 14).forEach((r, n) => {
-        const col = h('div', { class: 'col', style: `height:${Math.max(2, r.value / top * 100)}%;animation-delay:${n * 25}ms` });
-        // no viewBox: the weave is drawn at the screen's own scale, not
-        // stretched with the bar
+        const col = h('div', { class: 'col', style: `height:${Math.max(2, r.value / top * 100)}%;animation-delay:${n * 40}ms` });
         const svg = s('svg', { width: '100%', height: '100%' });
-        svg.append(s('rect', { width: '100%', height: '100%', fill: `url(#weave${Math.min(n, WEAVES - 1)})` }));
+        svg.append(s('rect', { width: '100%', height: '100%', fill: n === 0 ? 'url(#weaveHot)' : `url(#weave${Math.min(n, WEAVES - 1)})` }));
         col.append(svg);
-        bars.append(h('div', { class: 'b', title: `${r.name}  ${amount(r.value)}` }, col,
-                      h('div', { class: 'lb' }, r.name.replace(/\/$/, ''))));
+        const b = h('div', { class: 'b' }, col, h('div', { class: 'lb' }, r.name.replace(/\/$/, '')));
+        b.addEventListener('mouseenter', () => light(n));
+        b.addEventListener('mousemove', e => chipAt(e, [r.name.replace(/\/$/, ''), h('b', null, asBytes ? amount(r.value) : plural(Math.round(r.value), 'item')),
+                                                        h('span', null, percent(r.value, sum) + (canOpen(r) ? ' · click to open' : ''))]));
+        b.addEventListener('mouseleave', () => { light(null); chipOff(); });
+        b.addEventListener('click', () => open(r));
+        bars.append(b);
+        barEls.push(b);
     });
     box.append(bars);
 
-    // and the table
+    // and the table they came from
     const table = h('div', { class: 'table' },
         h('div', { class: 'th' }, h('span'), h('span', null, asBytes ? 'Name' : 'What it is'), h('span', null, 'Share'),
           h('span', { class: 'num' }, '%'), h('span', { class: 'num' }, asBytes ? 'Size' : 'How many'), h('span')));
     rows.forEach((r, n) => {
-        const canWalk = opts.walkable && r.folder;
-        const canOpen = !canWalk && K.walked.length > 0;
-        const kindIcon = KIND_ICON[r.name.toLowerCase()];
-        const tr = h('div', { class: 'tr' + (canWalk || canOpen ? ' can' : ''), style: canWalk || canOpen ? 'cursor:pointer' : '',
-                               onclick: canWalk ? () => walkInto(r.name.replace(/\/$/, '')) : canOpen ? () => revealThing(r.name) : null },
-            swatch(Math.min(n, WEAVES - 1)),
-            h('span', { class: 'nm' }, kindIcon && !asBytes ? null : null, r.name),
-            h('span', { class: 'share' }, h('i', { style: `width:${Math.max(1, r.value / sum * 100)}%` })),
+        const can = canOpen(r);
+        const tr = h('div', { class: 'tr' + (can ? ' can' : ''), style: (can ? 'cursor:pointer;' : '') + `animation-delay:${80 + n * 30}ms`,
+                               onclick: can ? () => open(r) : null },
+            n === 0 ? swatchHot() : swatch(Math.min(n, WEAVES - 1)),
+            h('span', { class: 'nm' }, r.name),
+            h('span', { class: 'share' }, h('i', { style: `width:${Math.max(1, r.value / sum * 100)}%;animation-delay:${120 + n * 40}ms` })),
             h('span', { class: 'num pc' }, percent(r.value, sum)),
             h('span', { class: 'num sz' }, asBytes ? amount(r.value) : plural(Math.round(r.value), 'item')),
-            h('span', { class: 'chev' }, canWalk ? icon('right') : canOpen ? icon('finder') : null));
+            h('span', { class: 'chev' }, can ? icon(kinds || (opts.walkable && r.folder) ? 'right' : 'finder') : null));
+        if (kinds) tr.dataset.kind = r.name;
+        tr.addEventListener('mouseenter', () => light(n < 14 ? n : null));
+        tr.addEventListener('mouseleave', () => light(null));
         table.append(tr);
+        rowEls.push(tr);
     });
     if (total) table.append(h('div', { class: 'total' }, h('b', null, total.label), h('span', null, total.value)));
     box.append(table);
@@ -2023,10 +2458,447 @@ function breakdown(sec, i, opts) {
     if (extraRows.length) box.append(factList(extraRows));
     const said = sentences(after.filter(p => p.k !== 'row'));
     if (said) box.append(said);
+    if (kinds) box.append(h('div', { class: 'kind-slot', id: 'kindslot' }));
     return box;
 }
 
-/** A panel of plain facts, sentences, and entries. */
+/* ── one kind of thing, opened: the files themselves ─────────────────── */
+
+/* nimo's own rule for what a file is (lib/desktop.sh, nimo_kind_set), so
+   what opens here is exactly what nimo counted */
+const KIND_EXT = {
+    Images: 'jpg jpeg png gif heic heif webp tiff tif bmp svg ico raw cr2 nef',
+    Video: 'mp4 mov m4v avi mkv webm wmv flv',
+    Audio: 'mp3 m4a wav aiff aif flac aac ogg',
+    Documents: 'pdf doc docx pages txt rtf rtfd md key numbers xls xlsx csv tsv ppt pptx epub odt',
+    Archives: 'zip tar gz tgz bz2 xz rar 7z dmg pkg iso',
+    Code: 'sh bash zsh py js mjs ts tsx jsx json yml yaml html css scss swift c h cpp hpp java rb go rs php sql toml xml',
+    Apps: 'app',
+};
+const EXT_KIND = {};
+for (const [k, list] of Object.entries(KIND_EXT)) for (const e of list.split(' ')) EXT_KIND[e] = k;
+
+function kindOf(f) {
+    if (f.dir) return 'Folders';
+    const name = f.name.toLowerCase();
+    if (/^(screenshot|screen shot|snímka|snimka|cleanshot)/.test(name)) return 'Screenshots';
+    const dot = name.lastIndexOf('.');
+    const ext = dot >= 0 ? name.slice(dot + 1) : '';
+    return EXT_KIND[ext] || 'Other';
+}
+
+/* what nimo leaves out of a folder altogether (nimo_folder_items): dotfiles,
+   its own Tidy folder, anything still downloading, names it could not log */
+function tidyName() {
+    const said = String(K.meta.config.tidy || '').trim();
+    return !said || /[\/\\]/.test(said) || said === '.' || said.includes('..') ? 'Tidy' : said;
+}
+const ARRIVING = /\.(download|crdownload|part|partial|opdownload|aria2|tmp|!ut)$/;
+function countedByNimo(f) {
+    return !f.name.startsWith('.') && f.name !== tidyName() && !ARRIVING.test(f.name) && !/[\t\n\r]/.test(f.name);
+}
+
+const KIND_PICTURE = { Screenshots: 'camera', Images: 'photo', Video: 'film', Audio: 'music', Documents: 'file',
+                       Archives: 'box', Code: 'code', Apps: 'cube', Folders: 'folder', Other: 'dot' };
+
+function ago(ms) {
+    if (!ms) return '';
+    const days = Math.floor((Date.now() - ms) / 86400000);
+    if (days < 1) return 'today';
+    if (days < 2) return 'yesterday';
+    if (days < 31) return days + ' days ago';
+    if (days < 365) return Math.round(days / 30) + ' months ago';
+    return Math.round(days / 365) + (days < 730 ? ' year ago' : ' years ago');
+}
+
+/** The row of the kind that is open, marked; none when none is. */
+function markKind(kind) {
+    for (const tr of document.querySelectorAll('.table .tr[data-kind]')) tr.classList.toggle('open', tr.dataset.kind === kind);
+}
+
+function closeKind() {
+    K.kindOpen = null;
+    markKind(null);
+    const slot = $('#kindslot');
+    if (slot) slot.replaceChildren();
+}
+
+/* "Screenshot 2026-09-12 at 17.40.50.png": in a grid of them, the part worth
+   reading is the when. The whole name is on the tile's tooltip. */
+const SHOT_WORD = /^(screenshot|screen shot|snímka obrazovky|snimka obrazovky|snímka|snimka|cleanshot)\s+/i;
+const SHOT_WHEN = /^(\d{4})-(\d{2})-(\d{2})\s+(?:at|o)\s+(\d{1,2}[.:]\d{2}[.:]\d{2}(?:\s?[AP]M)?)(?:\s+\(?(\d+)\)?)?\.[a-z0-9]{2,5}$/i;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function shortName(name) {
+    const bare = name.replace(SHOT_WORD, '');
+    if (bare === name) return name;
+    const m = SHOT_WHEN.exec(bare);
+    if (!m) return bare.replace(/\.[a-z0-9]{2,5}$/i, '');
+    const [, y, mo, d, time, copy] = m;
+    const year = parseInt(y, 10) === new Date().getFullYear() ? '' : ' ' + y;
+    return `${parseInt(d, 10)} ${MONTHS[parseInt(mo, 10) - 1] || mo}${year}, ${time}` + (copy ? ` · ${copy}` : '');
+}
+
+/** What is in a page's folder, asked again after twenty seconds. */
+async function listing(i) {
+    K.listing = K.listing || {};
+    if (!K.listing[i] || Date.now() - K.listing[i].at > 20000) {
+        const reply = await ask('list', { page: i });
+        K.listing[i] = { at: Date.now(), items: (reply && Array.isArray(reply.items) && reply.items) || [] };
+    }
+    return K.listing[i].items;
+}
+
+/** Small pictures for some names in a page's folder, laid on the elements
+ *  that carry those names in `data-name`. */
+async function paint(i, els) {
+    const names = [...new Set(els.map(el => el.dataset.name))];
+    for (let at = 0; at < names.length; at += 12) {
+        const reply = await ask('thumbs', { page: i, names: names.slice(at, at + 12) });
+        const got = (reply && reply.thumbs) || {};
+        for (const el of els) {
+            const uri = got[el.dataset.name];
+            if (el.isConnected && uri && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(uri)) {
+                el.style.backgroundImage = `url("${uri}")`;
+                el.replaceChildren();
+                el.classList.add('got');
+            }
+        }
+    }
+}
+
+/** The newest few things on the desktop, for the home card about it. */
+async function fillNewest(strip, i) {
+    const items = await listing(i);
+    if (!strip.isConnected) return;
+    const folder = pages()[i].reveal;
+    const newest = items.filter(countedByNimo).sort((a, b) => (b.modified || 0) - (a.modified || 0)).slice(0, 6);
+    if (!newest.length) { strip.remove(); return; }
+    const isPicture = f => ['Screenshots', 'Images'].includes(kindOf(f));
+    const pictures = newest.filter(isPicture);
+    const els = [];
+    strip.replaceChildren(...newest.map((f, n) => {
+        const kind = kindOf(f);
+        const img = h('span', { class: 'img' }, icon(KIND_PICTURE[kind] || 'file'));
+        if (isPicture(f)) { img.dataset.name = f.name; els.push(img); }
+        return h('button', { class: 'nw', title: f.name, style: `animation-delay:${n * 45}ms`,
+                             onclick: () => isPicture(f) ? openLight(i, folder, pictures, pictures.indexOf(f), strip)
+                                                         : tell('show', { path: [folder, f.name] }) },
+            img, h('span', { class: 'nm' }, shortName(f.name)), h('span', { class: 'when' }, ago(f.modified)));
+    }));
+    if (els.length) paint(i, els);
+}
+
+async function openKind(i, kind) {
+    const slot = $('#kindslot');
+    if (!slot) return;
+    if (K.kindOpen === kind && slot.firstChild) { closeKind(); return; }
+    K.kindOpen = kind;
+    markKind(kind);
+    slot.replaceChildren(h('div', { class: 'kind', style: 'margin-top:18px' }, h('div', { class: 'more' }, 'Opening ' + kind.toLowerCase() + '…')));
+    const items = await listing(i);
+    if (K.kindOpen !== kind || !slot.isConnected) return;
+    const files = items
+        .filter(f => countedByNimo(f) && kindOf(f) === kind)
+        .sort((a, b) => (b.modified || 0) - (a.modified || 0));
+    const picture = kind === 'Screenshots' || kind === 'Images';
+    const folder = pages()[i].reveal;
+
+    const headRow = h('div', { class: 'kh' },
+        h('span', { class: 'ico' }, icon(KIND_PICTURE[kind] || 'dot')),
+        h('h3', null, kind), h('span', { class: 'pill' }, plural(files.length, 'item')),
+        h('div', { class: 'r' },
+            h('button', { class: 'btn line small', onclick: () => tell('reveal', { page: i }) }, icon('finder'), 'Show in Finder'),
+            h('button', { class: 'btn bare small', 'data-tip': 'Close', onclick: closeKind }, icon('x'))));
+    const shown = files.slice(0, picture ? 60 : 200);
+    let body;
+    if (picture) {
+        body = h('div', { class: 'thumbs' });
+        shown.forEach((f, n) => {
+            const img = h('div', { class: 'img' }, icon(KIND_PICTURE[kind]));
+            img.dataset.name = f.name;
+            body.append(h('button', { class: 'thumb', style: `animation-delay:${Math.min(n, 24) * 18}ms`, title: f.name,
+                                      onclick: () => openLight(i, folder, files, n, card) },
+                img, h('div', { class: 'cap2' }, shortName(f.name), h('span', null, [f.size ? size(f.size) : '', ago(f.modified)].filter(Boolean).join(' · ')))));
+        });
+    } else {
+        body = h('div', { class: 'files' });
+        shown.forEach((f, n) => {
+            body.append(h('div', { class: 'file', style: `animation-delay:${Math.min(n, 24) * 14}ms`,
+                                   onclick: () => tell('show', { path: [folder, f.name] }) },
+                h('span', { class: 'ico' }, icon(f.dir ? 'folder' : KIND_PICTURE[kind] || 'file')),
+                h('span', { class: 'nm' }, f.name),
+                h('span', { class: 'sz' }, f.dir ? 'folder' : f.size ? size(f.size) : ''),
+                h('span', { class: 'age' }, ago(f.modified)),
+                h('span', { class: 'go2' }, icon('finder'))));
+        });
+    }
+    const note = files.length > shown.length ? h('div', { class: 'more' }, `and ${files.length - shown.length} more — Show in Finder has all of them`) : null;
+    const card = h('div', { class: 'kind', style: 'margin-top:18px;padding-top:18px;border-top:1px solid var(--line)' }, headRow, body, note,
+        h('div', { class: 'more' }, picture
+            ? 'Click one to see it big; arrow keys go through them. Nothing is opened, moved or deleted from here.'
+            : 'Clicking one shows it in the Finder. Nothing is opened, moved or deleted from here.'));
+    slot.replaceChildren(card);
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    // the pictures themselves, drawn small by the Mac, a batch at a time
+    if (picture && shown.length) {
+        const names = shown.map(f => f.name);
+        for (let at = 0; at < names.length; at += 12) {
+            const reply = await ask('thumbs', { page: i, names: names.slice(at, at + 12) });
+            if (K.kindOpen !== kind || !card.isConnected) return;
+            const got = (reply && reply.thumbs) || {};
+            for (const img of card.querySelectorAll('.img')) {
+                const uri = got[img.dataset.name];
+                if (uri && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(uri)) {
+                    img.style.backgroundImage = `url("${uri}")`;
+                    img.replaceChildren();
+                    img.classList.add('got');
+                }
+            }
+        }
+    }
+}
+
+/* ── the same file, kept more than once ───────────────────────────────── */
+
+/* `min duplicates <folder>`: nimo finds files of one size, then reads only
+   those to see which really are the same. It never deletes one — it cannot
+   know which you meant — so neither does this. */
+function copiesOf(raw) {
+    const groups = [];
+    let total = null;
+    for (const line of String(raw || '').split('\n')) {
+        const bare = line.replace(ANSI, '').replace(/\s+$/, '');
+        const t = bare.trim();
+        if (!t) continue;
+        let m = /^also {2,}(.+)$/.exec(t);
+        if (m) { if (groups.length) groups[groups.length - 1].also.push(m[1]); continue; }
+        m = /^(.+?) {2,}(\d[\d.,]*\s?(?:B|KB|MB|GB|TB))(?: {2,}(.+))?$/.exec(t);
+        if (!m) continue;
+        if (/kept more than once$/.test(m[1])) { total = { label: m[1], value: m[2] }; continue; }
+        if (/^ {4,}/.test(bare)) groups.push({ name: m[1], size: m[2], folder: (m[3] || '').replace(/\/$/, ''), also: [] });
+    }
+    return { groups: groups.filter(g => g.also.length), total };
+}
+
+/** Asked once a minute at most, and again as soon as anything has moved. */
+function copiesFor(list) {
+    K.copies = K.copies || {};
+    return Promise.all(list.map(n => {
+        const had = K.copies[n];
+        if (!had || Date.now() - had.at > 60000) {
+            K.copies[n] = { at: Date.now(), answer: ask('copies', { page: n })
+                .then(reply => Object.assign({ page: n }, copiesOf(reply && reply.text))) };
+        }
+        return K.copies[n].answer;
+    }));
+}
+
+function copyGroups(results) {
+    const groups = [];
+    for (const r of results) for (const g of r.groups) {
+        const each = bytes(g.size) || 0;
+        const first = (g.folder ? g.folder + '/' : '') + g.name;
+        groups.push(Object.assign({ page: r.page, each, n: 1 + g.also.length, paths: [first, ...g.also] }, g));
+    }
+    for (const g of groups) g.extra = g.each * (g.n - 1);
+    return groups.sort((a, b) => b.extra - a.extra);
+}
+
+/** The copies that sit right in the page's own folder, as files it lists. */
+function topCopies(g, folder) {
+    return g.paths.filter(p => p.startsWith(folder + '/') && !p.slice(folder.length + 1).includes('/'))
+                  .map(p => ({ name: p.slice(folder.length + 1), size: g.each }));
+}
+
+function showPath(path) {
+    const parts = path.split('/').filter(x => x !== '');
+    if (parts.length) tell('show', { path: parts });
+}
+
+function copiesPanel(i, kept) {
+    const folder = pages()[i].reveal;
+    const body = h('div', { class: 'copybody' }, h('div', { class: 'more loadingline' }, 'Looking for the same file kept twice…'));
+    const box = panel('copies', cap('copies', 'Kept more than once', h('span', null, 'in ' + folder)), body);
+    copiesFor([i]).then(results => {
+        if (!body.isConnected) return;
+        const groups = copyGroups(results);
+        if (!groups.length) {
+            body.replaceChildren(h('div', { class: 'clear' }, h('span', { class: 'tick' }, icon('check')),
+                h('div', null, h('b', null, 'Nothing here is kept twice.'),
+                  h('span', null, 'nimo compared every file of the same size, and none are the same.'))));
+            return;
+        }
+        const extra = groups.reduce((a, g) => a + g.extra, 0);
+        const list = h('div', { class: 'copylist' });
+        const pictures = [];
+        groups.forEach((g, n) => {
+            const kind = kindOf({ name: g.name });
+            const tops = topCopies(g, folder);
+            const pic = h('span', { class: 'pic' }, icon(KIND_PICTURE[kind] || 'file'));
+            const viewable = (kind === 'Screenshots' || kind === 'Images') && tops.length > 0;
+            if (viewable) { pic.dataset.name = tops[0].name; pictures.push(pic); }
+            const paths = h('div', { class: 'paths' });
+            g.paths.forEach(path => paths.append(h('button', { class: 'path', onclick: () => showPath(path) },
+                h('span', { class: 'nm' }, path), h('span', { class: 'go2' }, icon('finder'), 'Show in Finder'))));
+            const row = h('div', { class: 'group', style: `animation-delay:${60 + n * 50}ms` });
+            const top = h('button', { class: 'gtop', onclick: () => row.classList.toggle('open') },
+                pic,
+                h('span', { class: 'nm' }, h('b', null, g.name), h('span', null, whereCopies(g))),
+                h('span', { class: 'pill' + (n === 0 ? ' hi' : '') }, '×' + g.n),
+                h('span', { class: 'num each' }, size(g.each) + ' each'),
+                h('span', { class: 'num extra' }, '+' + size(g.extra)),
+                h('span', { class: 'chev' }, icon('right')));
+            if (viewable) pic.addEventListener('click', e => { e.stopPropagation(); openLight(i, folder, tops, 0, list); });
+            row.append(top, paths);
+            list.append(row);
+        });
+        body.replaceChildren(
+            bigFigure(size(extra), 'of copies you already have — ' + plural(groups.length, 'file') + ' kept more than once',
+                      { d: plural(groups.reduce((a, g) => a + g.n - 1, 0), 'extra copy', 'extra copies'), w: 'beyond the first of each' }),
+            list,
+            h('div', { class: 'more' }, 'Kliner deletes none of them: it cannot know which one you meant. Show in Finder takes you to each.'));
+        runCounts(body);
+        // the pictures themselves, when there are any
+        if (pictures.length) ask('thumbs', { page: i, names: pictures.map(p => p.dataset.name).slice(0, 24) }).then(reply => {
+            const got = (reply && reply.thumbs) || {};
+            for (const pic of pictures) {
+                const uri = got[pic.dataset.name];
+                if (uri && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(uri)) {
+                    pic.style.backgroundImage = `url("${uri}")`;
+                    pic.replaceChildren();
+                    pic.classList.add('got');
+                }
+            }
+            for (const img of list.querySelectorAll('.pic.got')) img.dataset.tip = 'See it big';
+        });
+    });
+    return box;
+}
+
+function whereCopies(g) {
+    const places = [...new Set(g.paths.map(p => p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '~'))];
+    return places.length === 1 ? `all ${g.n} in ${places[0]}` : `in ${places.slice(0, 2).join(' and ')}${places.length > 2 ? ` and ${places.length - 2} more` : ''}`;
+}
+
+/** The home card: copies on the desktop and in Downloads, the biggest first. */
+function copiesCard(kept) {
+    const list = [pages().findIndex(p => p.kind === 'desktop'), pages().findIndex(p => p.kind === 'downloads')].filter(n => n > 0);
+    const body = h('div', { class: 'copycard' }, h('div', { class: 'more loadingline' }, 'Looking for the same file kept twice…'));
+    const box = panel('', cap('copies', 'Kept more than once', 'Desktop · Downloads'), body);
+    if (!list.length) return promiseCard({});
+    copiesFor(list).then(results => {
+        if (!body.isConnected) return;
+        const groups = copyGroups(results);
+        if (!groups.length) {
+            body.replaceChildren(h('div', { class: 'promise' },
+                h('div', { class: 'marks' }, h('span', null, icon('copies')), h('span', null, icon('check'))),
+                h('h4', null, 'Nothing is kept twice'),
+                h('p', null, 'nimo compared every file of the same size on your desktop and in Downloads.')));
+            return;
+        }
+        const extra = groups.reduce((a, g) => a + g.extra, 0);
+        const most = Math.max(1, ...groups.map(g => g.extra));
+        const rows = h('div', { class: 'list' });
+        for (const g of groups.slice(0, 3)) {
+            rows.append(h('div', { style: 'cursor:pointer', onclick: () => { K.scrollTo = '.panel.copies'; show(g.page); } },
+                h('div', { class: 'l' }, h('b', null, g.name), h('span', { class: 'pill' }, '×' + g.n),
+                  h('span', { class: 'v' }, '+' + size(g.extra))),
+                dashes(g.extra / most)));
+        }
+        body.replaceChildren(
+            h('div', { class: 'copyfig' }, h('div', { class: 'n' }, counted(figure(size(extra))[0]), h('small', null, figure(size(extra))[1] || '')),
+              h('div', { class: 'sub' }, 'you already have, in ' + plural(groups.length, 'file') + ' kept more than once')),
+            rows);
+        runCounts(body);
+    });
+    return box;
+}
+
+/* ── one picture, big: Kliner's own viewer ────────────────────────────── */
+
+/* the Mac draws it; the page only shows what came back. Nothing is opened in
+   another app — Show in Finder is the way out to the file itself. */
+const BIG = new Map();
+async function bigPicture(i, name) {
+    if (BIG.has(name)) return BIG.get(name);
+    const reply = await ask('picture', { page: i, name });
+    const uri = reply && reply.picture;
+    const ok = uri && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(uri) ? uri : null;
+    if (ok) {
+        BIG.set(name, ok);
+        if (BIG.size > 24) BIG.delete(BIG.keys().next().value);
+    }
+    return ok;
+}
+
+function closeLight() {
+    const box = $('#light');
+    if (!box) return;
+    document.removeEventListener('keydown', box._keys, true);
+    box.classList.add('going');
+    setTimeout(() => box.remove(), 180);
+}
+
+function openLight(i, folder, files, at, card) {
+    closeLight();
+    const small = name => {
+        const img = card && [...card.querySelectorAll('[data-name]')].find(el => el.dataset.name === name);
+        const m = img && /url\("(.+)"\)/.exec(img.style.backgroundImage || '');
+        return m ? m[1] : null;
+    };
+    const pic = h('img', { class: 'pic', alt: '' });
+    const hint = h('div', { class: 'loading' }, icon('photo'));
+    const name = h('b');
+    const about = h('span');
+    const count = h('span', { class: 'of' });
+    const stage = h('div', { class: 'stage' }, pic, hint);
+    const prev = h('button', { class: 'sq', 'data-tip': 'Previous', onclick: () => go(at - 1) }, icon('left'));
+    const next = h('button', { class: 'sq', 'data-tip': 'Next', onclick: () => go(at + 1) }, icon('right'));
+    const box = h('div', { class: 'light', id: 'light', role: 'dialog', 'aria-modal': 'true' },
+        h('div', { class: 'shade', onclick: closeLight }),
+        h('figure', { class: 'sheet' }, stage,
+            h('figcaption', null,
+                h('div', { class: 't' }, name, about),
+                h('div', { class: 'acts' }, prev, count, next,
+                    h('button', { class: 'btn line small', onclick: () => tell('show', { path: [folder, files[at].name] }) },
+                      icon('finder'), 'Show in Finder'),
+                    h('button', { class: 'sq', 'data-tip': 'Close', onclick: closeLight }, icon('x'))))));
+    let ask_ = 0;
+    async function go(n) {
+        if (n < 0 || n >= files.length) return;
+        at = n;
+        const f = files[at];
+        name.textContent = f.name;
+        about.textContent = [f.size ? size(f.size) : '', ago(f.modified)].filter(Boolean).join(' · ');
+        count.textContent = `${at + 1} of ${files.length}`;
+        prev.disabled = at === 0;
+        next.disabled = at === files.length - 1;
+        // the small one at once, soft; the big one when the Mac has drawn it
+        const first = small(f.name);
+        stage.classList.remove('sharp');
+        stage.classList.toggle('empty', !first);
+        if (first) pic.src = first; else pic.removeAttribute('src');
+        const mine = ++ask_;
+        const big = await bigPicture(i, f.name);
+        if (mine !== ask_ || !box.isConnected) return;
+        if (big) { pic.src = big; stage.classList.remove('empty'); stage.classList.add('sharp'); }
+        else stage.classList.add('sharp');
+        // the next one, ready before it is asked for
+        if (files[at + 1]) bigPicture(i, files[at + 1].name);
+    }
+    box._keys = e => {
+        if (e.key === 'Escape' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); closeLight(); }
+        else if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); go(at - 1); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); go(at + 1); }
+        else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); }
+    };
+    document.addEventListener('keydown', box._keys, true);
+    document.body.append(box);
+    wireTips(box);
+    go(at);
+}
+
 function plainPanel(sec, i) {
     const box = panel('');
     if (sec.title) box.append(cap(null, title(sec.title)));
