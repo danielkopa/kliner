@@ -415,7 +415,7 @@ struct Action {
     /// Not one of the things nimo does, the place where you say how it
     /// should do them.
     static let help = Action(title: "Help",
-                             blurb: "Every key Kliner answers to.",
+                             blurb: "Keyboard shortcuts.",
                              verb: "",
                              arguments: [],
                              asks: nil,
@@ -423,7 +423,7 @@ struct Action {
                              symbol: "questionmark.circle")
 
     static let settings = Action(title: "Settings",
-                                 blurb: "How nimo behaves, what it may touch, and where it starts from.",
+                                 blurb: "Preferences and permissions.",
                                  verb: "",
                                  arguments: [],
                                  asks: nil,
@@ -433,73 +433,73 @@ struct Action {
     /// Where the window opens. Not a thing nimo does — a look at what there
     /// is to do, so arriving somewhere calm is the first thing that happens.
     static let home = Action(title: "Home",
-                             blurb: "What your Mac looks like right now. Nothing here has been changed.",
-                             verb: "Look again",
+                             blurb: "Your Mac right now. Nothing has changed.",
+                             verb: "Refresh",
                              arguments: ["doctor"],
                              asks: nil,
                              group: "",
                              symbol: "house",
                              does: "arrow.clockwise")
 
-    static let putBack = "Move everything back where it was?\n\nnimo wrote down every move it made, so this is exact."
+    static let putBack = "Put everything back where it was?\n\nKliner logged every move, so nothing gets lost."
 
     static let all: [Action] = [
         home,
 
         Action(title: "Desktop",
-               blurb: "Everything on your desktop, sorted into Desktop/Tidy by what it is. Nothing is deleted, and nothing is renamed.",
-               verb: "Clear my desktop",
+               blurb: "Sorts everything on your desktop into Desktop/Tidy by type. Nothing is deleted or renamed.",
+               verb: "Tidy desktop",
                arguments: ["desktop"],
-               asks: "Move everything on your desktop into Desktop/Tidy, sorted by what it is?\n\nNothing is deleted. Put this back reverses it.",
+               asks: "Tidy your desktop?\n\nEverything moves into Desktop/Tidy, sorted by type. Nothing is deleted, and you can undo it.",
                group: "Your desk",
                symbol: "square.grid.2x2",
                does: "tray.and.arrow.down",
-               counts: "things on your desktop",
-               extras: [Extra(title: "Put this back", arguments: ["desktop", "--undo"], asks: putBack,
+               counts: "items on your desktop",
+               extras: [Extra(title: "Undo", arguments: ["desktop", "--undo"], asks: putBack,
                               symbol: "arrow.uturn.backward")],
                reveal: "Desktop"),
 
         Action(title: "Downloads",
-               blurb: "The same, for the folder everything lands in and nothing ever leaves.",
-               verb: "Sort my downloads",
+               blurb: "Sorts your Downloads folder into Downloads/Tidy by type. Nothing is deleted or renamed.",
+               verb: "Tidy downloads",
                arguments: ["downloads"],
-               asks: "Sort your downloads into Downloads/Tidy?\n\nNothing is deleted. Put this back reverses it.",
+               asks: "Tidy your Downloads folder?\n\nEverything moves into Downloads/Tidy, sorted by type. Nothing is deleted, and you can undo it.",
                group: "Your desk",
                symbol: "arrow.down.circle",
                does: "tray.and.arrow.down",
-               counts: "things in Downloads",
-               extras: [Extra(title: "Put this back", arguments: ["downloads", "--undo"], asks: putBack,
+               counts: "items in Downloads",
+               extras: [Extra(title: "Undo", arguments: ["downloads", "--undo"], asks: putBack,
                               symbol: "arrow.uturn.backward")],
                reveal: "Downloads"),
 
         Action(title: "Wallpaper",
-               blurb: "Step through the wallpapers your Mac already ships with. Nothing is downloaded.",
+               blurb: "Switch between the wallpapers that come with your Mac. Nothing is downloaded.",
                verb: "Next",
                arguments: ["next"],
                asks: nil,
                group: "Your screen",
                symbol: "photo",
                does: "chevron.right",
-               counts: "wallpapers your Mac ships with",
+               counts: "built-in wallpapers",
                extras: [Extra(title: "Previous", arguments: ["prev"], asks: nil,
                               symbol: "chevron.left"),
-                        Extra(title: "The one I had", arguments: ["wallpaper", "--restore"],
+                        Extra(title: "Original", arguments: ["wallpaper", "--restore"],
                               asks: nil, symbol: "arrow.uturn.backward")],
                looksOnly: false, symbolic: true),
 
         Action(title: "Startup",
-               blurb: "What launches itself when you sign in, and which of them Kliner can turn off.",
-               verb: "Look again",
+               blurb: "Apps that open when you log in. Stop the ones you do not need.",
+               verb: "Refresh",
                arguments: ["startup", "--list"],
                asks: nil,
                group: "Your screen",
                symbol: "power",
                does: "arrow.clockwise",
-               counts: "things that launch themselves"),
+               counts: "items that open at login"),
 
-        Action(title: "What is big",
-               blurb: "The folders in your home that are taking up the room. Click one to look inside it.",
-               verb: "Measure",
+        Action(title: "Storage",
+               blurb: "The biggest folders in your home. Click one to look inside.",
+               verb: "Scan",
                arguments: ["top"],
                asks: nil,
                group: "Your disk",
@@ -509,19 +509,19 @@ struct Action {
                walks: true),
 
         Action(title: "Free up space",
-               blurb: "Caches and temporary files your apps rebuild by themselves. Your own files are never touched.",
-               verb: "Free it up",
+               blurb: "App caches and temporary files. Apps rebuild them when needed, and your own files are never touched.",
+               verb: "Clean up",
                arguments: ["clean"],
-               asks: "Delete the caches and temporary files nimo found?\n\nYour own files are never touched.",
+               asks: "Delete these caches and temporary files?\n\nApps rebuild them when needed. Your own files are not touched.",
                group: "Your disk",
                symbol: "sparkles",
                does: "sparkles",
                counts: "caches your apps rebuild",
-               extras: [Extra(title: "Only look", arguments: ["preview"], asks: nil, symbol: "eye")]),
+               extras: [Extra(title: "Preview", arguments: ["preview"], asks: nil, symbol: "eye")]),
 
-        Action(title: "How it is",
-               blurb: "Disk, memory, uptime and battery, as they are right now.",
-               verb: "Check",
+        Action(title: "This Mac",
+               blurb: "Disk, memory, battery and uptime.",
+               verb: "Refresh",
                arguments: ["doctor"],
                asks: nil,
                group: "Your computer",
@@ -529,16 +529,16 @@ struct Action {
                does: "arrow.clockwise",
                counts: "readings"),
 
-        Action(title: "Put it all back",
-               blurb: "Everything nimo has done, reversed, newest first. This is why nothing here is frightening.",
-               verb: "Put it all back",
+        Action(title: "Undo",
+               blurb: "Everything Kliner has moved, newest first. Undo everything puts it all back.",
+               verb: "Undo everything",
                arguments: ["undo", "--all"],
-               asks: "Reverse everything nimo has done, newest first?",
+               asks: "Undo everything?\n\nFiles go back where they were, newest move first.",
                group: "Your computer",
                symbol: "arrow.uturn.backward",
                does: "arrow.uturn.backward",
-               counts: "changes Kliner can reverse",
-               extras: [Extra(title: "Only look", arguments: ["undo", "--all", "--dry-run"], asks: nil,
+               counts: "moves you can undo",
+               extras: [Extra(title: "Preview", arguments: ["undo", "--all", "--dry-run"], asks: nil,
                               symbol: "eye")]),
     ]
 }
@@ -1610,7 +1610,7 @@ final class Main: NSObject, NSWindowDelegate {
 
     /// Which setup has been read. Bumped whenever the setup changes, so a
     /// setup nobody has seen is shown once more rather than never again.
-    static let setup = "4"
+    static let setup = "5"
 
     /// What macOS decides about, in the order it is asked. Notifications are
     /// last on purpose: a banner is the smallest thing to be asked for, and
@@ -1631,9 +1631,9 @@ final class Main: NSObject, NSWindowDelegate {
     /// What Home can open on. The value is the page's own first argument, so
     /// nothing has to be translated between here and the list down the side.
     static let starts: [(String, String, String)] = [
-        ("desktop", "My desktop", "Sorted into one folder by what things are."),
-        ("downloads", "My downloads", "The same, for the folder everything lands in."),
-        ("disk", "Whatever is taking the room", "The big things first, and what is safe to clear."),
+        ("desktop", "Desktop", "Sort what is on your desktop."),
+        ("downloads", "Downloads", "Sort your Downloads folder."),
+        ("disk", "Storage", "See what takes up space."),
     ]
 
     private static let gates: [(String, String, URL?)] = [

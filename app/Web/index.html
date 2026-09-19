@@ -24,62 +24,66 @@
 
 :root {
     color-scheme: dark;
-    --bg:      #0B0F11;
-    --rail:    #090C0E;
-    --raise:   #11171A;
-    --well:    #0E1316;
-    --hover:   #141B1F;
-    --sel:     #182126;
-    --sel-2:   #202B31;
-    --line:    #1B2429;
-    --line-2:  #28343B;
-    --ink:     #EDF1F2;
-    --body:    #C3CBCF;
-    --muted:   #8B959B;
-    --faint:   #5B666C;
-    --ghost:   #36424A;
-    --good:    #5FD3C6;
-    --bad:     #F0707C;
-    --accent:  #5FD3C6;       /* Kliner's own teal, from kliner.app */
-    --accent-2: rgba(95, 211, 198, .14);
-    --accent-ink: #042220;
-    --on:      #EDF1F2;
-    --on-ink:  #0B0F11;
-    --w0: #E3E9EB; --w1: #B3BDC1; --w2: #8A969C; --w3: #67737A; --w4: #48545B; --w5: #333E44;
-    --shadow: 0 30px 80px rgba(0,0,0,.6);
-    --card: linear-gradient(180deg, rgba(255,255,255,.028), rgba(255,255,255,.008));
+    --bg:      #0a0a0a;
+    --rail:    #0a0a0a;
+    --raise:   #0f0f0f;
+    --well:    #0d0d0d;
+    --hover:   #151515;
+    --sel:     #1b1b1b;
+    --sel-2:   #242424;
+    --line:    #1f1f1f;
+    --line-2:  #2c2c2c;
+    --ink:     #ededed;
+    --body:    #c4c4c4;
+    --muted:   #8a8a8a;
+    --faint:   #5c5c5c;
+    --ghost:   #3a3a3a;
+    --good:    #3fcf8e;
+    --bad:     #f0616d;
+    --on:      #f2f2f2;       /* the one filled button */
+    --on-ink:  #0a0a0a;
+    --accent:  var(--on);
+    --accent-2: rgba(255, 255, 255, .07);
+    --accent-ink: var(--on-ink);
+    --w0: #e9e9e9; --w1: #bdbdbd; --w2: #949494; --w3: #707070; --w4: #4f4f4f; --w5: #383838;
+    --shadow: 0 30px 80px rgba(0,0,0,.65);
+    --lift: 0 8px 24px rgba(0,0,0,.35);
+    --card: linear-gradient(180deg, rgba(255,255,255,.022), rgba(255,255,255,.006));
+    --glow: rgba(255, 255, 255, .045);
+    --edge: rgba(255, 255, 255, .24);
+    --shade: rgba(0, 0, 0, .72);
     --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-    --shade: rgba(4, 7, 8, .72);
 }
 
 @media (prefers-color-scheme: light) {
     :root {
         color-scheme: light;
-        --bg:      #F6F8F8;
-        --rail:    #EEF2F2;
-        --raise:   #FFFFFF;
-        --well:    #F2F5F5;
-        --hover:   #EAEFEF;
-        --sel:     #E3EAEA;
-        --sel-2:   #D6DFE0;
-        --line:    #E1E7E8;
-        --line-2:  #C9D2D4;
-        --ink:     #0E1416;
-        --body:    #2F393D;
-        --muted:   #66727A;
-        --faint:   #95A0A6;
-        --ghost:   #C0C9CC;
-        --good:    #13937F;
-        --bad:     #D23B4A;
-        --accent:  #13937F;
-        --accent-2: rgba(19, 147, 127, .12);
-        --accent-ink: #FFFFFF;
-        --on:      #0E1416;
-        --on-ink:  #F6F8F8;
-        --w0: #1A2226; --w1: #45535A; --w2: #6D7B82; --w3: #95A2A8; --w4: #B8C3C7; --w5: #D3DBDD;
-        --shadow: 0 24px 70px rgba(14,20,22,.16);
-        --card: linear-gradient(180deg, #FFFFFF, #FBFCFC);
-        --shade: rgba(14, 20, 22, .40);
+        --bg:      #fafafa;
+        --rail:    #f4f4f3;
+        --raise:   #ffffff;
+        --well:    #f6f6f5;
+        --hover:   #efefee;
+        --sel:     #e9e9e8;
+        --sel-2:   #dededc;
+        --line:    #e6e6e4;
+        --line-2:  #cfcfcc;
+        --ink:     #111111;
+        --body:    #333333;
+        --muted:   #6f6f6f;
+        --faint:   #9a9a98;
+        --ghost:   #c4c4c2;
+        --good:    #13a15f;
+        --bad:     #d93a48;
+        --on:      #111111;
+        --on-ink:  #fafafa;
+        --accent-2: rgba(0, 0, 0, .05);
+        --w0: #1a1a1a; --w1: #454545; --w2: #6d6d6d; --w3: #939393; --w4: #b7b7b7; --w5: #d2d2d0;
+        --shadow: 0 24px 70px rgba(0,0,0,.18);
+        --lift: 0 8px 22px rgba(0,0,0,.12);
+        --card: linear-gradient(180deg, #ffffff, #fdfdfd);
+        --glow: rgba(0, 0, 0, .035);
+        --edge: rgba(0, 0, 0, .26);
+        --shade: rgba(20, 20, 20, .36);
     }
 }
 
@@ -141,7 +145,7 @@ svg { display: block; }
 .spot .ic { transition: transform .18s cubic-bezier(.2,.7,.2,1); }
 /* the one marker for where you are, sliding between places */
 .rail .mark { position: absolute; top: 0; left: 0; width: 3px; height: 20px; border-radius: 0 3px 3px 0; background: var(--accent);
-              box-shadow: 0 0 12px rgba(95,211,198,.6); transition: transform .35s cubic-bezier(.2,.8,.2,1), opacity .2s ease; }
+              transition: transform .35s cubic-bezier(.2,.8,.2,1), opacity .2s ease; }
 .spot .count {
     position: absolute; top: 2px; right: 1px;
     min-width: 15px; height: 15px; padding: 0 4px;
@@ -218,7 +222,7 @@ svg { display: block; }
 }
 .mode:hover { color: var(--body); border-color: var(--line-2); }
 .mode .ic { width: 14px; height: 14px; }
-.mode.on { color: var(--accent); background: var(--accent-2); border-color: rgba(95,211,198,.45); }
+.mode.on { color: var(--ink); background: var(--accent-2); border-color: var(--edge); }
 
 .find {
     height: 30px; padding: 0 8px 0 10px; border-radius: 8px;
@@ -272,11 +276,11 @@ svg { display: block; }
 }
 .btn .ic { width: 15px; height: 15px; }
 .btn.fill { background: var(--accent); color: var(--accent-ink); font-weight: 600;
-             box-shadow: 0 0 0 1px rgba(95,211,198,.25), 0 8px 24px rgba(95,211,198,.18); position: relative; overflow: hidden; }
+             box-shadow: var(--lift); position: relative; overflow: hidden; }
 .btn.fill::before { content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; transform: skewX(-20deg);
                     background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent); transition: left .6s ease; }
 .btn.fill:hover::before { left: 130%; }
-.btn.fill:hover { transform: translateY(-1px); box-shadow: 0 0 0 1px rgba(95,211,198,.35), 0 12px 30px rgba(95,211,198,.25); }
+.btn.fill:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
 .btn.fill:active { transform: scale(.985); }
 .btn.line { border: 1px solid var(--line); background: var(--well); color: var(--body); font-weight: 450; }
 .btn.line:hover { border-color: var(--line-2); color: var(--ink); transform: translateY(-1px); }
@@ -311,7 +315,7 @@ svg { display: block; }
          box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
          transition: border-color .2s ease, transform .2s ease; overflow: hidden; }
 .panel::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; opacity: 0;
-                background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 50%), var(--accent-2), transparent 60%);
+                background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 50%), var(--glow), transparent 60%);
                 transition: opacity .25s ease; }
 .panel:hover::after { opacity: 1; }
 .panel:hover { border-color: var(--line-2); }
@@ -687,19 +691,19 @@ svg { display: block; }
 
 /* ── Home's first card: what there is to do, in one sentence ─────────── */
 .hero { display: grid; grid-template-columns: 64px minmax(0,1fr) auto; gap: 18px; align-items: center; padding: 20px 22px;
-        background: radial-gradient(120% 160% at 0% 0%, rgba(95,211,198,.10), transparent 55%), var(--card), var(--well); }
+        background: radial-gradient(120% 160% at 0% 0%, var(--glow), transparent 55%), var(--card), var(--well); }
 .hero .face-big { width: 64px; height: 64px; }
 .hero .face-big .body { fill: var(--ink); }
 .hero .face-big .eye { fill: var(--bg); }
-.hero h2 { font-size: 22px; font-weight: 600; letter-spacing: -.02em; line-height: 1.2; text-wrap: balance; }
-.hero h2 em { font-style: normal; color: var(--accent); }
+.hero h2 { font-size: 22px; font-weight: 500; letter-spacing: -.02em; line-height: 1.2; text-wrap: balance; color: var(--muted); }
+.hero h2 em { font-style: normal; color: var(--ink); font-weight: 600; }
 .hero p { margin-top: 5px; color: var(--muted); font-size: 13px; }
 .hero .acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 
 /* "Only look" is on: said where the buttons are, not only in the corner */
 .looking { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 12px;
-           background: var(--accent-2); border: 1px solid rgba(95,211,198,.35); color: var(--ink); font-size: 13px; }
-.looking .ic { color: var(--accent); }
+           background: var(--accent-2); border: 1px solid var(--line-2); color: var(--ink); font-size: 13px; }
+.looking .ic { color: var(--ink); }
 .looking b { font-weight: 600; }
 .looking span { color: var(--body); }
 .looking .btn { margin-left: auto; }
@@ -719,7 +723,7 @@ svg.ring text { transition: opacity .2s ease; }
 .funnel svg { animation: wipe 1.1s cubic-bezier(.2,.7,.2,1) both; }
 @keyframes wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 .funnel .stage { position: absolute; top: 0; bottom: 0; cursor: pointer; border-radius: 10px; transition: background .2s ease; }
-.funnel .stage:hover { background: rgba(95,211,198,.05); }
+.funnel .stage:hover { background: var(--glow); }
 .funnel .pcts span, .funnel .tops div { transition: transform .2s ease; }
 
 /* a small label that follows the pointer over a chart */
@@ -735,7 +739,7 @@ svg.ring text { transition: opacity .2s ease; }
 .dash i.on { animation: lit .5s ease both; }
 @keyframes lit { from { background: var(--sel-2); } }
 .heat .row i { animation: pop .45s cubic-bezier(.2,.8,.2,1) both; transition: transform .15s ease, outline-color .15s ease; outline: 1px solid transparent; }
-.heat .row i:hover { transform: scaleY(1.15); outline-color: var(--accent); }
+.heat .row i:hover { transform: scaleY(1.15); outline-color: var(--ink); }
 @keyframes pop { from { opacity: 0; transform: scaleY(.3); } }
 .table .tr { animation: in .4s cubic-bezier(.2,.7,.2,1) both; }
 .table .tr.lit, .table .tr.can.lit { background: var(--hover); box-shadow: none; }
@@ -760,7 +764,7 @@ svg.ring text { transition: opacity .2s ease; }
 .thumb { display: block; width: 100%; padding: 0; text-align: left;
          border-radius: 11px; overflow: hidden; border: 1px solid var(--line); background: var(--sel); cursor: pointer;
          animation: in .35s cubic-bezier(.2,.7,.2,1) both; transition: transform .18s ease, border-color .18s ease; }
-.thumb:hover { transform: translateY(-2px); border-color: rgba(95,211,198,.5); }
+.thumb:hover { transform: translateY(-2px); border-color: var(--edge); }
 .thumb .img { aspect-ratio: 16 / 10; padding: 10px; background: var(--sel) center / contain no-repeat; background-origin: content-box;
               display: grid; place-items: center; color: var(--faint); }
 .thumb .img.got { animation: develop .45s ease both; }
@@ -794,7 +798,7 @@ svg.ring text { transition: opacity .2s ease; }
 .table .tr.open { background: var(--sel); box-shadow: none; }
 .table .tr.open + .tr { box-shadow: none; }
 .table .tr.open .nm { color: var(--ink); font-weight: 500; }
-.table .tr.open .chev { opacity: 1; color: var(--accent); }
+.table .tr.open .chev { opacity: 1; color: var(--ink); }
 .table .tr .chev .ic { transition: transform .25s cubic-bezier(.2,.8,.2,1); }
 .table .tr.open .chev .ic { transform: rotate(90deg); }
 
@@ -804,7 +808,7 @@ svg.ring text { transition: opacity .2s ease; }
                 -webkit-backdrop-filter: blur(14px) saturate(1.1); animation: fade .22s ease both; }
 .light .sheet { position: relative; margin: 0; width: min(1180px, 100%); max-height: 100%; display: flex; flex-direction: column;
                 border-radius: 18px; overflow: hidden; background: var(--raise); border: 1px solid var(--line-2);
-                box-shadow: 0 40px 120px rgba(0,0,0,.55), 0 0 0 1px rgba(95,211,198,.06);
+                box-shadow: 0 40px 120px rgba(0,0,0,.55);
                 animation: rise .32s cubic-bezier(.2,.8,.2,1) both; }
 .light.going .shade { animation: fade .18s ease reverse both; }
 .light.going .sheet { animation: rise .18s ease reverse both; }
@@ -837,7 +841,7 @@ svg.ring text { transition: opacity .2s ease; }
 .copybody { margin-top: 14px; }
 .copybody .clear { display: flex; align-items: center; gap: 12px; padding: 6px 0 2px; }
 .copybody .clear .tick { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
-                         color: var(--accent); background: var(--accent-2); }
+                         color: var(--ink); background: var(--sel); }
 .copybody .clear .tick .ic { width: 15px; height: 15px; stroke-width: 2; }
 .copybody .clear b { display: block; font-weight: 500; font-size: 13.5px; }
 .copybody .clear span { color: var(--muted); font-size: 12.5px; }
@@ -853,13 +857,13 @@ svg.ring text { transition: opacity .2s ease; }
              color: var(--muted); border: 1px solid var(--line); transition: transform .18s ease, border-color .18s ease; }
 .gtop .pic .ic { width: 15px; height: 15px; }
 .gtop .pic.got { animation: develop .45s ease both; cursor: zoom-in; }
-.gtop .pic.got:hover { transform: scale(1.06); border-color: rgba(95,211,198,.55); }
+.gtop .pic.got:hover { transform: scale(1.06); border-color: var(--edge); }
 .gtop .nm { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .gtop .nm b { font-weight: 500; font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gtop .nm span { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gtop .num { text-align: right; font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .gtop .each { color: var(--muted); }
-.gtop .extra { color: var(--accent); font-weight: 500; }
+.gtop .extra { color: var(--ink); font-weight: 600; }
 .gtop .chev { color: var(--faint); }
 .gtop .chev .ic { width: 14px; height: 14px; transition: transform .25s cubic-bezier(.2,.8,.2,1); }
 .group.open .gtop .chev .ic { transform: rotate(90deg); }
@@ -887,9 +891,141 @@ svg.ring text { transition: opacity .2s ease; }
                color: var(--faint); background: var(--sel) center / cover no-repeat; transition: transform .18s ease, border-color .18s ease; }
 .newest .img .ic { width: 16px; height: 16px; }
 .newest .img.got { animation: develop .45s ease both; }
-.newest .nw:hover .img { transform: translateY(-2px); border-color: rgba(95,211,198,.5); }
+.newest .nw:hover .img { transform: translateY(-2px); border-color: var(--edge); }
 .newest .nm { color: var(--body); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
 .newest .when { color: var(--faint); font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: -3px; }
+
+/* ── the first minute ─────────────────────────────────────────────────── */
+.intro { position: relative; min-height: 100vh; display: grid; place-items: center; padding: 76px 28px 48px; overflow: auto;
+         background: radial-gradient(900px 520px at 50% -12%, var(--glow), transparent 70%), var(--bg); }
+.intro .dots { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
+.intro .dots i { width: 6px; height: 6px; border-radius: 99px; background: var(--sel-2); transition: width .35s cubic-bezier(.2,.8,.2,1), background .3s ease; }
+.intro .dots i.on { width: 22px; background: var(--ink); }
+.intro .dots i.past { background: var(--faint); }
+.intro-card { width: min(660px, 100%); display: flex; flex-direction: column; }
+.intro-card.enter { animation: introIn .5s cubic-bezier(.2,.8,.2,1) both; }
+.intro-card.enter.back { animation-name: introBack; }
+@keyframes introIn { from { opacity: 0; transform: translateX(26px); } }
+@keyframes introBack { from { opacity: 0; transform: translateX(-26px); } }
+.intro-card h1 { font-size: 36px; font-weight: 600; letter-spacing: -.035em; line-height: 1.08; text-wrap: balance; }
+.intro-card .lead { margin-top: 12px; color: var(--muted); font-size: 15px; line-height: 1.55; max-width: 50ch; text-wrap: pretty; }
+.intro-card .small { margin-top: 14px; color: var(--faint); font-size: 12px; }
+.intro-card .way { margin-top: 34px; display: flex; gap: 10px; align-items: center; }
+.intro-card .way .gap { flex: 1; }
+.btn.large { height: 40px; padding: 0 18px; font-size: 14px; border-radius: 10px; }
+.btn[disabled] { opacity: .45; pointer-events: none; }
+
+.intro-card.s-hello, .intro-card.s-done { align-items: center; text-align: center; }
+.intro-card.s-hello .lead, .intro-card.s-done .lead { margin-left: auto; margin-right: auto; }
+.intro-card.s-hello .way, .intro-card.s-done .way { justify-content: center; }
+.intro-card.s-done .way .gap { display: none; }
+.hello-face { margin-bottom: 26px; }
+.hello-face svg { width: 104px; height: 104px; display: block; }
+.hello-face .body { fill: var(--ink); }
+.hello-face .eye { fill: var(--bg); }
+.hello-face .eyes { transition: transform .12s ease-out; transform-origin: 50px 38px; }
+.enter .hello-face svg { animation: pop .7s cubic-bezier(.2,1.5,.35,1) both; }
+.hello-face g.whole { transform-origin: 50px 90px; animation: bob 2.4s ease-in-out infinite; }
+.hello-face.happy g.whole { animation: hop 1.6s cubic-bezier(.3,.7,.4,1) .3s 2 both, bob 2.4s ease-in-out 3.5s infinite; }
+@keyframes pop { from { opacity: 0; transform: scale(.6) translateY(10px); } }
+@keyframes hop { 0%, 100% { transform: translateY(0); } 35% { transform: translateY(-12px) scaleY(1.04); } 60% { transform: translateY(0) scaleY(.94); } }
+
+/* how it works: four small moving pictures */
+.how { margin-top: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.how .howtip { border: 1px solid var(--line); border-radius: 14px; background: var(--card), var(--raise); padding: 12px 12px 14px;
+            display: flex; flex-direction: column; gap: 3px; animation: in .45s cubic-bezier(.2,.7,.2,1) both; }
+.how .howtip:nth-child(2) { animation-delay: .06s; } .how .howtip:nth-child(3) { animation-delay: .12s; } .how .howtip:nth-child(4) { animation-delay: .18s; }
+.how .howtip b { font-weight: 600; font-size: 13.5px; margin-top: 10px; }
+.how .howtip span { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+.demo { position: relative; height: 104px; border-radius: 10px; background: var(--well); border: 1px solid var(--line); overflow: hidden; }
+.demo .f { position: absolute; width: 16px; height: 20px; border-radius: 4px; background: var(--w1); }
+.demo .f::after { content: ""; position: absolute; left: 3px; right: 3px; top: 5px; height: 2px; border-radius: 2px; background: var(--well); opacity: .7;
+                  box-shadow: 0 4px 0 var(--well), 0 8px 0 var(--well); }
+.demo .f1 { background: var(--w2); } .demo .f2 { background: var(--w3); }
+.demo.sort .f { left: var(--x0); top: var(--y0); animation: sortIt 4.2s cubic-bezier(.5,0,.2,1) infinite both; }
+@keyframes sortIt { 0%, 18% { left: var(--x0); top: var(--y0); } 48%, 82% { left: var(--x1); top: var(--y1); } 100% { left: var(--x0); top: var(--y0); } }
+.demo.sort .bin { position: absolute; bottom: 6px; width: 24%; height: 18px; border-radius: 5px; background: var(--sel); color: var(--faint);
+                  font-size: 9.5px; letter-spacing: .04em; display: grid; place-items: center; text-transform: uppercase; }
+.demo.look .line { position: absolute; left: 12%; height: 8px; border-radius: 4px; background: var(--sel-2); animation: lineIn 3.6s ease infinite both; }
+@keyframes lineIn { 0% { opacity: 0; transform: translateX(-8px); } 12%, 80% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.demo.look .lens { position: absolute; top: 50%; left: 12%; margin-top: -12px; width: 24px; height: 24px; border-radius: 50%;
+                  background: var(--on); color: var(--on-ink); display: grid; place-items: center; animation: scan 3.6s ease-in-out infinite; }
+.demo.look .lens .ic { width: 14px; height: 14px; }
+@keyframes scan { 0%, 10% { left: 10%; } 55%, 70% { left: 78%; } 100% { left: 10%; } }
+.demo.space .dbar { position: absolute; left: 10%; right: 10%; top: 42%; height: 16px; border-radius: 6px; background: var(--sel); display: flex; overflow: hidden; }
+.demo.space .dbar i { display: block; height: 100%; }
+.demo.space .used { width: 52%; background: var(--w2); }
+.demo.space .cache { width: 26%; background: repeating-linear-gradient(45deg, var(--w1) 0 3px, transparent 3px 6px); animation: shrink 3.8s cubic-bezier(.6,0,.2,1) infinite; }
+.demo.space .free { flex: 1; }
+@keyframes shrink { 0%, 25% { width: 26%; } 60%, 88% { width: 0; } 100% { width: 26%; } }
+.demo.space .lbl { position: absolute; left: 62%; top: 24%; color: var(--faint); font-size: 9.5px; letter-spacing: .04em; text-transform: uppercase;
+                   animation: fadeLbl 3.8s ease infinite; }
+@keyframes fadeLbl { 0%, 25% { opacity: 1; } 45%, 90% { opacity: 0; } 100% { opacity: 1; } }
+.demo.undo .mover { left: 18%; top: 50%; margin-top: -10px; animation: file 3.6s cubic-bezier(.6,0,.2,1) infinite; }
+@keyframes file { 0%, 15% { left: 18%; opacity: 1; } 42% { left: 68%; opacity: 0; } 55% { left: 68%; opacity: 0; } 80%, 100% { left: 18%; opacity: 1; } }
+.demo.undo .folder { position: absolute; left: 66%; top: 50%; margin-top: -14px; color: var(--w1); }
+.demo.undo .folder .ic { width: 30px; height: 28px; stroke-width: 1.5; }
+.demo.undo .back2 { position: absolute; left: 44%; top: 16%; color: var(--muted); opacity: 0; animation: blinkUndo 3.6s ease infinite; }
+@keyframes blinkUndo { 0%, 50% { opacity: 0; transform: translateY(4px); } 60%, 78% { opacity: 1; transform: none; } 90%, 100% { opacity: 0; } }
+
+/* access */
+.gates { margin-top: 26px; display: grid; border: 1px solid var(--line); border-radius: 14px; background: var(--card), var(--raise); padding: 4px 14px; }
+.gates .gate { grid-template-columns: 34px minmax(0, 1fr) auto; min-height: 58px; animation: in .4s cubic-bezier(.2,.7,.2,1) both; }
+.gates .gate .tt { display: flex; flex-direction: column; gap: 1px; }
+.gates .gate .tt b { font-weight: 500; font-size: 13.5px; }
+.gates .gate .tt span { color: var(--muted); font-size: 12px; }
+.gates .gate .st { font-size: 12.5px; }
+.gates .gate .st .ic { width: 14px; height: 14px; stroke-width: 2; }
+.spin { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--line-2); border-top-color: var(--ink); animation: turn .8s linear infinite; }
+@keyframes turn { to { transform: rotate(360deg); } }
+.intro-card .small.left { text-align: left; }
+
+/* you */
+.form { margin-top: 26px; display: grid; gap: 18px; }
+.form .row { display: grid; gap: 8px; }
+.form .row .k { font-size: 12.5px; color: var(--muted); }
+.form .field { max-width: 340px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip2 { height: 32px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--body); font-size: 13px; cursor: pointer;
+         transition: background .15s ease, color .15s ease, border-color .15s ease; }
+.chip2:hover { border-color: var(--edge); color: var(--ink); }
+.chip2.on { background: var(--on); color: var(--on-ink); border-color: var(--on); }
+.form .toggle { display: flex; align-items: center; gap: 12px; }
+.form .toggle span { color: var(--muted); font-size: 12.5px; }
+@media (max-width: 760px) { .how { grid-template-columns: 1fr; } .intro-card h1 { font-size: 30px; } }
+
+/* ── Activity ─────────────────────────────────────────────────────────── */
+.panel.live .lv { margin-top: 14px; display: flex; align-items: baseline; gap: 10px; }
+.panel.live .lv .n { font-size: 34px; font-weight: 600; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.panel.live .lv .u { color: var(--muted); font-size: 13px; }
+.livedot { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11.5px; }
+.livedot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--good); animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .3; transform: scale(.8); } }
+.spark { display: block; width: 100%; height: 72px; margin-top: 14px; overflow: visible; }
+.spark .area { fill: var(--accent-2); stroke: none; }
+.spark .base { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 4; vector-effect: non-scaling-stroke; }
+.spark .ln { fill: none; stroke: var(--ink); stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.big-meter { height: 6px; margin-top: 12px; }
+.big-meter i { background: var(--ink); transition: width .6s cubic-bezier(.2,.8,.2,1); }
+.apps { margin-top: 12px; display: grid; }
+.apps .ah, .apps .proc { display: grid; grid-template-columns: 30px minmax(0, 1.4fr) minmax(0, 1fr) 72px 92px; gap: 14px; align-items: center; }
+.apps .ah { color: var(--faint); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 0 10px 8px; border-bottom: 1px solid var(--line); }
+.apps .ah .on { color: var(--ink); }
+.apps .proc { min-height: 46px; padding: 0 10px; border-radius: 10px; transition: background .15s ease, opacity .3s ease, transform .3s ease; }
+.apps .proc + .proc { box-shadow: inset 0 1px 0 var(--line); }
+.apps .proc:hover { background: var(--hover); box-shadow: none; }
+.apps .proc.fresh { opacity: 0; transform: translateY(4px); }
+.apps .pic { width: 28px; height: 28px; border-radius: 7px; background: center / contain no-repeat; display: grid; place-items: center; color: var(--muted); }
+.apps .pic .ic { width: 15px; height: 15px; }
+.apps .nm { min-width: 0; display: flex; flex-direction: column; }
+.apps .nm b { font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.apps .nm .cnt { color: var(--faint); font-size: 11.5px; }
+.apps .track { height: 4px; border-radius: 4px; background: var(--sel); overflow: hidden; }
+.apps .track i { display: block; height: 100%; border-radius: 4px; background: var(--w2); transition: width .6s cubic-bezier(.2,.8,.2,1); }
+.apps .proc.lead .track i { background: var(--ink); }
+.apps .num { text-align: right; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+.apps .proc .num.cpu, .apps .proc .num.mem { color: var(--body); }
+@media (max-width: 1100px) { .apps .ah, .apps .proc { grid-template-columns: 30px minmax(0, 1fr) 64px 84px; } .apps .track { display: none; } }
 
 </style>
 </head>
@@ -901,7 +1037,7 @@ svg.ring text { transition: opacity .2s ease; }
   <pattern id="weave3" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" style="fill:var(--sel)"/><circle cx="3" cy="3" r="1.35" style="fill:var(--w2)"/></pattern>
   <pattern id="weave4" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" style="fill:var(--sel)"/><rect width="6" height="1.7" style="fill:var(--w3)"/></pattern>
   <pattern id="weave5" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" style="fill:var(--w5)"/></pattern>
-  <pattern id="weaveHot" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" style="fill:var(--accent-2)"/><rect width="2.6" height="6" style="fill:var(--accent)"/></pattern>
+  <pattern id="weaveHot" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" style="fill:var(--w0)"/></pattern>
 </defs></svg>
 <div id="app" class="app"></div>
 <div id="tip" class="tip" role="tooltip"></div>
@@ -1111,8 +1247,9 @@ function parse(raw) {
             continue;
         }
         if ([...t].every(c => BOX.has(c))) { out.push({ k: 'rule' }); continue; }
-        if (t.startsWith('✓')) { out.push({ k: 'good', text: t.slice(1).trim() }); continue; }
-        if (t.startsWith('✗') || t.startsWith('!')) { out.push({ k: 'warn', text: t.slice(1).trim() }); continue; }
+        // nimo's dashes, said as a window would: "Sorted — 34 items" is "Sorted: 34 items"
+        if (t.startsWith('✓')) { out.push({ k: 'good', text: undash(t.slice(1).trim()) }); continue; }
+        if (t.startsWith('✗') || t.startsWith('!')) { out.push({ k: 'warn', text: undash(t.slice(1).trim()) }); continue; }
 
         const indent = bare.length - bare.replace(/^ +/, '').length;
         const parts = t.split(/ {2,}/).filter(Boolean);
@@ -1137,9 +1274,15 @@ function parse(raw) {
             out.push({ k: 'row', label, value: parts[0] || '', note: parts.slice(1).join('  '), bar, strong });
             continue;
         }
-        out.push(indent <= 3 ? { k: 'note', text: t } : { k: 'text', text: t });
+        out.push(indent <= 3 ? { k: 'note', text: undash(t) } : { k: 'text', text: undash(t) });
     }
     return out;
+}
+
+/* nimo's lines, as the window says them: Kliner, not the engine under it,
+   and a colon where a terminal would have used a dash */
+function undash(text) {
+    return String(text).replace(/\s+[—–]\s+/g, ': ').replace(/\bnimo (never|does|only|will|cannot|can|has|wrote|found|moved|sorted|looks|reads)\b/g, 'Kliner $1');
 }
 
 /** The rows of a reading, by label, for pages that read figures off it. */
@@ -1231,12 +1374,13 @@ const $ = sel => document.querySelector(sel);
 const pages = () => (K.meta ? K.meta.pages : []);
 const SETTINGS = () => pages().length;
 const HELP = () => pages().length + 1;
+const ACTIVITY = () => pages().length + 2;
 const isAction = i => i >= 0 && i < pages().length;
-const kind = i => (isAction(i) ? pages()[i].kind : i === SETTINGS() ? 'settings' : 'help');
+const kind = i => (isAction(i) ? pages()[i].kind : i === SETTINGS() ? 'settings' : i === ACTIVITY() ? 'activity' : 'help');
 
 function titleOf(i) {
     if (isAction(i)) return pages()[i].title;
-    return i === SETTINGS() ? 'Settings' : 'Help';
+    return i === SETTINGS() ? 'Settings' : i === ACTIVITY() ? 'Activity' : 'Help';
 }
 function placeOf(i) {
     return (K.meta.places || []).find(p => p.holds.includes(i)) || null;
@@ -1284,11 +1428,11 @@ function drawFrame() {
         h('div', { class: 'right' },
             h('span', { class: 'age', id: 'age' }),
             h('button', { class: 'mode', id: 'mode', 'data-hole': '', onclick: flipPreview,
-                          'data-tip': 'Every button reads instead of changing' },
-              icon('eye'), h('span', null, 'Only look')),
+                          'data-tip': 'Show what would happen, change nothing' },
+              icon('eye'), h('span', null, 'Preview')),
             h('button', { class: 'find', 'data-hole': '', onclick: () => tell('quick') },
               icon('search'), h('span', null, 'Search'), h('kbd', null, '⌘K')),
-            h('button', { class: 'bell', id: 'bell', 'data-hole': '', 'data-tip': 'What Kliner has done', onclick: toggleActivity },
+            h('button', { class: 'bell', id: 'bell', 'data-hole': '', 'data-tip': 'History', onclick: toggleActivity },
               icon('bell')),
             h('button', { class: 'face', 'data-hole': '', 'data-tip': 'Help', onclick: () => show(HELP()) }, mascot())));
 
@@ -1392,10 +1536,10 @@ function sayAge() {
     if (!age) return;
     if (!K.lastRead || !isAction(K.page)) { age.textContent = ''; return; }
     const gone = Math.round((Date.now() - K.lastRead) / 1000);
-    age.textContent = gone < 5 ? 'read just now'
-        : gone < 90 ? `read ${gone}s ago`
-        : gone < 5400 ? `read ${Math.round(gone / 60)}m ago`
-        : `read ${Math.round(gone / 3600)}h ago`;
+    age.textContent = gone < 5 ? 'updated just now'
+        : gone < 90 ? `updated ${gone}s ago`
+        : gone < 5400 ? `updated ${Math.round(gone / 60)}m ago`
+        : `updated ${Math.round(gone / 3600)}h ago`;
 }
 setInterval(sayAge, 5000);
 
@@ -1450,7 +1594,7 @@ function hideTip() { clearTimeout(tipTimer); $('#tip').classList.remove('show');
 function show(i, opts) {
     const remember = !opts || opts.remember !== false;
     if (!K.meta || K.welcome) return;
-    if (i < 0 || i > HELP()) return;
+    if (i < 0 || i > ACTIVITY()) return;
     closeActivity();
     closeLight();
     hideTip();
@@ -1508,7 +1652,7 @@ async function look(i, quietly) {
     } finally {
         K.busy = false;
     }
-    if (reply.missing) reply = { ok: false, text: '! The window could not reach Kliner.' };
+    if (reply.missing) reply = { ok: false, text: '! Kliner did not answer. Try again.' };
 
     if (reply.ready) {
         K.kept[i] = { ready: true, at: Date.now() };
@@ -1611,7 +1755,7 @@ function afterRun(i, reply, what, quiet) {
         }
         if (kind(i) === 'next' && K.walls) readWalls();
     }
-    const line = good ? good.text : warn ? warn.text : (reply.ok ? 'Done' : 'Kliner could not finish that');
+    const line = good ? good.text : warn ? warn.text : (reply.ok ? 'Done' : 'That did not work');
     K.jobs.unshift({ page: i, title: titleOf(i), line, good: !!good && reply.ok, at: new Date(), preview: !!reply.preview });
     K.jobs = K.jobs.slice(0, 30);
     if (reply.changed) K.unread = true;
@@ -1715,7 +1859,7 @@ function readHome(pieces) {
     const cleanPage = pages().findIndex(p => p.kind === 'clean');
     if (home.junk > 0 && cleanPage >= 0) figures[String(cleanPage)] = size(home.junk);
     tell('figures', {
-        headline: home.junk == null ? '' : home.junk > 0 ? size(home.junk) + ' worth freeing' : 'nothing worth freeing',
+        headline: home.junk == null ? '' : home.junk > 0 ? size(home.junk) + ' can be freed' : 'nothing to free up',
         figures,
     });
     tally();
@@ -1735,8 +1879,10 @@ function drawPage(still) {
     const i = K.page;
     const out = h('div', { class: still ? '' : 'arrive' });
 
+    if (i !== ACTIVITY()) stopActivity();
     if (i === SETTINGS()) drawSettings(out);
     else if (i === HELP()) drawHelp(out);
+    else if (i === ACTIVITY()) drawActivity(out);
     else if (K.walked.length) drawWalk(out);
     else {
         const kept = K.kept[i];
@@ -1759,13 +1905,13 @@ function drawWaiting(i, what) {
     if (!page) return;
     const name = what || (isAction(i) ? pages()[i].title.toLowerCase() : '');
     const line = i === 0 && !what ? 'Looking at your Mac…'
-        : kind(i) === 'top' || what ? `Measuring ${what || 'your home folder'}…`
-        : kind(i) === 'clean' ? 'Looking for what is safe to clear…'
+        : kind(i) === 'top' || what ? `Scanning ${what || 'your home folder'}…`
+        : kind(i) === 'clean' ? 'Looking for caches…'
         : `Looking at ${name}…`;
     page.replaceChildren(h('div', { class: 'wait' },
         mascot('mascot'),
         h('h3', null, line),
-        h('p', null, 'Nothing is changed while Kliner looks.'),
+        h('p', null, 'Nothing changes while Kliner looks.'),
         h('div', { class: 'ghost' }, h('i'), h('i'), h('i'))));
 }
 
@@ -1873,7 +2019,7 @@ document.addEventListener('pointermove', e => {
         card.style.setProperty('--my', (e.clientY - r.top) + 'px');
     }
     // and the face watches the pointer
-    for (const eyes of document.querySelectorAll('.face .eyes, .hero .face-big .eyes')) {
+    for (const eyes of document.querySelectorAll('.face .eyes, .hero .face-big .eyes, .intro .face-big .eyes')) {
         const svg = eyes.ownerSVGElement, r = svg.getBoundingClientRect();
         const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height * .38);
         const d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 400);
@@ -1884,7 +2030,7 @@ document.addEventListener('pointermove', e => {
 /* and blinks, now and then */
 (function blink() {
     setTimeout(() => {
-        for (const eyes of document.querySelectorAll('.face .eyes, .hero .face-big .eyes')) {
+        for (const eyes of document.querySelectorAll('.face .eyes, .hero .face-big .eyes, .intro .face-big .eyes')) {
             const was = eyes.style.transform || '';
             eyes.style.transform = was + ' scaleY(.1)';
             setTimeout(() => { eyes.style.transform = was; }, 130);
@@ -1916,11 +2062,11 @@ function drawHome(out, kept) {
     // the first card says, in one sentence, what there is to do — and has
     // the two buttons that do it
     const bits = [];
-    if (home.desk) bits.push([String(home.desk), home.desk === 1 ? ' thing on your desktop' : ' things on your desktop']);
+    if (home.desk) bits.push([String(home.desk), home.desk === 1 ? ' item on your desktop' : ' items on your desktop']);
     if (home.downloads) bits.push([String(home.downloads), ' in Downloads']);
-    if (junk > 0) bits.push([size(junk), ' worth freeing']);
+    if (junk > 0) bits.push([size(junk), ' you can free up']);
     const sentence = h('h2');
-    if (!bits.length) sentence.append('Nothing needs doing. ', h('em', null, 'Your Mac is clear.'));
+    if (!bits.length) sentence.append(h('em', null, 'All clear.'), ' Nothing needs doing.');
     bits.forEach((b, n) => {
         if (n) sentence.append(n === bits.length - 1 ? ' and ' : ', ');
         sentence.append(h('em', null, b[0]), b[1]);
@@ -1930,7 +2076,7 @@ function drawHome(out, kept) {
     out.append(panel('hero',
         mascot('face-big'),
         h('div', null, h('p', { style: 'margin:0 0 4px' }, greeting()), sentence,
-          h('p', null, 'Nothing here has been changed. Every button asks first, and every move can go back.')),
+          h('p', null, 'Nothing has changed yet. Kliner asks before it does anything, and every move can be undone.')),
         h('div', { class: 'acts' },
             h('button', { class: 'btn line small', 'data-tip': 'Look again', onclick: () => { delete K.kept[0]; look(0); } }, icon('refresh')),
             both.length > 1 ? h('button', { class: 'btn line', onclick: () => tidyBoth(both) }, icon('tray'), 'Tidy both') : null,
@@ -1948,13 +2094,13 @@ function drawHome(out, kept) {
             part: used / total, pill: percent(used, total) + ' used', foot: 'of ' + size(total), go: topPage >= 0 ? topPage : null }));
         across.append(tile('Free', 'sparkles', size(free), {
             part: free / total,
-            pill: junk > 0 ? '+' + size(junk) + ' to spare' : null, pillTone: junk > 0 ? 'good' : '',
-            foot: junk === 0 ? 'nothing worth freeing' : junk == null ? 'still measuring…' : null, go: cleanPage >= 0 ? cleanPage : null }));
+            pill: junk > 0 ? size(junk) + ' can be freed' : null, pillTone: junk > 0 ? 'good' : '',
+            foot: junk === 0 ? 'nothing to free up' : junk == null ? 'checking…' : null, go: cleanPage >= 0 ? cleanPage : null }));
     }
     if (home.desk != null) across.append(tile('Desktop', 'desk', String(home.desk), {
-        pill: home.deskOld || null, foot: home.deskOld ? null : home.desk === 1 ? 'thing on it' : 'things on it', go: 1 }));
+        pill: home.deskOld || null, foot: home.deskOld ? null : home.desk === 1 ? 'item' : 'items', go: 1 }));
     if (home.downloads != null) across.append(tile('Downloads', 'download', String(home.downloads), {
-        pill: home.downloadsOld || null, foot: home.downloadsOld ? null : home.downloads === 1 ? 'thing in it' : 'things in it', go: 2 }));
+        pill: home.downloadsOld || null, foot: home.downloadsOld ? null : home.downloads === 1 ? 'item' : 'items', go: 2 }));
     // as many columns as there are readings, so none sits beside a hole
     if (across.children.length === 3) across.className = 'grid three';
     if (across.children.length === 2) across.className = 'grid two';
@@ -1966,24 +2112,24 @@ function drawHome(out, kept) {
         const worth = junk == null ? null : junk;
         two.append(panel('',
             bigFigure(worth == null ? '…' : worth > 0 ? size(worth) : '0 B',
-                      worth == null ? 'Measuring what your apps keep that they can rebuild…'
-                          : worth > 0 ? 'Worth freeing — caches your apps rebuild, and the trash'
-                          : 'Nothing worth freeing. Your Mac is carrying nothing it does not need.',
+                      worth == null ? 'Checking app caches…'
+                          : worth > 0 ? 'Can be freed: app caches and the Trash'
+                          : 'Nothing to free up right now.',
                       worth > 0 ? { d: '+' + size(worth), icon: 'up', tone: 'good', w: 'on top of ' + size(free) + ' free' }
-                                : { d: size(free), w: 'free right now' }),
+                                : { d: size(free), w: 'free now' }),
             funnel([
-                { value: total, name: 'On the disk', go: doctorPage, say: 'the whole disk' },
-                { value: used, name: 'In use', go: topPage, say: 'of the disk is in use' },
-                { value: worth || 0, name: 'Worth freeing', go: cleanPage, say: 'could be freed' },
+                { value: total, name: 'Disk', go: doctorPage, say: 'the whole disk' },
+                { value: used, name: 'Used', go: topPage, say: 'of the disk used' },
+                { value: worth || 0, name: 'Can be freed', go: cleanPage, say: 'can be freed' },
             ])));
 
         const bands = [
             { name: 'Your files', value: Math.max(0, used - (worth || 0)), go: topPage },
-            { name: 'Worth freeing', value: worth || 0, go: cleanPage, hot: true },
+            { name: 'Can be freed', value: worth || 0, go: cleanPage, hot: true },
             { name: 'Free', value: free, go: doctorPage },
         ].filter(b => b.value > 0);
         two.append(panel('',
-            bigFigure(size(used), 'In use, of ' + size(total) + ' on this Mac',
+            bigFigure(size(used), 'used of ' + size(total),
                       { d: percent(used, total) + ' used', w: size(free) + ' free' }),
             ringRow(bands, total, percent(used, total), 'used')));
         out.append(two);
@@ -2018,21 +2164,21 @@ function deskCard(home) {
     const deskPage = pages().findIndex(p => p.kind === 'desktop');
     const strip = deskPage > 0 ? h('div', { class: 'newest' }) : null;
     if (strip) fillNewest(strip, deskPage);
-    return panel('', cap('grid', 'On your desk', 'right now'), list,
-                 strip ? h('div', { class: 'nwcap' }, 'Newest on the desktop') : null, strip);
+    return panel('', cap('grid', 'Desktop and Downloads', 'now'), list,
+                 strip ? h('div', { class: 'nwcap' }, 'Latest on your desktop') : null, strip);
 }
 
 function promiseCard(home) {
     const last = (home.last || '').trim();
     const undoPage = pages().findIndex(p => p.kind === 'undo');
     const first = last ? last.split(', ')[0] : '';
-    return panel('', cap('list', 'Nothing is deleted'),
+    return panel('', cap('undo', 'Undo'),
         h('div', { class: 'promise' },
             h('div', { class: 'marks' },
                 h('span', null, icon('tray')), h('span', null, icon('plus')), h('span', null, icon('undo'))),
-            h('h4', null, first ? first.charAt(0).toUpperCase() + first.slice(1) : 'Everything can go back'),
-            h('p', null, 'Kliner moves things and writes down every move, so any of it can go back the way it was.'),
-            undoPage >= 0 ? h('button', { class: 'btn fill small', onclick: () => show(undoPage) }, 'Put it all back') : null));
+            h('h4', null, first ? first.charAt(0).toUpperCase() + first.slice(1) : 'You can undo everything'),
+            h('p', null, 'Kliner logs every move, so things can go back exactly where they were.'),
+            undoPage >= 0 ? h('button', { class: 'btn fill small', onclick: () => show(undoPage) }, 'Undo everything') : null));
 }
 
 function monthsCard(home) {
@@ -2051,7 +2197,7 @@ function monthsCard(home) {
     months.forEach((m, n) => {
         const level = m <= 0 ? 0 : Math.min(4, 1 + Math.floor((m / most) * 3.999));
         const cell = h('i', { style: `background:${level === 4 ? 'var(--accent)' : shades[level]};animation-delay:${n * 35}ms` });
-        cell.addEventListener('mousemove', e => chipAt(e, [names[n], h('b', null, whole(m)), h('span', null, m === 1 ? 'thing arrived' : 'things arrived')]));
+        cell.addEventListener('mousemove', e => chipAt(e, [names[n], h('b', null, whole(m)), h('span', null, m === 1 ? 'item added' : 'items added')]));
         cell.addEventListener('mouseleave', chipOff);
         row.append(cell);
     });
@@ -2067,9 +2213,9 @@ function monthsCard(home) {
         if (Math.abs(by) >= 0.05) move = h('span', { class: 'pill ' + (by > 0 ? 'bad' : 'good') },
             icon(by > 0 ? 'up' : 'arrdown'), Math.round(Math.abs(by) * 100) + '% vs last month');
     }
-    return panel('', cap('clock', 'Last changed', move || '12 months'),
+    return panel('', cap('clock', 'Added to your desktop', move || '12 months'),
         h('div', { class: 'pair' },
-            h('div', null, h('div', { class: 'n' }, whole(all)), h('div', { class: 'c' }, 'things, by the month they arrived')),
+            h('div', null, h('div', { class: 'n' }, whole(all)), h('div', { class: 'c' }, 'items in the last 12 months')),
             h('div', null, h('div', { class: 'n' }, busiest), h('div', { class: 'c' }, 'busiest month'))),
         h('div', { class: 'heat' }, row, ax, scale));
 }
@@ -2089,16 +2235,16 @@ function todoCard(home) {
     const cleanPage = pages().findIndex(p => p.kind === 'clean');
     const undoPage = pages().findIndex(p => p.kind === 'undo');
     const items = [];
-    if (!K.sighted) items.push({ name: 'Let Kliner see your files', cmd: 'macOS has not been asked yet', fig: '', icon: 'lock', verb: 'Ask',
+    if (!K.sighted) items.push({ name: 'Allow access to your files', cmd: 'macOS has not asked yet', fig: '', icon: 'lock', verb: 'Ask',
                                  go: async () => { await ask('askFolders'); delete K.kept[0]; look(0); } });
-    items.push({ name: 'Clear the desktop', cmd: 'min desktop', fig: home.desk ? plural(home.desk, 'item') : 'already clear',
+    items.push({ name: 'Tidy desktop', cmd: 'min desktop', fig: home.desk ? plural(home.desk, 'item') : 'already tidy',
                  icon: 'desk', done: home.desk === 0, page: 1, verb: 'Clear' });
-    items.push({ name: 'Sort the downloads', cmd: 'min downloads', fig: home.downloads ? plural(home.downloads, 'item') : 'already sorted',
+    items.push({ name: 'Tidy downloads', cmd: 'min downloads', fig: home.downloads ? plural(home.downloads, 'item') : 'already tidy',
                  icon: 'download', done: home.downloads === 0, page: 2, verb: 'Sort' });
     if (cleanPage >= 0) items.push({ name: 'Free up space', cmd: 'min clean',
-                 fig: home.junk == null ? 'measuring…' : home.junk > 0 ? size(home.junk) : 'nothing to free',
+                 fig: home.junk == null ? 'checking…' : home.junk > 0 ? size(home.junk) : 'nothing to free',
                  icon: 'sparkles', done: home.junk === 0, page: cleanPage, verb: 'Free' });
-    if (undoPage >= 0) items.push({ name: 'Put it all back', cmd: 'min undo --all', fig: '', icon: 'undo', page: undoPage, verb: 'Open' });
+    if (undoPage >= 0) items.push({ name: 'Undo everything', cmd: 'min undo --all', fig: '', icon: 'undo', page: undoPage, verb: 'Open' });
 
     const list = h('div', { class: 'todo' });
     for (const it of items) {
@@ -2110,7 +2256,7 @@ function todoCard(home) {
         list.append(row);
     }
     const both = [1, 2].filter(n => (n === 1 ? home.desk : home.downloads) > 0);
-    return panel('', cap('bolt', 'Everything',
+    return panel('', cap('bolt', 'Quick actions',
         both.length > 1 ? h('button', { class: 'btn line small', onclick: () => tidyBoth(both) }, 'Tidy both') : null), list);
 }
 
@@ -2228,7 +2374,7 @@ function ringRow(bands, whole_, centre, under) {
     return h('div', { class: 'ringrow' }, svg, key);
 }
 
-/** The swatch for the slice Kliner can do something about: its own teal. */
+/** The swatch for the slice Kliner can do something about: solid, not woven. */
 function swatchHot() {
     const svg = s('svg', { viewBox: '0 0 14 14' });
     svg.append(s('rect', { width: 14, height: 14, fill: 'url(#weaveHot)' }));
@@ -2249,7 +2395,7 @@ function head(i, extraActs) {
     });
     if (extraActs) acts.append(extraActs);
     if (item.verb) {
-        const verb = K.preview && item.asks ? 'Only look' : item.verb;
+        const verb = K.preview && item.asks ? 'Preview' : item.verb;
         acts.append(h('button', { class: 'btn fill', onclick: () => act(i) },
                       icon(K.preview && item.asks ? 'eye' : item.does), verb));
     }
@@ -2287,8 +2433,8 @@ function drawAction(out, i, kept, bodyOnly) {
 /** Only look is on, said where the buttons are. */
 function looking() {
     return h('div', { class: 'looking' }, icon('eye'),
-        h('div', null, h('b', null, 'Only look is on. '),
-          h('span', null, 'Every button reads instead of changing — nothing on your Mac moves until you turn it off.')),
+        h('div', null, h('b', null, 'Preview is on. '),
+          h('span', null, 'Buttons only show what would happen. Nothing changes until you turn it off.')),
         h('button', { class: 'btn line small', onclick: flipPreview }, 'Turn it off'));
 }
 
@@ -2315,13 +2461,13 @@ function banner(pieces, kept, i) {
     }
     let way = null;
     if (kept.changed && isAction(i)) {
-        const undo = pages()[i].extras.findIndex(e => e.symbol === 'arrow.uturn.backward' && /back/i.test(e.title));
+        const undo = pages()[i].extras.findIndex(e => e.symbol === 'arrow.uturn.backward' && /back|undo/i.test(e.title));
         if (undo >= 0) way = h('button', { class: 'btn line small', onclick: () => extra(i, undo) }, icon('undo'), pages()[i].extras[undo].title);
     }
     return h('div', { class: 'done' + (good ? '' : ' plain') },
         h('span', { class: 'tick' }, icon(good ? (kept.preview ? 'eye' : 'check') : 'x')),
         h('div', { class: 'w' }, h('b', null, said.text),
-          after.length ? h('span', null, prose(after.join(' · '))) : kept.preview ? h('span', null, 'Only looked — nothing was changed.') : null),
+          after.length ? h('span', null, prose(after.join(' · '))) : kept.preview ? h('span', null, 'Preview only. Nothing changed.') : null),
         way);
 }
 
@@ -2348,7 +2494,7 @@ function drawSections(out, i, pieces) {
     const notes = footnotes(pieces);
     if (notes) out.append(notes);
     if (!drew && !pieces.some(p => p.k === 'good' || p.k === 'warn')) {
-        out.append(panel('', h('div', { class: 'said' }, h('div', { class: 's quiet' }, 'Kliner said nothing at all.'))));
+        out.append(panel('', h('div', { class: 'said' }, h('div', { class: 's quiet' }, 'No results.'))));
     }
 }
 
@@ -2367,6 +2513,17 @@ const KIND_ICON = {
 };
 
 function title(text) { return text ? text.charAt(0).toUpperCase() + text.slice(1) : ''; }
+
+/** nimo's own labels, in a window's words. */
+function tidyLabel(text) {
+    const t = String(text || '').trim();
+    return /^in there$/i.test(t) ? 'Total' : title(t);
+}
+
+/** A line nimo wrote for a terminal: capitalised, and without the dash. */
+function tidyLine(text) {
+    return title(String(text || '').replace(/\s+[—–]\s+/g, ': ').replace(/\s{2,}/g, ' ').trim());
+}
 
 function breakdown(sec, i, opts) {
     const rows = [];
@@ -2392,10 +2549,10 @@ function breakdown(sec, i, opts) {
     const box = panel('');
     const big = total ? total.value : amount(sum);
     box.append(cap(asBytes ? 'bars' : 'grid', title(sec.title) || titleOf(i),
-        h('span', null, `${rows.length} ${asBytes ? (rows.some(r => r.folder) ? 'places' : 'things') : 'kinds'}`)));
+        h('span', null, `${rows.length} ${asBytes ? (rows.some(r => r.folder) ? 'folders' : 'items') : 'types'}`)));
     box.append(h('div', { style: 'margin-top:14px' }, bigFigure(big,
-        total ? total.label : asBytes ? 'together' : 'altogether',
-        rows[0] ? { d: rows[0].name.replace(/\/$/, ''), w: 'is the biggest — ' + percent(rows[0].value, sum) } : null)));
+        total ? tidyLabel(total.label) : 'in total',
+        rows[0] ? { d: rows[0].name.replace(/\/$/, ''), w: percent(rows[0].value, sum) + ' of everything' } : null)));
 
     // what pressing a bar or a row does
     const open = r => {
@@ -2406,7 +2563,7 @@ function breakdown(sec, i, opts) {
     };
     const canOpen = r => kinds || (opts.walkable && r.folder) || K.walked.length > 0;
 
-    // the bars: biggest first, the biggest in Kliner's own teal
+    // the bars: biggest first, the biggest one solid
     const bars = h('div', { class: 'bars' });
     if (rows.length < 4) bars.hidden = true;
     const top = rows[0] ? rows[0].value : 1;
@@ -2433,8 +2590,8 @@ function breakdown(sec, i, opts) {
 
     // and the table they came from
     const table = h('div', { class: 'table' },
-        h('div', { class: 'th' }, h('span'), h('span', null, asBytes ? 'Name' : 'What it is'), h('span', null, 'Share'),
-          h('span', { class: 'num' }, '%'), h('span', { class: 'num' }, asBytes ? 'Size' : 'How many'), h('span')));
+        h('div', { class: 'th' }, h('span'), h('span', null, asBytes ? 'Name' : 'Type'), h('span', null, 'Share'),
+          h('span', { class: 'num' }, '%'), h('span', { class: 'num' }, asBytes ? 'Size' : 'Count'), h('span')));
     rows.forEach((r, n) => {
         const can = canOpen(r);
         const tr = h('div', { class: 'tr' + (can ? ' can' : ''), style: (can ? 'cursor:pointer;' : '') + `animation-delay:${80 + n * 30}ms`,
@@ -2451,7 +2608,7 @@ function breakdown(sec, i, opts) {
         table.append(tr);
         rowEls.push(tr);
     });
-    if (total) table.append(h('div', { class: 'total' }, h('b', null, total.label), h('span', null, total.value)));
+    if (total) table.append(h('div', { class: 'total' }, h('b', null, tidyLabel(total.label)), h('span', null, total.value)));
     box.append(table);
 
     const extraRows = after.filter(p => p.k === 'row');
@@ -2594,7 +2751,7 @@ async function openKind(i, kind) {
     if (K.kindOpen === kind && slot.firstChild) { closeKind(); return; }
     K.kindOpen = kind;
     markKind(kind);
-    slot.replaceChildren(h('div', { class: 'kind', style: 'margin-top:18px' }, h('div', { class: 'more' }, 'Opening ' + kind.toLowerCase() + '…')));
+    slot.replaceChildren(h('div', { class: 'kind', style: 'margin-top:18px' }, h('div', { class: 'more loadingline' }, 'Loading…')));
     const items = await listing(i);
     if (K.kindOpen !== kind || !slot.isConnected) return;
     const files = items
@@ -2632,11 +2789,11 @@ async function openKind(i, kind) {
                 h('span', { class: 'go2' }, icon('finder'))));
         });
     }
-    const note = files.length > shown.length ? h('div', { class: 'more' }, `and ${files.length - shown.length} more — Show in Finder has all of them`) : null;
+    const note = files.length > shown.length ? h('div', { class: 'more' }, `${files.length - shown.length} more in Finder`) : null;
     const card = h('div', { class: 'kind', style: 'margin-top:18px;padding-top:18px;border-top:1px solid var(--line)' }, headRow, body, note,
         h('div', { class: 'more' }, picture
-            ? 'Click one to see it big; arrow keys go through them. Nothing is opened, moved or deleted from here.'
-            : 'Clicking one shows it in the Finder. Nothing is opened, moved or deleted from here.'));
+            ? 'Click a picture to see it big. Use the arrow keys to browse.'
+            : 'Click a file to show it in Finder.'));
     slot.replaceChildren(card);
     card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
@@ -2718,15 +2875,15 @@ function showPath(path) {
 
 function copiesPanel(i, kept) {
     const folder = pages()[i].reveal;
-    const body = h('div', { class: 'copybody' }, h('div', { class: 'more loadingline' }, 'Looking for the same file kept twice…'));
-    const box = panel('copies', cap('copies', 'Kept more than once', h('span', null, 'in ' + folder)), body);
+    const body = h('div', { class: 'copybody' }, h('div', { class: 'more loadingline' }, 'Looking for duplicates…'));
+    const box = panel('copies', cap('copies', 'Duplicates', h('span', null, 'in ' + folder)), body);
     copiesFor([i]).then(results => {
         if (!body.isConnected) return;
         const groups = copyGroups(results);
         if (!groups.length) {
             body.replaceChildren(h('div', { class: 'clear' }, h('span', { class: 'tick' }, icon('check')),
-                h('div', null, h('b', null, 'Nothing here is kept twice.'),
-                  h('span', null, 'nimo compared every file of the same size, and none are the same.'))));
+                h('div', null, h('b', null, 'No duplicates.'),
+                  h('span', null, 'Files of the same size were compared. None are identical.'))));
             return;
         }
         const extra = groups.reduce((a, g) => a + g.extra, 0);
@@ -2754,10 +2911,10 @@ function copiesPanel(i, kept) {
             list.append(row);
         });
         body.replaceChildren(
-            bigFigure(size(extra), 'of copies you already have — ' + plural(groups.length, 'file') + ' kept more than once',
-                      { d: plural(groups.reduce((a, g) => a + g.n - 1, 0), 'extra copy', 'extra copies'), w: 'beyond the first of each' }),
+            bigFigure(size(extra), 'in extra copies of ' + plural(groups.length, 'file'),
+                      { d: plural(groups.reduce((a, g) => a + g.n - 1, 0), 'extra copy', 'extra copies'), w: 'besides the originals' }),
             list,
-            h('div', { class: 'more' }, 'Kliner deletes none of them: it cannot know which one you meant. Show in Finder takes you to each.'));
+            h('div', { class: 'more' }, 'Kliner does not delete duplicates. Open them in Finder and keep the one you want.'));
         runCounts(body);
         // the pictures themselves, when there are any
         if (pictures.length) ask('thumbs', { page: i, names: pictures.map(p => p.dataset.name).slice(0, 24) }).then(reply => {
@@ -2778,14 +2935,14 @@ function copiesPanel(i, kept) {
 
 function whereCopies(g) {
     const places = [...new Set(g.paths.map(p => p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '~'))];
-    return places.length === 1 ? `all ${g.n} in ${places[0]}` : `in ${places.slice(0, 2).join(' and ')}${places.length > 2 ? ` and ${places.length - 2} more` : ''}`;
+    return places.length === 1 ? `${g.n} copies in ${places[0]}` : `in ${places.slice(0, 2).join(' and ')}${places.length > 2 ? ` and ${places.length - 2} more` : ''}`;
 }
 
 /** The home card: copies on the desktop and in Downloads, the biggest first. */
 function copiesCard(kept) {
     const list = [pages().findIndex(p => p.kind === 'desktop'), pages().findIndex(p => p.kind === 'downloads')].filter(n => n > 0);
-    const body = h('div', { class: 'copycard' }, h('div', { class: 'more loadingline' }, 'Looking for the same file kept twice…'));
-    const box = panel('', cap('copies', 'Kept more than once', 'Desktop · Downloads'), body);
+    const body = h('div', { class: 'copycard' }, h('div', { class: 'more loadingline' }, 'Looking for duplicates…'));
+    const box = panel('', cap('copies', 'Duplicates', 'Desktop · Downloads'), body);
     if (!list.length) return promiseCard({});
     copiesFor(list).then(results => {
         if (!body.isConnected) return;
@@ -2793,8 +2950,8 @@ function copiesCard(kept) {
         if (!groups.length) {
             body.replaceChildren(h('div', { class: 'promise' },
                 h('div', { class: 'marks' }, h('span', null, icon('copies')), h('span', null, icon('check'))),
-                h('h4', null, 'Nothing is kept twice'),
-                h('p', null, 'nimo compared every file of the same size on your desktop and in Downloads.')));
+                h('h4', null, 'No duplicates'),
+                h('p', null, 'Nothing on your desktop or in Downloads is saved twice.')));
             return;
         }
         const extra = groups.reduce((a, g) => a + g.extra, 0);
@@ -2808,7 +2965,7 @@ function copiesCard(kept) {
         }
         body.replaceChildren(
             h('div', { class: 'copyfig' }, h('div', { class: 'n' }, counted(figure(size(extra))[0]), h('small', null, figure(size(extra))[1] || '')),
-              h('div', { class: 'sub' }, 'you already have, in ' + plural(groups.length, 'file') + ' kept more than once')),
+              h('div', { class: 'sub' }, 'in extra copies of ' + plural(groups.length, 'file'))),
             rows);
         runCounts(body);
     });
@@ -2946,7 +3103,7 @@ function entryList(items) {
     for (const it of items) {
         log.append(h('div', { class: 'e' },
             h('span', { class: 'no' }, String(it.no)),
-            h('span', { class: 'what' }, it.parts[0] || ''),
+            h('span', { class: 'what' }, title(it.parts[0] || '')),
             h('span', { class: 'when' }, it.parts[1] || ''),
             h('span', { class: 'many' }, it.parts.slice(2).join(' · '))));
     }
@@ -2975,10 +3132,18 @@ function footnotes(pieces) {
         const t = p.text;
         if (pastGood) continue;                     // those went into the banner
         if (/^(run |in a terminal|to see what|looking around|changed your mind)/.test(t)) continue;
+        // commands for a terminal, and what the page already says in its own words
+        if (/\bmin [a-z]|<kind>|^preview only|^nothing was moved|^everything moves into/i.test(t)) continue;
         lines.push(t);
     }
     if (!lines.length) return null;
-    return h('div', { class: 'notes' }, lines.map(t => h('div', null, prose(t.replace(/\s{2,}/g, ' ')))));
+    // nimo wraps a long line in two for a terminal; a window joins them again
+    const joined = [];
+    for (const t of lines) {
+        if (joined.length && !/[.!?:]$/.test(joined[joined.length - 1])) joined[joined.length - 1] += ' ' + t;
+        else joined.push(t);
+    }
+    return h('div', { class: 'notes' }, joined.map(t => h('div', null, prose(tidyLine(t)))));
 }
 
 /* ── Startup: each thing with its own Stop ────────────────────────────── */
@@ -3019,7 +3184,7 @@ function drawStartup(out, pieces) {
     }
     const notes = footnotes(pieces);
     if (notes) out.append(notes);
-    if (!drew) out.append(panel('', sentences(pieces) || h('div', { class: 'said' }, h('div', { class: 's quiet' }, 'Kliner said nothing at all.'))));
+    if (!drew) out.append(panel('', sentences(pieces) || h('div', { class: 'said' }, h('div', { class: 's quiet' }, 'No results.'))));
 }
 
 /* ── Put it all back: the log, newest first ───────────────────────────── */
@@ -3036,13 +3201,13 @@ function drawUndo(out, i, pieces) {
         const good = pieces.find(p => p.k === 'good');
         out.append(panel('', h('div', { class: 'promise' },
             h('div', { class: 'marks' }, h('span', null, icon('tray')), h('span', null, icon('check'))),
-            h('h4', null, good ? good.text : 'Nothing to put back.'),
-            h('p', null, 'Every move Kliner makes is written down here first, so there is always a way back.'))));
+            h('h4', null, good ? good.text : 'Nothing to undo.'),
+            h('p', null, 'Every move Kliner makes is logged here, so it can be undone.'))));
         const notes = footnotes(pieces);
         if (notes) out.append(notes);
         return;
     }
-    out.append(panel('', cap('undo', count_ ? title(count_.text) : 'What Kliner has done', h('span', null, 'newest first')),
+    out.append(panel('', cap('undo', count_ ? title(count_.text) : 'History', h('span', null, 'newest first')),
                      entryList(items)));
     const notes = footnotes(pieces);
     if (notes) out.append(notes);
@@ -3064,9 +3229,9 @@ function drawWalls(out, i, pieces) {
         grid.append(h('div', { class: 'wall' + (pick ? ' pick' : '') },
             h('span', { class: 'no' }, String(w.no)),
             h('span', { class: 'nm' }, w.parts[0]),
-            pick ? h('span', { class: 'pill' + (now ? ' hi' : '') }, now ? 'showing now' : 'Kliner would pick this') : null));
+            pick ? h('span', { class: 'pill' + (now ? ' hi' : '') }, now ? 'showing now' : 'Suggested') : null));
     }
-    out.append(panel('', cap('photo', 'Wallpapers this Mac ships with', h('span', null, plural(K.walls.length, 'wallpaper'))), grid));
+    out.append(panel('', cap('photo', 'Built-in wallpapers', h('span', null, plural(K.walls.length, 'wallpaper'))), grid));
 }
 
 /* ── How it is ────────────────────────────────────────────────────────── */
@@ -3085,13 +3250,15 @@ function drawDoctor(out, pieces) {
         const rest = f.Battery.value.replace(/^\s*\d+%\s*·?\s*/, '');
         across.append(tile('Battery', 'bolt', pct + '%', { part: pct / 100, foot: rest }));
     }
-    if (f.Uptime) across.append(tile('Uptime', 'clock', f.Uptime.value, { foot: 'since it last started' }));
+    if (f.Uptime) across.append(tile('Uptime', 'clock', f.Uptime.value, { foot: 'since the last restart' }));
     if (across.children.length) out.append(across);
     // readings are facts, each its own kind of thing — a battery is not a
     // share of a disk — so they are listed, never charted against each other
-    const own = new Set(['Months', 'Desktop older', 'Downloads older', 'Last change']);
+    // and the rows that only mean something in a terminal
+    const own = new Set(['Months', 'Desktop older', 'Downloads older', 'Last change', 'Next', 'nimo']);
     for (const sec of sections(pieces)) {
-        const kept = sec.pieces.filter(p => !(p.k === 'row' && own.has(p.label)));
+        const kept = sec.pieces.filter(p => !(p.k === 'row' && own.has(p.label)))
+            .map(p => (p.k === 'row' && /\bmin [a-z]/.test(p.note || '') ? Object.assign({}, p, { note: '' }) : p));
         if (!kept.some(p => p.k !== 'note')) continue;
         out.append(plainPanel({ title: sec.title, pieces: kept }, K.page));
     }
@@ -3106,7 +3273,7 @@ function drawWalk(out) {
     out.append(h('div', { class: 'head' },
         h('div', { class: 'words' },
             h('h1', null, where),
-            h('p', null, 'What is taking the room in ' + K.walked.join('/') + ', biggest first. This only measures — nothing here is changed.')),
+            h('p', null, 'What takes up space in ' + K.walked.join('/') + ', largest first.')),
         h('div', { class: 'acts' },
             h('button', { class: 'btn line', onclick: walkUp }, icon('left'), 'Back out'))));
     const pieces = K.walkedPieces || [];
@@ -3122,7 +3289,7 @@ function drawWalk(out) {
 
 async function drawSettings(out) {
     out.append(h('div', { class: 'head' }, h('div', { class: 'words' },
-        h('h1', null, 'Settings'), h('p', null, 'How Kliner behaves, what macOS lets it touch, and where it starts from.'))));
+        h('h1', null, 'Settings'), h('p', null, 'Preferences and permissions.'))));
     const holder = h('div');
     out.append(holder);
     const st = await ask('settings');
@@ -3133,34 +3300,34 @@ async function drawSettings(out) {
 function settingsBody(st) {
     const days = String((K.meta.config.days || '30'));
     const kliner = panel('', cap('gear', 'Kliner'),
-        setting('Open when I sign in', st.login && st.login.possible ? 'Kliner is in the menu bar from the moment you sign in.' : 'Opening at login needs macOS 13 or newer.',
+        setting('Open at login', st.login && st.login.possible ? 'Kliner starts in the menu bar when you log in.' : 'Opening at login needs macOS 13 or newer.',
             h('button', { class: 'switch' + (st.login && st.login.on ? ' on' : ''), disabled: !(st.login && st.login.possible),
                           onclick: async e => { const b = e.currentTarget; const r = await ask('setLogin', { on: !b.classList.contains('on') }); b.classList.toggle('on', !!(r && r.on)); } })),
-        setting('Old means older than', 'What Home counts as having sat there too long.',
+        setting('Old files', 'How long before a file counts as old.',
             seg(['7', '30', '90'], days, v => { K.meta.config.days = v; tell('setConfig', { key: 'days', value: v }); }, v => v + ' days')),
-        setting('Only look', 'Every button reads instead of changing. Nothing on your Mac moves while this is on.',
+        setting('Preview mode', 'Buttons only show what would happen. Nothing changes while this is on.',
             h('button', { class: 'switch' + (K.preview ? ' on' : ''), onclick: e => { flipPreview(); e.currentTarget.classList.toggle('on', K.preview); } })),
-        setting('In a terminal', 'The same nimo, with every command it knows.',
+        setting('Command line', 'Everything Kliner does also works in Terminal.',
             h('button', { class: 'btn line small', onclick: () => tell('terminal') }, icon('terminal'), 'Open')),
-        setting('The introduction', 'The four short pages from the first time Kliner opened.',
-            h('button', { class: 'btn line small', onclick: startWelcome }, 'Show it again')));
+        setting('Welcome tour', 'The screens from the first time you opened Kliner.',
+            h('button', { class: 'btn line small', onclick: startWelcome }, 'Show again')));
 
     const fd = !!st.fullDisk, folders = !!st.folders;
-    const allowed = panel('', cap('shield', 'What macOS lets Kliner touch'),
-        setting(h('span', { class: 'state' + (fd ? ' yes' : '') }, h('i'), fd ? 'Full Disk Access, on' : 'Full Disk Access, off'),
-            'With it on, macOS stops asking about each folder one at a time. Kliner still only reads inside your home folder.',
+    const allowed = panel('', cap('shield', 'Permissions'),
+        setting(h('span', { class: 'state' + (fd ? ' yes' : '') }, h('i'), fd ? 'Full Disk Access: on' : 'Full Disk Access: off'),
+            'With it on, macOS stops asking about each folder. Kliner still only reads your home folder.',
             h('button', { class: 'btn line small', onclick: async () => { await ask('fullDisk'); drawPage(true); } }, fd ? 'Settings' : 'Turn on')),
-        setting(h('span', { class: 'state' + (folders ? ' yes' : '') }, h('i'), folders ? 'Your folders' : 'Your folders, not yet'),
+        setting(h('span', { class: 'state' + (folders ? ' yes' : '') }, h('i'), folders ? 'Folders' : 'Folders: not allowed yet'),
             'Desktop, Downloads, Pictures and Documents.',
             h('button', { class: 'btn line small', onclick: async () => { await ask('askFolders'); drawPage(true); } }, folders ? 'Check again' : 'Ask')),
-        setting('Changing your wallpaper', 'macOS asks once before Kliner may set a wallpaper for you.',
+        setting('Wallpaper', 'macOS asks once before Kliner can change your wallpaper.',
             h('button', { class: 'btn line small', onclick: () => tell('automation') }, 'Settings')));
 
-    const promise = panel('', cap('lock', 'What Kliner will never do'),
+    const promise = panel('', cap('lock', 'What Kliner never does'),
         h('div', { class: 'said' },
-            ['It never asks for an administrator.', 'It never uses the network — there is no socket in it.',
-             'It never touches anything outside your home folder.', 'It writes down every move first, so Put it all back can reverse it.']
-                .map(t => h('div', { class: 's' }, icon('check'), h('span', null, t)))));
+            ['Ask for your admin password.', 'Go online. There is no network code in it.',
+             'Touch anything outside your home folder.', 'Move a file without logging it first.']
+                .map(t => h('div', { class: 's no' }, icon('x'), h('span', null, t)))));
 
     return h('div', { style: 'display:grid;gap:14px' }, h('div', { class: 'grid two' }, kliner, h('div', { style: 'display:grid;gap:14px;align-content:start' }, allowed, promise)),
         h('div', { class: 'notes' }, h('div', null, `Kliner ${K.meta.version} · MIT · kliner.app`)));
@@ -3186,10 +3353,10 @@ function seg(values, current, pick, label) {
 
 function drawHelp(out) {
     out.append(h('div', { class: 'head' }, h('div', { class: 'words' },
-        h('h1', null, 'Help'), h('p', null, 'Every key Kliner answers to, and what each page does.'))));
+        h('h1', null, 'Help'), h('p', null, 'Keyboard shortcuts.'))));
     const keys = [
-        ['The quick menu, from anywhere', '⌘K'], ['Ask this page again', '⌘R'], ['Back', '⌘['], ['Forward', '⌘]'],
-        ['A page by its number', '⌘1 – ⌘9'], ['Settings', '⌘,'], ['Names beside the pictures', '⌘B'], ['Up and down the places', '↑ ↓'],
+        ['Quick menu, from anywhere', '⌘K'], ['Refresh', '⌘R'], ['Back', '⌘['], ['Forward', '⌘]'],
+        ['Go to a page', '⌘1 – ⌘9'], ['Settings', '⌘,'], ['Show labels', '⌘B'], ['Previous or next page', '↑ ↓'],
     ];
     const left = panel('', cap('bolt', 'Keys'), h('div', { class: 'keys', style: 'margin-top:10px' },
         keys.map(([t, k]) => h('div', { class: 'kr' }, h('span', null, t), h('kbd', null, k)))));
@@ -3211,8 +3378,8 @@ function toggleActivity() {
     if (open) { open.remove(); return; }
     K.unread = false;
     setFrame();
-    const pop = h('div', { class: 'pop' }, h('div', { class: 'ph' }, 'Since Kliner opened'));
-    if (!K.jobs.length) pop.append(h('div', { class: 'none' }, 'Nothing yet. Whatever Kliner does is listed here.'));
+    const pop = h('div', { class: 'pop' }, h('div', { class: 'ph' }, 'This session'));
+    if (!K.jobs.length) pop.append(h('div', { class: 'none' }, 'Nothing yet. What Kliner does shows up here.'));
     for (const j of K.jobs) {
         pop.append(h('div', { class: 'pr', style: 'cursor:pointer', onclick: () => { show(j.page); } },
             icon(j.preview ? 'eye' : j.good ? 'check' : 'x', j.good && !j.preview ? 'good' : ''),
@@ -3237,12 +3404,142 @@ function toast(text, action) {
     toastTimer = setTimeout(() => el.remove(), 7000);
 }
 
-/* ── the first minute ─────────────────────────────────────────────────── */
+/* ── Activity: what the Mac is doing, every two seconds ──────────────── */
+
+const LIVE = { timer: 0, cpu: [], mem: [], by: 'cpu', last: null };
+
+function stopActivity() {
+    clearTimeout(LIVE.timer);
+    LIVE.timer = 0;
+}
+
+function drawActivity(out) {
+    out.append(h('div', { class: 'head' },
+        h('div', { class: 'words' }, h('h1', null, 'Activity'),
+          h('p', null, 'What your Mac is doing right now. It updates every two seconds.')),
+        h('div', { class: 'acts' },
+            h('button', { class: 'btn line', onclick: () => tell('monitor') }, icon('finder'), 'Open Activity Monitor'))));
+    const cpuBox = panel('live', cap('pulse', 'CPU', h('span', { class: 'livedot' }, 'live')),
+        h('div', { class: 'lv' }, h('span', { class: 'n', id: 'cpuN' }, '…'), h('span', { class: 'u', id: 'cpuU' }, '')),
+        spark('cpuS'));
+    const memBox = panel('live', cap('cpu', 'Memory', h('span', { class: 'livedot' }, 'live')),
+        h('div', { class: 'lv' }, h('span', { class: 'n', id: 'memN' }, '…'), h('span', { class: 'u', id: 'memU' }, '')),
+        h('div', { class: 'meter big-meter' }, h('i', { id: 'memBar', style: 'width:0%' })),
+        spark('memS'));
+    const seg = h('div', { class: 'seg', id: 'bySeg' },
+        h('button', { class: LIVE.by === 'cpu' ? 'on' : '', onclick: () => { LIVE.by = 'cpu'; paintActivity(); } }, 'CPU'),
+        h('button', { class: LIVE.by === 'memory' ? 'on' : '', onclick: () => { LIVE.by = 'memory'; paintActivity(); } }, 'Memory'));
+    const list = panel('', cap('bars', 'Using the most', seg), h('div', { class: 'apps', id: 'apps' },
+        h('div', { class: 'more loadingline' }, 'Looking…')));
+    out.append(h('div', { class: 'grid two' }, cpuBox, memBox), list);
+    stopActivity();
+    if (LIVE.last) requestAnimationFrame(paintActivity);
+    tickActivity();
+}
+
+function spark(id) {
+    const svg = s('svg', { class: 'spark', id, viewBox: '0 0 300 60', preserveAspectRatio: 'none' });
+    svg.append(s('line', { class: 'base', x1: 0, x2: 300, y1: 57, y2: 57 }), s('path', { class: 'area', d: '' }), s('path', { class: 'ln', d: '' }));
+    return svg;
+}
+
+async function tickActivity() {
+    if (K.page !== ACTIVITY()) return;
+    const reply = await ask('activity');
+    if (K.page !== ACTIVITY()) return;
+    if (reply && typeof reply.cpu === 'number') {
+        LIVE.last = reply;
+        LIVE.cpu.push(reply.cpu);
+        const m = reply.memory || {};
+        LIVE.mem.push(m.total > 0 ? m.used / m.total * 100 : 0);
+        if (LIVE.cpu.length > 60) LIVE.cpu.shift();
+        if (LIVE.mem.length > 60) LIVE.mem.shift();
+        paintActivity();
+    }
+    // quicker at first, so the charts fill in while you are looking at them
+    LIVE.timer = setTimeout(tickActivity, LIVE.cpu.length < 12 ? 1000 : 2000);
+}
+
+function drawSpark(id, values) {
+    const svg = document.getElementById(id);
+    if (!svg || !values.length) return;
+    const n = 60, w = 300, hgt = 60;
+    const pts = values.map((v, k) => [w - (values.length - 1 - k) * (w / (n - 1)), hgt - 3 - Math.max(0, Math.min(100, v)) / 100 * (hgt - 8)]);
+    const line = pts.map((p, k) => (k ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+    svg.querySelector('.ln').setAttribute('d', line);
+    svg.querySelector('.area').setAttribute('d', line + ` L ${w} ${hgt} L ${pts[0][0].toFixed(1)} ${hgt} Z`);
+}
+
+function paintActivity() {
+    const r = LIVE.last;
+    if (!r || K.page !== ACTIVITY()) return;
+    const cpuN = $('#cpuN'), memN = $('#memN');
+    if (!cpuN || !memN) return;
+    cpuN.textContent = Math.round(r.cpu) + '%';
+    $('#cpuU').textContent = 'in use · ' + plural(r.cores || 1, 'core');
+    const m = r.memory || {};
+    memN.textContent = size(m.used || 0);
+    $('#memU').textContent = 'used of ' + size(m.total || 0);
+    $('#memBar').style.width = (m.total > 0 ? m.used / m.total * 100 : 0).toFixed(1) + '%';
+    drawSpark('cpuS', LIVE.cpu);
+    drawSpark('memS', LIVE.mem);
+    for (const b of document.querySelectorAll('#bySeg button')) b.classList.toggle('on', b.textContent.toLowerCase() === LIVE.by);
+
+    const box = $('#apps');
+    const apps = (r.apps || []).slice().sort((a, b) => LIVE.by === 'cpu' ? b.cpu - a.cpu || b.memory - a.memory : b.memory - a.memory).slice(0, 10);
+    const top = Math.max(0.0001, ...apps.map(a => LIVE.by === 'cpu' ? a.cpu : a.memory));
+    const had = new Map([...box.querySelectorAll('.proc')].map(el => [el.dataset.key, el]));
+    const rows = apps.map((a, n) => {
+        const key = a.name;
+        let row = had.get(key);
+        if (!row) {
+            const pic = h('span', { class: 'pic' });
+            if (a.icon && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(a.icon)) pic.style.backgroundImage = `url("${a.icon}")`;
+            else pic.append(icon('cube'));
+            row = h('div', { class: 'proc fresh' }, pic,
+                h('span', { class: 'nm' }, h('b', null, a.name), h('span', { class: 'cnt' })),
+                h('span', { class: 'track' }, h('i')), h('span', { class: 'num cpu' }), h('span', { class: 'num mem' }));
+            row.dataset.key = key;
+        }
+        row.querySelector('.cnt').textContent = a.count > 1 ? plural(a.count, 'process', 'processes') : '';
+        const v = LIVE.by === 'cpu' ? a.cpu : a.memory;
+        row.querySelector('.track i').style.width = Math.max(1, v / top * 100).toFixed(1) + '%';
+        row.querySelector('.cpu').textContent = a.cpu >= 10 ? Math.round(a.cpu) + '%' : a.cpu.toFixed(1) + '%';
+        row.querySelector('.mem').textContent = size(a.memory);
+        row.classList.toggle('lead', n === 0);
+        return row;
+    });
+    box.replaceChildren(h('div', { class: 'ah' }, h('span'), h('span', null, 'App'), h('span'),
+        h('span', { class: 'num' + (LIVE.by === 'cpu' ? ' on' : '') }, 'CPU'), h('span', { class: 'num' + (LIVE.by === 'memory' ? ' on' : '') }, 'Memory')), ...rows);
+    requestAnimationFrame(() => rows.forEach(row => row.classList.remove('fresh')));
+}
+
+/* ── the first minute: hello, how it works, access, you, done ─────────── */
+
+const INTRO = ['hello', 'how', 'access', 'you', 'done'];
+
+/* what each of macOS's questions is for, by the picture Swift sends */
+const GATE_WHY = {
+    'menubar.dock.rectangle': 'To sort what is on it.',
+    'arrow.down.circle': 'To sort your downloads.',
+    'photo': 'To show what takes up space.',
+    'doc.text': 'To find duplicates and large files.',
+    'bell': 'To tell you when something is done.',
+};
 
 function startWelcome() {
     const cfg = K.meta.config;
-    K.welcome = { step: 0, name: cfg.name || K.meta.user || '', start: cfg.start || 'desktop', tidy: cfg.tidy || 'Tidy',
-                  login: !!(K.meta.login && K.meta.login.on), answers: [], asked: false };
+    const first = String(K.meta.user || '').trim().split(/\s+/)[0] || '';
+    K.welcome = { step: 0, shown: -1, back: false, name: cfg.name || first, start: cfg.start || 'desktop',
+                  tidy: cfg.tidy || 'Tidy', login: !!(K.meta.login && K.meta.login.on), answers: {}, asking: -1 };
+    drawWelcome();
+}
+
+function introGo(by) {
+    const w = K.welcome;
+    if (!w) return;
+    w.back = by < 0;
+    w.step = Math.max(0, Math.min(INTRO.length - 1, w.step + by));
     drawWelcome();
 }
 
@@ -3251,87 +3548,151 @@ function drawWelcome() {
     const app = $('#app');
     app.className = 'app';
     app.style.gridTemplateColumns = '1fr';
-    const steps = ['Your name', 'Where to start', 'Where things go', 'What macOS allows'];
-    const side = h('aside', { class: 'side' },
-        mascot('mascot'),
-        h('p', null, 'Four short pages, then I ask macOS for what I need. Nothing runs on your Mac until you press something.'),
-        h('div', { class: 'steps' }, steps.map((t, n) =>
-            h('div', { class: n === w.step ? 'on' : n < w.step ? 'past' : '' }, h('i', null, n < w.step ? '✓' : String(n + 1)), t))));
-    const pane = h('div', { class: 'pane arrive' });
-    const body = h('div', { class: 'body' });
+    const step = INTRO[w.step];
+    const fresh = w.shown !== w.step;
+    w.shown = w.step;
+
+    const card = h('section', { class: 'intro-card s-' + step + (fresh ? (w.back ? ' enter back' : ' enter') : '') });
     const way = h('div', { class: 'way' });
+    const back = h('button', { class: 'btn line large', onclick: () => introGo(-1) }, icon('left'), 'Back');
+    const gates = K.meta.gates || [];
+    const asked = gates.filter((_, n) => n in w.answers).length;
+    let primary = null;
 
-    if (w.step === 0) {
-        pane.append(h('h2', null, 'First, what should I call you?'),
-                    h('p', { class: 'lead' }, 'It goes at the top of Home and nowhere else. Kliner has no account, and nothing about you leaves this Mac.'));
-        const field = h('input', { class: 'field', id: 'name', value: w.name, placeholder: 'Your name', maxlength: '60',
-                                   oninput: e => { w.name = e.target.value; },
-                                   onkeydown: e => { if (e.key === 'Enter') { w.step = 1; drawWelcome(); } } });
-        body.append(h('div', null, field, h('div', { class: 'note' }, 'Leave it blank and Home simply says hello.')));
-        setTimeout(() => field.focus(), 30);
-    } else if (w.step === 1) {
-        pane.append(h('h2', null, 'What should I start with?'),
-                    h('p', { class: 'lead' }, 'Kliner takes you straight there when this is done. The rest are down the side whenever you want them.'));
-        for (const st of K.meta.starts) {
-            body.append(h('div', { class: 'choice' + (st.value === w.start ? ' on' : ''), style: 'cursor:pointer',
-                                   onclick: () => { w.start = st.value; drawWelcome(); } },
-                h('span', { class: 'dot' }), h('div', null, h('b', null, st.title), h('span', null, st.note))));
-        }
-    } else if (w.step === 2) {
-        pane.append(h('h2', null, 'Where should things go?'),
-                    h('p', { class: 'lead' }, 'Kliner never deletes what it sorts. Everything it moves goes into one folder beside where it was, and Put it all back empties that folder again.'));
-        const note = h('div', { class: 'note' });
-        const say = () => { note.textContent = `So a sorted desktop becomes Desktop/${(w.tidy || '').trim() || 'Tidy'}.`; };
-        say();
-        body.append(h('div', { style: 'max-width:280px' },
-            h('input', { class: 'field', id: 'tidy', value: w.tidy, placeholder: 'Tidy', maxlength: '40',
-                         oninput: e => { w.tidy = e.target.value.replace(/[\/\\:]/g, ''); if (e.target.value !== w.tidy) e.target.value = w.tidy; say(); } }),
-            note));
-        if (K.meta.login && K.meta.login.possible) {
-            body.append(setting('Open Kliner when this Mac starts', 'It sits in the menu bar, and ⌘K works from the moment you sign in.',
-                h('button', { class: 'switch' + (w.login ? ' on' : ''), onclick: e => { w.login = !w.login; e.currentTarget.classList.toggle('on', w.login); } })));
-        }
-    } else {
-        pane.append(h('h2', null, 'One last thing, and it is yours to decide.'),
-                    h('p', { class: 'lead' }, 'macOS decides what I may read, not me. One at a time, and only when you have answered does the next one come up.'));
-        (K.meta.gates || []).forEach((g, n) => {
-            const a = w.answers[n];
-            const st = a ? (a.yes ? h('span', { class: 'st yes' }, icon('check'), 'allowed')
-                                  : h('span', { class: 'st no' }, icon('slash'), 'not allowed — Settings can change it later'))
-                : n === w.answers.length && w.asking ? h('span', { class: 'st now' }, icon('wait'), 'asking macOS now…')
-                : h('span', { class: 'st' }, 'waiting its turn');
-            body.append(h('div', { class: 'gate' }, h('span', { class: 'ico' }, icon(g.symbol)), h('div', null, g.title), st));
+    if (step === 'hello') {
+        card.append(
+            h('div', { class: 'hello-face' }, mascot('face-big')),
+            h('h1', null, 'Hey, I’m Kliner.'),
+            h('p', { class: 'lead' }, 'I keep your Mac tidy. I sort your desktop and downloads, show you what takes up space, and I can undo anything I do.'));
+        primary = h('button', { class: 'btn fill large', onclick: () => introGo(1) }, 'Get started', icon('right'));
+        way.append(primary);
+        card.append(way, h('p', { class: 'small' }, 'Takes about a minute.'));
+    } else if (step === 'how') {
+        card.append(h('h1', null, 'Here’s how it works.'),
+                    h('p', { class: 'lead' }, 'Four things, and none of them happen until you press a button.'));
+        card.append(h('div', { class: 'how' },
+            howTip('sort', 'Sort', 'Loose files go into folders by type. Screenshots with screenshots, images with images.'),
+            howTip('look', 'See it first', 'Every page shows what will change before anything moves.'),
+            howTip('space', 'Free up space', 'App caches and the Trash, cleared. Your own files stay where they are.'),
+            howTip('undo', 'Undo anything', 'Every move is logged, so one click puts it all back.')));
+        primary = h('button', { class: 'btn fill large', onclick: () => introGo(1) }, 'Continue', icon('right'));
+        way.append(back, h('span', { class: 'gap' }), primary);
+        card.append(way);
+    } else if (step === 'access') {
+        card.append(h('h1', null, 'Let Kliner see your files.'),
+                    h('p', { class: 'lead' }, 'macOS asks you once for each one. Kliner only looks inside your home folder and never goes online.'));
+        const list = h('div', { class: 'gates' });
+        gates.forEach((g, n) => {
+            const title = String(g.title || '').replace(/^your /i, '');
+            let state;
+            if (n in w.answers) {
+                state = w.answers[n] ? h('span', { class: 'st yes' }, icon('check'), 'Allowed')
+                                     : h('span', { class: 'st no' }, 'Not allowed');
+            } else if (w.asking === n) {
+                state = h('span', { class: 'st now' }, h('i', { class: 'spin' }), 'Waiting for macOS');
+            } else {
+                state = h('button', { class: 'btn line small', disabled: w.asking >= 0 ? '' : null, onclick: () => askGate(n) }, 'Allow');
+            }
+            list.append(h('div', { class: 'gate', style: `animation-delay:${fresh ? 80 + n * 60 : 0}ms` },
+                h('span', { class: 'ico' }, icon(g.symbol)),
+                h('div', { class: 'tt' }, h('b', null, title.charAt(0).toUpperCase() + title.slice(1)),
+                  h('span', null, GATE_WHY[g.symbol] || '')),
+                state));
         });
+        card.append(list, h('p', { class: 'small left' }, 'Change any of these later in Settings.'));
+        const done = asked === gates.length;
+        primary = done ? h('button', { class: 'btn fill large', onclick: () => introGo(1) }, 'Continue', icon('right'))
+                       : h('button', { class: 'btn fill large', disabled: w.asking >= 0 ? '' : null, onclick: askAll }, 'Allow all');
+        way.append(...[back, h('span', { class: 'gap' }),
+                   done ? null : h('button', { class: 'btn bare large', onclick: () => introGo(1) }, 'Skip'), primary].filter(Boolean));
+        card.append(way);
+    } else if (step === 'you') {
+        card.append(h('h1', null, 'Make it yours.'),
+                    h('p', { class: 'lead' }, 'You can change all of this later in Settings.'));
+        const field = h('input', { class: 'field', id: 'name', value: w.name, placeholder: 'Your name', maxlength: '60',
+                                   oninput: e => { w.name = e.target.value; } });
+        const starts = h('div', { class: 'chips' }, (K.meta.starts || []).map(st =>
+            h('button', { class: 'chip2' + (st.value === w.start ? ' on' : ''),
+                          onclick: e => { w.start = st.value; for (const c of e.currentTarget.parentNode.children) c.classList.toggle('on', c === e.currentTarget); } },
+              st.title)));
+        const rows = h('div', { class: 'form' },
+            h('label', { class: 'row' }, h('span', { class: 'k' }, 'What should I call you?'), field),
+            h('div', { class: 'row' }, h('span', { class: 'k' }, 'Open Kliner on'), starts));
+        if (K.meta.login && K.meta.login.possible) {
+            rows.append(h('div', { class: 'row' }, h('span', { class: 'k' }, 'Open at login'),
+                h('div', { class: 'toggle' }, h('button', { class: 'switch' + (w.login ? ' on' : ''),
+                    onclick: e => { w.login = !w.login; e.currentTarget.classList.toggle('on', w.login); } }),
+                  h('span', null, 'Kliner waits in the menu bar. Press ⌘K anywhere.'))));
+        }
+        card.append(rows);
+        primary = h('button', { class: 'btn fill large', onclick: () => introGo(1) }, 'Continue', icon('right'));
+        way.append(back, h('span', { class: 'gap' }), primary);
+        card.append(way);
+        if (fresh) setTimeout(() => field.focus(), 60);
+    } else {
+        const name = (w.name || '').trim();
+        card.append(
+            h('div', { class: 'hello-face happy' }, mascot('face-big')),
+            h('h1', null, name ? `You’re all set, ${name}.` : 'You’re all set.'),
+            h('p', { class: 'lead' }, 'Kliner lives in your menu bar. Press ⌘K anywhere to open it.'));
+        primary = h('button', { class: 'btn fill large', onclick: finishWelcome }, 'Open Kliner', icon('right'));
+        way.append(back, h('span', { class: 'gap' }), primary);
+        card.append(way);
     }
+    w.primary = primary;
 
-    if (w.step > 0 && w.step < 3) way.append(h('button', { class: 'btn line', onclick: () => { w.step--; drawWelcome(); } }, 'Back'));
-    way.append(h('span', { class: 'gap' }));
-    if (w.step === 2) way.append(h('button', { class: 'btn bare', onclick: finishWelcome }, 'Skip for now'));
-    if (w.step < 2) way.append(h('button', { class: 'btn fill', onclick: () => { w.step++; drawWelcome(); } }, 'Next', icon('right')));
-    else if (w.step === 2) way.append(h('button', { class: 'btn fill', onclick: () => { w.step = 3; w.answers = []; drawWelcome(); askGates(); } }, 'Ask macOS'));
-    else if (w.asked) way.append(h('button', { class: 'btn fill', onclick: finishWelcome }, 'Start', icon('right')));
-
-    pane.append(body, way);
-    app.replaceChildren(h('div', { class: 'welcome', style: 'grid-column:1/-1' }, side, pane));
+    const dots = h('div', { class: 'dots' }, INTRO.map((_, n) =>
+        h('i', { class: n === w.step ? 'on' : n < w.step ? 'past' : '' })));
+    app.replaceChildren(h('div', { class: 'intro', style: 'grid-column:1/-1' }, dots, card));
     reportChrome();
 }
 
-async function askGates() {
+/* four small pictures of what Kliner does, drawn with nothing but shapes */
+function howTip(kind, title, text) {
+    const stage = h('div', { class: 'demo ' + kind });
+    if (kind === 'sort') {
+        const spots = [['8%', '14%', '17%', '55%'], ['30%', '8%', '17%', '34%'], ['55%', '20%', '49%', '55%'],
+                       ['74%', '10%', '49%', '34%'], ['18%', '40%', '81%', '55%'], ['62%', '42%', '81%', '34%']];
+        spots.forEach(([x0, y0, x1, y1], n) => stage.append(h('i', {
+            class: 'f f' + (n % 3), style: `--x0:${x0};--y0:${y0};--x1:${x1};--y1:${y1};animation-delay:${n * 90}ms` })));
+        for (const [x, label] of [['8%', 'Screens'], ['40%', 'Images'], ['72%', 'Docs']]) {
+            stage.append(h('span', { class: 'bin', style: `left:${x}` }, label));
+        }
+    } else if (kind === 'look') {
+        for (let n = 0; n < 3; n++) stage.append(h('i', { class: 'line', style: `top:${22 + n * 24}%;width:${[64, 48, 56][n]}%;animation-delay:${n * 260}ms` }));
+        stage.append(h('span', { class: 'lens' }, icon('eye')));
+    } else if (kind === 'space') {
+        stage.append(h('div', { class: 'dbar' }, h('i', { class: 'used' }), h('i', { class: 'cache' }), h('i', { class: 'free' })),
+                     h('span', { class: 'lbl' }, 'caches'));
+    } else {
+        stage.append(h('i', { class: 'f f0 mover' }), h('span', { class: 'folder' }, icon('folder')),
+                     h('span', { class: 'back2' }, icon('undo')));
+    }
+    return h('div', { class: 'howtip' }, stage, h('b', null, title), h('span', null, text));
+}
+
+async function askGate(n) {
     const w = K.welcome;
+    if (!w || w.asking >= 0) return;
+    w.asking = n;
+    drawWelcome();
+    await new Promise(r => setTimeout(r, 120));
+    const reply = await ask('gate', { index: n });
+    if (!K.welcome) return;
+    w.answers[n] = !!(reply && reply.yes);
+    w.asking = -1;
+    drawWelcome();
+}
+
+async function askAll() {
     const gates = K.meta.gates || [];
     for (let n = 0; n < gates.length; n++) {
-        if (!K.welcome || w.step !== 3) return;
-        w.asking = true;
-        drawWelcome();
-        await new Promise(r => setTimeout(r, 120));
-        const reply = await ask('gate', { index: n });
-        w.answers.push({ yes: !!(reply && reply.yes) });
-        drawWelcome();
-        await new Promise(r => setTimeout(r, 340));
+        const w = K.welcome;
+        if (!w || INTRO[w.step] !== 'access') return;
+        if (n in w.answers) continue;
+        await askGate(n);
+        await new Promise(r => setTimeout(r, 260));
     }
-    w.asking = false;
-    w.asked = true;
-    drawWelcome();
 }
 
 async function finishWelcome() {
@@ -3351,17 +3712,21 @@ async function finishWelcome() {
 /* ── the keyboard ─────────────────────────────────────────────────────── */
 
 document.addEventListener('keydown', e => {
-    if (e.target.closest && e.target.closest('input, textarea')) return;
+    if (e.target.closest && e.target.closest('input, textarea') && !(K.welcome && e.key === 'Enter')) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === 'Escape') {
         if ($('.pop')) { closeActivity(); return; }
         if (K.walked.length) { walkUp(); return; }
     }
-    if (K.welcome) return;
+    if (K.welcome) {
+        if (e.key === 'Enter' && K.welcome.primary && !K.welcome.primary.disabled) { e.preventDefault(); K.welcome.primary.click(); }
+        return;
+    }
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         const order = [];
         for (const p of K.meta.places) order.push(...p.holds);
         order.push(HELP(), SETTINGS());
+        if (!order.includes(ACTIVITY())) order.push(ACTIVITY());
         const at = order.indexOf(K.page);
         const next = order[(at + (e.key === 'ArrowDown' ? 1 : -1) + order.length) % order.length];
         e.preventDefault();
@@ -3410,12 +3775,16 @@ async function boot() {
     const meta = await ask('boot');
     if (!meta || meta.missing || !meta.pages) {
         $('#app').replaceChildren(h('div', { class: 'wait', style: 'grid-column:1/-1' }, mascot('mascot'),
-            h('h3', null, 'This window has to be opened by Kliner.'),
-            h('p', null, 'It is the inside of the app, not a web page.')));
+            h('h3', null, 'Open this from the Kliner app.'),
+            h('p', null, 'This page is part of Kliner and does not work on its own.')));
         return;
     }
     K.meta = meta;
     K.meta.config = K.meta.config || {};
+    // Activity is drawn here rather than run by nimo, so it joins the place
+    // the machine's own readings are in, first
+    const machine = (meta.places || []).find(p => p.holds.some(n => (meta.pages[n] || {}).kind === 'doctor' && n > 0));
+    if (machine && !machine.holds.includes(meta.pages.length + 2)) machine.holds.unshift(meta.pages.length + 2);
     K.wide = K.meta.config.rail === 'list';
     K.preview = K.meta.config.preview === 'on';
     if (!meta.welcomed) { startWelcome(); return; }

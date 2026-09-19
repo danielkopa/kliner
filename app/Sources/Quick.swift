@@ -97,7 +97,7 @@ final class QuickRow: NSView {
 
     /// Every row is this tall. The menu works its own height out rather than
     /// measuring, so this is the one place the number lives.
-    static let tall: CGFloat = 46
+    static let tall: CGFloat = 40
 
     private var lit = false
     private let tile = NSView()
@@ -110,12 +110,12 @@ final class QuickRow: NSView {
 
         translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
-        layer?.cornerRadius = 9
+        layer?.cornerRadius = 8
 
         // The picture sits in a tile of its own. A bare glyph beside a name
         // is a bullet; a tile is a thing the row is about.
         tile.wantsLayer = true
-        tile.layer?.cornerRadius = 8
+        tile.layer?.cornerRadius = 7
         tile.translatesAutoresizingMaskIntoConstraints = false
         addSubview(tile)
 
@@ -133,15 +133,8 @@ final class QuickRow: NSView {
         name.translatesAutoresizingMaskIntoConstraints = false
         addSubview(name)
 
-        // The command the row stands for, under its name. Everything this
-        // window does the terminal does too, and a row that shows
-        // `min desktop` teaches the tool underneath instead of hiding it.
-        let typed = NSTextField(labelWithString: command)
-        typed.font = Words.typed
-        typed.textColor = Paint.faint
-        typed.lineBreakMode = .byTruncatingTail
-        typed.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(typed)
+        // One line: the name, and nothing under it. The command a row stands
+        // for is still what the search matches, it is just not printed.
 
         figure.stringValue = said
         figure.font = Words.small
@@ -155,21 +148,17 @@ final class QuickRow: NSView {
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: QuickRow.tall),
 
-            tile.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 9),
+            tile.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
             tile.centerYAnchor.constraint(equalTo: centerYAnchor),
-            tile.widthAnchor.constraint(equalToConstant: 30),
-            tile.heightAnchor.constraint(equalToConstant: 30),
+            tile.widthAnchor.constraint(equalToConstant: 26),
+            tile.heightAnchor.constraint(equalToConstant: 26),
 
             mark.centerXAnchor.constraint(equalTo: tile.centerXAnchor),
             mark.centerYAnchor.constraint(equalTo: tile.centerYAnchor),
 
             name.leadingAnchor.constraint(equalTo: tile.trailingAnchor, constant: 12),
-            name.topAnchor.constraint(equalTo: topAnchor, constant: 7),
+            name.centerYAnchor.constraint(equalTo: centerYAnchor),
             name.trailingAnchor.constraint(lessThanOrEqualTo: figure.leadingAnchor, constant: -12),
-
-            typed.leadingAnchor.constraint(equalTo: name.leadingAnchor),
-            typed.topAnchor.constraint(equalTo: name.bottomAnchor, constant: 1),
-            typed.trailingAnchor.constraint(lessThanOrEqualTo: figure.leadingAnchor, constant: -12),
 
             figure.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
             figure.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -233,7 +222,7 @@ final class QuickGroup: NSView {
         let name = NSTextField(labelWithString: "")
         name.attributedStringValue = NSAttributedString(
             string: words.uppercased(),
-            attributes: [.font: Words.label, .foregroundColor: Paint.faint, .kern: 0.8])
+            attributes: [.font: Words.label, .foregroundColor: Paint.muted, .kern: 0.8])
         name.translatesAutoresizingMaskIntoConstraints = false
         addSubview(name)
 
@@ -312,7 +301,7 @@ final class Quick: NSObject, NSTextFieldDelegate {
             button.image = mark
             button.target = self
             button.action = #selector(tapped)
-            button.toolTip = "Kliner — \(Combo.written)"
+            button.toolTip = "Kliner  \(Combo.written)"
         }
         status = bar
 
@@ -387,19 +376,16 @@ final class Quick: NSObject, NSTextFieldDelegate {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         panel.animationBehavior = .none
 
-        let blur = NSVisualEffectView()
-        blur.material = .popover
-        blur.blendingMode = .behindWindow
-        blur.state = .active
-        blur.wantsLayer = true
-        blur.layer?.cornerRadius = 12
-        blur.layer?.masksToBounds = true
+        // Kliner's own card, the colour of the window, not glass: glass takes
+        // its colour from whatever wallpaper is behind it.
+        let blur = Surface(Paint.card, round: 14, edged: true)
+        blur.translatesAutoresizingMaskIntoConstraints = true
         panel.contentView = blur
 
         let ask = NSTextField()
         ask.font = Words.ask
         ask.textColor = Paint.ink
-        ask.placeholderString = "What would you like tidied?"
+        ask.placeholderString = "Search Kliner"
         ask.isBordered = false
         ask.drawsBackground = false
         ask.focusRingType = .none
@@ -468,12 +454,10 @@ final class Quick: NSObject, NSTextFieldDelegate {
 
     /// The line along the bottom: what the window last read, then the keys.
     private func tail() -> String {
-        // The promise last, because it is the one line worth reading twice:
-        // this menu is a way in, never a trigger.
-        let keys = "↑↓ choose · ⏎ open · esc close"
-        let vow = "It opens the page — it never runs it"
-        guard let said = headline, !said.isEmpty else { return keys + "   ·   " + vow }
-        return said + "   ·   " + keys + "   ·   " + vow
+        // What Home last read, then the three keys the menu answers to.
+        let keys = "↑↓ move   ⏎ open   esc close"
+        guard let said = headline, !said.isEmpty else { return keys }
+        return said + "   ·   " + keys
     }
 
     // MARK: what is in it
@@ -491,8 +475,13 @@ final class Quick: NSObject, NSTextFieldDelegate {
                                ? "" : "min " + item.arguments.joined(separator: " "),
                          symbol: item.symbol)
         }
+        // Activity is a page the window draws itself, after Settings and Help.
+        out.append(Entry(index: Action.all.count + 2, group: "Your computer", title: "Activity",
+                         hint: "CPU memory apps processes", symbol: "cpu"))
+        out.append(Entry(index: Quick.monitor, group: "Your computer", title: "Activity Monitor",
+                         hint: "Apple's own app", symbol: "gauge"))
         out.append(Entry(index: Action.all.count, group: "Kliner", title: "Settings",
-                         hint: "What Kliner may touch", symbol: "gearshape"))
+                         hint: "Permissions and preferences", symbol: "gearshape"))
 
         // Rows of one heading together, headings in the order they first
         // appear, and inside a heading the order the window already uses.
@@ -514,14 +503,14 @@ final class Quick: NSObject, NSTextFieldDelegate {
     private func matching(_ typed: String) -> [Entry] {
         let want = typed.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let all = entries
-        guard !want.isEmpty else { return Array(all.prefix(7)) }
+        guard !want.isEmpty else { return Array(all.prefix(12)) }
         let hits = all.filter { entry in
             entry.title.lowercased().contains(want)
                 || entry.hint.lowercased().contains(want)
                 || (entry.index < Action.all.count
                     && Action.all[entry.index].blurb.lowercased().contains(want))
         }
-        return Array(hits.prefix(7))
+        return Array(hits.prefix(9))
     }
 
     private func fill(_ typed: String) {
@@ -560,7 +549,7 @@ final class Quick: NSObject, NSTextFieldDelegate {
         }
 
         if hits.isEmpty {
-            let empty = NSTextField(labelWithString: "Nothing here goes by that name.")
+            let empty = NSTextField(labelWithString: "No results")
             empty.font = Words.body
             empty.textColor = Paint.faint
             empty.translatesAutoresizingMaskIntoConstraints = false
@@ -591,7 +580,18 @@ final class Quick: NSObject, NSTextFieldDelegate {
         for (i, row) in rows.enumerated() { row.light(i == sel) }
     }
 
+    /// Not a page: Apple's Activity Monitor, opened as it is.
+    static let monitor = 10_000
+
     private func run(_ index: Int) {
+        if index == Quick.monitor {
+            borrowed = false
+            hide()
+            if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.ActivityMonitor") {
+                NSWorkspace.shared.open(url)
+            }
+            return
+        }
         // Before hiding, not after: the fade's completion reads this, and the
         // window is about to come forward, so nothing should be given back.
         borrowed = false

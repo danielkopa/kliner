@@ -108,6 +108,10 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
     /// One change at a time. Two runs of nimo moving files at once is two
     /// processes walking the same folder.
     private var changing = false
+    /// The processor's counters at the last look, so the next look can say
+    /// how busy it was in between, and the apps' pictures, drawn once each.
+    private var lastTicks: (busy: UInt64, total: UInt64)?
+    private var icons: [String: String] = [:]
 
     /// The window's ground, the page's own: so there is no white flash
     /// while it loads, and no light edge on a dark window.
@@ -290,6 +294,8 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         case "thumbs":      thumbs(body, id)
         case "picture":     picture(body, id)
         case "copies":      copies(body, id)
+        case "activity":    activity(id)
+        case "monitor":     openActivityMonitor()
         case "stop":        stop(body, id)
         case "setConfig":   remember(body)
         case "settings":    reply(id, settings())
@@ -456,9 +462,18 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
             self.changing = false
             // Only the line nimo already wrote — no second opinion.
             if let done = Web.firstGood(result.text) {
-                Word.say(title, done)
+                Word.say(title, done.replacingOccurrences(of: " — ", with: ": "))
             }
         }
+    }
+
+    /// A question as a Mac asks it: the first line bold, the rest under it.
+    private static func head(of question: String) -> String {
+        question.components(separatedBy: "\n\n").first ?? question
+    }
+
+    private static func rest(of question: String) -> String {
+        question.components(separatedBy: "\n\n").dropFirst().joined(separator: "\n\n")
     }
 
     private static func firstGood(_ text: String) -> String? {
@@ -533,7 +548,7 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
             }
             return
         }
-        confirm(item.verb, question) { yes in
+        confirm(Web.head(of: question), Web.rest(of: question), button: item.verb) { yes in
             guard yes else {
                 self.reply(id, ["cancelled": true])
                 return
@@ -565,7 +580,7 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
             }
             return
         }
-        confirm(one.title, question) { yes in
+        confirm(Web.head(of: question), Web.rest(of: question), button: one.title) { yes in
             guard yes else {
                 self.reply(id, ["cancelled": true])
                 return
@@ -631,9 +646,8 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
             return
         }
         confirm("Tidy " + said + "?",
-                "Everything loose in them moves into one folder each, sorted by what it is. "
-                + "Nothing is deleted, nothing is renamed, and nothing outside those folders is touched.\n\n"
-                + "\"Put it all back\" reverses every one of these moves.") { yes in
+                "Files move into a Tidy folder in each, sorted by type. Nothing is deleted or renamed.\n\n"
+                + "You can undo this at any time.", button: "Tidy") { yes in
             guard yes else {
                 self.reply(id, ["cancelled": true])
                 return
@@ -730,7 +744,10 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
             reply(id, ["ok": false, "text": ""])
             return
         }
-        read(["duplicates", name], id)
+        // The whole path: nimo checks a relative one against your home and
+        // refuses it, and the page would have said "no duplicates".
+        let folder = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(name).path
+        read(["duplicates", folder], id)
     }
 
     /// A picture in that folder the page may see drawn: one plain name, a
@@ -819,6 +836,146 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         return data as Data
     }
 
+    // MARK: what the Mac is doing
+
+    /// The processor, the memory, and the apps using the most of either.
+    /// Read, never touched: nothing here can stop, slow or quit anything.
+    private func activity(_ id: Int) {
+        let before = lastTicks
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            var start = before
+            if start == nil {
+                // A first look has nothing to compare with, so it takes two.
+                start = Web.cpuTicks()
+                Thread.sleep(forTimeInterval: 0.3)
+            }
+            let now = Web.cpuTicks()
+            var cpu = 0.0
+            if let a = start, let b = now, b.total > a.total, b.busy >= a.busy {
+                cpu = Double(b.busy - a.busy) / Double(b.total - a.total) * 100
+            }
+            let memory = Web.memory()
+            let apps = Web.apps()
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                if let now = now { self.lastTicks = now }
+                var list: [[String: Any]] = []
+                for app in apps.prefix(60) {
+                    var one: [String: Any] = ["name": app.name, "cpu": app.cpu, "memory": app.memory, "count": app.count]
+                    if let bundle = app.bundle { one["icon"] = self.icon(bundle) }
+                    list.append(one)
+                }
+                self.reply(id, [
+                    "cpu": cpu.isFinite ? min(100, max(0, cpu)) : 0,
+                    "cores": ProcessInfo.processInfo.activeProcessorCount,
+                    "memory": ["used": memory.used, "total": ProcessInfo.processInfo.physicalMemory],
+                    "apps": list,
+                ])
+            }
+        }
+    }
+
+    /// Apple's own Activity Monitor, for anything more than this.
+    private func openActivityMonitor() {
+        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.ActivityMonitor") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    /// The machine's one host port, asked for once rather than on every look.
+    private static let host = mach_host_self()
+
+    /// How long the processors have spent busy, and in all, since the Mac
+    /// started. Two of these, a moment apart, are how busy it is now.
+    private static func cpuTicks() -> (busy: UInt64, total: UInt64)? {
+        var info = host_cpu_load_info_data_t()
+        var count = mach_msg_type_number_t(MemoryLayout<host_cpu_load_info_data_t>.size / MemoryLayout<integer_t>.size)
+        let result = withUnsafeMutablePointer(to: &info) { pointer in
+            pointer.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                host_statistics(Web.host, HOST_CPU_LOAD_INFO, $0, &count)
+            }
+        }
+        guard result == KERN_SUCCESS else { return nil }
+        let user = UInt64(info.cpu_ticks.0), system = UInt64(info.cpu_ticks.1)
+        let idle = UInt64(info.cpu_ticks.2), nice = UInt64(info.cpu_ticks.3)
+        return (user + system + nice, user + system + idle + nice)
+    }
+
+    /// Memory in use, counted the way Activity Monitor counts it: what apps
+    /// hold, what the system has wired down, and what is compressed.
+    private static func memory() -> (used: UInt64, total: UInt64) {
+        let total = ProcessInfo.processInfo.physicalMemory
+        var info = vm_statistics64_data_t()
+        var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64_data_t>.size / MemoryLayout<integer_t>.size)
+        let result = withUnsafeMutablePointer(to: &info) { pointer in
+            pointer.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                host_statistics64(Web.host, HOST_VM_INFO64, $0, &count)
+            }
+        }
+        guard result == KERN_SUCCESS else { return (0, total) }
+        let page = UInt64(getpagesize())
+        let apps = UInt64(info.internal_page_count) > UInt64(info.purgeable_count)
+            ? UInt64(info.internal_page_count) - UInt64(info.purgeable_count) : 0
+        let used = (apps + UInt64(info.wire_count) + UInt64(info.compressor_page_count)) * page
+        return (min(used, total), total)
+    }
+
+    /// Every process, from `ps`, gathered into the app it belongs to: a
+    /// browser is one line with its helpers in it, not forty.
+    private static func apps() -> [(name: String, bundle: String?, cpu: Double, memory: UInt64, count: Int)] {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/ps")
+        task.arguments = ["-A", "-o", "pcpu=,rss=,comm="]
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = FileHandle.nullDevice
+        guard (try? task.run()) != nil else { return [] }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        task.waitUntilExit()
+
+        var byName: [String: (name: String, bundle: String?, cpu: Double, memory: UInt64, count: Int)] = [:]
+        for line in String(decoding: data, as: UTF8.self).split(separator: "\n") {
+            let parts = line.split(separator: " ", maxSplits: 2, omittingEmptySubsequences: true)
+            guard parts.count == 3, let cpu = Double(parts[0]), let kilobytes = UInt64(parts[1]) else { continue }
+            let path = String(parts[2])
+            var bundle: String?
+            var name = (path as NSString).lastPathComponent
+            if let range = path.range(of: ".app/") {
+                let root = String(path[..<range.lowerBound]) + ".app"
+                bundle = root
+                name = ((root as NSString).lastPathComponent as NSString).deletingPathExtension
+            }
+            if name.isEmpty { continue }
+            let key = bundle ?? name
+            var one = byName[key] ?? (name: name, bundle: bundle, cpu: 0, memory: 0, count: 0)
+            one.cpu += cpu.isFinite ? cpu : 0
+            one.memory += kilobytes * 1024
+            one.count += 1
+            byName[key] = one
+        }
+        return byName.values.sorted { $0.memory > $1.memory }
+    }
+
+    /// An app's own picture, small, drawn once and kept.
+    private func icon(_ bundle: String) -> String {
+        if let done = icons[bundle] { return done }
+        var out = ""
+        let image = NSWorkspace.shared.icon(forFile: bundle)
+        if let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 64, pixelsHigh: 64,
+                                      bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                      colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0) {
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+            image.draw(in: NSRect(x: 0, y: 0, width: 64, height: 64))
+            NSGraphicsContext.restoreGraphicsState()
+            if let png = rep.representation(using: .png, properties: [:]) {
+                out = "data:image/png;base64," + png.base64EncodedString()
+            }
+        }
+        icons[bundle] = out
+        return out
+    }
+
     /// Stopping one thing from starting at sign-in, by the name nimo listed.
     private func stop(_ body: [String: Any], _ id: Int) {
         guard let name = words(body, "name"), !name.isEmpty, name.count <= 200,
@@ -827,10 +984,9 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
             reply(id, ["cancelled": true])
             return
         }
-        confirm("Stop \(name) from starting?",
-                "It is not uninstalled. It stops launching itself when you sign in, "
-                + "and Put it all back reverses that.",
-                button: "Stop it") { yes in
+        confirm("Stop \(name) from opening at login?",
+                "Nothing is uninstalled, and you can undo this.",
+                button: "Stop") { yes in
             guard yes else {
                 self.reply(id, ["cancelled": true])
                 return
@@ -877,10 +1033,9 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
             reply(id, [:])
             return
         }
-        confirm("Turn on Full Disk Access for Kliner",
-                "Settings will open on the right page. Switch Kliner on in the list, then come "
-                + "back — it will stop asking about folders one at a time.\n\n"
-                + "Nothing else changes: Kliner still only reads inside your home folder.",
+        confirm("Turn on Full Disk Access?",
+                "System Settings opens on the right page. Switch on Kliner there, then come back.\n\n"
+                + "Kliner still only reads your home folder.",
                 button: "Open Settings", cancel: "Not now") { yes in
             if yes { Access.settings("Privacy_AllFiles") }
             self.reply(id, [:])
