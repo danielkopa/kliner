@@ -614,9 +614,11 @@ function drawPage(still) {
     else {
         const kept = K.kept[i];
         if (!kept) { drawWaiting(i); return; }
+        stopWaiting();
         if (i === 0) drawHome(out, kept);
         else drawAction(out, i, kept);
     }
+    stopWaiting();
     page.replaceChildren(out);
     if (K.scrollTo) {
         const to = out.querySelector(K.scrollTo);
@@ -627,7 +629,27 @@ function drawPage(still) {
     reportChrome();
 }
 
+/** The waiting screen waits its turn. A reading that lands in a tenth of a
+ *  second used to flash this over the page and take it away again, which
+ *  reads as the window blinking at you. It only appears if the wait is long
+ *  enough to be worth telling you about. */
+let waitTimer = 0;
+function stopWaiting() { clearTimeout(waitTimer); waitTimer = 0; }
+
 function drawWaiting(i, what) {
+    stopWaiting();
+    // Nothing on the page yet: there is nothing to flash over, so it goes up
+    // at once. Otherwise it waits, and usually never arrives.
+    const page = $('#page');
+    if (!page) return;
+    if (page.firstChild) {
+        waitTimer = setTimeout(() => { waitTimer = 0; paintWaiting(i, what); }, 220);
+        return;
+    }
+    paintWaiting(i, what);
+}
+
+function paintWaiting(i, what) {
     const page = $('#page');
     if (!page) return;
     const name = what || (isAction(i) ? pages()[i].title.toLowerCase() : '');
