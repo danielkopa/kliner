@@ -1209,6 +1209,9 @@ svg.ring text { transition: opacity .2s ease; }
 .hello-eyes .eyes-mark { width: 150px; height: 110px; margin: 0 auto; }
 .enter .hello-eyes .eyes-mark { animation: pop .7s cubic-bezier(.2,1.5,.35,1) both; }
 
+/* drawn while the window was minimised: no animation, nothing hidden */
+.still, .still *, .still *::before, .still *::after { animation: none !important; }
+
 </style>
 </head>
 <body>
@@ -2069,7 +2072,11 @@ function drawPage(still) {
     const page = $('#page');
     if (!page) return;
     const i = K.page;
-    const out = h('div', { class: still ? '' : 'arrive' });
+    // A window that is minimised or behind everything else stops painting,
+    // and an animation that has not run leaves what it animates invisible.
+    // So a page drawn out of sight is drawn without any of them.
+    const asleep = document.hidden;
+    const out = h('div', { class: (still || asleep ? '' : 'arrive') + (asleep ? ' still' : '') });
 
     if (i !== ACTIVITY()) stopActivity();
     if (i === SETTINGS()) drawSettings(out);
@@ -4105,6 +4112,13 @@ document.addEventListener('keydown', e => {
     }
 });
 document.addEventListener('contextmenu', e => e.preventDefault());
+
+/* and when the window comes back, everything drawn while it was away is
+   simply there, without replaying anything */
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    for (const el of document.querySelectorAll('.still')) el.classList.remove('still');
+});
 
 /* ── what the app says to the window ──────────────────────────────────── */
 
