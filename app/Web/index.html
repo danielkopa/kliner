@@ -317,11 +317,8 @@ svg { display: block; }
          background: var(--card), var(--well); border: 1px solid var(--line);
          box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
          transition: border-color .2s ease, transform .2s ease; overflow: hidden; }
-.panel::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; opacity: 0;
-                background: radial-gradient(120% 140% at 0% 0%, var(--glow), transparent 60%);
-                transition: opacity .25s ease; }
-.panel:hover::after { opacity: 1; }
-.panel:hover { border-color: var(--line-2); }
+/* A card that does nothing does nothing under the mouse either. Only the
+   ones you can press answer to it, and only with their edge. */
 .panel > .c { display: none; }
 .panel.go { cursor: pointer; }
 .panel.go:hover { border-color: var(--line-2); }
