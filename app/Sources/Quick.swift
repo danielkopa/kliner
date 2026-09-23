@@ -528,13 +528,23 @@ final class Quick: NSObject, NSTextFieldDelegate {
 
     private func matching(_ typed: String) -> [Entry] {
         let want = typed.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let all = entries
+        let all: [Entry] = entries
         guard !want.isEmpty else { return Array(all.prefix(12)) }
-        let hits = all.map { ($0, score($0, want)) }
-            .filter { $0.1 > 0 }
-            .sorted { a, b in a.1 == b.1 ? a.0.index < b.0.index : a.1 > b.1 }
-            .map { $0.0 }
-        return Array(hits.prefix(9))
+        // Written out instead of chained. The chained version reads better
+        // and swiftc gives up on it: "unable to type-check this expression
+        // in reasonable time". A loop compiles in no time and does the same.
+        var hits: [(entry: Entry, mark: Int)] = []
+        for entry in all {
+            let mark: Int = score(entry, want)
+            if mark > 0 { hits.append((entry: entry, mark: mark)) }
+        }
+        hits.sort { (a: (entry: Entry, mark: Int), b: (entry: Entry, mark: Int)) -> Bool in
+            if a.mark != b.mark { return a.mark > b.mark }
+            return a.entry.index < b.entry.index
+        }
+        var out: [Entry] = []
+        for hit in hits.prefix(9) { out.append(hit.entry) }
+        return out
     }
 
     private func fill(_ typed: String) {
