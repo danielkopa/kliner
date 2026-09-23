@@ -79,6 +79,13 @@ nimo_buckets_in() {
 nimo_kind_set() {
     local path="$1" name ext
 
+    # An app is a folder with a name macOS treats as one thing. Tested before
+    # the folder test, so a desktop full of apps sorts into Apps rather than
+    # disappearing into Folders with the rest.
+    case "$path" in
+        *.app|*.APP) NIMO_KIND=Apps; return 0 ;;
+    esac
+
     if [ -d "$path" ]; then
         NIMO_KIND=Folders
         return 0
@@ -458,6 +465,22 @@ nimo_cmd_downloads() {
     down=$(nimo_downloads_dir)
     nimo_sort_folder "$down" "your downloads" \
         "$down/$NIMO_TIDY_DIR_NAME" downloads
+}
+
+nimo_cmd_documents() {
+    if [ "${NIMO_UNDO:-0}" = "1" ]; then
+        nimo_sort_undo documents
+        return 0
+    fi
+    nimo_header
+    local docs="$HOME/Documents"
+    if [ ! -d "$docs" ]; then
+        nimo_warn "there is no Documents folder in your home"
+        nimo_blank
+        return 0
+    fi
+    nimo_sort_folder "$docs" "your documents" \
+        "$docs/$NIMO_TIDY_DIR_NAME" documents
 }
 
 # Screenshots end up wherever they were taken. This gathers them from the

@@ -401,10 +401,10 @@ struct Action {
 
     static let places: [Place] = [
         Place(title: "Home", symbol: "house", holds: [0]),
-        Place(title: "Desk", symbol: "square.grid.2x2", holds: [1, 2]),
-        Place(title: "Screen", symbol: "display", holds: [3, 4, 5]),
-        Place(title: "Disk", symbol: "internaldrive", holds: [6, 7]),
-        Place(title: "Computer", symbol: "cpu", holds: [8, 9]),
+        Place(title: "Desk", symbol: "square.grid.2x2", holds: [1, 2, 3]),
+        Place(title: "Screen", symbol: "display", holds: [4, 5, 6]),
+        Place(title: "Disk", symbol: "internaldrive", holds: [7, 8]),
+        Place(title: "Computer", symbol: "cpu", holds: [9, 10]),
     ]
 
     /// Which place a page belongs to.
@@ -471,6 +471,19 @@ struct Action {
                extras: [Extra(title: "Undo", arguments: ["downloads", "--undo"], asks: putBack,
                               symbol: "arrow.uturn.backward")],
                reveal: "Downloads"),
+
+        Action(title: "Documents",
+               blurb: "Sorts loose files in your Documents folder into Documents/Tidy by type. Nothing is deleted or renamed.",
+               verb: "Tidy documents",
+               arguments: ["documents"],
+               asks: "Tidy your Documents folder?\n\nLoose files move into Documents/Tidy, sorted by type. Folders you made stay where they are, nothing is deleted, and you can undo it.",
+               group: "Your desk",
+               symbol: "doc.text",
+               does: "tray.and.arrow.down",
+               counts: "items in Documents",
+               extras: [Extra(title: "Undo", arguments: ["documents", "--undo"], asks: putBack,
+                              symbol: "arrow.uturn.backward")],
+               reveal: "Documents"),
 
         Action(title: "Wallpaper",
                blurb: "Switch between the wallpapers that come with your Mac. Nothing is downloaded.",

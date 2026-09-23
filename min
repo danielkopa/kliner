@@ -89,6 +89,7 @@ nimo_usage() {
 
     min desktop         clear your desktop, nothing lost
     min downloads       the same, for your downloads
+    min documents       the same, for your Documents folder
     min screenshots     gather every loose screenshot into one place
     min zen             stop drawing icons on the desktop at all
     min dark            switch appearance, min light switches back
@@ -166,7 +167,7 @@ nimo_read_config
 # --- argument parsing ----------------------------------------------------
 while [ $# -gt 0 ]; do
     case "$1" in
-        clear|clean|preview|setup|top|doctor|update|tidy|desktop|downloads|screenshots|zen|dark|light|hide|duplicates|apps|startup|empty|blank|dock|wallpaper|next|prev|undo|menu|help|version)
+        clear|clean|preview|setup|top|doctor|update|tidy|desktop|downloads|documents|screenshots|zen|dark|light|hide|duplicates|apps|startup|empty|blank|dock|wallpaper|next|prev|undo|menu|help|version)
             if [ -z "$NIMO_COMMAND" ]; then
                 NIMO_COMMAND="$1"
             elif [ -z "$NIMO_TARGET" ]; then
@@ -295,6 +296,7 @@ nimo_dispatch() {
         tidy)      nimo_cmd_tidy ;;
         desktop)   nimo_cmd_desktop ;;
         downloads) nimo_cmd_downloads ;;
+        documents) nimo_cmd_documents ;;
         screenshots) nimo_cmd_screenshots ;;
         zen)       nimo_cmd_zen ;;
         dark)      nimo_cmd_dark ;;

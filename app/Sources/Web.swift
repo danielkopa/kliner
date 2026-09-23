@@ -600,7 +600,8 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         var pages: [Int] = []
         for index in asked where Action.all.indices.contains(index) && !pages.contains(index) {
             let first = Action.all[index].arguments.first ?? ""
-            if first == "desktop" || first == "downloads" { pages.append(index) }
+            // the three folders Kliner sorts, and the caches it clears
+            if ["desktop", "downloads", "documents", "clean"].contains(first) { pages.append(index) }
         }
         guard !pages.isEmpty else {
             reply(id, ["cancelled": true])
@@ -648,9 +649,12 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
             work(false)
             return
         }
-        confirm("Tidy " + said + "?",
-                "Files move into a Tidy folder in each, sorted by type. Nothing is deleted or renamed.\n\n"
-                + "You can undo this at any time.", button: "Tidy") { yes in
+        let clears = pages.contains { (Action.all[$0].arguments.first ?? "") == "clean" }
+        confirm("Clean " + said + "?",
+                (clears
+                    ? "Files move into a Tidy folder in each, sorted by type, and the caches your apps can rebuild are deleted. Your own files are never deleted.\n\n"
+                    : "Files move into a Tidy folder in each, sorted by type. Nothing is deleted or renamed.\n\n")
+                + "You can undo every move at any time.", button: "Clean") { yes in
             guard yes else {
                 self.reply(id, ["cancelled": true])
                 return
