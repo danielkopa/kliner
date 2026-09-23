@@ -378,6 +378,14 @@ svg { display: block; }
 .list .l span.v { margin-left: auto; color: var(--ink); white-space: nowrap; }
 
 /* ── nothing is deleted ─────────────────────────────────────────────── */
+.shut { display: flex; align-items: center; gap: 14px; margin: 0 0 16px; padding: 14px 16px;
+    border: 1px solid var(--line-2); border-radius: 12px; background: var(--raise); }
+.shut > .ic { width: 20px; height: 20px; color: var(--ink); flex: none; }
+.shut .say { display: grid; gap: 2px; min-width: 0; }
+.shut .say b { font-size: 13.5px; font-weight: 550; }
+.shut .say span { font-size: 12.5px; color: var(--muted); }
+.shut .btn { margin-left: auto; flex: none; }
+.clear .tick.lock { color: var(--ink); }
 .promise { margin-top: 18px; text-align: center; }
 .promise .promise-mark { width: 54px; height: 40px; margin: 0 auto 12px; }
 .promise .marks { display: flex; justify-content: center; margin-bottom: 14px; }

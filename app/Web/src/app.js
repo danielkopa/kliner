@@ -842,6 +842,35 @@ function drawHome(out, kept) {
     out.append(four);
 }
 
+/** macOS keeps Desktop, Downloads and Documents behind a permission. Until
+ *  it is given, those folders read as empty and every page over them looks
+ *  broken, so Kliner says which of the two it is. */
+function shut(i) {
+    const seen = K.meta && K.meta.seeing;
+    const k = kind(i);
+    return !!(seen && k in seen && seen[k] === false);
+}
+
+/** Ask macOS again. Reading the folder is the question, so this either
+ *  raises its prompt or comes straight back with the same answer. */
+async function letItLook() {
+    const reply = await ask('askFolders');
+    if (reply && reply.seeing && K.meta) K.meta.seeing = reply.seeing;
+    for (const n of Object.keys(K.kept)) delete K.kept[n];
+    K.listing = {};
+    look(K.page, true);
+}
+
+function shutNote(i) {
+    const name = (pages()[i] ? pages()[i].title : 'that folder');
+    return h('div', { class: 'shut' },
+        icon('shield'),
+        h('div', { class: 'say' },
+            h('b', null, 'macOS has not let Kliner look at ' + name + ' yet.'),
+            h('span', null, 'Until it does, this folder reads as empty. Allow it and everything here works.')),
+        h('button', { class: 'btn fill', onclick: letItLook }, 'Allow'));
+}
+
 /** Clean my Mac: the three folders Kliner sorts and the caches it clears,
  *  in one run, with one question in front of it. */
 function cleanSweep() {
@@ -860,8 +889,12 @@ function typesCard(i, title_) {
         if (!body.isConnected) return;
         const files = items.filter(countedByNimo);
         if (!files.length) {
-            body.replaceChildren(h('div', { class: 'clear' }, h('span', { class: 'tick' }, icon('check')),
-                h('div', null, h('b', null, 'Nothing in it.'), h('span', null, 'This folder is empty, or macOS has not let Kliner look yet.'))));
+            body.replaceChildren(shut(i)
+                ? h('div', { class: 'clear' }, h('span', { class: 'tick lock' }, icon('shield')),
+                    h('div', null, h('b', null, 'macOS has not let Kliner look yet.'),
+                      h('span', null, 'Allow it on the ' + pages()[i].title + ' page and this fills in.')))
+                : h('div', { class: 'clear' }, h('span', { class: 'tick' }, icon('check')),
+                    h('div', null, h('b', null, 'Nothing in it.'), h('span', null, 'This folder is empty.'))));
             return;
         }
         const by = new Map();
@@ -1174,6 +1207,7 @@ function head(i, extraActs) {
 function drawAction(out, i, kept, bodyOnly) {
     if (!bodyOnly) out.append(head(i));
     if (!bodyOnly && K.preview && (pages()[i].asks || !pages()[i].looksOnly)) out.append(looking());
+    if (!bodyOnly && shut(i)) out.append(shutNote(i));
     const k = kind(i);
     let pieces = kept.pieces || [];
     if (kept.result) {

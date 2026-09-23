@@ -446,7 +446,21 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         out["places"] = places
         out["starts"] = starts
         out["gates"] = gates
+        out["seeing"] = Web.seeing()
         if let last = Web.lastLookBack() { out["lastLook"] = last }
+        return out
+    }
+
+    /// Which of the folders Kliner sorts macOS is letting it look at. The
+    /// read is the question: the first one raises macOS's own prompt, and
+    /// after that it just answers. A page that finds nothing in a folder
+    /// says which of the two it is instead of guessing.
+    private static func seeing() -> [String: Bool] {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        var out: [String: Bool] = [:]
+        out["desktop"] = Access.may(home.appendingPathComponent("Desktop"))
+        out["downloads"] = Access.may(home.appendingPathComponent("Downloads"))
+        out["documents"] = Access.may(home.appendingPathComponent("Documents"))
         return out
     }
 
@@ -1239,7 +1253,8 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         for gate in Web.gates {
             if let folder = gate.folder { Access.may(folder) }
         }
-        reply(id, ["folders": Access.may(Access.desktop) && Access.may(Access.downloads)])
+        reply(id, ["folders": Access.may(Access.desktop) && Access.may(Access.downloads),
+                   "seeing": Web.seeing()])
     }
 
     /// One of the introduction's questions to macOS, and what it answered.
