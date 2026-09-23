@@ -379,6 +379,7 @@ svg { display: block; }
 
 /* ── nothing is deleted ─────────────────────────────────────────────── */
 .promise { margin-top: 18px; text-align: center; }
+.promise .promise-mark { width: 54px; height: 40px; margin: 0 auto 12px; }
 .promise .marks { display: flex; justify-content: center; margin-bottom: 14px; }
 .promise .marks span { width: 36px; height: 36px; border-radius: 50%; background: var(--sel);
     border: 2px solid var(--bg); display: grid; place-items: center; margin-left: -9px; color: var(--muted); }
@@ -540,11 +541,7 @@ svg { display: block; }
 
 /* ── waiting ────────────────────────────────────────────────────────── */
 .wait { display: grid; place-items: center; padding: 70px 0 30px; text-align: center; }
-.wait .mascot { width: 72px; height: 72px; }
-.wait .mascot .body { fill: var(--ink); }
-.wait .mascot .eye { fill: var(--bg); }
-.wait .mascot g.eyes { transform-origin: 50px 38px; animation: look 2.8s ease-in-out infinite; }
-.wait .mascot g.whole { transform-origin: 50px 90px; animation: bob 1.6s ease-in-out infinite; }
+.wait .waiting { width: 72px; height: 54px; }
 @keyframes look { 0%, 100% { transform: translateX(0) } 30% { transform: translateX(-3px) } 60% { transform: translateX(3px) } 82% { transform: translateX(0) scaleY(.1) } 86% { transform: translateX(0) scaleY(1) } }
 @keyframes bob { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
 .wait h3 { margin-top: 16px; font-size: 14px; font-weight: 500; }
@@ -595,9 +592,7 @@ svg { display: block; }
 /* ── the first minute ───────────────────────────────────────────────── */
 .welcome { min-height: 100%; display: grid; grid-template-columns: 300px minmax(0,1fr); }
 .welcome .side { border-right: 1px solid var(--line); padding: 64px 32px 32px; display: flex; flex-direction: column; gap: 18px; }
-.welcome .side .mascot { width: 64px; height: 64px; }
-.welcome .side .mascot .body { fill: var(--ink); }
-.welcome .side .mascot .eye { fill: var(--bg); }
+.welcome .side .eyes-mark { width: 60px; height: 44px; }
 .welcome .side p { color: var(--muted); font-size: 12.5px; max-width: 30ch; }
 .welcome .steps { display: grid; gap: 6px; margin-top: 8px; }
 .welcome .steps div { display: flex; align-items: center; gap: 10px; color: var(--faint); font-size: 12.5px; }
@@ -691,9 +686,7 @@ svg { display: block; }
 /* ── Home's first card: what there is to do, in one sentence ─────────── */
 .hero { display: grid; grid-template-columns: 64px minmax(0,1fr) auto; gap: 18px; align-items: center; padding: 20px 22px;
         background: radial-gradient(120% 160% at 0% 0%, var(--glow), transparent 55%), var(--card), var(--well); }
-.hero .face-big { width: 64px; height: 64px; }
-.hero .face-big .body { fill: var(--ink); }
-.hero .face-big .eye { fill: var(--bg); }
+.hero .hero-mark { width: 68px; height: 50px; align-self: center; }
 .hero h2 { font-size: 22px; font-weight: 500; letter-spacing: -.02em; line-height: 1.2; text-wrap: balance; color: var(--muted); }
 .hero h2 em { font-style: normal; color: var(--ink); font-weight: 600; }
 .hero p { margin-top: 5px; color: var(--muted); font-size: 13px; }
@@ -786,7 +779,7 @@ svg.ring text { transition: opacity .2s ease; }
 .more { margin-top: 12px; color: var(--faint); font-size: 12px; }
 
 /* the face watches */
-.face svg .eyes, .hero .face-big .eyes { transition: transform .12s ease-out; transform-origin: 50px 38px; }
+.face svg .eyes { transition: transform .12s ease-out; transform-origin: 50px 38px; }
 
 /* bottom cards: two by two until there is real room for four */
 @media (max-width: 1500px) {

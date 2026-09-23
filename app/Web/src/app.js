@@ -619,7 +619,7 @@ function drawWaiting(i, what) {
         : kind(i) === 'clean' ? 'Looking for caches…'
         : `Looking at ${name}…`;
     page.replaceChildren(h('div', { class: 'wait' },
-        mascot('mascot'),
+        eyesMark('waiting'),
         h('h3', null, line),
         h('p', null, kind(i) === 'top' && !what ? 'Measuring every folder in your home takes about a minute. Nothing changes while Kliner looks.'
             : 'Nothing changes while Kliner looks.'),
@@ -762,7 +762,7 @@ function drawHome(out, kept) {
     if (bits.length) sentence.append('.');
     const sweep = cleanSweep();
     out.append(panel('hero',
-        mascot('face-big'),
+        eyesMark('hero-mark'),
         h('div', null, h('p', { style: 'margin:0 0 4px' }, greeting()), sentence,
           h('p', null, 'Nothing has changed yet. Kliner asks before it does anything, and every move can be undone.')),
         h('div', { class: 'acts' },
@@ -1287,7 +1287,7 @@ function banner(pieces, kept, i) {
 
 function drawReady(out, i) {
     out.append(panel('', h('div', { class: 'promise' },
-        mascot('mascot'),
+        eyesMark('promise-mark'),
         h('h4', { style: 'margin-top:12px' }, 'Ready when you are.'),
         h('p', null, 'Nothing happens until you press ' + pages()[i].verb + '.'))));
 }
@@ -2108,7 +2108,7 @@ function wallFolder() {
 function drawWalls(out, i, pieces) {
     const now = pieces.find(p => p.k === 'good');
     if (!K.walls) {
-        out.append(panel('', h('div', { class: 'promise' }, mascot('mascot'),
+        out.append(panel('', h('div', { class: 'promise' }, eyesMark('promise-mark'),
             h('h4', { style: 'margin-top:12px' }, 'Ready when you are.'),
             h('p', null, 'Nothing changes until you press Next.'))));
         return;
@@ -2536,7 +2536,7 @@ function drawWelcome() {
     } else {
         const name = (w.name || '').trim();
         card.append(
-            h('div', { class: 'hello-face happy' }, mascot('face-big')),
+            h('div', { class: 'hello-eyes happy' }, eyesMark()),
             h('h1', null, name ? `You’re all set, ${name}.` : 'You’re all set.'),
             h('p', { class: 'lead' }, 'Kliner lives in your menu bar. Press ⌘K anywhere to open it.'));
         primary = h('button', { class: 'btn fill large', onclick: finishWelcome }, 'Open Kliner', icon('right'));
@@ -2685,7 +2685,7 @@ window.kliner = {
 async function boot() {
     const meta = await ask('boot');
     if (!meta || meta.missing || !meta.pages) {
-        $('#app').replaceChildren(h('div', { class: 'wait', style: 'grid-column:1/-1' }, mascot('mascot'),
+        $('#app').replaceChildren(h('div', { class: 'wait', style: 'grid-column:1/-1' }, eyesMark('waiting'),
             h('h3', null, 'Open this from the Kliner app.'),
             h('p', null, 'This page is part of Kliner and does not work on its own.')));
         return;

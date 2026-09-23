@@ -389,6 +389,7 @@ svg { display: block; }
 
 /* ── nothing is deleted ─────────────────────────────────────────────── */
 .promise { margin-top: 18px; text-align: center; }
+.promise .promise-mark { width: 54px; height: 40px; margin: 0 auto 12px; }
 .promise .marks { display: flex; justify-content: center; margin-bottom: 14px; }
 .promise .marks span { width: 36px; height: 36px; border-radius: 50%; background: var(--sel);
     border: 2px solid var(--bg); display: grid; place-items: center; margin-left: -9px; color: var(--muted); }
@@ -550,11 +551,7 @@ svg { display: block; }
 
 /* ── waiting ────────────────────────────────────────────────────────── */
 .wait { display: grid; place-items: center; padding: 70px 0 30px; text-align: center; }
-.wait .mascot { width: 72px; height: 72px; }
-.wait .mascot .body { fill: var(--ink); }
-.wait .mascot .eye { fill: var(--bg); }
-.wait .mascot g.eyes { transform-origin: 50px 38px; animation: look 2.8s ease-in-out infinite; }
-.wait .mascot g.whole { transform-origin: 50px 90px; animation: bob 1.6s ease-in-out infinite; }
+.wait .waiting { width: 72px; height: 54px; }
 @keyframes look { 0%, 100% { transform: translateX(0) } 30% { transform: translateX(-3px) } 60% { transform: translateX(3px) } 82% { transform: translateX(0) scaleY(.1) } 86% { transform: translateX(0) scaleY(1) } }
 @keyframes bob { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
 .wait h3 { margin-top: 16px; font-size: 14px; font-weight: 500; }
@@ -605,9 +602,7 @@ svg { display: block; }
 /* ── the first minute ───────────────────────────────────────────────── */
 .welcome { min-height: 100%; display: grid; grid-template-columns: 300px minmax(0,1fr); }
 .welcome .side { border-right: 1px solid var(--line); padding: 64px 32px 32px; display: flex; flex-direction: column; gap: 18px; }
-.welcome .side .mascot { width: 64px; height: 64px; }
-.welcome .side .mascot .body { fill: var(--ink); }
-.welcome .side .mascot .eye { fill: var(--bg); }
+.welcome .side .eyes-mark { width: 60px; height: 44px; }
 .welcome .side p { color: var(--muted); font-size: 12.5px; max-width: 30ch; }
 .welcome .steps { display: grid; gap: 6px; margin-top: 8px; }
 .welcome .steps div { display: flex; align-items: center; gap: 10px; color: var(--faint); font-size: 12.5px; }
@@ -701,9 +696,7 @@ svg { display: block; }
 /* ── Home's first card: what there is to do, in one sentence ─────────── */
 .hero { display: grid; grid-template-columns: 64px minmax(0,1fr) auto; gap: 18px; align-items: center; padding: 20px 22px;
         background: radial-gradient(120% 160% at 0% 0%, var(--glow), transparent 55%), var(--card), var(--well); }
-.hero .face-big { width: 64px; height: 64px; }
-.hero .face-big .body { fill: var(--ink); }
-.hero .face-big .eye { fill: var(--bg); }
+.hero .hero-mark { width: 68px; height: 50px; align-self: center; }
 .hero h2 { font-size: 22px; font-weight: 500; letter-spacing: -.02em; line-height: 1.2; text-wrap: balance; color: var(--muted); }
 .hero h2 em { font-style: normal; color: var(--ink); font-weight: 600; }
 .hero p { margin-top: 5px; color: var(--muted); font-size: 13px; }
@@ -796,7 +789,7 @@ svg.ring text { transition: opacity .2s ease; }
 .more { margin-top: 12px; color: var(--faint); font-size: 12px; }
 
 /* the face watches */
-.face svg .eyes, .hero .face-big .eyes { transition: transform .12s ease-out; transform-origin: 50px 38px; }
+.face svg .eyes { transition: transform .12s ease-out; transform-origin: 50px 38px; }
 
 /* bottom cards: two by two until there is real room for four */
 @media (max-width: 1500px) {
@@ -2269,7 +2262,7 @@ function drawWaiting(i, what) {
         : kind(i) === 'clean' ? 'Looking for caches…'
         : `Looking at ${name}…`;
     page.replaceChildren(h('div', { class: 'wait' },
-        mascot('mascot'),
+        eyesMark('waiting'),
         h('h3', null, line),
         h('p', null, kind(i) === 'top' && !what ? 'Measuring every folder in your home takes about a minute. Nothing changes while Kliner looks.'
             : 'Nothing changes while Kliner looks.'),
@@ -2412,7 +2405,7 @@ function drawHome(out, kept) {
     if (bits.length) sentence.append('.');
     const sweep = cleanSweep();
     out.append(panel('hero',
-        mascot('face-big'),
+        eyesMark('hero-mark'),
         h('div', null, h('p', { style: 'margin:0 0 4px' }, greeting()), sentence,
           h('p', null, 'Nothing has changed yet. Kliner asks before it does anything, and every move can be undone.')),
         h('div', { class: 'acts' },
@@ -2937,7 +2930,7 @@ function banner(pieces, kept, i) {
 
 function drawReady(out, i) {
     out.append(panel('', h('div', { class: 'promise' },
-        mascot('mascot'),
+        eyesMark('promise-mark'),
         h('h4', { style: 'margin-top:12px' }, 'Ready when you are.'),
         h('p', null, 'Nothing happens until you press ' + pages()[i].verb + '.'))));
 }
@@ -3758,7 +3751,7 @@ function wallFolder() {
 function drawWalls(out, i, pieces) {
     const now = pieces.find(p => p.k === 'good');
     if (!K.walls) {
-        out.append(panel('', h('div', { class: 'promise' }, mascot('mascot'),
+        out.append(panel('', h('div', { class: 'promise' }, eyesMark('promise-mark'),
             h('h4', { style: 'margin-top:12px' }, 'Ready when you are.'),
             h('p', null, 'Nothing changes until you press Next.'))));
         return;
@@ -4186,7 +4179,7 @@ function drawWelcome() {
     } else {
         const name = (w.name || '').trim();
         card.append(
-            h('div', { class: 'hello-face happy' }, mascot('face-big')),
+            h('div', { class: 'hello-eyes happy' }, eyesMark()),
             h('h1', null, name ? `You’re all set, ${name}.` : 'You’re all set.'),
             h('p', { class: 'lead' }, 'Kliner lives in your menu bar. Press ⌘K anywhere to open it.'));
         primary = h('button', { class: 'btn fill large', onclick: finishWelcome }, 'Open Kliner', icon('right'));
@@ -4335,7 +4328,7 @@ window.kliner = {
 async function boot() {
     const meta = await ask('boot');
     if (!meta || meta.missing || !meta.pages) {
-        $('#app').replaceChildren(h('div', { class: 'wait', style: 'grid-column:1/-1' }, mascot('mascot'),
+        $('#app').replaceChildren(h('div', { class: 'wait', style: 'grid-column:1/-1' }, eyesMark('waiting'),
             h('h3', null, 'Open this from the Kliner app.'),
             h('p', null, 'This page is part of Kliner and does not work on its own.')));
         return;
