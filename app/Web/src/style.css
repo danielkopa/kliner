@@ -1320,7 +1320,23 @@ svg.ring text { transition: opacity .2s ease; }
   100.000% { transform: translate(0.2px, -0.1px) scaleY(1.000); }
 }
 .eyes-mark .eyes { transform-origin: 269px 256px; animation: eyesMarkLook 8.07s linear infinite both; }
-@media (prefers-reduced-motion: reduce) { .eyes-mark .eyes { animation: none; } }
+/* The glance is in the film; the blink is not. It goes only where it reads
+   as alive rather than as a twitch: the greeting, the welcome, a page that
+   is waiting for you. Never on the screen that is waiting for the Mac. */
+.eyes-mark .lids { transform-origin: 269px 214px; }
+.eyes-mark.blinks .lids { animation: eyesMarkBlink 6.4s ease-in-out infinite both; }
+@keyframes eyesMarkBlink {
+    0%, 84% { transform: scaleY(1); }
+    86.5%   { transform: scaleY(.06); }
+    89%     { transform: scaleY(1); }
+    93%     { transform: scaleY(1); }
+    95%     { transform: scaleY(.06); }
+    97.5%   { transform: scaleY(1); }
+    100%    { transform: scaleY(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .eyes-mark .eyes, .eyes-mark.blinks .lids { animation: none; }
+}
 
 /* the mark: the eyes, at the top of the rail and on the first screen */
 .rail .logo { padding: 0 20px 14px; }

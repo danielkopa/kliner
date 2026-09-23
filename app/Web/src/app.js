@@ -234,7 +234,9 @@ function reportChrome() {
             const r = el.getBoundingClientRect();
             if (r.width > 0 && r.height > 0 && r.top < 52) holes.push([r.left, r.top, r.width, r.height]);
         }
-        tell('chrome', { height: 52, holes });
+        // the page number rides along: if the page's process is jettisoned
+        // after a long idle, the app draws it again on the page you were on
+        tell('chrome', { height: 52, holes, page: K.page });
     }, 30);
 }
 window.addEventListener('resize', reportChrome);
@@ -762,7 +764,7 @@ function drawHome(out, kept) {
     if (bits.length) sentence.append('.');
     const sweep = cleanSweep();
     out.append(panel('hero',
-        eyesMark('hero-mark'),
+        eyesMark('hero-mark blinks'),
         h('div', null, h('p', { style: 'margin:0 0 4px' }, greeting()), sentence,
           h('p', null, 'Nothing has changed yet. Kliner asks before it does anything, and every move can be undone.')),
         h('div', { class: 'acts' },
@@ -1321,7 +1323,7 @@ function banner(pieces, kept, i) {
 
 function drawReady(out, i) {
     out.append(panel('', h('div', { class: 'promise' },
-        eyesMark('promise-mark'),
+        eyesMark('promise-mark blinks'),
         h('h4', { style: 'margin-top:12px' }, 'Ready when you are.'),
         h('p', null, 'Nothing happens until you press ' + pages()[i].verb + '.'))));
 }
@@ -2142,7 +2144,7 @@ function wallFolder() {
 function drawWalls(out, i, pieces) {
     const now = pieces.find(p => p.k === 'good');
     if (!K.walls) {
-        out.append(panel('', h('div', { class: 'promise' }, eyesMark('promise-mark'),
+        out.append(panel('', h('div', { class: 'promise' }, eyesMark('promise-mark blinks'),
             h('h4', { style: 'margin-top:12px' }, 'Ready when you are.'),
             h('p', null, 'Nothing changes until you press Next.'))));
         return;
@@ -2570,7 +2572,7 @@ function drawWelcome() {
     } else {
         const name = (w.name || '').trim();
         card.append(
-            h('div', { class: 'hello-eyes happy' }, eyesMark()),
+            h('div', { class: 'hello-eyes happy' }, eyesMark('blinks')),
             h('h1', null, name ? `You’re all set, ${name}.` : 'You’re all set.'),
             h('p', { class: 'lead' }, 'Kliner lives in your menu bar. Press ⌘K anywhere to open it.'));
         primary = h('button', { class: 'btn fill large', onclick: finishWelcome }, 'Open Kliner', icon('right'));

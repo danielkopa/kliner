@@ -97,7 +97,7 @@ final class QuickRow: NSView {
 
     /// Every row is this tall. The menu works its own height out rather than
     /// measuring, so this is the one place the number lives.
-    static let tall: CGFloat = 38
+    static let tall: CGFloat = 34
 
     private var lit = false
     private let tile = NSView()
@@ -112,10 +112,10 @@ final class QuickRow: NSView {
         wantsLayer = true
         layer?.cornerRadius = 8
 
-        // The picture sits in a tile of its own. A bare glyph beside a name
-        // is a bullet; a tile is a thing the row is about.
+        // No tile behind the glyph any more: on a list this short it was one
+        // more box to read. The lit row is the only thing that draws itself.
         tile.wantsLayer = true
-        tile.layer?.cornerRadius = 7
+        tile.layer?.cornerRadius = 6
         tile.translatesAutoresizingMaskIntoConstraints = false
         addSubview(tile)
 
@@ -148,15 +148,15 @@ final class QuickRow: NSView {
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: QuickRow.tall),
 
-            tile.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
+            tile.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
             tile.centerYAnchor.constraint(equalTo: centerYAnchor),
-            tile.widthAnchor.constraint(equalToConstant: 26),
-            tile.heightAnchor.constraint(equalToConstant: 26),
+            tile.widthAnchor.constraint(equalToConstant: 20),
+            tile.heightAnchor.constraint(equalToConstant: 20),
 
             mark.centerXAnchor.constraint(equalTo: tile.centerXAnchor),
             mark.centerYAnchor.constraint(equalTo: tile.centerYAnchor),
 
-            name.leadingAnchor.constraint(equalTo: tile.trailingAnchor, constant: 12),
+            name.leadingAnchor.constraint(equalTo: tile.trailingAnchor, constant: 11),
             name.centerYAnchor.constraint(equalTo: centerYAnchor),
             name.trailingAnchor.constraint(lessThanOrEqualTo: figure.leadingAnchor, constant: -12),
 
@@ -202,7 +202,7 @@ final class QuickRow: NSView {
     private func paint() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             self.layer?.backgroundColor = self.lit ? Paint.picked.cgColor : NSColor.clear.cgColor
-            self.tile.layer?.backgroundColor = self.lit ? Paint.hover.cgColor : Paint.track.cgColor
+            self.tile.layer?.backgroundColor = NSColor.clear.cgColor
             self.mark.contentTintColor = self.lit ? Paint.ink : Paint.muted
             self.figure.textColor = self.lit ? Paint.ink : Paint.muted
         }
@@ -213,7 +213,7 @@ final class QuickRow: NSView {
 /// something, then the places you can go: a list of ten with no headings is
 /// ten things to read, and with them it is three.
 final class QuickGroup: NSView {
-    static let tall: CGFloat = 24
+    static let tall: CGFloat = 20
 
     init(_ words: String) {
         super.init(frame: .zero)
@@ -229,7 +229,7 @@ final class QuickGroup: NSView {
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: QuickGroup.tall),
             name.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
-            name.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6),
+            name.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -4),
         ])
     }
 
@@ -272,6 +272,9 @@ final class Quick: NSObject, NSTextFieldDelegate {
     private var listHeight: NSLayoutConstraint?
 
     private var foot: NSTextField?
+    private var footHeight: NSLayoutConstraint?
+    /// One width for the panel, so nothing is 520 in two places.
+    static let wide: CGFloat = 480
     private var rows: [QuickRow] = []
     /// How many headings are in the list. The menu works its own height out
     /// rather than measuring it, so it has to know.
@@ -330,6 +333,7 @@ final class Quick: NSObject, NSTextFieldDelegate {
 
         field?.stringValue = ""
         foot?.stringValue = tail()
+        footHeight?.constant = tail().isEmpty ? 0 : 15
         fill("")
         place()
 
@@ -365,7 +369,7 @@ final class Quick: NSObject, NSTextFieldDelegate {
     private func make() -> MenuPanel {
         if let panel = panel { return panel }
 
-        let panel = MenuPanel(contentRect: NSRect(x: 0, y: 0, width: 520, height: 240),
+        let panel = MenuPanel(contentRect: NSRect(x: 0, y: 0, width: Quick.wide, height: 240),
                               styleMask: [.borderless, .nonactivatingPanel],
                               backing: .buffered, defer: false)
         panel.isOpaque = false
@@ -378,7 +382,7 @@ final class Quick: NSObject, NSTextFieldDelegate {
 
         // Kliner's own card, the colour of the window, not glass: glass takes
         // its colour from whatever wallpaper is behind it.
-        let blur = Surface(Paint.card, round: 14, edged: true)
+        let blur = Surface(Paint.card, round: 12, edged: true)
         blur.translatesAutoresizingMaskIntoConstraints = true
         panel.contentView = blur
 
@@ -414,31 +418,33 @@ final class Quick: NSObject, NSTextFieldDelegate {
         blur.addSubview(foot)
         self.foot = foot
 
-        let height = stack.heightAnchor.constraint(equalToConstant: 38)
+        let height = stack.heightAnchor.constraint(equalToConstant: 34)
         listHeight = height
+        let tall = foot.heightAnchor.constraint(equalToConstant: self.tail().isEmpty ? 0 : 15)
+        footHeight = tall
 
         NSLayoutConstraint.activate([
-            ask.topAnchor.constraint(equalTo: blur.topAnchor, constant: 12),
-            ask.leadingAnchor.constraint(equalTo: blur.leadingAnchor, constant: 16),
-            ask.trailingAnchor.constraint(equalTo: blur.trailingAnchor, constant: -16),
+            ask.topAnchor.constraint(equalTo: blur.topAnchor, constant: 13),
+            ask.leadingAnchor.constraint(equalTo: blur.leadingAnchor, constant: 14),
+            ask.trailingAnchor.constraint(equalTo: blur.trailingAnchor, constant: -14),
             // Said out loud, because the panel's height is worked out below
             // rather than measured, and a guess would leave a gap.
-            ask.heightAnchor.constraint(equalToConstant: 21),
+            ask.heightAnchor.constraint(equalToConstant: 20),
 
-            hair.topAnchor.constraint(equalTo: ask.bottomAnchor, constant: 12),
+            hair.topAnchor.constraint(equalTo: ask.bottomAnchor, constant: 11),
             hair.leadingAnchor.constraint(equalTo: blur.leadingAnchor),
             hair.trailingAnchor.constraint(equalTo: blur.trailingAnchor),
             hair.heightAnchor.constraint(equalToConstant: 1),
 
-            stack.topAnchor.constraint(equalTo: hair.bottomAnchor, constant: 8),
+            stack.topAnchor.constraint(equalTo: hair.bottomAnchor, constant: 6),
             stack.leadingAnchor.constraint(equalTo: blur.leadingAnchor, constant: 8),
             stack.trailingAnchor.constraint(equalTo: blur.trailingAnchor, constant: -8),
             height,
 
-            foot.topAnchor.constraint(equalTo: stack.bottomAnchor, constant: 9),
-            foot.leadingAnchor.constraint(equalTo: blur.leadingAnchor, constant: 16),
-            foot.trailingAnchor.constraint(equalTo: blur.trailingAnchor, constant: -16),
-            foot.heightAnchor.constraint(equalToConstant: 16),
+            foot.topAnchor.constraint(equalTo: stack.bottomAnchor, constant: 8),
+            foot.leadingAnchor.constraint(equalTo: blur.leadingAnchor, constant: 14),
+            foot.trailingAnchor.constraint(equalTo: blur.trailingAnchor, constant: -14),
+            tall,
         ])
 
         // Clicking anywhere else puts it away, the way a menu does.
@@ -454,10 +460,11 @@ final class Quick: NSObject, NSTextFieldDelegate {
 
     /// The line along the bottom: what the window last read, then the keys.
     private func tail() -> String {
-        // What Home last read, then the three keys the menu answers to.
-        let keys = "↑↓ move   ⏎ open   esc close"
-        guard let said = headline, !said.isEmpty else { return keys }
-        return said + "   ·   " + keys
+        // Only what Home last read. The keys used to be printed here too;
+        // ⌘space does not explain itself either, and the line was the
+        // widest thing in the panel.
+        guard let said = headline, !said.isEmpty else { return "" }
+        return said
     }
 
     // MARK: what is in it
@@ -650,14 +657,16 @@ final class Quick: NSObject, NSTextFieldDelegate {
 
     private func resize() {
         guard let panel = panel else { return }
-        // 13 above the line you type in, 22 for the line itself, 12 down to
-        // the hairline, the hairline, 8, the rows, 9, the footer, 12 below.
+        // 13 above the line you type in, 20 for the line itself, 11 down to
+        // the hairline, the hairline, 6, the rows, then the footer if there
+        // is one, and 12 below.
         let count = max(1, rows.count)
-        let height: CGFloat = 12 + 21 + 12 + 1 + 8
+        let said: CGFloat = tail().isEmpty ? 0 : 8 + 15
+        let height: CGFloat = 13 + 20 + 11 + 1 + 6
             + CGFloat(count) * QuickRow.tall + CGFloat(count - 1) * 2
             + CGFloat(heads) * (QuickGroup.tall + 2)
-            + 9 + 16 + 12
-        panel.setContentSize(NSSize(width: 520, height: height))
+            + said + 10
+        panel.setContentSize(NSSize(width: Quick.wide, height: height))
         place()
     }
 

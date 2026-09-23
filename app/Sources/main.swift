@@ -91,7 +91,7 @@ enum Words {
     /// The line you type into in the menu that ⌘K opens. Bigger than the
     /// window's own text, because it is the only thing on its row and the
     /// first thing your eye lands on.
-    static let ask    = face(16, .regular)
+    static let ask    = face(15, .regular)
 
     // ---- the overview, which is read from further away ---------------------
     /// The one number the page is about. Nothing else on the page is this big,

@@ -113,10 +113,15 @@ function icon(name, cls) {
 const EYES = 'M1873 3566 c-198 -48 -367 -231 -430 -466 -26 -95 -23 -316 6 -477 104 -586 322 -1050 506 -1080 l34 -5 -25 88 c-61 218 -86 362 -91 539 -4 138 -2 182 11 235 52 203 147 279 426 340 158 35 183 45 220 85 23 25 25 34 24 118 -1 111 -29 220 -82 322 -47 89 -174 219 -252 258 -113 55 -235 70 -347 43z M3276 3549 c-95 -23 -220 -107 -288 -192 -50 -63 -111 -189 -135 -277 -67 -245 53 -860 242 -1245 92 -188 185 -294 274 -311 31 -7 34 -5 27 12 -20 50 -79 300 -96 408 -22 136 -27 343 -9 428 29 140 119 252 242 301 35 14 122 38 193 53 194 40 234 66 242 157 2 29 -1 86 -7 126 -36 230 -160 410 -347 502 -85 43 -90 44 -193 46 -58 1 -123 -2 -145 -8z';
 
 function eyesMark(cls) {
-    // room round them for the way they move: 40 left and right, 60 below
+    // room round them for the way they move: 40 left and right, 60 below.
+    // Two groups, not one: `eyes` carries the glance traced off the film,
+    // `lids` the blink. A blink on the same group would fight the glance for
+    // the transform, and one of the two would win.
     const svg = s('svg', { class: 'eyes-mark ' + (cls || ''), viewBox: '102 134 334 285', 'aria-hidden': 'true' });
     const eyes = s('g', { class: 'eyes' });
-    eyes.append(s('g', { transform: 'translate(0,512) scale(0.1,-0.1)' }, s('path', { class: 'eye', d: EYES })));
+    const lids = s('g', { class: 'lids' });
+    lids.append(s('g', { transform: 'translate(0,512) scale(0.1,-0.1)' }, s('path', { class: 'eye', d: EYES })));
+    eyes.append(lids);
     svg.append(eyes);
     return svg;
 }

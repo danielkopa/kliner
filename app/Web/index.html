@@ -1330,7 +1330,23 @@ svg.ring text { transition: opacity .2s ease; }
   100.000% { transform: translate(0.2px, -0.1px) scaleY(1.000); }
 }
 .eyes-mark .eyes { transform-origin: 269px 256px; animation: eyesMarkLook 8.07s linear infinite both; }
-@media (prefers-reduced-motion: reduce) { .eyes-mark .eyes { animation: none; } }
+/* The glance is in the film; the blink is not. It goes only where it reads
+   as alive rather than as a twitch: the greeting, the welcome, a page that
+   is waiting for you. Never on the screen that is waiting for the Mac. */
+.eyes-mark .lids { transform-origin: 269px 214px; }
+.eyes-mark.blinks .lids { animation: eyesMarkBlink 6.4s ease-in-out infinite both; }
+@keyframes eyesMarkBlink {
+    0%, 84% { transform: scaleY(1); }
+    86.5%   { transform: scaleY(.06); }
+    89%     { transform: scaleY(1); }
+    93%     { transform: scaleY(1); }
+    95%     { transform: scaleY(.06); }
+    97.5%   { transform: scaleY(1); }
+    100%    { transform: scaleY(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .eyes-mark .eyes, .eyes-mark.blinks .lids { animation: none; }
+}
 
 /* the mark: the eyes, at the top of the rail and on the first screen */
 .rail .logo { padding: 0 20px 14px; }
@@ -1476,10 +1492,15 @@ function icon(name, cls) {
 const EYES = 'M1873 3566 c-198 -48 -367 -231 -430 -466 -26 -95 -23 -316 6 -477 104 -586 322 -1050 506 -1080 l34 -5 -25 88 c-61 218 -86 362 -91 539 -4 138 -2 182 11 235 52 203 147 279 426 340 158 35 183 45 220 85 23 25 25 34 24 118 -1 111 -29 220 -82 322 -47 89 -174 219 -252 258 -113 55 -235 70 -347 43z M3276 3549 c-95 -23 -220 -107 -288 -192 -50 -63 -111 -189 -135 -277 -67 -245 53 -860 242 -1245 92 -188 185 -294 274 -311 31 -7 34 -5 27 12 -20 50 -79 300 -96 408 -22 136 -27 343 -9 428 29 140 119 252 242 301 35 14 122 38 193 53 194 40 234 66 242 157 2 29 -1 86 -7 126 -36 230 -160 410 -347 502 -85 43 -90 44 -193 46 -58 1 -123 -2 -145 -8z';
 
 function eyesMark(cls) {
-    // room round them for the way they move: 40 left and right, 60 below
+    // room round them for the way they move: 40 left and right, 60 below.
+    // Two groups, not one: `eyes` carries the glance traced off the film,
+    // `lids` the blink. A blink on the same group would fight the glance for
+    // the transform, and one of the two would win.
     const svg = s('svg', { class: 'eyes-mark ' + (cls || ''), viewBox: '102 134 334 285', 'aria-hidden': 'true' });
     const eyes = s('g', { class: 'eyes' });
-    eyes.append(s('g', { transform: 'translate(0,512) scale(0.1,-0.1)' }, s('path', { class: 'eye', d: EYES })));
+    const lids = s('g', { class: 'lids' });
+    lids.append(s('g', { transform: 'translate(0,512) scale(0.1,-0.1)' }, s('path', { class: 'eye', d: EYES })));
+    eyes.append(lids);
     svg.append(eyes);
     return svg;
 }
@@ -1885,7 +1906,9 @@ function reportChrome() {
             const r = el.getBoundingClientRect();
             if (r.width > 0 && r.height > 0 && r.top < 52) holes.push([r.left, r.top, r.width, r.height]);
         }
-        tell('chrome', { height: 52, holes });
+        // the page number rides along: if the page's process is jettisoned
+        // after a long idle, the app draws it again on the page you were on
+        tell('chrome', { height: 52, holes, page: K.page });
     }, 30);
 }
 window.addEventListener('resize', reportChrome);
@@ -2413,7 +2436,7 @@ function drawHome(out, kept) {
     if (bits.length) sentence.append('.');
     const sweep = cleanSweep();
     out.append(panel('hero',
-        eyesMark('hero-mark'),
+        eyesMark('hero-mark blinks'),
         h('div', null, h('p', { style: 'margin:0 0 4px' }, greeting()), sentence,
           h('p', null, 'Nothing has changed yet. Kliner asks before it does anything, and every move can be undone.')),
         h('div', { class: 'acts' },
@@ -2972,7 +2995,7 @@ function banner(pieces, kept, i) {
 
 function drawReady(out, i) {
     out.append(panel('', h('div', { class: 'promise' },
-        eyesMark('promise-mark'),
+        eyesMark('promise-mark blinks'),
         h('h4', { style: 'margin-top:12px' }, 'Ready when you are.'),
         h('p', null, 'Nothing happens until you press ' + pages()[i].verb + '.'))));
 }
@@ -3793,7 +3816,7 @@ function wallFolder() {
 function drawWalls(out, i, pieces) {
     const now = pieces.find(p => p.k === 'good');
     if (!K.walls) {
-        out.append(panel('', h('div', { class: 'promise' }, eyesMark('promise-mark'),
+        out.append(panel('', h('div', { class: 'promise' }, eyesMark('promise-mark blinks'),
             h('h4', { style: 'margin-top:12px' }, 'Ready when you are.'),
             h('p', null, 'Nothing changes until you press Next.'))));
         return;
@@ -4221,7 +4244,7 @@ function drawWelcome() {
     } else {
         const name = (w.name || '').trim();
         card.append(
-            h('div', { class: 'hello-eyes happy' }, eyesMark()),
+            h('div', { class: 'hello-eyes happy' }, eyesMark('blinks')),
             h('h1', null, name ? `You’re all set, ${name}.` : 'You’re all set.'),
             h('p', { class: 'lead' }, 'Kliner lives in your menu bar. Press ⌘K anywhere to open it.'));
         primary = h('button', { class: 'btn fill large', onclick: finishWelcome }, 'Open Kliner', icon('right'));

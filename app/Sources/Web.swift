@@ -232,11 +232,19 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         }
     }
 
-    /// If the page's process dies, draw it again rather than leave a blank.
+    /// macOS jettisons a page's process when the app has sat idle for long
+    /// enough. Drawing it again is not enough on its own: it would come back
+    /// on Home, which reads as the window having forgotten where you were.
+    /// The page tells this file its number on every draw, so it comes back
+    /// where you left it.
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
         loaded = false
+        if showing > 0 { owed = showing }
         _ = webView.reload()
     }
+
+    /// The page the window is on, as the page last reported it.
+    private var showing = 0
 
     private func isOurs(_ url: URL) -> Bool {
         guard url.isFileURL else { return false }
@@ -1319,6 +1327,7 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
 
     /// Where the page's title strip is, and which parts of it are buttons.
     private func chrome(_ body: [String: Any]) {
+        if let page = body["page"] as? NSNumber { showing = page.intValue }
         if let height = body["height"] as? NSNumber {
             view.bar = CGFloat(min(max(height.doubleValue, 0), 120))
         }
