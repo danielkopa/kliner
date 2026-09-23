@@ -764,7 +764,7 @@ function drawHome(out, kept) {
     if (bits.length) sentence.append('.');
     const sweep = cleanSweep();
     out.append(panel('hero',
-        eyesMark('hero-mark blinks'),
+        eyesMark('hero-mark'),
         h('div', null, h('p', { style: 'margin:0 0 4px' }, greeting()), sentence,
           h('p', null, 'Nothing has changed yet. Kliner asks before it does anything, and every move can be undone.')),
         h('div', { class: 'acts' },
@@ -796,43 +796,43 @@ function drawHome(out, kept) {
     if (across.children.length === 2) across.className = 'grid two';
     if (across.children.length) out.append(across);
 
-    // the one number, and where the room is
-    if (total > 0) {
-        const two = h('div', { class: 'grid two' });
-        const worth = junk == null ? null : junk;
-        two.append(panel('',
-            bigFigure(worth == null ? '…' : worth > 0 ? size(worth) : '0 B',
-                      worth == null ? 'Checking app caches…'
-                          : worth > 0 ? 'Can be freed: app caches and the Trash'
-                          : 'Nothing to free up right now.',
-                      worth > 0 ? { d: '+' + size(worth), icon: 'up', tone: 'good', w: 'on top of ' + size(free) + ' free' }
-                                : { d: size(free), w: 'free now' }),
-            funnel([
-                { value: total, name: 'Disk', go: doctorPage, say: 'the whole disk' },
-                { value: used, name: 'Used', go: topPage, say: 'of the disk used' },
-                { value: worth || 0, name: 'Can be freed', go: cleanPage, say: 'can be freed' },
-            ])));
+    // Two rows, and every chart in them answers something. There used to be
+    // a third: 228 GB flowing into 214 GB flowing into 50 MB. At that scale
+    // the last step is a hairline, and a chart whose point cannot be seen is
+    // not a chart. The number it carried is on the Free tile and in the
+    // ring's own legend, where it reads.
+    const deskPage = pages().findIndex(p => p.kind === 'desktop');
+    const dlPage = pages().findIndex(p => p.kind === 'downloads');
+    const worth = junk == null ? null : junk;
 
-        const bands = [
-            { name: 'Your files', value: Math.max(0, used - (worth || 0)), go: topPage },
-            { name: 'Can be freed', value: worth || 0, go: cleanPage, hot: true },
-            { name: 'Free', value: free, go: doctorPage },
-        ].filter(b => b.value > 0);
-        two.append(panel('',
-            bigFigure(size(used), 'used of ' + size(total),
-                      { d: percent(used, total) + ' used', w: size(free) + ' free' }),
-            ringRow(bands, total, percent(used, total), 'used')));
+    if (total > 0 || deskPage > 0) {
+        const two = h('div', { class: 'grid two' });
+        if (deskPage > 0) two.append(typesCard(deskPage, 'Your desktop'));
+        if (total > 0) {
+            const bands = [
+                { name: 'Your files', value: Math.max(0, used - (worth || 0)), go: topPage },
+                { name: 'Can be freed', value: worth || 0, go: cleanPage, hot: true },
+                { name: 'Free', value: free, go: doctorPage },
+            ].filter(b => b.value > 0);
+            two.append(panel('',
+                bigFigure(size(used), 'used of ' + size(total),
+                          { d: percent(used, total) + ' used', w: size(free) + ' free' }),
+                ringRow(bands, total, percent(used, total), 'used')));
+        }
+        if (two.children.length === 1) two.className = 'grid';
         out.append(two);
     }
 
-    // what is actually on the desktop, from the folder itself: a bar of
-    // types, the room they take, and the three figures worth knowing
-    const deskPage = pages().findIndex(p => p.kind === 'desktop');
-    const dlPage = pages().findIndex(p => p.kind === 'downloads');
-    if (deskPage > 0) {
-        const two = h('div', { class: 'grid two' }, typesCard(deskPage, 'Your desktop'),
-            home.months && home.months.length === 12 && home.months.some(x => x > 0) ? monthsCard(home) : typesCard(dlPage, 'Your downloads'));
+    // The second row only if it has something to say. An empty Downloads
+    // folder across the whole width is a card that says nothing, twice.
+    const months = home.months && home.months.length === 12 && home.months.some(x => x > 0);
+    if (dlPage > 0 && home.downloads > 0) {
+        const two = h('div', { class: 'grid two' }, typesCard(dlPage, 'Your downloads'),
+            months ? monthsCard(home) : null);
+        if (two.children.length === 1) two.className = 'grid';
         out.append(two);
+    } else if (months) {
+        out.append(h('div', { class: 'grid' }, monthsCard(home)));
     }
 
     // four cards, two by two until there is room for four
@@ -1059,58 +1059,6 @@ function todoCard(home) {
         both.length > 1 ? h('button', { class: 'btn line small', onclick: () => tidyBoth(both) }, 'Tidy both') : null), list);
 }
 
-/* ── the funnel: three readings of one disk, narrowing ────────────────── */
-
-function funnel(stops) {
-    const W = 1000, H = 250, top = 30, bottom = 26, room = H - top - bottom;
-    const max = stops[0].value || 1;
-    const floor = 3;
-    const hs = stops.map(st => Math.max(floor, (st.value / max) * room));
-    const box = h('div', { class: 'funnel' });
-    const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none' });
-    const cols = stops.length, cw = W / cols, mid = top + room / 2;
-    const fills = ['var(--w0)', 'var(--w3)', 'var(--accent)'];
-    for (let c = 0; c < cols; c++) {
-        const x0 = c * cw, a = hs[c], b = c + 1 < cols ? hs[c + 1] : hs[c];
-        const upper = [], lower = [];
-        for (let k = 0; k <= 40; k++) {
-            const t = k / 40, x = x0 + cw * t;
-            let hh = a;
-            if (c + 1 < cols && t > 0.42) {
-                const u = (t - 0.42) / 0.58;
-                const e = u * u * (3 - 2 * u);
-                hh = a + (b - a) * e;
-            }
-            upper.push([x, mid - hh / 2]);
-            lower.push([x, mid + hh / 2]);
-        }
-        const d = 'M' + upper.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L')
-            + ' L' + lower.reverse().map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L') + 'Z';
-        svg.append(s('path', { d, style: `fill:${fills[c] || fills[2]}` }));
-    }
-    box.append(svg);
-    const tpl = `repeat(${cols}, 1fr)`;
-    const tops = h('div', { class: 'tops', style: `grid-template-columns:${tpl}` });
-    const pcts = h('div', { class: 'pcts', style: `grid-template-columns:${tpl}` });
-    const names = h('div', { class: 'names', style: `grid-template-columns:${tpl}` });
-    stops.forEach((st, c) => {
-        tops.append(h('div', null, counted(size(st.value))));
-        pcts.append(h('span', { class: 'pill' + (c === 0 ? ' hi' : '') }, percent(st.value, max)));
-        names.append(h('div', null, st.name));
-    });
-    box.append(tops, pcts, names);
-    for (let c = 1; c < cols; c++) box.append(h('i', { class: 'rule', style: `left:${(c / cols * 100).toFixed(3)}%` }));
-    // each stage is a way in to the page about it
-    stops.forEach((st, c) => {
-        const stage = h('div', { class: 'stage', style: `left:${(c / cols * 100).toFixed(3)}%;width:${(100 / cols).toFixed(3)}%` });
-        stage.addEventListener('mouseenter', e => chipAt(e, [st.name, h('b', null, size(st.value)), h('span', null, percent(st.value, max) + ' ' + (st.say || ''))]));
-        stage.addEventListener('mouseleave', chipOff);
-        if (st.go != null && st.go >= 0) stage.addEventListener('click', () => { chipOff(); show(st.go); });
-        box.append(stage);
-    });
-    return box;
-}
-
 /* ── the ring, and its key ────────────────────────────────────────────── */
 
 function ringRow(bands, whole_, centre, under) {
@@ -1323,7 +1271,7 @@ function banner(pieces, kept, i) {
 
 function drawReady(out, i) {
     out.append(panel('', h('div', { class: 'promise' },
-        eyesMark('promise-mark blinks'),
+        eyesMark('promise-mark'),
         h('h4', { style: 'margin-top:12px' }, 'Ready when you are.'),
         h('p', null, 'Nothing happens until you press ' + pages()[i].verb + '.'))));
 }
@@ -2144,7 +2092,7 @@ function wallFolder() {
 function drawWalls(out, i, pieces) {
     const now = pieces.find(p => p.k === 'good');
     if (!K.walls) {
-        out.append(panel('', h('div', { class: 'promise' }, eyesMark('promise-mark blinks'),
+        out.append(panel('', h('div', { class: 'promise' }, eyesMark('promise-mark'),
             h('h4', { style: 'margin-top:12px' }, 'Ready when you are.'),
             h('p', null, 'Nothing changes until you press Next.'))));
         return;
@@ -2583,7 +2531,8 @@ function drawWelcome() {
 
     const dots = h('div', { class: 'dots' }, INTRO.map((_, n) =>
         h('i', { class: n === w.step ? 'on' : n < w.step ? 'past' : '' })));
-    app.replaceChildren(h('div', { class: 'intro', style: 'grid-column:1/-1' }, dots, card));
+    const of = h('div', { class: 'of' }, (w.step + 1) + ' of ' + INTRO.length);
+    app.replaceChildren(h('div', { class: 'intro', style: 'grid-column:1/-1' }, dots, of, card));
     reportChrome();
 }
 

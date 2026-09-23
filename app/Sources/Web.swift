@@ -294,7 +294,7 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         case "go":          go(body, id)
         case "extra":       extra(body, id)
         case "tidy":        tidy(body, id)
-        case "walls":       read(["wallpaper", "--list"], id)
+        case "walls":       read(["wallpaper", "--list", "--limit", "24"], id)
         case "walk":        walk(body, id)
         case "show":        show(body)
         case "reveal":      reveal(body)
@@ -887,7 +887,7 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
     /// only those are opened, only to be drawn.
     private func wallPictures(_ id: Int) {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let result = Nimo.run(["wallpaper", "--list", "--paths"])
+            let result = Nimo.run(["wallpaper", "--list", "--paths", "--limit", "24"])
             var out: [String: String] = [:]
             if result.ok {
                 var at = 0
@@ -895,7 +895,7 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
                     let path = line.trimmingCharacters(in: .whitespaces)
                     if path.isEmpty { continue }
                     at += 1
-                    if at > 15 { break }
+                    if at > 24 { break }
                     guard let url = Web.wallpaperFile(path) else { continue }
                     guard let jpeg = Web.thumbnail(of: url, side: 440, quality: 0.7, whole: false) else { continue }
                     out[String(at)] = "data:image/jpeg;base64," + jpeg.base64EncodedString()

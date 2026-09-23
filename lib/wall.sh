@@ -35,9 +35,12 @@ nimo_wall_list() {
     local dir
     while IFS= read -r dir; do
         [ -d "$dir" ] || continue
+        # Sorted inside each folder, never across them: the folders come in
+        # the order nimo_wall_dirs gives, yours first. One sort over the lot
+        # would put /System before /Users and bury your own pictures.
         find "$dir" -maxdepth 1 -type f \
             \( -name '*.heic' -o -name '*.jpg' -o -name '*.jpeg' -o -name '*.png' \) \
-            2>/dev/null
+            2>/dev/null | sort
     done <<EOF
 $(nimo_wall_dirs)
 EOF
@@ -491,7 +494,7 @@ nimo_wall_step() {
             return 0 ;;
     esac
 
-    list=$(nimo_wall_list | sort)
+    list=$(nimo_wall_list)
     count=$(nimo_line_count "$list")
     if [ "$count" -eq 0 ]; then
         nimo_warn "nimo could not find any of the wallpapers your system ships with"
@@ -699,7 +702,7 @@ nimo_cmd_wallpaper() {
             printf '%s\n' "$one"
             count=$((count + 1))
         done <<EOF
-$(nimo_wall_list | sort)
+$(nimo_wall_list)
 EOF
         return 0
     fi
@@ -715,7 +718,7 @@ EOF
     esac
 
     local list count where browse=0
-    list=$(nimo_wall_list | sort)
+    list=$(nimo_wall_list)
     count=$(nimo_line_count "$list")
 
     # Decided before anything is drawn: the browser puts its own thing on the
