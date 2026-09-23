@@ -299,6 +299,7 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         case "unpin":       unpin(body, id)
         case "closeApps":   closeApps(id)
         case "wallFolder":  wallFolder(id)
+        case "wallPictures": wallPictures(id)
         case "stop":        stop(body, id)
         case "setConfig":   remember(body)
         case "settings":    reply(id, settings())
@@ -841,16 +842,63 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         }
     }
 
+    /// A file nimo listed as a wallpaper, looked over before it is read:
+    /// an absolute path, no tricks in it, in one of the places wallpapers
+    /// live, a real file, and small enough to draw. It is only ever read.
+    private static func wallpaperFile(_ path: String) -> URL? {
+        guard path.hasPrefix("/"), path.count <= 4096, !path.contains("\u{0}") else { return nil }
+        let real = URL(fileURLWithPath: path).resolvingSymlinksInPath()
+        let home = FileManager.default.homeDirectoryForCurrentUser.resolvingSymlinksInPath().path
+        var inside = false
+        for root in ["/System/Library/Desktop Pictures/", "/Library/Desktop Pictures/", home + "/"] {
+            if real.path.hasPrefix(root) { inside = true }
+        }
+        guard inside else { return nil }
+        guard let values = try? real.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]),
+              values.isRegularFile == true else { return nil }
+        guard let bytes = values.fileSize, bytes > 0, bytes <= 200 << 20 else { return nil }
+        return real
+    }
+
+    /// Previews of the wallpapers, in the order the page lists them. The
+    /// page names no file: nimo prints the paths it has already found, and
+    /// only those are opened, only to be drawn.
+    private func wallPictures(_ id: Int) {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let result = Nimo.run(["wallpaper", "--list", "--paths"])
+            var out: [String: String] = [:]
+            if result.ok {
+                var at = 0
+                for line in result.text.components(separatedBy: "\n") {
+                    let path = line.trimmingCharacters(in: .whitespaces)
+                    if path.isEmpty { continue }
+                    at += 1
+                    if at > 15 { break }
+                    guard let url = Web.wallpaperFile(path) else { continue }
+                    guard let jpeg = Web.thumbnail(of: url, side: 440, quality: 0.7, whole: false) else { continue }
+                    out[String(at)] = "data:image/jpeg;base64," + jpeg.base64EncodedString()
+                }
+            }
+            DispatchQueue.main.async { self?.reply(id, ["pictures": out]) }
+        }
+    }
+
     /// One picture, at most `side` pixels along its longer edge, as JPEG.
     /// What is see-through — the shadow round a window screenshot — is laid
     /// on light grey first, because JPEG has nowhere to keep it.
-    private static func thumbnail(of url: URL, side: Int, quality: Double) -> Data? {
+    private static func thumbnail(of url: URL, side: Int, quality: Double, whole: Bool = true) -> Data? {
         guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
-        let options: [CFString: Any] = [
-            kCGImageSourceCreateThumbnailFromImageAlways: true,
+        // `whole` decodes the picture itself. A wallpaper carries its own
+        // preview and can be a hundred megabytes, so there it stays off.
+        var options: [CFString: Any] = [
             kCGImageSourceCreateThumbnailWithTransform: true,
             kCGImageSourceThumbnailMaxPixelSize: side,
         ]
+        if whole {
+            options[kCGImageSourceCreateThumbnailFromImageAlways] = true
+        } else {
+            options[kCGImageSourceCreateThumbnailFromImageIfAbsent] = true
+        }
         guard var image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
         switch image.alphaInfo {
         case .none, .noneSkipFirst, .noneSkipLast:

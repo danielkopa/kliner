@@ -58,6 +58,7 @@ NIMO_ONLY=""
 NIMO_DAYS=30
 NIMO_QUIET=0
 NIMO_LIST=0
+NIMO_PATHS=0
 NIMO_ALL=0
 NIMO_JSON=0
 NIMO_UNDO=0
@@ -126,6 +127,7 @@ nimo_usage() {
                         with min doctor: the instant half, without the scan
         --by WHAT       sort by kind (default), letter, or date
         --list          list the setup groups
+        --paths         min wallpaper: print the file paths, one per line
         --all           with min undo: reverse everything, newest first
         --limit N       how many rows min top shows (default 15)
         --json          machine readable output for clean and preview
@@ -180,6 +182,7 @@ while [ $# -gt 0 ]; do
         --auto)         NIMO_ASSUME_YES=1; NIMO_AUTO=1 ;;
         -q|--quiet)     NIMO_QUIET=1 ;;
         --list)         NIMO_LIST=1 ;;
+        --paths)        NIMO_PATHS=1 ;;
         --all)          NIMO_ALL=1 ;;
         --json)         NIMO_JSON=1 ;;
         --undo)         NIMO_UNDO=1 ;;

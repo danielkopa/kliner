@@ -36,6 +36,7 @@ const K = {
     ahead: [],
     kept: {},           // page → what it last said
     walls: null,        // the wallpapers, read once
+    wallPics: null,     // and small pictures of them, drawn by the Mac
     busy: false,
     walked: [],         // how far into a folder you have clicked
     walkedFrom: -1,
@@ -363,10 +364,14 @@ async function look(i, quietly) {
 
 async function readWalls() {
     const reply = await ask('walls');
-    if (reply && reply.text) {
-        K.walls = parse(reply.text).filter(p => p.k === 'item');
-        if (kind(K.page) === 'next') drawPage(true);
-    }
+    if (!reply || !reply.text) return;
+    K.walls = parse(reply.text).filter(p => p.k === 'item');
+    if (kind(K.page) === 'next') drawPage(true);
+    // The pictures take a moment, so the names go up first and the
+    // pictures fill in behind them.
+    const seen = await ask('wallPictures');
+    K.wallPics = (seen && seen.pictures) || {};
+    if (kind(K.page) === 'next') drawPage(true);
 }
 
 /** The big button on a page. The app asks first; this only waits. */
@@ -2111,7 +2116,10 @@ function drawWalls(out, i, pieces) {
     const grid = h('div', { class: 'walls' });
     for (const w of K.walls) {
         const pick = now ? w.parts[0] === now.text : /would pick/.test(w.parts.slice(1).join(' '));
-        const sheet = h('span', { class: 'sheet' }, icon('photo'));
+        const drawn = K.wallPics && K.wallPics[String(w.no)];
+        const sheet = drawn
+            ? h('span', { class: 'sheet has' }, h('img', { class: 'pic got', src: drawn, alt: '' }))
+            : h('span', { class: 'sheet' }, icon('photo'));
         grid.append(h('div', { class: 'wall' + (pick ? ' pick' : '') },
             sheet,
             h('span', { class: 'nm' }, w.parts[0]),

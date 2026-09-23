@@ -689,6 +689,21 @@ nimo_cmd_wallpaper() {
         return 0
     fi
 
+    # --paths: the same wallpapers, as file paths, one per line and nothing
+    # else. Kliner draws its previews from this; a person can pipe it.
+    if [ "${NIMO_PATHS:-0}" = "1" ]; then
+        local one count=1 many="${NIMO_LIMIT:-15}"
+        while IFS= read -r one; do
+            [ -n "$one" ] || continue
+            [ "$count" -gt "$many" ] && break
+            printf '%s\n' "$one"
+            count=$((count + 1))
+        done <<EOF
+$(nimo_wall_list | sort)
+EOF
+        return 0
+    fi
+
     nimo_header
 
     case "$(nimo_platform)" in
