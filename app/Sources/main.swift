@@ -91,7 +91,7 @@ enum Words {
     /// The line you type into in the menu that ⌘K opens. Bigger than the
     /// window's own text, because it is the only thing on its row and the
     /// first thing your eye lands on.
-    static let ask    = face(17, .regular)
+    static let ask    = face(16, .regular)
 
     // ---- the overview, which is read from further away ---------------------
     /// The one number the page is about. Nothing else on the page is this big,
@@ -402,9 +402,9 @@ struct Action {
     static let places: [Place] = [
         Place(title: "Home", symbol: "house", holds: [0]),
         Place(title: "Desk", symbol: "square.grid.2x2", holds: [1, 2]),
-        Place(title: "Screen", symbol: "display", holds: [3, 4]),
-        Place(title: "Disk", symbol: "internaldrive", holds: [5, 6]),
-        Place(title: "Computer", symbol: "cpu", holds: [7, 8]),
+        Place(title: "Screen", symbol: "display", holds: [3, 4, 5]),
+        Place(title: "Disk", symbol: "internaldrive", holds: [6, 7]),
+        Place(title: "Computer", symbol: "cpu", holds: [8, 9]),
     ]
 
     /// Which place a page belongs to.
@@ -496,6 +496,19 @@ struct Action {
                symbol: "power",
                does: "arrow.clockwise",
                counts: "items that open at login"),
+
+        Action(title: "Dock",
+               blurb: "What sits in your Dock. Take out what you never open; the app stays installed.",
+               verb: "Refresh",
+               arguments: ["dock", "--list"],
+               asks: nil,
+               group: "Your screen",
+               symbol: "menubar.dock.rectangle",
+               does: "arrow.clockwise",
+               counts: "apps in your Dock",
+               extras: [Extra(title: "Put the Dock back", arguments: ["dock", "--restore"],
+                              asks: "Put your Dock back the way it was?\n\nKliner exported your Dock before it changed anything.",
+                              symbol: "arrow.uturn.backward")]),
 
         Action(title: "Storage",
                blurb: "The biggest folders in your home. Click one to look inside.",

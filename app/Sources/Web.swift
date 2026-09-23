@@ -296,6 +296,9 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         case "copies":      copies(body, id)
         case "activity":    activity(id)
         case "monitor":     openActivityMonitor()
+        case "unpin":       unpin(body, id)
+        case "closeApps":   closeApps(id)
+        case "wallFolder":  wallFolder(id)
         case "stop":        stop(body, id)
         case "setConfig":   remember(body)
         case "settings":    reply(id, settings())
@@ -834,6 +837,109 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
                                    [kCGImageDestinationLossyCompressionQuality: quality] as CFDictionary)
         guard CGImageDestinationFinalize(target) else { return nil }
         return data as Data
+    }
+
+    /// One app out of the Dock, by the name nimo listed. nimo exports the
+    /// whole Dock first, so "Put the Dock back" is exact. The app itself is
+    /// not touched: only the icon goes.
+    private func unpin(_ body: [String: Any], _ id: Int) {
+        guard let name = words(body, "name"), !name.isEmpty, name.count <= 200,
+              !name.hasPrefix("-"), !name.contains("\u{0}"),
+              name.rangeOfCharacter(from: .newlines) == nil else {
+            reply(id, ["cancelled": true])
+            return
+        }
+        confirm("Take \(name) out of your Dock?",
+                "The app stays installed. Kliner saves your Dock first, so you can put it back.",
+                button: "Take it out") { yes in
+            guard yes else {
+                self.reply(id, ["cancelled": true])
+                return
+            }
+            self.change(["dock", "--only", name, "--yes"], id, title: "Dock")
+        }
+    }
+
+    /// Every app that is open, asked to quit. Asked, not killed: an app with
+    /// unsaved work puts up its own question, exactly as ⌘Q does.
+    ///
+    /// It is a static so the menu behind ⌘K can ask it too, with or without
+    /// a window to hang the question on.
+    static func closeEverything(on window: NSWindow?, then: @escaping (Int?) -> Void) {
+        let mine = Bundle.main.bundleIdentifier
+        let others = NSWorkspace.shared.runningApplications.filter { app in
+            app.activationPolicy == .regular
+                && app.bundleIdentifier != mine
+                && app.bundleIdentifier != "com.apple.finder"
+        }
+        guard !others.isEmpty else {
+            then(0)
+            return
+        }
+        let names = others.compactMap { $0.localizedName }.sorted()
+        let said = names.prefix(8).joined(separator: ", ") + (names.count > 8 ? " and \(names.count - 8) more" : "")
+
+        let alert = NSAlert()
+        alert.messageText = "Ask \(names.count) open apps to quit?"
+        alert.informativeText = said + ".\n\nEach one is asked the way ⌘Q asks it, so anything unsaved stops and asks you first. Kliner and the Finder stay."
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Ask them to quit")
+        alert.addButton(withTitle: "Cancel")
+
+        func answer(_ yes: Bool) {
+            guard yes else {
+                then(nil)
+                return
+            }
+            var asked = 0
+            for app in others where app.terminate() { asked += 1 }
+            Word.say("Apps", "Asked \(asked) apps to quit")
+            then(asked)
+        }
+
+        if let window = window, window.isVisible {
+            alert.beginSheetModal(for: window) { got in answer(got == .alertFirstButtonReturn) }
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+            answer(alert.runModal() == .alertFirstButtonReturn)
+        }
+    }
+
+    private func closeApps(_ id: Int) {
+        Web.closeEverything(on: window) { closed in
+            guard let closed = closed else {
+                self.reply(id, ["cancelled": true])
+                return
+            }
+            self.reply(id, ["closed": closed])
+        }
+    }
+
+    /// The folder your own wallpapers go in, made if it is not there yet and
+    /// opened in the Finder. nimo lists what is in it before Apple's own.
+    private func wallFolder(_ id: Int) {
+        let folder = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Pictures", isDirectory: true)
+            .appendingPathComponent("Kliner Wallpapers", isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let readme = folder.appendingPathComponent("Put your wallpapers here.txt")
+        if !FileManager.default.fileExists(atPath: readme.path) {
+            let words = """
+            Drop pictures in this folder and Kliner steps through them with
+            the ones that came with your Mac.
+
+            JPEG, PNG and HEIC. The name of the file is the name Kliner shows.
+
+            To keep them somewhere else instead, put a line like this in
+            ~/.nimo/config:
+
+                wallpapers = Pictures/My Wallpapers
+
+            """
+            try? words.data(using: .utf8)?.write(to: readme)
+        }
+        _ = NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: folder.path)
+        reply(id, ["folder": "Pictures/Kliner Wallpapers"])
     }
 
     // MARK: what the Mac is doing

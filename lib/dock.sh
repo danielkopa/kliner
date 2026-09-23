@@ -236,6 +236,57 @@ INNER
     return 0
 }
 
+# Take one named app out of the dock, for a caller that already knows which
+# one: the window has its own list and its own question, and the picker below
+# needs a terminal. The dock is exported first, the same as the picker does,
+# so `min dock --restore` still puts back exactly what was there.
+nimo_dock_drop_one() {
+    local urls="$1" url name keep="" found=""
+
+    while IFS= read -r url; do
+        [ -n "$url" ] || continue
+        name=$(nimo_dock_name "$url")
+        if [ -z "$found" ] && nimo_same_word "$name" "$NIMO_ONLY"; then
+            found="$name"
+            continue
+        fi
+        keep="$keep$url
+"
+    done <<INNER
+$urls
+INNER
+
+    if [ -z "$found" ]; then
+        nimo_warn "nimo cannot find \"$NIMO_ONLY\" in your dock"
+        nimo_blank
+        return 1
+    fi
+
+    if ! nimo_confirm "Take $found out of your dock?"; then
+        nimo_blank
+        nimo_dim "your dock is exactly as it was"
+        nimo_blank
+        return 0
+    fi
+
+    local backup
+    backup=$(nimo_dock_backup) || backup=""
+    if [ -z "$backup" ]; then
+        nimo_err "could not back up your dock, refusing to change it"
+        nimo_blank
+        return 1
+    fi
+
+    printf '%s' "$keep" | nimo_dock_rewrite
+
+    nimo_blank
+    nimo_ok "Out of your dock: $found"
+    nimo_dim "the app stays installed, only the dock icon goes"
+    nimo_dim "backup: $(basename "$backup")"
+    nimo_blank
+    return 0
+}
+
 nimo_cmd_dock() {
     if [ "${NIMO_FAST:-0}" = "1" ]; then
         nimo_cmd_dock_fast
@@ -274,6 +325,13 @@ nimo_cmd_dock() {
         nimo_panel_close
         nimo_blank
         return 1
+    fi
+
+    if [ -n "${NIMO_ONLY:-}" ]; then
+        nimo_panel_close
+        nimo_blank
+        nimo_dock_drop_one "$urls"
+        return $?
     fi
 
     local labels="" i=1 url name hint

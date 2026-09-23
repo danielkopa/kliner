@@ -15,7 +15,16 @@ nimo_wall_dirs() {
         [ -d "$web" ] && find "$web" -maxdepth 2 -type d 2>/dev/null
         return 0
     fi
+    # Your own first, so a picture you put there is the one you step onto
+    # next. `wallpapers = <folder>` in ~/.nimo/config points somewhere else
+    # inside your home; without it, this is the folder nimo makes for you.
+    local mine="${NIMO_WALLPAPER_DIR:-$HOME/Pictures/Kliner Wallpapers}"
+    case "$mine" in
+        /*) ;;
+        *)  mine="$HOME/$mine" ;;
+    esac
     printf '%s\n' \
+        "$mine" \
         "/System/Library/Desktop Pictures" \
         "/System/Library/Desktop Pictures/Solid Colors" \
         "/Library/Desktop Pictures" \

@@ -410,6 +410,11 @@ nimo_read_config() {
             # to make the folder things are sorted into, so a value holding a
             # separator or a dot segment sends every file nimo moves outside
             # the home folder — through the one guard nimo has.
+            # A folder of your own wallpapers, inside your home.
+            wallpapers) case "$value" in
+                       ''|*..*) ;;
+                       *) NIMO_WALLPAPER_DIR="$value" ;;
+                   esac ;;
             tidy)  case "$value" in
                        ''|*/*|*\\*|.|..|*..*) ;;
                        *) NIMO_TIDY_DIR_NAME="$value" ;;

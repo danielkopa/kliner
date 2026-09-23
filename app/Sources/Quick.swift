@@ -97,7 +97,7 @@ final class QuickRow: NSView {
 
     /// Every row is this tall. The menu works its own height out rather than
     /// measuring, so this is the one place the number lives.
-    static let tall: CGFloat = 40
+    static let tall: CGFloat = 38
 
     private var lit = false
     private let tile = NSView()
@@ -213,7 +213,7 @@ final class QuickRow: NSView {
 /// something, then the places you can go: a list of ten with no headings is
 /// ten things to read, and with them it is three.
 final class QuickGroup: NSView {
-    static let tall: CGFloat = 27
+    static let tall: CGFloat = 24
 
     init(_ words: String) {
         super.init(frame: .zero)
@@ -365,7 +365,7 @@ final class Quick: NSObject, NSTextFieldDelegate {
     private func make() -> MenuPanel {
         if let panel = panel { return panel }
 
-        let panel = MenuPanel(contentRect: NSRect(x: 0, y: 0, width: 560, height: 260),
+        let panel = MenuPanel(contentRect: NSRect(x: 0, y: 0, width: 520, height: 240),
                               styleMask: [.borderless, .nonactivatingPanel],
                               backing: .buffered, defer: false)
         panel.isOpaque = false
@@ -418,12 +418,12 @@ final class Quick: NSObject, NSTextFieldDelegate {
         listHeight = height
 
         NSLayoutConstraint.activate([
-            ask.topAnchor.constraint(equalTo: blur.topAnchor, constant: 13),
+            ask.topAnchor.constraint(equalTo: blur.topAnchor, constant: 12),
             ask.leadingAnchor.constraint(equalTo: blur.leadingAnchor, constant: 16),
             ask.trailingAnchor.constraint(equalTo: blur.trailingAnchor, constant: -16),
             // Said out loud, because the panel's height is worked out below
             // rather than measured, and a guess would leave a gap.
-            ask.heightAnchor.constraint(equalToConstant: 22),
+            ask.heightAnchor.constraint(equalToConstant: 21),
 
             hair.topAnchor.constraint(equalTo: ask.bottomAnchor, constant: 12),
             hair.leadingAnchor.constraint(equalTo: blur.leadingAnchor),
@@ -480,6 +480,8 @@ final class Quick: NSObject, NSTextFieldDelegate {
                          hint: "CPU memory apps processes", symbol: "cpu"))
         out.append(Entry(index: Quick.monitor, group: "Your computer", title: "Activity Monitor",
                          hint: "Apple's own app", symbol: "gauge"))
+        out.append(Entry(index: Quick.closeApps, group: "Your computer", title: "Close all apps",
+                         hint: "quit everything that is open", symbol: "xmark.circle"))
         out.append(Entry(index: Action.all.count, group: "Kliner", title: "Settings",
                          hint: "Permissions and preferences", symbol: "gearshape"))
 
@@ -580,8 +582,9 @@ final class Quick: NSObject, NSTextFieldDelegate {
         for (i, row) in rows.enumerated() { row.light(i == sel) }
     }
 
-    /// Not a page: Apple's Activity Monitor, opened as it is.
+    /// Not pages: Apple's Activity Monitor, and every open app asked to quit.
     static let monitor = 10_000
+    static let closeApps = 10_001
 
     private func run(_ index: Int) {
         if index == Quick.monitor {
@@ -589,6 +592,14 @@ final class Quick: NSObject, NSTextFieldDelegate {
             hide()
             if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.ActivityMonitor") {
                 NSWorkspace.shared.open(url)
+            }
+            return
+        }
+        if index == Quick.closeApps {
+            borrowed = false
+            hide()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                Web.closeEverything(on: nil) { _ in }
             }
             return
         }
@@ -610,28 +621,24 @@ final class Quick: NSObject, NSTextFieldDelegate {
         // 13 above the line you type in, 22 for the line itself, 12 down to
         // the hairline, the hairline, 8, the rows, 9, the footer, 12 below.
         let count = max(1, rows.count)
-        let height: CGFloat = 13 + 22 + 12 + 1 + 8
+        let height: CGFloat = 12 + 21 + 12 + 1 + 8
             + CGFloat(count) * QuickRow.tall + CGFloat(count - 1) * 2
             + CGFloat(heads) * (QuickGroup.tall + 2)
             + 9 + 16 + 12
-        panel.setContentSize(NSSize(width: 560, height: height))
+        panel.setContentSize(NSSize(width: 520, height: height))
         place()
     }
 
     private func place() {
         guard let panel = panel else { return }
         let size = panel.frame.size
-        let screen = status?.button?.window?.screen ?? NSScreen.main
+        let screen = NSScreen.main ?? status?.button?.window?.screen
         guard let room = screen?.visibleFrame else { return }
 
+        // Where ⌘space puts its own: the middle of the screen, high up, so
+        // the list grows downwards into empty space rather than moving.
         var x = room.midX - size.width / 2
-        var y = room.maxY - size.height - 6
-
-        if let button = status?.button, let window = button.window {
-            let seat = window.convertToScreen(button.convert(button.bounds, to: nil))
-            x = seat.midX - size.width / 2
-            y = seat.minY - size.height - 6
-        }
+        var y = room.maxY - size.height - room.height * 0.16
 
         x = min(max(room.minX + 8, x), room.maxX - size.width - 8)
         y = max(room.minY + 8, y)
