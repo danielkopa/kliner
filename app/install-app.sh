@@ -109,6 +109,6 @@ say "${dim}Press ⌘K anywhere to open the menu, or click the face.${off}"
 say "${dim}Everything asks before it changes anything, and${off}"
 say "${dim}\"Put it all back\" reverses the lot.${off}"
 printf '\n'
-say "${dim}To have it there every morning: the menu has \"Open nimo at login\".${off}"
+say "${dim}To have it there every morning: the menu has \"Open Kliner at login\".${off}"
 say "${dim}To remove it: drag Kliner out of Applications. That is all it is.${off}"
 printf '\n'

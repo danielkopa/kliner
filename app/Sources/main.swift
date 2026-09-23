@@ -323,7 +323,7 @@ enum Nimo {
         do {
             try task.run()
         } catch {
-            return Outcome(ok: false, text: "nimo could not start: \(error.localizedDescription)")
+            return Outcome(ok: false, text: "Kliner could not run that: \(error.localizedDescription)")
         }
 
         // Read first, wait second: the other way round fills the pipe and
@@ -8392,7 +8392,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         app.addItem(settings)
 
         app.addItem(.separator())
-        let login = NSMenuItem(title: "Open nimo at login",
+        let login = NSMenuItem(title: "Open Kliner at login",
                                action: #selector(toggleLogin(_:)),
                                keyEquivalent: "")
         login.target = self
