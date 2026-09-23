@@ -725,6 +725,7 @@ EOF
     # screen, and opening a panel it never fills leaves an empty box above it.
     if [ "${NIMO_RANDOM:-0}" != "1" ] && [ "${NIMO_ASSUME_YES:-0}" != "1" ] \
        && [ "${NIMO_LIST:-0}" != "1" ] && [ "${NIMO_DRY_RUN:-0}" != "1" ] \
+       && [ -z "${NIMO_ONLY:-}" ] \
        && [ "$count" -gt 0 ] && nimo_pick_capable; then
         browse=1
     fi
@@ -783,7 +784,23 @@ EOF
     [ "$browse" = "1" ] || nimo_panel_close
 
     local chosen=""
-    if [ "${NIMO_RANDOM:-0}" = "1" ]; then
+    # --only N picks the Nth of the list above, without asking. It is how
+    # Kliner's own picker chooses one: the window shows the pictures, you
+    # click one, and this sets it.
+    case "${NIMO_ONLY:-}" in
+        ''|*[!0-9]*) ;;
+        *)
+            chosen=$(printf '%s\n' "$list" | sed -n "${NIMO_ONLY}p")
+            if [ -z "$chosen" ] || [ ! -f "$chosen" ]; then
+                nimo_warn "there is no wallpaper number $NIMO_ONLY"
+                nimo_blank
+                return 1
+            fi
+            ;;
+    esac
+    if [ -n "$chosen" ]; then
+        :
+    elif [ "${NIMO_RANDOM:-0}" = "1" ]; then
         chosen=$(printf '%s\n' "$list" | awk 'BEGIN{srand()} {a[NR]=$0} END{print a[int(rand()*NR)+1]}')
     elif [ "${NIMO_ASSUME_YES:-0}" = "1" ]; then
         chosen="$suggested"

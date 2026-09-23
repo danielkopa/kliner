@@ -920,6 +920,30 @@ svg.ring text { transition: opacity .2s ease; }
 @keyframes pop { from { opacity: 0; transform: scale(.6) translateY(10px); } }
 @keyframes hop { 0%, 100% { transform: translateY(0); } 35% { transform: translateY(-12px) scaleY(1.04); } 60% { transform: translateY(0) scaleY(.94); } }
 
+/* the setup steps: a row that does one thing, and a grid of things to tick */
+.setup { margin-top: 26px; display: grid; border: 1px solid var(--line); border-radius: 14px;
+    background: var(--card), var(--raise); padding: 4px 14px; }
+.setup .gate { grid-template-columns: 34px minmax(0, 1fr) auto; min-height: 60px; animation: none; }
+.setup .gate .tt { display: flex; flex-direction: column; gap: 2px; }
+.setup .gate .tt b { font-weight: 500; font-size: 13.5px; }
+.setup .gate .tt span { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+.setup .st { color: var(--faint); font-size: 12.5px; }
+.setup .st .ic { width: 14px; height: 14px; stroke-width: 2; }
+.picks { margin-top: 26px; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.pick { display: flex; align-items: center; gap: 10px; text-align: left; padding: 9px 12px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--raise); color: var(--muted); font-size: 13px; cursor: pointer;
+    animation: in .26s cubic-bezier(.2,.7,.2,1) both; }
+.pick .tick { width: 18px; height: 18px; flex: none; border-radius: 6px; border: 1px solid var(--line-2);
+    display: grid; place-items: center; color: transparent; }
+.pick .tick .ic { width: 12px; height: 12px; }
+.pick .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick.on { color: var(--ink); border-color: var(--line-2); }
+.pick.on .tick { background: var(--on); border-color: var(--on); color: var(--on-ink); }
+.walls.small { margin-top: 24px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.walls.small .wall { padding: 8px; gap: 6px; cursor: pointer; text-align: left; animation: in .26s cubic-bezier(.2,.7,.2,1) both; }
+.walls.small .wall .sheet { height: 74px; }
+.walls.small .wall .nm { font-size: 12px; }
+
 /* how it works: four small moving pictures */
 .how { margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .how .howtip { border: 1px solid var(--line); border-radius: 14px; background: var(--card), var(--raise); padding: 14px 14px 16px;

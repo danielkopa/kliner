@@ -308,6 +308,10 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         case "closeApps":   closeApps(id)
         case "wallFolder":  wallFolder(id)
         case "wallPictures": wallPictures(id)
+        case "setWall":     setWall(body, id)
+        case "zen":         zen(body, id)
+        case "dockFast":    dockFast(id)
+        case "dockKeep":    dockKeep(body, id)
         case "stop":        stop(body, id)
         case "setConfig":   remember(body)
         case "settings":    reply(id, settings())
@@ -944,6 +948,95 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
                                    [kCGImageDestinationLossyCompressionQuality: quality] as CFDictionary)
         guard CGImageDestinationFinalize(target) else { return nil }
         return data as Data
+    }
+
+    /// The wallpaper the picker was clicked on: the number of a row in the
+    /// same list the page was shown. No dialog — it is one picture, it is on
+    /// the screen a second later, and "Original" puts back the one you had.
+    private func setWall(_ body: [String: Any], _ id: Int) {
+        guard let at = number(body, "at"), at >= 1, at <= 24 else {
+            reply(id, ["cancelled": true])
+            return
+        }
+        change(["wallpaper", "--only", String(at), "--yes"], id, title: "Wallpaper")
+    }
+
+    /// Finder stops drawing icons on the desktop, or starts again. The files
+    /// do not move: this is one setting, and nimo can set it back.
+    private func zen(_ body: [String: Any], _ id: Int) {
+        let back = flag(body, "back")
+        let question = back ? "Show icons on your desktop again?"
+                            : "Stop showing icons on your desktop?"
+        let why = back ? "They are the same files that were always there."
+                       : "Nothing moves. The files stay in your Desktop folder, and Kliner can show them again."
+        confirm(question, why, button: back ? "Show them" : "Hide them") { yes in
+            guard yes else {
+                self.reply(id, ["cancelled": true])
+                return
+            }
+            self.change(back ? ["zen", "--restore", "--yes"] : ["zen", "--yes"], id, title: "Desktop")
+        }
+    }
+
+    /// A Dock that slides out of the way until you reach for it.
+    private func dockFast(_ id: Int) {
+        confirm("Let your Dock slide away?",
+                "It comes back the moment you move to the edge of the screen. Kliner saves your Dock first, so \"Put the Dock back\" is exact.",
+                button: "Let it slide") { yes in
+            guard yes else {
+                self.reply(id, ["cancelled": true])
+                return
+            }
+            self.change(["dock", "--fast", "--yes"], id, title: "Dock")
+        }
+    }
+
+    /// The apps that were not ticked, out of the Dock, in one question
+    /// rather than one each. Same rules as taking one out: a plain name, the
+    /// app itself untouched, and nimo writes the whole Dock down first.
+    private func dockKeep(_ body: [String: Any], _ id: Int) {
+        let asked = (body["drop"] as? [Any] ?? []).compactMap { $0 as? String }
+        var names: [String] = []
+        for name in asked {
+            guard !name.isEmpty, name.count <= 200, !name.hasPrefix("-"),
+                  !name.contains("\u{0}"), name.rangeOfCharacter(from: .newlines) == nil else { continue }
+            names.append(name)
+        }
+        guard !names.isEmpty, names.count <= 60 else {
+            reply(id, ["cancelled": true])
+            return
+        }
+        let many = names.count == 1 ? "1 app" : "\(names.count) apps"
+        confirm("Take \(many) out of your Dock?",
+                "The apps stay installed. Only the Dock icons go, and Kliner saves your Dock first.",
+                button: "Take them out") { yes in
+            guard yes else {
+                self.reply(id, ["cancelled": true])
+                return
+            }
+            guard !self.changing else {
+                self.reply(id, ["cancelled": true, "busy": true])
+                return
+            }
+            self.changing = true
+            self.dropOne(names, 0, id, done: 0)
+        }
+    }
+
+    /// One at a time, because each one rewrites the Dock and restarts it.
+    private func dropOne(_ names: [String], _ at: Int, _ id: Int, done: Int) {
+        guard at < names.count else {
+            self.changing = false
+            Word.say("Dock", done == 1 ? "1 app taken out" : "\(done) apps taken out")
+            self.reply(id, ["ok": true, "changed": true, "closed": done])
+            return
+        }
+        DispatchQueue.global(qos: .userInitiated).async {
+            let result = Nimo.run(["dock", "--only", names[at], "--yes"])
+            DispatchQueue.main.async {
+                self.dropOne(names, at + 1, id, done: done + (result.ok ? 1 : 0))
+            }
+        }
     }
 
     /// One app out of the Dock, by the name nimo listed. nimo exports the

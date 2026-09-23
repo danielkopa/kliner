@@ -2404,7 +2404,7 @@ function paintActivity() {
 
 /* ── the first minute: hello, how it works, access, you, done ─────────── */
 
-const INTRO = ['hello', 'how', 'access', 'you', 'done'];
+const INTRO = ['hello', 'how', 'access', 'desk', 'dock', 'wall', 'you', 'done'];
 
 /* what each of macOS's questions is for, by the picture Swift sends */
 const GATE_WHY = {
@@ -2419,7 +2419,9 @@ function startWelcome() {
     const cfg = K.meta.config;
     const first = String(K.meta.user || '').trim().split(/\s+/)[0] || '';
     K.welcome = { step: 0, shown: -1, back: false, name: cfg.name || first, start: cfg.start || 'desktop',
-                  tidy: cfg.tidy || 'Tidy', login: !!(K.meta.login && K.meta.login.on), answers: {}, asking: -1 };
+                  tidy: cfg.tidy || 'Tidy', login: !!(K.meta.login && K.meta.login.on), answers: {}, asking: -1,
+                  deskCount: null, didDesk: false, didZen: false, didFast: false,
+                  dockApps: null, dropped: new Set(), wallAt: 0, busy: false, reading: false };
     drawWelcome();
 }
 
@@ -2494,6 +2496,83 @@ function drawWelcome() {
         way.append(...[back, h('span', { class: 'gap' }),
                    done ? null : h('button', { class: 'btn bare large', onclick: () => introGo(1) }, 'Skip'), primary].filter(Boolean));
         card.append(way);
+    } else if (step === 'desk') {
+        card.append(h('h1', null, 'Make your desktop clean.'),
+                    h('p', { class: 'lead' }, 'Two ways, and you can have both. Neither deletes anything, and both undo.'));
+        const deskPage = pages().findIndex(p => p.kind === 'desktop');
+        const many = w.deskCount;
+        card.append(h('div', { class: 'setup' },
+            setupRow('desk', 'File it all away',
+                many == null ? 'Counting what is out there…'
+                    : many === 0 ? 'Your desktop is already clear.'
+                    : plural(many, 'thing') + ' into Desktop/Tidy, sorted by type.',
+                w.didDesk ? 'done' : many === 0 ? 'skip' : 'Tidy it',
+                () => introTidy(deskPage)),
+            setupRow('eye', 'Or stop drawing them at all',
+                'Finder shows a bare desktop. The files stay in your Desktop folder, exactly where they are.',
+                w.didZen ? 'done' : 'Hide them', introZen)));
+        primary = h('button', { class: 'btn fill large', onclick: () => introGo(1) }, 'Continue', icon('right'));
+        way.append(back, h('span', { class: 'gap' }), primary);
+        card.append(way);
+        if (many == null) countDesk(deskPage);
+    } else if (step === 'dock') {
+        card.append(h('h1', null, 'Make your Dock clean.'),
+                    h('p', { class: 'lead' }, 'Untick what you never open. The apps stay installed — only the Dock icons go, and Kliner writes your Dock down first.'));
+        const apps = w.dockApps;
+        if (!apps) {
+            card.append(h('div', { class: 'setup' }, h('p', { class: 'lead' }, 'Reading your Dock…')));
+            readDock();
+        } else if (!apps.length) {
+            card.append(h('div', { class: 'setup' }, h('p', { class: 'lead' }, 'Nothing in your Dock that Kliner can change.')));
+        } else {
+            const list = h('div', { class: 'picks' });
+            apps.forEach((name, n) => {
+                const on = !w.dropped.has(name);
+                list.append(h('button', { class: 'pick' + (on ? ' on' : ''), style: `animation-delay:${fresh ? 60 + n * 40 : 0}ms`,
+                    onclick: e => {
+                        if (w.dropped.has(name)) w.dropped.delete(name); else w.dropped.add(name);
+                        e.currentTarget.classList.toggle('on', !w.dropped.has(name));
+                        const left = apps.length - w.dropped.size;
+                        const say = $('#keepsay');
+                        if (say) say.textContent = left === apps.length ? 'Keeping all of them.'
+                            : plural(w.dropped.size, 'app') + ' out, ' + left + ' left.';
+                    } },
+                    h('span', { class: 'tick' }, icon('check')), h('span', { class: 'nm' }, name)));
+            });
+            card.append(list, h('p', { class: 'small left', id: 'keepsay' },
+                w.dropped.size ? plural(w.dropped.size, 'app') + ' out, ' + (apps.length - w.dropped.size) + ' left.' : 'Keeping all of them.'));
+        }
+        card.append(h('div', { class: 'setup' },
+            setupRow('bars', 'And let it slide away',
+                'The Dock hides until you move to the edge of the screen.',
+                w.didFast ? 'done' : 'Let it slide', introDockFast)));
+        primary = w.dockApps && w.dropped.size
+            ? h('button', { class: 'btn fill large', onclick: introDockKeep }, 'Keep the ticked ones', icon('right'))
+            : h('button', { class: 'btn fill large', onclick: () => introGo(1) }, 'Continue', icon('right'));
+        way.append(back, h('span', { class: 'gap' }), primary);
+        card.append(way);
+    } else if (step === 'wall') {
+        card.append(h('h1', null, 'Pick a wallpaper.'),
+                    h('p', { class: 'lead' }, 'Yours first, then the ones your Mac ships with. Nothing is downloaded, and “Original” puts back the one you had.'));
+        if (!K.walls) {
+            card.append(h('div', { class: 'setup' }, h('p', { class: 'lead' }, 'Looking for wallpapers…')));
+            readWalls().then(() => { if (INTRO[K.welcome.step] === 'wall') drawWelcome(); });
+        } else {
+            const grid = h('div', { class: 'walls small' });
+            K.walls.slice(0, 12).forEach((one_, n) => {
+                const drawn = K.wallPics && K.wallPics[String(one_.no)];
+                grid.append(h('button', { class: 'wall' + (w.wallAt === one_.no ? ' pick' : ''),
+                    style: `animation-delay:${fresh ? 60 + n * 30 : 0}ms`,
+                    onclick: () => introWall(one_.no) },
+                    drawn ? h('span', { class: 'sheet has' }, h('img', { class: 'pic got', src: drawn, alt: '' }))
+                          : h('span', { class: 'sheet' }, icon('photo')),
+                    h('span', { class: 'nm' }, one_.parts[0])));
+            });
+            card.append(grid);
+        }
+        primary = h('button', { class: 'btn fill large', onclick: () => introGo(1) }, 'Continue', icon('right'));
+        way.append(back, h('span', { class: 'gap' }), primary);
+        card.append(way);
     } else if (step === 'you') {
         card.append(h('h1', null, 'Make it yours.'),
                     h('p', { class: 'lead' }, 'You can change all of this later in Settings.'));
@@ -2534,6 +2613,98 @@ function drawWelcome() {
     const of = h('div', { class: 'of' }, (w.step + 1) + ' of ' + INTRO.length);
     app.replaceChildren(h('div', { class: 'intro', style: 'grid-column:1/-1' }, dots, of, card));
     reportChrome();
+}
+
+/* One line of the setup: a picture, what it does, and the button. */
+function setupRow(mark, title, text, action, go) {
+    const right = action === 'done' ? h('span', { class: 'st yes' }, icon('check'), 'Done')
+        : action === 'skip' ? h('span', { class: 'st' }, 'Nothing to do')
+        : h('button', { class: 'btn line', onclick: go }, action);
+    return h('div', { class: 'gate' },
+        h('span', { class: 'ico' }, icon(mark)),
+        h('div', { class: 'tt' }, h('b', null, title), h('span', null, text)),
+        right);
+}
+
+async function countDesk(page) {
+    const w = K.welcome;
+    if (!(page > 0)) { w.deskCount = 0; drawWelcome(); return; }
+    const items = await listing(page);
+    w.deskCount = items.filter(countedByNimo).length;
+    if (INTRO[K.welcome.step] === 'desk') drawWelcome();
+}
+
+async function introTidy(page) {
+    const w = K.welcome;
+    if (!(page > 0) || w.busy) return;
+    w.busy = true;
+    const reply = await ask('tidy', { pages: [page] });
+    w.busy = false;
+    if (reply && reply.results && reply.results.some(r => r.changed)) {
+        w.didDesk = true;
+        w.deskCount = 0;
+        K.listing = {};
+        delete K.kept[0];
+    }
+    drawWelcome();
+}
+
+async function introZen() {
+    const w = K.welcome;
+    if (w.busy) return;
+    w.busy = true;
+    const reply = await ask('zen', {});
+    w.busy = false;
+    if (reply && reply.ok) w.didZen = true;
+    drawWelcome();
+}
+
+async function readDock() {
+    const w = K.welcome;
+    if (w.reading) return;
+    w.reading = true;
+    const page = pages().findIndex(p => p.kind === 'dock');
+    const reply = page > 0 ? await ask('look', { page }) : null;
+    w.reading = false;
+    w.dockApps = reply && reply.text
+        ? parse(reply.text).filter(p => p.k === 'item').map(p => p.parts[0]).filter(Boolean).slice(0, 40)
+        : [];
+    if (INTRO[K.welcome.step] === 'dock') drawWelcome();
+}
+
+async function introDockKeep() {
+    const w = K.welcome;
+    if (w.busy || !w.dropped.size) { introGo(1); return; }
+    w.busy = true;
+    const reply = await ask('dockKeep', { drop: [...w.dropped] });
+    w.busy = false;
+    if (reply && reply.ok) {
+        w.dropped = new Set();
+        w.dockApps = null;
+        introGo(1);
+    } else {
+        drawWelcome();
+    }
+}
+
+async function introDockFast() {
+    const w = K.welcome;
+    if (w.busy) return;
+    w.busy = true;
+    const reply = await ask('dockFast', {});
+    w.busy = false;
+    if (reply && reply.ok) w.didFast = true;
+    drawWelcome();
+}
+
+async function introWall(at) {
+    const w = K.welcome;
+    if (w.busy) return;
+    w.busy = true;
+    const reply = await ask('setWall', { at });
+    w.busy = false;
+    if (reply && reply.ok) w.wallAt = at;
+    drawWelcome();
 }
 
 /* four small pictures of what Kliner does, drawn with nothing but shapes */
