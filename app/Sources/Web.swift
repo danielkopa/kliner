@@ -356,6 +356,31 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
 
     // MARK: what there is
 
+    /// The last thing Home read, kept beside the config so the window opens
+    /// with figures on it instead of a spinner. It is only ever a copy of
+    /// what nimo printed, and it is replaced by the next real reading.
+    private static var lastLook: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".nimo", isDirectory: true)
+            .appendingPathComponent("last-look")
+    }
+
+    private static func remember(look text: String) {
+        guard text.count < 200_000 else { return }
+        let folder = lastLook.deletingLastPathComponent()
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try? text.data(using: .utf8)?.write(to: lastLook, options: .atomic)
+    }
+
+    private static func lastLookBack() -> [String: Any]? {
+        guard let text = try? String(contentsOf: lastLook, encoding: .utf8), !text.isEmpty,
+              let when = (try? lastLook.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        else { return nil }
+        // A week old is not a reading any more, it is a guess.
+        guard Date().timeIntervalSince(when) < 7 * 24 * 3600 else { return nil }
+        return ["text": text, "at": Int(when.timeIntervalSince1970 * 1000)]
+    }
+
     private func boot() -> [String: Any] {
         var pages: [[String: Any]] = []
         for item in Action.all {
@@ -420,6 +445,7 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         out["places"] = places
         out["starts"] = starts
         out["gates"] = gates
+        if let last = Web.lastLookBack() { out["lastLook"] = last }
         return out
     }
 
@@ -507,6 +533,11 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
     /// Opening a page. Reading, never changing: a page that asks a question
     /// is read with --dry-run, and one that changes things the moment it
     /// runs (Next, on Wallpaper) is not run at all.
+    private func keepIfHome(_ body: [String: Any], _ text: String) {
+        guard number(body, "page") == 0, !flag(body, "fast") else { return }
+        Web.remember(look: text)
+    }
+
     private func look(_ body: [String: Any], _ id: Int) {
         guard let item = page(body) else {
             reply(id, ["ok": false, "text": ""])
@@ -528,7 +559,9 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         if number(body, "page") == 0 {
             extra["sighted"] = Access.may(Access.desktop) && Access.may(Access.downloads)
         }
-        run(arguments, id, with: extra)
+        run(arguments, id, with: extra) { [weak self] result in
+            if result.ok { self?.keepIfHome(body, result.text) }
+        }
     }
 
     /// The big button on a page.

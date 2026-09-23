@@ -1935,7 +1935,9 @@ function show(i, opts) {
     const kept = K.kept[i];
     if (kept) {
         drawPage();
-        if (i === 0 && kept.fast) setTimeout(() => look(0, true), 60);
+        // the fast half of Home, and a reading kept from last time, are both
+        // stand-ins: the real one is asked for as soon as the page is up
+        if (i === 0 && (kept.fast || kept.old)) setTimeout(() => look(0, true), 60);
         return;
     }
     look(i);
@@ -2237,12 +2239,14 @@ function drawWaiting(i, what) {
     const name = what || (isAction(i) ? pages()[i].title.toLowerCase() : '');
     const line = i === 0 && !what ? 'Looking at your Mac…'
         : kind(i) === 'top' || what ? `Scanning ${what || 'your home folder'}…`
+        : kind(i) === 'documents' ? 'Looking at your documents…'
         : kind(i) === 'clean' ? 'Looking for caches…'
         : `Looking at ${name}…`;
     page.replaceChildren(h('div', { class: 'wait' },
         mascot('mascot'),
         h('h3', null, line),
-        h('p', null, 'Nothing changes while Kliner looks.'),
+        h('p', null, kind(i) === 'top' && !what ? 'Measuring every folder in your home takes about a minute. Nothing changes while Kliner looks.'
+            : 'Nothing changes while Kliner looks.'),
         h('div', { class: 'ghost' }, h('i'), h('i'), h('i'))));
 }
 
@@ -4309,6 +4313,15 @@ async function boot() {
     }
     K.meta = meta;
     K.meta.config = K.meta.config || {};
+    // What Home read last time the app was open, drawn straight away so the
+    // window opens with figures on it. The real reading replaces it as soon
+    // as nimo comes back.
+    if (meta.lastLook && meta.lastLook.text) {
+        const pieces = parse(meta.lastLook.text);
+        K.kept[0] = { pieces, ok: true, at: meta.lastLook.at || Date.now(), old: true };
+        K.lastRead = meta.lastLook.at || Date.now();
+        readHome(pieces);
+    }
     // Activity is drawn here rather than run by nimo, so it joins the place
     // the machine's own readings are in, first
     const machine = (meta.places || []).find(p => p.holds.some(n => (meta.pages[n] || {}).kind === 'doctor' && n > 0));

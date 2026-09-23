@@ -502,16 +502,38 @@ final class Quick: NSObject, NSTextFieldDelegate {
         }
     }
 
+    /// Letters in order, anywhere in the word: "dsk" finds Desktop, "clnup"
+    /// finds Clean up. What every launcher does, and what people type.
+    private static func loose(_ text: String, _ want: String) -> Bool {
+        var at = text.startIndex
+        for letter in want {
+            guard at < text.endIndex, let found = text[at...].firstIndex(of: letter) else { return false }
+            at = text.index(after: found)
+        }
+        return true
+    }
+
+    /// How well a row answers what was typed. Nought means it does not.
+    private func score(_ entry: Entry, _ want: String) -> Int {
+        let title = entry.title.lowercased()
+        if title == want { return 1000 }
+        if title.hasPrefix(want) { return 900 - title.count }
+        if title.contains(want) { return 700 - title.count }
+        if Quick.loose(title, want) { return 500 - title.count }
+        if entry.hint.lowercased().contains(want) { return 300 }
+        if entry.index < Action.all.count,
+           Action.all[entry.index].blurb.lowercased().contains(want) { return 200 }
+        return 0
+    }
+
     private func matching(_ typed: String) -> [Entry] {
         let want = typed.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let all = entries
         guard !want.isEmpty else { return Array(all.prefix(12)) }
-        let hits = all.filter { entry in
-            entry.title.lowercased().contains(want)
-                || entry.hint.lowercased().contains(want)
-                || (entry.index < Action.all.count
-                    && Action.all[entry.index].blurb.lowercased().contains(want))
-        }
+        let hits = all.map { ($0, score($0, want)) }
+            .filter { $0.1 > 0 }
+            .sorted { a, b in a.1 == b.1 ? a.0.index < b.0.index : a.1 > b.1 }
+            .map { $0.0 }
         return Array(hits.prefix(9))
     }
 
