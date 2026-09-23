@@ -924,6 +924,17 @@ svg.ring text { transition: opacity .2s ease; }
 @keyframes pop { from { opacity: 0; transform: scale(.6) translateY(10px); } }
 @keyframes hop { 0%, 100% { transform: translateY(0); } 35% { transform: translateY(-12px) scaleY(1.04); } 60% { transform: translateY(0) scaleY(.94); } }
 
+/* the desktop as it is now, above the two ways of clearing it */
+.peek { margin-top: 26px; display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+.peek .img { height: 62px; border-radius: 8px; border: 1px solid var(--line); background: var(--well);
+    background-size: cover; background-position: center; display: grid; place-items: center; color: var(--faint);
+    animation: in .3s cubic-bezier(.2,.7,.2,1) both; }
+.peek .img.got { border-color: var(--line-2); color: transparent; }
+.peek .img .ic { width: 16px; height: 16px; }
+@media (max-width: 760px) { .peek { grid-template-columns: repeat(4, 1fr); } }
+.said { margin-top: 20px; display: flex; align-items: center; gap: 8px; color: var(--good); font-size: 13px; }
+.said .ic { width: 15px; height: 15px; stroke-width: 2.2; }
+
 /* the setup steps: a row that does one thing, and a grid of things to tick */
 .setup { margin-top: 26px; display: grid; border: 1px solid var(--line); border-radius: 14px;
     background: var(--card), var(--raise); padding: 4px 14px; }

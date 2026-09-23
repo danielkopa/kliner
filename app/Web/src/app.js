@@ -2439,7 +2439,7 @@ function startWelcome() {
     K.welcome = { step: 0, shown: -1, back: false, name: cfg.name || first, start: cfg.start || 'desktop',
                   tidy: cfg.tidy || 'Tidy', login: !!(K.meta.login && K.meta.login.on), answers: {}, asking: -1,
                   deskCount: null, didDesk: false, didZen: false, didFast: false,
-                  dockApps: null, dropped: new Set(), wallAt: 0, busy: false, reading: false };
+                  dockApps: null, dropped: new Set(), wallAt: 0, wallSaid: '', deskShots: null, busy: false, reading: false };
     drawWelcome();
 }
 
@@ -2471,8 +2471,7 @@ function drawWelcome() {
         card.append(
             h('div', { class: 'hello-eyes' }, eyesMark()),
             h('h1', null, 'Hey, I’m Kliner.'),
-            h('p', { class: 'lead' }, 'I keep your Mac tidy.'),
-            h('div', { class: 'demo sort wide' }, ...sortStage()));
+            h('p', { class: 'lead' }, 'I keep your Mac tidy.'));
         primary = h('button', { class: 'btn fill large', onclick: () => introGo(1) }, 'Get started', icon('right'));
         way.append(primary);
         card.append(way);
@@ -2520,6 +2519,20 @@ function drawWelcome() {
                     h('p', { class: 'lead' }, 'Two ways. Neither deletes anything.'));
         const deskPage = pages().findIndex(p => p.kind === 'desktop');
         const many = w.deskCount;
+        // The desktop itself, as it is right now, rather than a drawing of
+        // one: the newest things on it, with their own pictures.
+        if (w.deskShots && w.deskShots.length) {
+            const strip = h('div', { class: 'peek' });
+            const els = [];
+            w.deskShots.forEach((f, n) => {
+                const img = h('span', { class: 'img', style: `animation-delay:${fresh ? 60 + n * 45 : 0}ms` },
+                    icon(KIND_PICTURE[kindOf(f)] || 'file'));
+                if (['Screenshots', 'Images'].includes(kindOf(f))) { img.dataset.name = f.name; els.push(img); }
+                strip.append(img);
+            });
+            card.append(strip);
+            if (els.length) paint(deskPage, els);
+        }
         card.append(h('div', { class: 'setup' },
             setupRow('desk', 'File it all away',
                 many == null ? 'Counting…'
@@ -2577,6 +2590,8 @@ function drawWelcome() {
             card.append(h('div', { class: 'setup' }, h('p', { class: 'lead' }, 'Looking for wallpapers…')));
             readWalls().then(() => { if (INTRO[K.welcome.step] === 'wall') drawWelcome(); });
         } else {
+            if (w.wallSaid) card.append(h('div', { class: 'said' }, icon('check'),
+                'Wallpaper changed to ' + w.wallSaid + '.'));
             const grid = h('div', { class: 'walls small' });
             K.walls.slice(0, 12).forEach((one_, n) => {
                 const drawn = K.wallPics && K.wallPics[String(one_.no)];
@@ -2649,7 +2664,9 @@ async function countDesk(page) {
     const w = K.welcome;
     if (!(page > 0)) { w.deskCount = 0; drawWelcome(); return; }
     const items = await listing(page);
-    w.deskCount = items.filter(countedByNimo).length;
+    const counted = items.filter(countedByNimo);
+    w.deskCount = counted.length;
+    w.deskShots = counted.slice().sort((a, b) => (b.modified || 0) - (a.modified || 0)).slice(0, 8);
     if (INTRO[K.welcome.step] === 'desk') drawWelcome();
 }
 
@@ -2722,7 +2739,11 @@ async function introWall(at) {
     w.busy = true;
     const reply = await ask('setWall', { at });
     w.busy = false;
-    if (reply && reply.ok) w.wallAt = at;
+    if (reply && reply.ok) {
+        w.wallAt = at;
+        const one_ = (K.walls || []).find(p => p.no === at);
+        w.wallSaid = one_ ? one_.parts[0] : '';
+    }
     drawWelcome();
 }
 
