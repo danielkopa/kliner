@@ -99,6 +99,8 @@ function drawFrame() {
           icon('gear'), h('span', { class: 'label' }, 'Settings')));
     const rail = h('nav', { class: 'rail' }, h('i', { class: 'mark', id: 'railmark' }),
                    h('div', { class: 'logo', 'data-tip': 'Kliner' }, eyesMark()), places, foot);
+    const me = h('div', { class: 'me', 'data-tip': (K.meta && K.meta.user) || '' }, face('small'));
+    foot.prepend(me);
 
     // the bar along the top
     const bar = h('header', { class: 'bar' },
@@ -1054,15 +1056,33 @@ function monthsCard(home) {
         h('div', { class: 'heat' }, row, ax, scale));
 }
 
+/** Your account picture, the one macOS shows at the login window. If there
+ *  is none, your initials in the same circle. */
+function face(cls) {
+    const face_ = K.meta && K.meta.portrait;
+    if (face_ && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(face_)) {
+        return h('span', { class: 'face2 ' + (cls || '') }, h('img', { src: face_, alt: '' }));
+    }
+    const name = String((K.meta && K.meta.user) || '').trim();
+    const letters = name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+    return h('span', { class: 'face2 letters ' + (cls || '') }, letters || '?');
+}
+
 function machineCard(f) {
-    const keys = ['System', 'Memory', 'Battery', 'Uptime'].filter(k => f[k]);
+    // System is on the line under your name; it does not need a row too.
+    const keys = ['Memory', 'Battery', 'Uptime'].filter(k => f[k]);
     const list = h('div', { class: 'facts' });
     for (const k of keys) {
         list.append(h('div', { class: 'fact' }, h('span', { class: 'k' }, k),
             h('span', { class: 'v' }, f[k].value), h('span')));
     }
     const doctor = pages().findIndex((p, n) => n > 0 && p.kind === 'doctor');
-    return panel('', cap('cpu', 'This Mac', doctor > 0 ? h('button', { class: 'btn bare small', onclick: () => show(doctor) }, 'More') : null), list);
+    const who = h('div', { class: 'who' }, face(),
+        h('div', { class: 'tt' },
+            h('b', null, (K.meta && K.meta.user) || 'This Mac'),
+            h('span', null, [(K.meta && K.meta.account) ? '@' + K.meta.account : null,
+                             f.System ? f.System.value : null].filter(Boolean).join('  ·  '))));
+    return panel('', cap('cpu', 'This Mac', doctor > 0 ? h('button', { class: 'btn bare small', onclick: () => show(doctor) }, 'More') : null), who, list);
 }
 
 function todoCard(home) {

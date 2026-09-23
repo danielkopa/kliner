@@ -451,6 +451,8 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         out["setup"] = Main.setup
         out["welcomed"] = Config.value("welcomed") == Main.setup
         out["user"] = NSFullUserName()
+        out["account"] = NSUserName()
+        if let face = Web.portrait() { out["portrait"] = face }
         out["login"] = ["possible": Login.possible, "on": Login.on]
         out["config"] = config
         out["pages"] = pages
@@ -866,6 +868,78 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
             DispatchQueue.main.async { self?.reply(id, payload) }
         }
     }
+
+    /// The picture on your account, the one macOS shows at the login window
+    /// and in System Settings. Read from the local directory, for this
+    /// account only: nothing is looked up on the network, no other account is
+    /// touched, and nothing is written. Read once and kept.
+    private static func portrait() -> String? {
+        if let kept = portraitKept { return kept.isEmpty ? nil : kept }
+        var out = ""
+        defer { portraitKept = out }
+        var data: Data? = nil
+        // A stock picture is a path; one you chose yourself is kept in the
+        // record itself, as hex. Try the path first, it is the cheap one.
+        if let said = Web.dscl("Picture") {
+            let path = said.trimmingCharacters(in: .whitespacesAndNewlines)
+            if path.hasPrefix("/"), FileManager.default.fileExists(atPath: path) {
+                data = try? Data(contentsOf: URL(fileURLWithPath: path))
+            }
+        }
+        if data == nil, let hex = Web.dscl("JPEGPhoto") {
+            data = Web.bytes(fromHex: hex)
+        }
+        guard let found = data, found.count > 64, found.count < 12 << 20 else { return nil }
+        // Drawn small here rather than in the page: a login picture can be
+        // several hundred kilobytes and the window wants 128 points of it.
+        let scratch = FileManager.default.temporaryDirectory
+            .appendingPathComponent("kliner-face")
+        try? found.write(to: scratch)
+        if let small = Web.thumbnail(of: scratch, side: 256, quality: 0.82) {
+            out = "data:image/jpeg;base64," + small.base64EncodedString()
+        }
+        try? FileManager.default.removeItem(at: scratch)
+        return out.isEmpty ? nil : out
+    }
+
+    /// One attribute of this account's own directory record.
+    private static func dscl(_ attribute: String) -> String? {
+        let tool = URL(fileURLWithPath: "/usr/bin/dscl")
+        guard FileManager.default.isExecutableFile(atPath: tool.path) else { return nil }
+        let job = Process()
+        job.executableURL = tool
+        job.arguments = [".", "-read", "/Users/" + NSUserName(), attribute]
+        let pipe = Pipe()
+        job.standardOutput = pipe
+        job.standardError = FileHandle.nullDevice
+        do { try job.run() } catch { return nil }
+        let raw = pipe.fileHandleForReading.readDataToEndOfFile()
+        job.waitUntilExit()
+        guard job.terminationStatus == 0, let said = String(data: raw, encoding: .utf8) else { return nil }
+        // "Attribute:\n value" — everything after the first colon.
+        guard let colon = said.firstIndex(of: ":") else { return nil }
+        return String(said[said.index(after: colon)...])
+    }
+
+    /// dscl prints a picture as groups of hex. Anything that is not a hex
+    /// digit is spacing, and an odd digit left over means it is not a picture.
+    private static func bytes(fromHex text: String) -> Data? {
+        var out = Data()
+        var half: UInt8? = nil
+        for letter in text {
+            guard let digit = letter.hexDigitValue, digit >= 0, digit <= 15 else { continue }
+            if let first = half {
+                out.append(first << 4 | UInt8(digit))
+                half = nil
+            } else {
+                half = UInt8(digit)
+            }
+        }
+        guard half == nil, !out.isEmpty else { return nil }
+        return out
+    }
+
+    private static var portraitKept: String? = nil
 
     /// A file nimo listed as a wallpaper, looked over before it is read:
     /// an absolute path, no tricks in it, in one of the places wallpapers
