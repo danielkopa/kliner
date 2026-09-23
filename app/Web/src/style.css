@@ -197,10 +197,7 @@ svg { display: block; }
        display: flex; align-items: center; white-space: nowrap; }
 .tab:hover { color: var(--body); }
 .tab.on { color: var(--ink); }
-.tabs { position: relative; }
-.tabs .slide { position: absolute; top: 2px; bottom: 2px; border-radius: 7px; background: var(--sel-2);
-               transition: transform .3s cubic-bezier(.2,.8,.2,1), width .3s cubic-bezier(.2,.8,.2,1); }
-.tab { position: relative; z-index: 1; }
+.tab.on { background: var(--sel-2); }
 
 .bar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .age { color: var(--faint); font-size: 12px; white-space: nowrap; }
@@ -251,7 +248,6 @@ svg { display: block; }
 .head .words { min-width: 0; flex: 1; }
 .head h1 { font-size: 24px; font-weight: 600; letter-spacing: -.02em; line-height: 1.15; }
 .head p  { margin-top: 6px; color: var(--muted); font-size: 13px; max-width: 64ch; text-wrap: pretty; }
-.head .cmd { margin-top: 10px; display: inline-flex; align-items: center; gap: 8px;
              font-size: 11.5px; letter-spacing: .01em; color: var(--faint);
              border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; background: var(--well); }
 .head .acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end;
@@ -524,6 +520,7 @@ svg { display: block; }
 /* wallpapers */
 .walls { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
 .wall { border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: grid; gap: 8px;
+    cursor: pointer; text-align: left; transition: border-color .16s ease, background .16s ease;
         animation: in .22s cubic-bezier(.2,.7,.2,1) both; }
 .wall .sheet { display: grid; place-items: center; height: 92px; border-radius: 8px; border: 1px solid var(--line);
                background: var(--well); color: var(--ghost); }
@@ -930,15 +927,15 @@ svg.ring text { transition: opacity .2s ease; }
 .setup .st { color: var(--faint); font-size: 12.5px; }
 .setup .st .ic { width: 14px; height: 14px; stroke-width: 2; }
 .picks { margin-top: 26px; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
-.pick { display: flex; align-items: center; gap: 10px; text-align: left; padding: 9px 12px; border-radius: 10px;
+.keep { display: flex; align-items: center; gap: 10px; text-align: left; padding: 9px 12px; border-radius: 10px;
     border: 1px solid var(--line); background: var(--raise); color: var(--muted); font-size: 13px; cursor: pointer;
     animation: in .26s cubic-bezier(.2,.7,.2,1) both; }
-.pick .tick { width: 18px; height: 18px; flex: none; border-radius: 6px; border: 1px solid var(--line-2);
+.keep .tick { width: 18px; height: 18px; flex: none; border-radius: 6px; border: 1px solid var(--line-2);
     display: grid; place-items: center; color: transparent; }
-.pick .tick .ic { width: 12px; height: 12px; }
-.pick .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pick.on { color: var(--ink); border-color: var(--line-2); }
-.pick.on .tick { background: var(--on); border-color: var(--on); color: var(--on-ink); }
+.keep .tick .ic { width: 12px; height: 12px; }
+.keep .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.keep.on { color: var(--ink); border-color: var(--line-2); }
+.keep.on .tick { background: var(--on); border-color: var(--on); color: var(--on-ink); }
 .walls.small { margin-top: 24px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .walls.small .wall { padding: 8px; gap: 6px; cursor: pointer; text-align: left; animation: in .26s cubic-bezier(.2,.7,.2,1) both; }
 .walls.small .wall .sheet { height: 74px; }
@@ -951,36 +948,100 @@ svg.ring text { transition: opacity .2s ease; }
 .how .howtip:nth-child(2) { animation-delay: .06s; } .how .howtip:nth-child(3) { animation-delay: .12s; } .how .howtip:nth-child(4) { animation-delay: .18s; }
 .how .howtip b { font-weight: 600; font-size: 15px; margin-top: 12px; }
 .how .howtip span { color: var(--muted); font-size: 13px; line-height: 1.5; }
-.demo { position: relative; height: 128px; border-radius: 10px; background: var(--well); border: 1px solid var(--line); overflow: hidden; }
-.demo .f { position: absolute; width: 16px; height: 20px; border-radius: 4px; background: var(--w1); }
-.demo .f::after { content: ""; position: absolute; left: 3px; right: 3px; top: 5px; height: 2px; border-radius: 2px; background: var(--well); opacity: .7;
-                  box-shadow: 0 4px 0 var(--well), 0 8px 0 var(--well); }
-.demo .f1 { background: var(--w2); } .demo .f2 { background: var(--w3); }
-.demo.sort .f { left: var(--x0); top: var(--y0); animation: sortIt 4.2s cubic-bezier(.5,0,.2,1) infinite both; }
-@keyframes sortIt { 0%, 18% { left: var(--x0); top: var(--y0); } 48%, 82% { left: var(--x1); top: var(--y1); } 100% { left: var(--x0); top: var(--y0); } }
-.demo.sort .bin { position: absolute; bottom: 6px; width: 24%; height: 18px; border-radius: 5px; background: var(--sel); color: var(--faint);
-                  font-size: 9.5px; letter-spacing: .04em; display: grid; place-items: center; text-transform: uppercase; }
-.demo.look .line { position: absolute; left: 12%; height: 8px; border-radius: 4px; background: var(--sel-2); animation: lineIn 3.6s ease infinite both; }
-@keyframes lineIn { 0% { opacity: 0; transform: translateX(-8px); } 12%, 80% { opacity: 1; transform: none; } 100% { opacity: 0; } }
-.demo.look .lens { position: absolute; top: 50%; left: 12%; margin-top: -12px; width: 24px; height: 24px; border-radius: 50%;
-                  background: var(--on); color: var(--on-ink); display: grid; place-items: center; animation: scan 3.6s ease-in-out infinite; }
-.demo.look .lens .ic { width: 14px; height: 14px; }
-@keyframes scan { 0%, 10% { left: 10%; } 55%, 70% { left: 78%; } 100% { left: 10%; } }
-.demo.space .dbar { position: absolute; left: 10%; right: 10%; top: 42%; height: 16px; border-radius: 6px; background: var(--sel); display: flex; overflow: hidden; }
+.demo { position: relative; height: 132px; border-radius: 10px; overflow: hidden;
+    background: radial-gradient(120% 140% at 30% 0%, var(--glow), transparent 62%), var(--well);
+    border: 1px solid var(--line); }
+
+/* a loose file, the same shape in every picture */
+.demo .f { position: absolute; width: 17px; height: 21px; border-radius: 4px; background: var(--w1);
+    box-shadow: 0 1px 2px rgba(0,0,0,.35); z-index: 2; }
+.demo .f::after { content: ""; position: absolute; left: 3px; right: 4px; top: 5px; height: 2px; border-radius: 2px;
+    background: var(--well); opacity: .75; box-shadow: 0 4px 0 var(--well), 0 8px 0 var(--well); }
+.demo .f0 { background: var(--w1); } .demo .f1 { background: var(--w2); } .demo .f2 { background: var(--w3); }
+
+/* 1 · sort: nine things fly into three trays, and the trays fill */
+.demo.sort .f { left: var(--x0); top: var(--y0); animation: sortIt 5s cubic-bezier(.55,0,.15,1) infinite both; }
+@keyframes sortIt {
+    0%, 14%  { left: var(--x0); top: var(--y0); transform: scale(1) rotate(0deg); opacity: 1; }
+    34%      { transform: scale(.94) rotate(-4deg); }
+    50%, 84% { left: var(--x1); top: var(--y1); transform: scale(.84) rotate(0deg); opacity: 1; }
+    92%      { opacity: 0; }
+    93%      { left: var(--x0); top: var(--y0); opacity: 0; transform: scale(1); }
+    100%     { left: var(--x0); top: var(--y0); opacity: 1; }
+}
+.demo .tray { position: absolute; bottom: 8px; width: 30%; height: 40px; border-radius: 7px;
+    background: var(--sel); border: 1px solid var(--line-2); z-index: 1; }
+/* the lip sits over the files, so a landed one tucks in behind it */
+.demo .tray .lip { position: absolute; left: -1px; right: -1px; bottom: -1px; height: 15px; border-radius: 0 0 7px 7px;
+    background: var(--sel-2); border: 1px solid var(--line-2); z-index: 3; }
+.demo .tray .tag { position: absolute; left: 0; right: 0; bottom: 1px; text-align: center; color: var(--faint);
+    font-size: 9px; letter-spacing: .06em; text-transform: uppercase; line-height: 12px; z-index: 4; }
+.demo.sort .tray { animation: trayUp 5s ease-in-out infinite both; }
+@keyframes trayUp { 0%, 40% { transform: translateY(0); } 50% { transform: translateY(2px); } 62%, 100% { transform: translateY(0); } }
+
+/* the same picture, big, on the very first screen */
+.demo.wide { margin-top: 30px; height: 200px; width: 100%; }
+.demo.wide .f { width: 22px; height: 27px; }
+.demo.wide .tray { height: 62px; bottom: 12px; }
+.demo.wide .tray .lip { height: 20px; }
+.demo.wide .tray .tag { font-size: 10px; line-height: 17px; }
+.intro-card.s-hello .demo.wide { animation: in .5s cubic-bezier(.2,.8,.2,1) .18s both; }
+
+/* 2 · see it first: a page of rows, and a line reading down it */
+.demo.look .sheetwin { position: absolute; inset: 12px 14px; border-radius: 8px; background: var(--raise);
+    border: 1px solid var(--line); padding: 0 10px; display: flex; flex-direction: column; }
+.demo.look .sheetwin .top { display: flex; gap: 4px; padding: 8px 0 6px; }
+.demo.look .sheetwin .top i { width: 5px; height: 5px; border-radius: 50%; background: var(--sel-2); }
+.demo.look .row { display: flex; align-items: center; gap: 7px; flex: 1; min-height: 0;
+    animation: rowIn 4.6s ease infinite both; }
+.demo.look .row .dot { width: 5px; height: 5px; border-radius: 2px; background: var(--w2); flex: none; }
+.demo.look .row .bar { height: 5px; border-radius: 3px; background: var(--sel-2); }
+.demo.look .row .to { margin-left: auto; font-size: 8.5px; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--faint); background: var(--sel); border-radius: 4px; padding: 2px 5px; opacity: 0;
+    animation: toIn 4.6s ease infinite both; animation-delay: inherit; }
+@keyframes rowIn { 0% { opacity: 0; transform: translateX(-6px); } 10%, 86% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@keyframes toIn { 0%, 22% { opacity: 0; transform: translateX(6px); } 34%, 84% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.demo.look .sweep { position: absolute; left: 14px; right: 14px; height: 22px; border-radius: 6px;
+    background: linear-gradient(90deg, transparent, var(--glow), transparent); pointer-events: none;
+    animation: sweepDown 4.6s cubic-bezier(.5,0,.3,1) infinite both; }
+@keyframes sweepDown { 0%, 8% { top: 30px; opacity: 0; } 14% { opacity: 1; } 70% { top: 96px; opacity: 1; } 82%, 100% { top: 96px; opacity: 0; } }
+
+/* 3 · free up space: the caches lift out and the free end grows */
+.demo.space .dbar { position: absolute; left: 12%; right: 12%; top: 46%; height: 18px; border-radius: 7px;
+    background: var(--sel); display: flex; overflow: hidden; border: 1px solid var(--line-2); }
 .demo.space .dbar i { display: block; height: 100%; }
-.demo.space .used { width: 52%; background: var(--w2); }
-.demo.space .cache { width: 26%; background: repeating-linear-gradient(45deg, var(--w1) 0 3px, transparent 3px 6px); animation: shrink 3.8s cubic-bezier(.6,0,.2,1) infinite; }
-.demo.space .free { flex: 1; }
-@keyframes shrink { 0%, 25% { width: 26%; } 60%, 88% { width: 0; } 100% { width: 26%; } }
-.demo.space .lbl { position: absolute; left: 62%; top: 24%; color: var(--faint); font-size: 9.5px; letter-spacing: .04em; text-transform: uppercase;
-                   animation: fadeLbl 3.8s ease infinite; }
-@keyframes fadeLbl { 0%, 25% { opacity: 1; } 45%, 90% { opacity: 0; } 100% { opacity: 1; } }
-.demo.undo .mover { left: 18%; top: 50%; margin-top: -10px; animation: file 3.6s cubic-bezier(.6,0,.2,1) infinite; }
-@keyframes file { 0%, 15% { left: 18%; opacity: 1; } 42% { left: 68%; opacity: 0; } 55% { left: 68%; opacity: 0; } 80%, 100% { left: 18%; opacity: 1; } }
-.demo.undo .folder { position: absolute; left: 66%; top: 50%; margin-top: -14px; color: var(--w1); }
-.demo.undo .folder .ic { width: 30px; height: 28px; stroke-width: 1.5; }
-.demo.undo .back2 { position: absolute; left: 44%; top: 16%; color: var(--muted); opacity: 0; animation: blinkUndo 3.6s ease infinite; }
-@keyframes blinkUndo { 0%, 50% { opacity: 0; transform: translateY(4px); } 60%, 78% { opacity: 1; transform: none; } 90%, 100% { opacity: 0; } }
+.demo.space .used { width: 54%; background: var(--w2); }
+.demo.space .cache { width: 24%; background: repeating-linear-gradient(45deg, var(--w0) 0 3px, transparent 3px 6px);
+    animation: cacheGo 4.4s cubic-bezier(.6,0,.2,1) infinite both; }
+.demo.space .free { flex: 1; background: var(--well); }
+@keyframes cacheGo { 0%, 26% { width: 24%; opacity: 1; } 44% { opacity: .25; } 62%, 88% { width: 0; opacity: 0; } 100% { width: 24%; opacity: 1; } }
+.demo.space .chip { position: absolute; left: 58%; top: 18%; color: var(--faint); font-size: 9px; letter-spacing: .06em;
+    text-transform: uppercase; background: var(--sel); border-radius: 4px; padding: 2px 6px;
+    animation: chipGo 4.4s ease infinite both; }
+@keyframes chipGo { 0%, 26% { opacity: 1; transform: none; } 48%, 90% { opacity: 0; transform: translateY(-10px); } 100% { opacity: 1; transform: none; } }
+.demo.space .gain { position: absolute; left: 58%; top: 70%; color: var(--good); font-size: 11px; font-weight: 600;
+    opacity: 0; animation: gainUp 4.4s ease infinite both; }
+@keyframes gainUp { 0%, 52% { opacity: 0; transform: translateY(6px); } 64%, 84% { opacity: 1; transform: none; } 96%, 100% { opacity: 0; transform: translateY(-6px); } }
+
+/* 4 · undo: the file comes back out of the tray, along the arc it took */
+.demo.undo .arc { position: absolute; inset: 0; width: 100%; height: 100%; }
+.demo.undo .arc path { stroke: var(--line-2); stroke-width: 1.5; stroke-dasharray: 150; stroke-dashoffset: 150;
+    stroke-linecap: round; animation: drawArc 4s ease-in-out infinite both; }
+@keyframes drawArc { 0%, 14% { stroke-dashoffset: 150; } 46%, 78% { stroke-dashoffset: 0; } 92%, 100% { stroke-dashoffset: 150; } }
+.demo.undo .tray.back { bottom: 8px; }
+.demo.undo .ghost { position: absolute; left: 22%; top: 24%; width: 17px; height: 21px; border-radius: 4px;
+    border: 1px dashed var(--line-2); }
+.demo.undo .mover { left: 72%; top: 54%; animation: comeBack 4s cubic-bezier(.5,0,.2,1) infinite both; }
+@keyframes comeBack {
+    0%, 16%  { left: 72%; top: 54%; transform: scale(.84); opacity: 1; }
+    52%, 84% { left: 22%; top: 24%; transform: scale(1); opacity: 1; }
+    90%      { opacity: 0; }
+    91%      { left: 72%; top: 54%; opacity: 0; transform: scale(.84); }
+    100%     { left: 72%; top: 54%; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .demo * { animation: none !important; }
+}
 
 /* access */
 .gates { margin-top: 26px; display: grid; border: 1px solid var(--line); border-radius: 14px; background: var(--card), var(--raise); padding: 4px 14px; }

@@ -4402,9 +4402,6 @@ final class Main: NSObject, NSWindowDelegate {
         days.action = #selector(daysChanged(_:))
         mine.add(Setting("Old means older than", control: days))
 
-        mine.add(Setting("In a terminal",
-                         control: quiet("Open") { [weak self] in self?.openTerminal() }))
-
         mine.add(Setting("The introduction",
                          control: quiet("Show it again  ⌘F") { [weak self] in
                              self?.replaySetup()
@@ -4591,21 +4588,6 @@ final class Main: NSObject, NSWindowDelegate {
     @objc private func daysChanged(_ sender: NSPopUpButton) {
         let title = sender.titleOfSelectedItem ?? "30 days"
         Config.set("days", title.replacingOccurrences(of: " days", with: ""))
-    }
-
-    private func openTerminal() {
-        guard let min = Nimo.executable else { return }
-        let quoted = min.path.replacingOccurrences(of: "'", with: "'\\''")
-        let script = """
-        tell application "Terminal"
-        activate
-        do script "'\(quoted)'"
-        end tell
-        """
-        if let apple = NSAppleScript(source: script) {
-            var trouble: NSDictionary?
-            apple.executeAndReturnError(&trouble)
-        }
     }
 
     private func go() {
@@ -8401,12 +8383,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         app.addItem(login)
 
         app.addItem(.separator())
-        let terminal = NSMenuItem(title: "Open in Terminal…",
-                                  action: #selector(openInTerminal), keyEquivalent: "")
-        terminal.target = self
-        app.addItem(terminal)
-
-        app.addItem(.separator())
         app.addItem(NSMenuItem(title: "Hide Kliner",
                                action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
         app.addItem(NSMenuItem(title: "Quit Kliner",
@@ -8508,31 +8484,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         sender.state = Login.on ? .on : .off
     }
 
-    @objc private func openInTerminal() {
-        guard let min = Nimo.executable else { return }
-        // One quote is the only thing that can go wrong in a path, so it is
-        // the one thing worth escaping.
-        let quoted = min.path.replacingOccurrences(of: "'", with: "'\\''")
-        let script = """
-        tell application "Terminal"
-        activate
-        do script "'\(quoted)'"
-        end tell
-        """
-        if let apple = NSAppleScript(source: script) {
-            var trouble: NSDictionary?
-            apple.executeAndReturnError(&trouble)
-        }
-    }
-
     @objc private func showAbout() {
         let alert = NSAlert()
         alert.messageText = "Kliner \(Nimo.version)"
         alert.informativeText = """
         make your workspace clean
 
-        Everything in this window is the same nimo you can run in a terminal, \
-        and everything it changes it writes down first — "Put it all back" \
+        Everything it changes it writes down first — "Put it all back" \
         reverses the lot.
 
         It never touches anything outside your home folder, never asks for an \

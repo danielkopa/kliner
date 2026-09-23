@@ -319,7 +319,6 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         case "fullDisk":    fullDisk(id)
         case "askFolders":  askFolders(id)
         case "automation":  Access.settings("Privacy_Automation")
-        case "terminal":    terminal()
         case "quick":       Quick.shared.toggle()
         case "gate":        gate(body, id)
         case "finishSetup": finish(body, id)
@@ -1435,22 +1434,5 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
             holes.append(NSRect(x: n[0], y: n[1], width: n[2], height: n[3]))
         }
         view.holes = holes
-    }
-
-    private func terminal() {
-        guard let min = Nimo.executable else { return }
-        // One quote is the only thing that can go wrong in a path, so it is
-        // the one thing worth escaping.
-        let quoted = min.path.replacingOccurrences(of: "'", with: "'\\''")
-        let script = """
-        tell application "Terminal"
-        activate
-        do script "'\(quoted)'"
-        end tell
-        """
-        if let apple = NSAppleScript(source: script) {
-            var trouble: NSDictionary?
-            apple.executeAndReturnError(&trouble)
-        }
     }
 }

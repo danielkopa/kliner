@@ -35,6 +35,7 @@ const K = {
     behind: [],
     ahead: [],
     kept: {},           // page → what it last said
+    wallOn: 0,          // the one put on from this window
     walls: null,        // the wallpapers, read once
     wallPics: null,     // and small pictures of them, drawn by the Mac
     busy: false,
@@ -151,23 +152,14 @@ function setFrame() {
             where.append(h('span', { class: 'name' }, 'Overview'));
         } else if (place && place.holds.length > 1) {
             where.append(h('span', { class: 'group' }, place.title));
-            const slide = h('i', { class: 'slide' });
-            const tabs = h('div', { class: 'tabs', 'data-hole': '' }, slide);
+            // No pill sliding between them. It measured, waited a frame and
+            // moved on every single draw, which is a strip that never sits
+            // still. The one that is on is simply the one that is on.
+            const tabs = h('div', { class: 'tabs', 'data-hole': '' });
             for (const n of place.holds) {
                 tabs.append(h('button', { class: 'tab' + (n === i ? ' on' : ''), onclick: () => show(n) }, titleOf(n)));
             }
             where.append(tabs);
-            // start where the pill was, then slide to where it goes
-            const from = K.tabPill && K.tabPill.place === place.title ? K.tabPill : null;
-            if (from) { slide.style.transition = 'none'; slide.style.transform = `translateX(${from.x}px)`; slide.style.width = from.w + 'px'; }
-            requestAnimationFrame(() => {
-                const on = tabs.querySelector('.tab.on');
-                if (!on) return;
-                slide.style.transition = '';
-                slide.style.transform = `translateX(${on.offsetLeft - 2}px)`;
-                slide.style.width = on.offsetWidth + 'px';
-                K.tabPill = { place: place.title, x: on.offsetLeft - 2, w: on.offsetWidth };
-            });
         } else {
             where.append(h('span', { class: 'name' }, titleOf(i)));
         }
@@ -362,6 +354,24 @@ async function look(i, quietly) {
 
     // the wallpapers come from their own, harmless reading
     if (kind(i) === 'next' && !K.walls) readWalls();
+}
+
+/** The one that was clicked goes on the screen. */
+async function putOnWall(at) {
+    if (K.busy) return;
+    K.busy = true;
+    busyButtons(true);
+    let reply;
+    try {
+        reply = await ask('setWall', { at });
+    } finally {
+        K.busy = false;
+        busyButtons(false);
+    }
+    if (!reply || !reply.ok) return;
+    K.wallOn = at;
+    afterRun(K.page, reply, 'Wallpaper', true);
+    drawPage(true);
 }
 
 async function readWalls() {
@@ -1149,8 +1159,7 @@ function head(i, extraActs) {
     return h('div', { class: 'head' },
         h('div', { class: 'words' },
             h('h1', null, item.title),
-            h('p', null, item.blurb),
-            item.command ? h('div', { class: 'cmd' }, icon('terminal'), item.command) : null),
+            h('p', null, item.blurb)),
         acts);
 }
 
@@ -2097,18 +2106,23 @@ function drawWalls(out, i, pieces) {
             h('p', null, 'Nothing changes until you press Next.'))));
         return;
     }
+    // Click the picture, not a button beside it: the pictures are the
+    // control. Previous, Original and Next are still up in the title strip.
     const grid = h('div', { class: 'walls' });
     for (const w of K.walls) {
-        const pick = now ? w.parts[0] === now.text : /would pick/.test(w.parts.slice(1).join(' '));
+        const pick = K.wallOn === w.no || (K.wallOn ? false
+            : now ? w.parts[0] === now.text : /would pick/.test(w.parts.slice(1).join(' ')));
         const drawn = K.wallPics && K.wallPics[String(w.no)];
         const sheet = drawn
             ? h('span', { class: 'sheet has' }, h('img', { class: 'pic got', src: drawn, alt: '' }))
             : h('span', { class: 'sheet' }, icon('photo'));
-        grid.append(h('div', { class: 'wall' + (pick ? ' pick' : '') },
+        grid.append(h('button', { class: 'wall' + (pick ? ' pick' : ''), 'data-tip': 'Put this one on',
+                                  onclick: () => putOnWall(w.no) },
             sheet,
             h('span', { class: 'nm' }, w.parts[0]),
             h('span', { class: 'foot' }, h('span', { class: 'no' }, String(w.no)),
-              pick ? h('span', { class: 'pill' + (now ? ' hi' : '') }, now ? 'on now' : 'suggested') : null)));
+              pick ? h('span', { class: 'pill' + (K.wallOn === w.no || now ? ' hi' : '') },
+                        K.wallOn === w.no || now ? 'on now' : 'suggested') : null)));
     }
     out.append(panel('', cap('photo', 'Wallpapers', h('span', null, plural(K.walls.length, 'wallpaper'))), grid));
     out.append(wallFolder());
@@ -2187,8 +2201,6 @@ function settingsBody(st) {
             seg(['7', '30', '90'], days, v => { K.meta.config.days = v; tell('setConfig', { key: 'days', value: v }); }, v => v + ' days')),
         setting('Preview mode', 'Buttons only show what would happen. Nothing changes while this is on.',
             h('button', { class: 'switch' + (K.preview ? ' on' : ''), onclick: e => { flipPreview(); e.currentTarget.classList.toggle('on', K.preview); } })),
-        setting('Command line', 'Everything Kliner does also works in Terminal.',
-            h('button', { class: 'btn line small', onclick: () => tell('terminal') }, icon('terminal'), 'Open')),
         setting('Welcome tour', 'The screens from the first time you opened Kliner.',
             h('button', { class: 'btn line small', onclick: startWelcome }, 'Show again')));
 
@@ -2453,24 +2465,25 @@ function drawWelcome() {
         card.append(
             h('div', { class: 'hello-eyes' }, eyesMark()),
             h('h1', null, 'Hey, I’m Kliner.'),
-            h('p', { class: 'lead' }, 'I keep your Mac tidy. I sort your desktop and downloads, show you what takes up space, and I can undo anything I do.'));
+            h('p', { class: 'lead' }, 'I keep your Mac tidy.'),
+            h('div', { class: 'demo sort wide' }, ...sortStage()));
         primary = h('button', { class: 'btn fill large', onclick: () => introGo(1) }, 'Get started', icon('right'));
         way.append(primary);
-        card.append(way, h('p', { class: 'small' }, 'Takes about a minute.'));
+        card.append(way);
     } else if (step === 'how') {
         card.append(h('h1', null, 'Here’s how it works.'),
-                    h('p', { class: 'lead' }, 'Four things, and none of them happen until you press a button.'));
+                    h('p', { class: 'lead' }, 'None of it happens until you press a button.'));
         card.append(h('div', { class: 'how' },
-            howTip('sort', 'Sort', 'Loose files go into folders by type. Screenshots with screenshots, images with images.'),
-            howTip('look', 'See it first', 'Every page shows what will change before anything moves.'),
-            howTip('space', 'Free up space', 'App caches and the Trash, cleared. Your own files stay where they are.'),
-            howTip('undo', 'Undo anything', 'Every move is logged, so one click puts it all back.')));
+            howTip('sort', 'Sort', 'Loose files into folders, by type.'),
+            howTip('look', 'See it first', 'Every page shows what changes, before it does.'),
+            howTip('space', 'Free up space', 'Caches and the Trash. Your files stay.'),
+            howTip('undo', 'Undo anything', 'One click puts it all back.')));
         primary = h('button', { class: 'btn fill large', onclick: () => introGo(1) }, 'Continue', icon('right'));
         way.append(back, h('span', { class: 'gap' }), primary);
         card.append(way);
     } else if (step === 'access') {
         card.append(h('h1', null, 'Let Kliner see your files.'),
-                    h('p', { class: 'lead' }, 'macOS asks you once for each one. Kliner only looks inside your home folder and never goes online.'));
+                    h('p', { class: 'lead' }, 'macOS asks once for each. Kliner never goes online.'));
         const list = h('div', { class: 'gates' });
         gates.forEach((g, n) => {
             const title = String(g.title || '').replace(/^your /i, '');
@@ -2498,18 +2511,18 @@ function drawWelcome() {
         card.append(way);
     } else if (step === 'desk') {
         card.append(h('h1', null, 'Make your desktop clean.'),
-                    h('p', { class: 'lead' }, 'Two ways, and you can have both. Neither deletes anything, and both undo.'));
+                    h('p', { class: 'lead' }, 'Two ways. Neither deletes anything.'));
         const deskPage = pages().findIndex(p => p.kind === 'desktop');
         const many = w.deskCount;
         card.append(h('div', { class: 'setup' },
             setupRow('desk', 'File it all away',
-                many == null ? 'Counting what is out there…'
-                    : many === 0 ? 'Your desktop is already clear.'
-                    : plural(many, 'thing') + ' into Desktop/Tidy, sorted by type.',
+                many == null ? 'Counting…'
+                    : many === 0 ? 'Already clear.'
+                    : plural(many, 'thing') + ' into Desktop/Tidy.',
                 w.didDesk ? 'done' : many === 0 ? 'skip' : 'Tidy it',
                 () => introTidy(deskPage)),
             setupRow('eye', 'Or stop drawing them at all',
-                'Finder shows a bare desktop. The files stay in your Desktop folder, exactly where they are.',
+                'A bare desktop. The files never move.',
                 w.didZen ? 'done' : 'Hide them', introZen)));
         primary = h('button', { class: 'btn fill large', onclick: () => introGo(1) }, 'Continue', icon('right'));
         way.append(back, h('span', { class: 'gap' }), primary);
@@ -2517,7 +2530,7 @@ function drawWelcome() {
         if (many == null) countDesk(deskPage);
     } else if (step === 'dock') {
         card.append(h('h1', null, 'Make your Dock clean.'),
-                    h('p', { class: 'lead' }, 'Untick what you never open. The apps stay installed — only the Dock icons go, and Kliner writes your Dock down first.'));
+                    h('p', { class: 'lead' }, 'Untick what you never open. The apps stay installed.'));
         const apps = w.dockApps;
         if (!apps) {
             card.append(h('div', { class: 'setup' }, h('p', { class: 'lead' }, 'Reading your Dock…')));
@@ -2528,7 +2541,7 @@ function drawWelcome() {
             const list = h('div', { class: 'picks' });
             apps.forEach((name, n) => {
                 const on = !w.dropped.has(name);
-                list.append(h('button', { class: 'pick' + (on ? ' on' : ''), style: `animation-delay:${fresh ? 60 + n * 40 : 0}ms`,
+                list.append(h('button', { class: 'keep' + (on ? ' on' : ''), style: `animation-delay:${fresh ? 60 + n * 40 : 0}ms`,
                     onclick: e => {
                         if (w.dropped.has(name)) w.dropped.delete(name); else w.dropped.add(name);
                         e.currentTarget.classList.toggle('on', !w.dropped.has(name));
@@ -2544,7 +2557,7 @@ function drawWelcome() {
         }
         card.append(h('div', { class: 'setup' },
             setupRow('bars', 'And let it slide away',
-                'The Dock hides until you move to the edge of the screen.',
+                'It hides until you reach for it.',
                 w.didFast ? 'done' : 'Let it slide', introDockFast)));
         primary = w.dockApps && w.dropped.size
             ? h('button', { class: 'btn fill large', onclick: introDockKeep }, 'Keep the ticked ones', icon('right'))
@@ -2553,7 +2566,7 @@ function drawWelcome() {
         card.append(way);
     } else if (step === 'wall') {
         card.append(h('h1', null, 'Pick a wallpaper.'),
-                    h('p', { class: 'lead' }, 'Yours first, then the ones your Mac ships with. Nothing is downloaded, and “Original” puts back the one you had.'));
+                    h('p', { class: 'lead' }, 'Yours first, then your Mac’s. Click one.'));
         if (!K.walls) {
             card.append(h('div', { class: 'setup' }, h('p', { class: 'lead' }, 'Looking for wallpapers…')));
             readWalls().then(() => { if (INTRO[K.welcome.step] === 'wall') drawWelcome(); });
@@ -2575,7 +2588,7 @@ function drawWelcome() {
         card.append(way);
     } else if (step === 'you') {
         card.append(h('h1', null, 'Make it yours.'),
-                    h('p', { class: 'lead' }, 'You can change all of this later in Settings.'));
+                    h('p', { class: 'lead' }, 'All of it changes later, in Settings.'));
         const field = h('input', { class: 'field', id: 'name', value: w.name, placeholder: 'Your name', maxlength: '60',
                                    oninput: e => { w.name = e.target.value; } });
         const starts = h('div', { class: 'chips' }, (K.meta.starts || []).map(st =>
@@ -2601,7 +2614,7 @@ function drawWelcome() {
         card.append(
             h('div', { class: 'hello-eyes happy' }, eyesMark('blinks')),
             h('h1', null, name ? `You’re all set, ${name}.` : 'You’re all set.'),
-            h('p', { class: 'lead' }, 'Kliner lives in your menu bar. Press ⌘K anywhere to open it.'));
+            h('p', { class: 'lead' }, 'Press ⌘K anywhere.'));
         primary = h('button', { class: 'btn fill large', onclick: finishWelcome }, 'Open Kliner', icon('right'));
         way.append(back, h('span', { class: 'gap' }), primary);
         card.append(way);
@@ -2708,25 +2721,62 @@ async function introWall(at) {
 }
 
 /* four small pictures of what Kliner does, drawn with nothing but shapes */
+/** The pieces of the sorting picture: nine loose things and three trays. */
+function sortStage() {
+    const out = [];
+    const spots = [
+        ['6%',  '10%', 0], ['24%', '6%',  1], ['41%', '12%', 2],
+        ['59%', '7%',  0], ['76%', '13%', 1], ['13%', '30%', 2],
+        ['33%', '34%', 0], ['52%', '31%', 1], ['70%', '36%', 2],
+    ];
+    const lands = ['7%', '38%', '69%'];
+    const filled = [0, 0, 0];
+    spots.forEach(([x0, y0, tray], n) => {
+        const at = filled[tray]++;
+        out.push(h('i', { class: 'f f' + tray,
+            style: `--x0:${x0};--y0:${y0};--x1:calc(${lands[tray]} + ${at * 13}px);--y1:${58 + at * 2}%;`
+                 + `animation-delay:${n * 110}ms;z-index:${2 + at}` }));
+    });
+    [['4%', 'Screens'], ['35%', 'Images'], ['66%', 'Docs']].forEach(([x, label], n) => {
+        out.push(h('span', { class: 'tray', style: `left:${x};animation-delay:${900 + n * 110}ms` },
+            h('span', { class: 'lip' }), h('span', { class: 'tag' }, label)));
+    });
+    return out;
+}
+
 function howTip(kind, title, text) {
     const stage = h('div', { class: 'demo ' + kind });
     if (kind === 'sort') {
-        const spots = [['8%', '14%', '17%', '55%'], ['30%', '8%', '17%', '34%'], ['55%', '20%', '49%', '55%'],
-                       ['74%', '10%', '49%', '34%'], ['18%', '40%', '81%', '55%'], ['62%', '42%', '81%', '34%']];
-        spots.forEach(([x0, y0, x1, y1], n) => stage.append(h('i', {
-            class: 'f f' + (n % 3), style: `--x0:${x0};--y0:${y0};--x1:${x1};--y1:${y1};animation-delay:${n * 90}ms` })));
-        for (const [x, label] of [['8%', 'Screens'], ['40%', 'Images'], ['72%', 'Docs']]) {
-            stage.append(h('span', { class: 'bin', style: `left:${x}` }, label));
-        }
+        stage.append(...sortStage());
     } else if (kind === 'look') {
-        for (let n = 0; n < 3; n++) stage.append(h('i', { class: 'line', style: `top:${22 + n * 24}%;width:${[64, 48, 56][n]}%;animation-delay:${n * 260}ms` }));
-        stage.append(h('span', { class: 'lens' }, icon('eye')));
+        // a page of rows, and a line that reads down it saying what each row
+        // would become — before anything has moved
+        const win = h('div', { class: 'sheetwin' }, h('span', { class: 'top' },
+            h('i'), h('i'), h('i')));
+        [['Screenshot 12.png', 'Screens'], ['poster.jpg', 'Images'], ['notes.pdf', 'Docs'], ['build.zip', 'Archives']]
+            .forEach(([name, to], n) => {
+                win.append(h('span', { class: 'row', style: `animation-delay:${n * 220}ms` },
+                    h('i', { class: 'dot' }),
+                    h('i', { class: 'bar', style: `width:${[58, 42, 50, 38][n]}%` }),
+                    h('span', { class: 'to' }, to)));
+            });
+        stage.append(win, h('span', { class: 'sweep' }));
     } else if (kind === 'space') {
-        stage.append(h('div', { class: 'dbar' }, h('i', { class: 'used' }), h('i', { class: 'cache' }), h('i', { class: 'free' })),
-                     h('span', { class: 'lbl' }, 'caches'));
+        // a disk with a hatched block of caches in it: the block lifts out,
+        // goes, and the free end of the bar grows into the gap
+        stage.append(
+            h('div', { class: 'dbar' }, h('i', { class: 'used' }), h('i', { class: 'cache' }), h('i', { class: 'free' })),
+            h('span', { class: 'chip' }, 'caches'),
+            h('span', { class: 'gain' }, '+2.4 GB'));
     } else {
-        stage.append(h('i', { class: 'f f0 mover' }), h('span', { class: 'folder' }, icon('folder')),
-                     h('span', { class: 'back2' }, icon('undo')));
+        // the same file as in Sort, coming back out of its tray and landing
+        // where it started, with the arc it takes drawn behind it
+        stage.append(
+            s('svg', { class: 'arc', viewBox: '0 0 200 100' },
+              s('path', { d: 'M150 62 C 132 20, 78 14, 52 34', fill: 'none' })),
+            h('span', { class: 'tray back', style: 'left:66%' }, h('span', { class: 'lip' }), h('span', { class: 'tag' }, 'Docs')),
+            h('i', { class: 'f f2 mover' }),
+            h('span', { class: 'ghost' }));
     }
     return h('div', { class: 'howtip' }, stage, h('b', null, title), h('span', null, text));
 }

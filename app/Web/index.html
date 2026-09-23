@@ -207,10 +207,7 @@ svg { display: block; }
        display: flex; align-items: center; white-space: nowrap; }
 .tab:hover { color: var(--body); }
 .tab.on { color: var(--ink); }
-.tabs { position: relative; }
-.tabs .slide { position: absolute; top: 2px; bottom: 2px; border-radius: 7px; background: var(--sel-2);
-               transition: transform .3s cubic-bezier(.2,.8,.2,1), width .3s cubic-bezier(.2,.8,.2,1); }
-.tab { position: relative; z-index: 1; }
+.tab.on { background: var(--sel-2); }
 
 .bar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .age { color: var(--faint); font-size: 12px; white-space: nowrap; }
@@ -261,7 +258,6 @@ svg { display: block; }
 .head .words { min-width: 0; flex: 1; }
 .head h1 { font-size: 24px; font-weight: 600; letter-spacing: -.02em; line-height: 1.15; }
 .head p  { margin-top: 6px; color: var(--muted); font-size: 13px; max-width: 64ch; text-wrap: pretty; }
-.head .cmd { margin-top: 10px; display: inline-flex; align-items: center; gap: 8px;
              font-size: 11.5px; letter-spacing: .01em; color: var(--faint);
              border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; background: var(--well); }
 .head .acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end;
@@ -534,6 +530,7 @@ svg { display: block; }
 /* wallpapers */
 .walls { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
 .wall { border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: grid; gap: 8px;
+    cursor: pointer; text-align: left; transition: border-color .16s ease, background .16s ease;
         animation: in .22s cubic-bezier(.2,.7,.2,1) both; }
 .wall .sheet { display: grid; place-items: center; height: 92px; border-radius: 8px; border: 1px solid var(--line);
                background: var(--well); color: var(--ghost); }
@@ -940,15 +937,15 @@ svg.ring text { transition: opacity .2s ease; }
 .setup .st { color: var(--faint); font-size: 12.5px; }
 .setup .st .ic { width: 14px; height: 14px; stroke-width: 2; }
 .picks { margin-top: 26px; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
-.pick { display: flex; align-items: center; gap: 10px; text-align: left; padding: 9px 12px; border-radius: 10px;
+.keep { display: flex; align-items: center; gap: 10px; text-align: left; padding: 9px 12px; border-radius: 10px;
     border: 1px solid var(--line); background: var(--raise); color: var(--muted); font-size: 13px; cursor: pointer;
     animation: in .26s cubic-bezier(.2,.7,.2,1) both; }
-.pick .tick { width: 18px; height: 18px; flex: none; border-radius: 6px; border: 1px solid var(--line-2);
+.keep .tick { width: 18px; height: 18px; flex: none; border-radius: 6px; border: 1px solid var(--line-2);
     display: grid; place-items: center; color: transparent; }
-.pick .tick .ic { width: 12px; height: 12px; }
-.pick .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pick.on { color: var(--ink); border-color: var(--line-2); }
-.pick.on .tick { background: var(--on); border-color: var(--on); color: var(--on-ink); }
+.keep .tick .ic { width: 12px; height: 12px; }
+.keep .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.keep.on { color: var(--ink); border-color: var(--line-2); }
+.keep.on .tick { background: var(--on); border-color: var(--on); color: var(--on-ink); }
 .walls.small { margin-top: 24px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .walls.small .wall { padding: 8px; gap: 6px; cursor: pointer; text-align: left; animation: in .26s cubic-bezier(.2,.7,.2,1) both; }
 .walls.small .wall .sheet { height: 74px; }
@@ -961,36 +958,100 @@ svg.ring text { transition: opacity .2s ease; }
 .how .howtip:nth-child(2) { animation-delay: .06s; } .how .howtip:nth-child(3) { animation-delay: .12s; } .how .howtip:nth-child(4) { animation-delay: .18s; }
 .how .howtip b { font-weight: 600; font-size: 15px; margin-top: 12px; }
 .how .howtip span { color: var(--muted); font-size: 13px; line-height: 1.5; }
-.demo { position: relative; height: 128px; border-radius: 10px; background: var(--well); border: 1px solid var(--line); overflow: hidden; }
-.demo .f { position: absolute; width: 16px; height: 20px; border-radius: 4px; background: var(--w1); }
-.demo .f::after { content: ""; position: absolute; left: 3px; right: 3px; top: 5px; height: 2px; border-radius: 2px; background: var(--well); opacity: .7;
-                  box-shadow: 0 4px 0 var(--well), 0 8px 0 var(--well); }
-.demo .f1 { background: var(--w2); } .demo .f2 { background: var(--w3); }
-.demo.sort .f { left: var(--x0); top: var(--y0); animation: sortIt 4.2s cubic-bezier(.5,0,.2,1) infinite both; }
-@keyframes sortIt { 0%, 18% { left: var(--x0); top: var(--y0); } 48%, 82% { left: var(--x1); top: var(--y1); } 100% { left: var(--x0); top: var(--y0); } }
-.demo.sort .bin { position: absolute; bottom: 6px; width: 24%; height: 18px; border-radius: 5px; background: var(--sel); color: var(--faint);
-                  font-size: 9.5px; letter-spacing: .04em; display: grid; place-items: center; text-transform: uppercase; }
-.demo.look .line { position: absolute; left: 12%; height: 8px; border-radius: 4px; background: var(--sel-2); animation: lineIn 3.6s ease infinite both; }
-@keyframes lineIn { 0% { opacity: 0; transform: translateX(-8px); } 12%, 80% { opacity: 1; transform: none; } 100% { opacity: 0; } }
-.demo.look .lens { position: absolute; top: 50%; left: 12%; margin-top: -12px; width: 24px; height: 24px; border-radius: 50%;
-                  background: var(--on); color: var(--on-ink); display: grid; place-items: center; animation: scan 3.6s ease-in-out infinite; }
-.demo.look .lens .ic { width: 14px; height: 14px; }
-@keyframes scan { 0%, 10% { left: 10%; } 55%, 70% { left: 78%; } 100% { left: 10%; } }
-.demo.space .dbar { position: absolute; left: 10%; right: 10%; top: 42%; height: 16px; border-radius: 6px; background: var(--sel); display: flex; overflow: hidden; }
+.demo { position: relative; height: 132px; border-radius: 10px; overflow: hidden;
+    background: radial-gradient(120% 140% at 30% 0%, var(--glow), transparent 62%), var(--well);
+    border: 1px solid var(--line); }
+
+/* a loose file, the same shape in every picture */
+.demo .f { position: absolute; width: 17px; height: 21px; border-radius: 4px; background: var(--w1);
+    box-shadow: 0 1px 2px rgba(0,0,0,.35); z-index: 2; }
+.demo .f::after { content: ""; position: absolute; left: 3px; right: 4px; top: 5px; height: 2px; border-radius: 2px;
+    background: var(--well); opacity: .75; box-shadow: 0 4px 0 var(--well), 0 8px 0 var(--well); }
+.demo .f0 { background: var(--w1); } .demo .f1 { background: var(--w2); } .demo .f2 { background: var(--w3); }
+
+/* 1 · sort: nine things fly into three trays, and the trays fill */
+.demo.sort .f { left: var(--x0); top: var(--y0); animation: sortIt 5s cubic-bezier(.55,0,.15,1) infinite both; }
+@keyframes sortIt {
+    0%, 14%  { left: var(--x0); top: var(--y0); transform: scale(1) rotate(0deg); opacity: 1; }
+    34%      { transform: scale(.94) rotate(-4deg); }
+    50%, 84% { left: var(--x1); top: var(--y1); transform: scale(.84) rotate(0deg); opacity: 1; }
+    92%      { opacity: 0; }
+    93%      { left: var(--x0); top: var(--y0); opacity: 0; transform: scale(1); }
+    100%     { left: var(--x0); top: var(--y0); opacity: 1; }
+}
+.demo .tray { position: absolute; bottom: 8px; width: 30%; height: 40px; border-radius: 7px;
+    background: var(--sel); border: 1px solid var(--line-2); z-index: 1; }
+/* the lip sits over the files, so a landed one tucks in behind it */
+.demo .tray .lip { position: absolute; left: -1px; right: -1px; bottom: -1px; height: 15px; border-radius: 0 0 7px 7px;
+    background: var(--sel-2); border: 1px solid var(--line-2); z-index: 3; }
+.demo .tray .tag { position: absolute; left: 0; right: 0; bottom: 1px; text-align: center; color: var(--faint);
+    font-size: 9px; letter-spacing: .06em; text-transform: uppercase; line-height: 12px; z-index: 4; }
+.demo.sort .tray { animation: trayUp 5s ease-in-out infinite both; }
+@keyframes trayUp { 0%, 40% { transform: translateY(0); } 50% { transform: translateY(2px); } 62%, 100% { transform: translateY(0); } }
+
+/* the same picture, big, on the very first screen */
+.demo.wide { margin-top: 30px; height: 200px; width: 100%; }
+.demo.wide .f { width: 22px; height: 27px; }
+.demo.wide .tray { height: 62px; bottom: 12px; }
+.demo.wide .tray .lip { height: 20px; }
+.demo.wide .tray .tag { font-size: 10px; line-height: 17px; }
+.intro-card.s-hello .demo.wide { animation: in .5s cubic-bezier(.2,.8,.2,1) .18s both; }
+
+/* 2 · see it first: a page of rows, and a line reading down it */
+.demo.look .sheetwin { position: absolute; inset: 12px 14px; border-radius: 8px; background: var(--raise);
+    border: 1px solid var(--line); padding: 0 10px; display: flex; flex-direction: column; }
+.demo.look .sheetwin .top { display: flex; gap: 4px; padding: 8px 0 6px; }
+.demo.look .sheetwin .top i { width: 5px; height: 5px; border-radius: 50%; background: var(--sel-2); }
+.demo.look .row { display: flex; align-items: center; gap: 7px; flex: 1; min-height: 0;
+    animation: rowIn 4.6s ease infinite both; }
+.demo.look .row .dot { width: 5px; height: 5px; border-radius: 2px; background: var(--w2); flex: none; }
+.demo.look .row .bar { height: 5px; border-radius: 3px; background: var(--sel-2); }
+.demo.look .row .to { margin-left: auto; font-size: 8.5px; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--faint); background: var(--sel); border-radius: 4px; padding: 2px 5px; opacity: 0;
+    animation: toIn 4.6s ease infinite both; animation-delay: inherit; }
+@keyframes rowIn { 0% { opacity: 0; transform: translateX(-6px); } 10%, 86% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@keyframes toIn { 0%, 22% { opacity: 0; transform: translateX(6px); } 34%, 84% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.demo.look .sweep { position: absolute; left: 14px; right: 14px; height: 22px; border-radius: 6px;
+    background: linear-gradient(90deg, transparent, var(--glow), transparent); pointer-events: none;
+    animation: sweepDown 4.6s cubic-bezier(.5,0,.3,1) infinite both; }
+@keyframes sweepDown { 0%, 8% { top: 30px; opacity: 0; } 14% { opacity: 1; } 70% { top: 96px; opacity: 1; } 82%, 100% { top: 96px; opacity: 0; } }
+
+/* 3 · free up space: the caches lift out and the free end grows */
+.demo.space .dbar { position: absolute; left: 12%; right: 12%; top: 46%; height: 18px; border-radius: 7px;
+    background: var(--sel); display: flex; overflow: hidden; border: 1px solid var(--line-2); }
 .demo.space .dbar i { display: block; height: 100%; }
-.demo.space .used { width: 52%; background: var(--w2); }
-.demo.space .cache { width: 26%; background: repeating-linear-gradient(45deg, var(--w1) 0 3px, transparent 3px 6px); animation: shrink 3.8s cubic-bezier(.6,0,.2,1) infinite; }
-.demo.space .free { flex: 1; }
-@keyframes shrink { 0%, 25% { width: 26%; } 60%, 88% { width: 0; } 100% { width: 26%; } }
-.demo.space .lbl { position: absolute; left: 62%; top: 24%; color: var(--faint); font-size: 9.5px; letter-spacing: .04em; text-transform: uppercase;
-                   animation: fadeLbl 3.8s ease infinite; }
-@keyframes fadeLbl { 0%, 25% { opacity: 1; } 45%, 90% { opacity: 0; } 100% { opacity: 1; } }
-.demo.undo .mover { left: 18%; top: 50%; margin-top: -10px; animation: file 3.6s cubic-bezier(.6,0,.2,1) infinite; }
-@keyframes file { 0%, 15% { left: 18%; opacity: 1; } 42% { left: 68%; opacity: 0; } 55% { left: 68%; opacity: 0; } 80%, 100% { left: 18%; opacity: 1; } }
-.demo.undo .folder { position: absolute; left: 66%; top: 50%; margin-top: -14px; color: var(--w1); }
-.demo.undo .folder .ic { width: 30px; height: 28px; stroke-width: 1.5; }
-.demo.undo .back2 { position: absolute; left: 44%; top: 16%; color: var(--muted); opacity: 0; animation: blinkUndo 3.6s ease infinite; }
-@keyframes blinkUndo { 0%, 50% { opacity: 0; transform: translateY(4px); } 60%, 78% { opacity: 1; transform: none; } 90%, 100% { opacity: 0; } }
+.demo.space .used { width: 54%; background: var(--w2); }
+.demo.space .cache { width: 24%; background: repeating-linear-gradient(45deg, var(--w0) 0 3px, transparent 3px 6px);
+    animation: cacheGo 4.4s cubic-bezier(.6,0,.2,1) infinite both; }
+.demo.space .free { flex: 1; background: var(--well); }
+@keyframes cacheGo { 0%, 26% { width: 24%; opacity: 1; } 44% { opacity: .25; } 62%, 88% { width: 0; opacity: 0; } 100% { width: 24%; opacity: 1; } }
+.demo.space .chip { position: absolute; left: 58%; top: 18%; color: var(--faint); font-size: 9px; letter-spacing: .06em;
+    text-transform: uppercase; background: var(--sel); border-radius: 4px; padding: 2px 6px;
+    animation: chipGo 4.4s ease infinite both; }
+@keyframes chipGo { 0%, 26% { opacity: 1; transform: none; } 48%, 90% { opacity: 0; transform: translateY(-10px); } 100% { opacity: 1; transform: none; } }
+.demo.space .gain { position: absolute; left: 58%; top: 70%; color: var(--good); font-size: 11px; font-weight: 600;
+    opacity: 0; animation: gainUp 4.4s ease infinite both; }
+@keyframes gainUp { 0%, 52% { opacity: 0; transform: translateY(6px); } 64%, 84% { opacity: 1; transform: none; } 96%, 100% { opacity: 0; transform: translateY(-6px); } }
+
+/* 4 · undo: the file comes back out of the tray, along the arc it took */
+.demo.undo .arc { position: absolute; inset: 0; width: 100%; height: 100%; }
+.demo.undo .arc path { stroke: var(--line-2); stroke-width: 1.5; stroke-dasharray: 150; stroke-dashoffset: 150;
+    stroke-linecap: round; animation: drawArc 4s ease-in-out infinite both; }
+@keyframes drawArc { 0%, 14% { stroke-dashoffset: 150; } 46%, 78% { stroke-dashoffset: 0; } 92%, 100% { stroke-dashoffset: 150; } }
+.demo.undo .tray.back { bottom: 8px; }
+.demo.undo .ghost { position: absolute; left: 22%; top: 24%; width: 17px; height: 21px; border-radius: 4px;
+    border: 1px dashed var(--line-2); }
+.demo.undo .mover { left: 72%; top: 54%; animation: comeBack 4s cubic-bezier(.5,0,.2,1) infinite both; }
+@keyframes comeBack {
+    0%, 16%  { left: 72%; top: 54%; transform: scale(.84); opacity: 1; }
+    52%, 84% { left: 22%; top: 24%; transform: scale(1); opacity: 1; }
+    90%      { opacity: 0; }
+    91%      { left: 72%; top: 54%; opacity: 0; transform: scale(.84); }
+    100%     { left: 72%; top: 54%; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .demo * { animation: none !important; }
+}
 
 /* access */
 .gates { margin-top: 26px; display: grid; border: 1px solid var(--line); border-radius: 14px; background: var(--card), var(--raise); padding: 4px 14px; }
@@ -1724,6 +1785,7 @@ const K = {
     behind: [],
     ahead: [],
     kept: {},           // page → what it last said
+    wallOn: 0,          // the one put on from this window
     walls: null,        // the wallpapers, read once
     wallPics: null,     // and small pictures of them, drawn by the Mac
     busy: false,
@@ -1840,23 +1902,14 @@ function setFrame() {
             where.append(h('span', { class: 'name' }, 'Overview'));
         } else if (place && place.holds.length > 1) {
             where.append(h('span', { class: 'group' }, place.title));
-            const slide = h('i', { class: 'slide' });
-            const tabs = h('div', { class: 'tabs', 'data-hole': '' }, slide);
+            // No pill sliding between them. It measured, waited a frame and
+            // moved on every single draw, which is a strip that never sits
+            // still. The one that is on is simply the one that is on.
+            const tabs = h('div', { class: 'tabs', 'data-hole': '' });
             for (const n of place.holds) {
                 tabs.append(h('button', { class: 'tab' + (n === i ? ' on' : ''), onclick: () => show(n) }, titleOf(n)));
             }
             where.append(tabs);
-            // start where the pill was, then slide to where it goes
-            const from = K.tabPill && K.tabPill.place === place.title ? K.tabPill : null;
-            if (from) { slide.style.transition = 'none'; slide.style.transform = `translateX(${from.x}px)`; slide.style.width = from.w + 'px'; }
-            requestAnimationFrame(() => {
-                const on = tabs.querySelector('.tab.on');
-                if (!on) return;
-                slide.style.transition = '';
-                slide.style.transform = `translateX(${on.offsetLeft - 2}px)`;
-                slide.style.width = on.offsetWidth + 'px';
-                K.tabPill = { place: place.title, x: on.offsetLeft - 2, w: on.offsetWidth };
-            });
         } else {
             where.append(h('span', { class: 'name' }, titleOf(i)));
         }
@@ -2051,6 +2104,24 @@ async function look(i, quietly) {
 
     // the wallpapers come from their own, harmless reading
     if (kind(i) === 'next' && !K.walls) readWalls();
+}
+
+/** The one that was clicked goes on the screen. */
+async function putOnWall(at) {
+    if (K.busy) return;
+    K.busy = true;
+    busyButtons(true);
+    let reply;
+    try {
+        reply = await ask('setWall', { at });
+    } finally {
+        K.busy = false;
+        busyButtons(false);
+    }
+    if (!reply || !reply.ok) return;
+    K.wallOn = at;
+    afterRun(K.page, reply, 'Wallpaper', true);
+    drawPage(true);
 }
 
 async function readWalls() {
@@ -2838,8 +2909,7 @@ function head(i, extraActs) {
     return h('div', { class: 'head' },
         h('div', { class: 'words' },
             h('h1', null, item.title),
-            h('p', null, item.blurb),
-            item.command ? h('div', { class: 'cmd' }, icon('terminal'), item.command) : null),
+            h('p', null, item.blurb)),
         acts);
 }
 
@@ -3786,18 +3856,23 @@ function drawWalls(out, i, pieces) {
             h('p', null, 'Nothing changes until you press Next.'))));
         return;
     }
+    // Click the picture, not a button beside it: the pictures are the
+    // control. Previous, Original and Next are still up in the title strip.
     const grid = h('div', { class: 'walls' });
     for (const w of K.walls) {
-        const pick = now ? w.parts[0] === now.text : /would pick/.test(w.parts.slice(1).join(' '));
+        const pick = K.wallOn === w.no || (K.wallOn ? false
+            : now ? w.parts[0] === now.text : /would pick/.test(w.parts.slice(1).join(' ')));
         const drawn = K.wallPics && K.wallPics[String(w.no)];
         const sheet = drawn
             ? h('span', { class: 'sheet has' }, h('img', { class: 'pic got', src: drawn, alt: '' }))
             : h('span', { class: 'sheet' }, icon('photo'));
-        grid.append(h('div', { class: 'wall' + (pick ? ' pick' : '') },
+        grid.append(h('button', { class: 'wall' + (pick ? ' pick' : ''), 'data-tip': 'Put this one on',
+                                  onclick: () => putOnWall(w.no) },
             sheet,
             h('span', { class: 'nm' }, w.parts[0]),
             h('span', { class: 'foot' }, h('span', { class: 'no' }, String(w.no)),
-              pick ? h('span', { class: 'pill' + (now ? ' hi' : '') }, now ? 'on now' : 'suggested') : null)));
+              pick ? h('span', { class: 'pill' + (K.wallOn === w.no || now ? ' hi' : '') },
+                        K.wallOn === w.no || now ? 'on now' : 'suggested') : null)));
     }
     out.append(panel('', cap('photo', 'Wallpapers', h('span', null, plural(K.walls.length, 'wallpaper'))), grid));
     out.append(wallFolder());
@@ -3876,8 +3951,6 @@ function settingsBody(st) {
             seg(['7', '30', '90'], days, v => { K.meta.config.days = v; tell('setConfig', { key: 'days', value: v }); }, v => v + ' days')),
         setting('Preview mode', 'Buttons only show what would happen. Nothing changes while this is on.',
             h('button', { class: 'switch' + (K.preview ? ' on' : ''), onclick: e => { flipPreview(); e.currentTarget.classList.toggle('on', K.preview); } })),
-        setting('Command line', 'Everything Kliner does also works in Terminal.',
-            h('button', { class: 'btn line small', onclick: () => tell('terminal') }, icon('terminal'), 'Open')),
         setting('Welcome tour', 'The screens from the first time you opened Kliner.',
             h('button', { class: 'btn line small', onclick: startWelcome }, 'Show again')));
 
@@ -4142,24 +4215,25 @@ function drawWelcome() {
         card.append(
             h('div', { class: 'hello-eyes' }, eyesMark()),
             h('h1', null, 'Hey, I’m Kliner.'),
-            h('p', { class: 'lead' }, 'I keep your Mac tidy. I sort your desktop and downloads, show you what takes up space, and I can undo anything I do.'));
+            h('p', { class: 'lead' }, 'I keep your Mac tidy.'),
+            h('div', { class: 'demo sort wide' }, ...sortStage()));
         primary = h('button', { class: 'btn fill large', onclick: () => introGo(1) }, 'Get started', icon('right'));
         way.append(primary);
-        card.append(way, h('p', { class: 'small' }, 'Takes about a minute.'));
+        card.append(way);
     } else if (step === 'how') {
         card.append(h('h1', null, 'Here’s how it works.'),
-                    h('p', { class: 'lead' }, 'Four things, and none of them happen until you press a button.'));
+                    h('p', { class: 'lead' }, 'None of it happens until you press a button.'));
         card.append(h('div', { class: 'how' },
-            howTip('sort', 'Sort', 'Loose files go into folders by type. Screenshots with screenshots, images with images.'),
-            howTip('look', 'See it first', 'Every page shows what will change before anything moves.'),
-            howTip('space', 'Free up space', 'App caches and the Trash, cleared. Your own files stay where they are.'),
-            howTip('undo', 'Undo anything', 'Every move is logged, so one click puts it all back.')));
+            howTip('sort', 'Sort', 'Loose files into folders, by type.'),
+            howTip('look', 'See it first', 'Every page shows what changes, before it does.'),
+            howTip('space', 'Free up space', 'Caches and the Trash. Your files stay.'),
+            howTip('undo', 'Undo anything', 'One click puts it all back.')));
         primary = h('button', { class: 'btn fill large', onclick: () => introGo(1) }, 'Continue', icon('right'));
         way.append(back, h('span', { class: 'gap' }), primary);
         card.append(way);
     } else if (step === 'access') {
         card.append(h('h1', null, 'Let Kliner see your files.'),
-                    h('p', { class: 'lead' }, 'macOS asks you once for each one. Kliner only looks inside your home folder and never goes online.'));
+                    h('p', { class: 'lead' }, 'macOS asks once for each. Kliner never goes online.'));
         const list = h('div', { class: 'gates' });
         gates.forEach((g, n) => {
             const title = String(g.title || '').replace(/^your /i, '');
@@ -4187,18 +4261,18 @@ function drawWelcome() {
         card.append(way);
     } else if (step === 'desk') {
         card.append(h('h1', null, 'Make your desktop clean.'),
-                    h('p', { class: 'lead' }, 'Two ways, and you can have both. Neither deletes anything, and both undo.'));
+                    h('p', { class: 'lead' }, 'Two ways. Neither deletes anything.'));
         const deskPage = pages().findIndex(p => p.kind === 'desktop');
         const many = w.deskCount;
         card.append(h('div', { class: 'setup' },
             setupRow('desk', 'File it all away',
-                many == null ? 'Counting what is out there…'
-                    : many === 0 ? 'Your desktop is already clear.'
-                    : plural(many, 'thing') + ' into Desktop/Tidy, sorted by type.',
+                many == null ? 'Counting…'
+                    : many === 0 ? 'Already clear.'
+                    : plural(many, 'thing') + ' into Desktop/Tidy.',
                 w.didDesk ? 'done' : many === 0 ? 'skip' : 'Tidy it',
                 () => introTidy(deskPage)),
             setupRow('eye', 'Or stop drawing them at all',
-                'Finder shows a bare desktop. The files stay in your Desktop folder, exactly where they are.',
+                'A bare desktop. The files never move.',
                 w.didZen ? 'done' : 'Hide them', introZen)));
         primary = h('button', { class: 'btn fill large', onclick: () => introGo(1) }, 'Continue', icon('right'));
         way.append(back, h('span', { class: 'gap' }), primary);
@@ -4206,7 +4280,7 @@ function drawWelcome() {
         if (many == null) countDesk(deskPage);
     } else if (step === 'dock') {
         card.append(h('h1', null, 'Make your Dock clean.'),
-                    h('p', { class: 'lead' }, 'Untick what you never open. The apps stay installed — only the Dock icons go, and Kliner writes your Dock down first.'));
+                    h('p', { class: 'lead' }, 'Untick what you never open. The apps stay installed.'));
         const apps = w.dockApps;
         if (!apps) {
             card.append(h('div', { class: 'setup' }, h('p', { class: 'lead' }, 'Reading your Dock…')));
@@ -4217,7 +4291,7 @@ function drawWelcome() {
             const list = h('div', { class: 'picks' });
             apps.forEach((name, n) => {
                 const on = !w.dropped.has(name);
-                list.append(h('button', { class: 'pick' + (on ? ' on' : ''), style: `animation-delay:${fresh ? 60 + n * 40 : 0}ms`,
+                list.append(h('button', { class: 'keep' + (on ? ' on' : ''), style: `animation-delay:${fresh ? 60 + n * 40 : 0}ms`,
                     onclick: e => {
                         if (w.dropped.has(name)) w.dropped.delete(name); else w.dropped.add(name);
                         e.currentTarget.classList.toggle('on', !w.dropped.has(name));
@@ -4233,7 +4307,7 @@ function drawWelcome() {
         }
         card.append(h('div', { class: 'setup' },
             setupRow('bars', 'And let it slide away',
-                'The Dock hides until you move to the edge of the screen.',
+                'It hides until you reach for it.',
                 w.didFast ? 'done' : 'Let it slide', introDockFast)));
         primary = w.dockApps && w.dropped.size
             ? h('button', { class: 'btn fill large', onclick: introDockKeep }, 'Keep the ticked ones', icon('right'))
@@ -4242,7 +4316,7 @@ function drawWelcome() {
         card.append(way);
     } else if (step === 'wall') {
         card.append(h('h1', null, 'Pick a wallpaper.'),
-                    h('p', { class: 'lead' }, 'Yours first, then the ones your Mac ships with. Nothing is downloaded, and “Original” puts back the one you had.'));
+                    h('p', { class: 'lead' }, 'Yours first, then your Mac’s. Click one.'));
         if (!K.walls) {
             card.append(h('div', { class: 'setup' }, h('p', { class: 'lead' }, 'Looking for wallpapers…')));
             readWalls().then(() => { if (INTRO[K.welcome.step] === 'wall') drawWelcome(); });
@@ -4264,7 +4338,7 @@ function drawWelcome() {
         card.append(way);
     } else if (step === 'you') {
         card.append(h('h1', null, 'Make it yours.'),
-                    h('p', { class: 'lead' }, 'You can change all of this later in Settings.'));
+                    h('p', { class: 'lead' }, 'All of it changes later, in Settings.'));
         const field = h('input', { class: 'field', id: 'name', value: w.name, placeholder: 'Your name', maxlength: '60',
                                    oninput: e => { w.name = e.target.value; } });
         const starts = h('div', { class: 'chips' }, (K.meta.starts || []).map(st =>
@@ -4290,7 +4364,7 @@ function drawWelcome() {
         card.append(
             h('div', { class: 'hello-eyes happy' }, eyesMark('blinks')),
             h('h1', null, name ? `You’re all set, ${name}.` : 'You’re all set.'),
-            h('p', { class: 'lead' }, 'Kliner lives in your menu bar. Press ⌘K anywhere to open it.'));
+            h('p', { class: 'lead' }, 'Press ⌘K anywhere.'));
         primary = h('button', { class: 'btn fill large', onclick: finishWelcome }, 'Open Kliner', icon('right'));
         way.append(back, h('span', { class: 'gap' }), primary);
         card.append(way);
@@ -4397,25 +4471,62 @@ async function introWall(at) {
 }
 
 /* four small pictures of what Kliner does, drawn with nothing but shapes */
+/** The pieces of the sorting picture: nine loose things and three trays. */
+function sortStage() {
+    const out = [];
+    const spots = [
+        ['6%',  '10%', 0], ['24%', '6%',  1], ['41%', '12%', 2],
+        ['59%', '7%',  0], ['76%', '13%', 1], ['13%', '30%', 2],
+        ['33%', '34%', 0], ['52%', '31%', 1], ['70%', '36%', 2],
+    ];
+    const lands = ['7%', '38%', '69%'];
+    const filled = [0, 0, 0];
+    spots.forEach(([x0, y0, tray], n) => {
+        const at = filled[tray]++;
+        out.push(h('i', { class: 'f f' + tray,
+            style: `--x0:${x0};--y0:${y0};--x1:calc(${lands[tray]} + ${at * 13}px);--y1:${58 + at * 2}%;`
+                 + `animation-delay:${n * 110}ms;z-index:${2 + at}` }));
+    });
+    [['4%', 'Screens'], ['35%', 'Images'], ['66%', 'Docs']].forEach(([x, label], n) => {
+        out.push(h('span', { class: 'tray', style: `left:${x};animation-delay:${900 + n * 110}ms` },
+            h('span', { class: 'lip' }), h('span', { class: 'tag' }, label)));
+    });
+    return out;
+}
+
 function howTip(kind, title, text) {
     const stage = h('div', { class: 'demo ' + kind });
     if (kind === 'sort') {
-        const spots = [['8%', '14%', '17%', '55%'], ['30%', '8%', '17%', '34%'], ['55%', '20%', '49%', '55%'],
-                       ['74%', '10%', '49%', '34%'], ['18%', '40%', '81%', '55%'], ['62%', '42%', '81%', '34%']];
-        spots.forEach(([x0, y0, x1, y1], n) => stage.append(h('i', {
-            class: 'f f' + (n % 3), style: `--x0:${x0};--y0:${y0};--x1:${x1};--y1:${y1};animation-delay:${n * 90}ms` })));
-        for (const [x, label] of [['8%', 'Screens'], ['40%', 'Images'], ['72%', 'Docs']]) {
-            stage.append(h('span', { class: 'bin', style: `left:${x}` }, label));
-        }
+        stage.append(...sortStage());
     } else if (kind === 'look') {
-        for (let n = 0; n < 3; n++) stage.append(h('i', { class: 'line', style: `top:${22 + n * 24}%;width:${[64, 48, 56][n]}%;animation-delay:${n * 260}ms` }));
-        stage.append(h('span', { class: 'lens' }, icon('eye')));
+        // a page of rows, and a line that reads down it saying what each row
+        // would become — before anything has moved
+        const win = h('div', { class: 'sheetwin' }, h('span', { class: 'top' },
+            h('i'), h('i'), h('i')));
+        [['Screenshot 12.png', 'Screens'], ['poster.jpg', 'Images'], ['notes.pdf', 'Docs'], ['build.zip', 'Archives']]
+            .forEach(([name, to], n) => {
+                win.append(h('span', { class: 'row', style: `animation-delay:${n * 220}ms` },
+                    h('i', { class: 'dot' }),
+                    h('i', { class: 'bar', style: `width:${[58, 42, 50, 38][n]}%` }),
+                    h('span', { class: 'to' }, to)));
+            });
+        stage.append(win, h('span', { class: 'sweep' }));
     } else if (kind === 'space') {
-        stage.append(h('div', { class: 'dbar' }, h('i', { class: 'used' }), h('i', { class: 'cache' }), h('i', { class: 'free' })),
-                     h('span', { class: 'lbl' }, 'caches'));
+        // a disk with a hatched block of caches in it: the block lifts out,
+        // goes, and the free end of the bar grows into the gap
+        stage.append(
+            h('div', { class: 'dbar' }, h('i', { class: 'used' }), h('i', { class: 'cache' }), h('i', { class: 'free' })),
+            h('span', { class: 'chip' }, 'caches'),
+            h('span', { class: 'gain' }, '+2.4 GB'));
     } else {
-        stage.append(h('i', { class: 'f f0 mover' }), h('span', { class: 'folder' }, icon('folder')),
-                     h('span', { class: 'back2' }, icon('undo')));
+        // the same file as in Sort, coming back out of its tray and landing
+        // where it started, with the arc it takes drawn behind it
+        stage.append(
+            s('svg', { class: 'arc', viewBox: '0 0 200 100' },
+              s('path', { d: 'M150 62 C 132 20, 78 14, 52 34', fill: 'none' })),
+            h('span', { class: 'tray back', style: 'left:66%' }, h('span', { class: 'lip' }), h('span', { class: 'tag' }, 'Docs')),
+            h('i', { class: 'f f2 mover' }),
+            h('span', { class: 'ghost' }));
     }
     return h('div', { class: 'howtip' }, stage, h('b', null, title), h('span', null, text));
 }

@@ -554,9 +554,8 @@ final class Heat: NSView {
 /// what it would do in a sentence, and the two figures worth knowing before
 /// you press anything.
 ///
-/// The command is on the row on purpose. Everything the window does, the
-/// terminal does too, and a row that shows its own command is a window that
-/// teaches the tool underneath it instead of hiding it.
+/// The command is kept for the rows that use that line to say something
+/// else; a row whose command is a `min` line shows nothing there.
 final class Entry: NSView {
     var onDo: (() -> Void)?
     var onOpen: (() -> Void)?
@@ -579,7 +578,10 @@ final class Entry: NSView {
         title.translatesAutoresizingMaskIntoConstraints = false
         addSubview(title)
 
-        let typed = NSTextField(labelWithString: command)
+        // No commands on the rows any more. A window that teaches the tool
+        // underneath it is still a window with a terminal in it, and this one
+        // is not supposed to have one.
+        let typed = NSTextField(labelWithString: command.hasPrefix("min ") ? "" : command)
         typed.font = Words.typed
         typed.textColor = Paint.faint
         typed.translatesAutoresizingMaskIntoConstraints = false
