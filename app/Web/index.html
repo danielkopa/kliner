@@ -2067,7 +2067,26 @@ async function tidyBoth(which) {
     const said = reply.results.map(one => (parse(one.text).find(p => p.k === 'good') || {}).text).filter(Boolean);
     delete K.kept[0];
     show(0);
-    if (said.length) toast(said.join(' · '), null);
+    if (said.length) toast(which.length > 1 ? swept(reply.results) || said.join(' \u00b7 ') : said.join(' \u00b7 '), null);
+}
+
+/* several places tidied at once, said once: the counts each one reported, added up */
+function swept(results) {
+    let filed = 0, freed = '', heard = 0;
+    for (const one of results) {
+        const good = (parse(one.text).find(p => p.k === 'good') || {}).text;
+        if (!good) continue;
+        heard++;
+        const items = good.match(/(\d[\d,]*)\s+items?\b/);
+        if (items) filed += parseInt(items[1].replace(/,/g, ''), 10);
+        const size = good.match(/(\d[\d.]*\s?[KMGT]B)\b/);
+        if (size && kind(one.page) === 'clean') freed = size[1];
+    }
+    if (!heard) return '';
+    const bits = [];
+    if (filed) bits.push(filed + (filed === 1 ? ' item filed away' : ' items filed away'));
+    if (freed) bits.push(freed + ' freed');
+    return bits.join(', ');
 }
 
 function afterRun(i, reply, what, quiet) {

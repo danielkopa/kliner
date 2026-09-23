@@ -13,3 +13,6 @@ app/build/
 _to_delete/
 kliner/
 Claude outputs/
+
+# the promo cuts, big and rebuildable
+promo/
