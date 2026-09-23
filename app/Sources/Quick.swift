@@ -136,7 +136,11 @@ final class QuickRow: NSView {
         // One line: the name, and nothing under it. The command a row stands
         // for is still what the search matches, it is just not printed.
 
+        // The figure only shows on the row you are on. Nine of them down the
+        // right edge is a second column to read; one, where you are looking,
+        // is the answer to "how many".
         figure.stringValue = said
+        figure.alphaValue = 0
         figure.font = Words.small
         figure.textColor = Paint.muted
         figure.alignment = .right
@@ -204,7 +208,8 @@ final class QuickRow: NSView {
             self.layer?.backgroundColor = self.lit ? Paint.picked.cgColor : NSColor.clear.cgColor
             self.tile.layer?.backgroundColor = NSColor.clear.cgColor
             self.mark.contentTintColor = self.lit ? Paint.ink : Paint.muted
-            self.figure.textColor = self.lit ? Paint.ink : Paint.muted
+            self.figure.textColor = Paint.muted
+            self.figure.animator().alphaValue = self.lit ? 1 : 0
         }
     }
 }

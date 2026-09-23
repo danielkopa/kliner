@@ -108,7 +108,9 @@ function drawFrame() {
             h('button', { class: 'sq', id: 'fwd', 'data-hole': '', 'data-tip': 'Forward', 'data-keys': '⌘]', onclick: forward }, icon('right'))),
         h('div', { class: 'where', id: 'where' }),
         h('div', { class: 'right' },
-            h('span', { class: 'age', id: 'age' }),
+            h('button', { class: 'age', id: 'age', 'data-hole': '', 'data-tip': 'Read it again',
+                          onclick: () => { delete K.kept[K.page]; look(K.page); } },
+              h('i', { class: 'live' }), h('span', { id: 'ageSaid' })),
             h('button', { class: 'mode', id: 'mode', 'data-hole': '', onclick: flipPreview,
                           'data-tip': 'Show what would happen, change nothing' },
               icon('eye'), h('span', null, 'Preview')),
@@ -204,14 +206,18 @@ function tally() {
 }
 
 function sayAge() {
-    const age = $('#age');
-    if (!age) return;
-    if (!K.lastRead || !isAction(K.page)) { age.textContent = ''; return; }
+    const age = $('#age'), said = $('#ageSaid');
+    if (!age || !said) return;
+    // A dot and a short age, not a sentence. The dot is lit while the
+    // reading is fresh and goes quiet as it gets old, so the strip says
+    // how current the page is without anyone reading it.
+    if (!K.lastRead || !isAction(K.page)) { age.style.display = 'none'; return; }
+    age.style.display = '';
     const gone = Math.round((Date.now() - K.lastRead) / 1000);
-    age.textContent = gone < 5 ? 'updated just now'
-        : gone < 90 ? `updated ${gone}s ago`
-        : gone < 5400 ? `updated ${Math.round(gone / 60)}m ago`
-        : `updated ${Math.round(gone / 3600)}h ago`;
+    said.textContent = gone < 60 ? 'just now'
+        : gone < 5400 ? Math.round(gone / 60) + 'm'
+        : Math.round(gone / 3600) + 'h';
+    age.classList.toggle('stale', gone >= 300);
 }
 setInterval(sayAge, 5000);
 
@@ -1046,14 +1052,14 @@ function todoCard(home) {
                                    go: () => tidyBoth(sweep), verb: 'Clean' });
     if (!K.sighted) items.push({ name: 'Allow access to your files', cmd: 'macOS has not asked yet', fig: '', icon: 'lock', verb: 'Ask',
                                  go: async () => { await ask('askFolders'); delete K.kept[0]; look(0); } });
-    items.push({ name: 'Tidy desktop', cmd: 'min desktop', fig: home.desk ? plural(home.desk, 'item') : 'already tidy',
+    items.push({ name: 'Tidy desktop', cmd: 'into Desktop/Tidy, by type', fig: home.desk ? plural(home.desk, 'item') : 'already tidy',
                  icon: 'desk', done: home.desk === 0, page: 1, verb: 'Clear' });
-    items.push({ name: 'Tidy downloads', cmd: 'min downloads', fig: home.downloads ? plural(home.downloads, 'item') : 'already tidy',
+    items.push({ name: 'Tidy downloads', cmd: 'into Downloads/Tidy, by type', fig: home.downloads ? plural(home.downloads, 'item') : 'already tidy',
                  icon: 'download', done: home.downloads === 0, page: 2, verb: 'Sort' });
-    if (cleanPage >= 0) items.push({ name: 'Free up space', cmd: 'min clean',
+    if (cleanPage >= 0) items.push({ name: 'Free up space', cmd: 'app caches and the Trash',
                  fig: home.junk == null ? 'checking…' : home.junk > 0 ? size(home.junk) : 'nothing to free',
                  icon: 'sparkles', done: home.junk === 0, page: cleanPage, verb: 'Free' });
-    if (undoPage >= 0) items.push({ name: 'Undo everything', cmd: 'min undo --all', fig: '', icon: 'undo', page: undoPage, verb: 'Open' });
+    if (undoPage >= 0) items.push({ name: 'Undo everything', cmd: 'every move, newest first', fig: '', icon: 'undo', page: undoPage, verb: 'Open' });
 
     const list = h('div', { class: 'todo' });
     for (const it of items) {
