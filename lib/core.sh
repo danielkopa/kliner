@@ -411,6 +411,9 @@ nimo_read_config() {
             # separator or a dot segment sends every file nimo moves outside
             # the home folder — through the one guard nimo has.
             # A folder of your own wallpapers, inside your home.
+            # Kliner's own: a name, an address and a picture. nimo keeps
+            # them in the same file and does nothing with them.
+            name|email|picture) ;;
             wallpapers) case "$value" in
                        ''|*..*) ;;
                        *) NIMO_WALLPAPER_DIR="$value" ;;

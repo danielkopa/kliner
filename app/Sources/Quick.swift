@@ -241,6 +241,78 @@ final class QuickGroup: NSView {
     required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
 }
 
+/// The readings across the top of the menu. ⌘K away from the window is
+/// meant to answer "how bad is it" without opening anything, so the menu
+/// opens with the same three numbers the window leads with.
+final class QuickStats: NSView {
+    static let tall: CGFloat = 52
+    private var meters: [NSView] = []
+
+    init(_ readings: [Quick.Reading]) {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+
+        let row = NSStackView()
+        row.orientation = .horizontal
+        row.distribution = .fillEqually
+        row.spacing = 10
+        row.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(row)
+
+        for one in readings {
+            let cell = NSView()
+            cell.translatesAutoresizingMaskIntoConstraints = false
+
+            let name = NSTextField(labelWithString: one.name.uppercased())
+            name.font = Words.label
+            name.textColor = Paint.faint
+            name.translatesAutoresizingMaskIntoConstraints = false
+            cell.addSubview(name)
+
+            let said = NSTextField(labelWithString: one.unit.isEmpty ? one.value : one.value + "  " + one.unit)
+            said.font = Words.strong
+            said.textColor = Paint.ink
+            said.lineBreakMode = .byTruncatingTail
+            said.translatesAutoresizingMaskIntoConstraints = false
+            cell.addSubview(said)
+
+            let track = Surface(Paint.track, round: 2)
+            cell.addSubview(track)
+            let fill = Surface(Paint.ink, round: 2)
+            track.addSubview(fill)
+            meters.append(fill)
+
+            NSLayoutConstraint.activate([
+                name.topAnchor.constraint(equalTo: cell.topAnchor),
+                name.leadingAnchor.constraint(equalTo: cell.leadingAnchor),
+                said.topAnchor.constraint(equalTo: name.bottomAnchor, constant: 3),
+                said.leadingAnchor.constraint(equalTo: cell.leadingAnchor),
+                said.trailingAnchor.constraint(lessThanOrEqualTo: cell.trailingAnchor),
+                track.topAnchor.constraint(equalTo: said.bottomAnchor, constant: 6),
+                track.leadingAnchor.constraint(equalTo: cell.leadingAnchor),
+                track.trailingAnchor.constraint(equalTo: cell.trailingAnchor),
+                track.heightAnchor.constraint(equalToConstant: 3),
+                track.bottomAnchor.constraint(lessThanOrEqualTo: cell.bottomAnchor),
+                fill.leadingAnchor.constraint(equalTo: track.leadingAnchor),
+                fill.topAnchor.constraint(equalTo: track.topAnchor),
+                fill.bottomAnchor.constraint(equalTo: track.bottomAnchor),
+                fill.widthAnchor.constraint(equalTo: track.widthAnchor, multiplier: CGFloat(max(0.02, one.part))),
+            ])
+            row.addArrangedSubview(cell)
+        }
+
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: QuickStats.tall),
+            row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
+            row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
+            row.topAnchor.constraint(equalTo: topAnchor, constant: 2),
+            row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+}
+
 // MARK: - the panel itself
 
 /// A borderless panel that can take the keyboard without the app having to
@@ -258,6 +330,11 @@ final class Quick: NSObject, NSTextFieldDelegate {
     /// Handed a page number; the window shows it. Set by the app delegate,
     /// because the menu knows nothing about the window.
     var onOpenPage: ((Int) -> Void)?
+    /// Asked first, every time ⌘K is pressed. If the window is the thing in
+    /// front, the window answers it with its own search — there is room in
+    /// there for what each row would do and how much of it there is. The
+    /// panel is for when Kliner is not what you are looking at.
+    var onFindInWindow: (() -> Bool)?
 
     /// What the window read last time it looked, so the menu can say it too.
     ///
@@ -267,6 +344,16 @@ final class Quick: NSObject, NSTextFieldDelegate {
     /// question by itself and you open the window only to act.
     var headline: String?
     var figures: [Int: String] = [:]
+
+    /// One reading across the top of the menu: what it is, the number, what
+    /// the number is, and how full it is out of one.
+    struct Reading {
+        let name: String
+        let value: String
+        let unit: String
+        let part: Double
+    }
+    var readings: [Reading] = []
 
     private var status: NSStatusItem?
     private var hotkey: Hotkey?
@@ -278,6 +365,8 @@ final class Quick: NSObject, NSTextFieldDelegate {
 
     private var foot: NSTextField?
     private var footHeight: NSLayoutConstraint?
+    private var statsBox: NSView?
+    private var statsHeight: NSLayoutConstraint?
     /// One width for the panel, so nothing is 520 in two places.
     static let wide: CGFloat = 480
     private var rows: [QuickRow] = []
@@ -327,7 +416,9 @@ final class Quick: NSObject, NSTextFieldDelegate {
     // MARK: opening and shutting
 
     func toggle() {
-        if panel?.isVisible == true { hide() } else { show() }
+        if panel?.isVisible == true { hide(); return }
+        if onFindInWindow?() == true { return }
+        show()
     }
 
     func show() {
@@ -336,6 +427,7 @@ final class Quick: NSObject, NSTextFieldDelegate {
         // screen and has to give it back when it closes.
         borrowed = !NSApp.isActive
 
+        drawStats()
         field?.stringValue = ""
         foot?.stringValue = tail()
         footHeight?.constant = tail().isEmpty ? 0 : 15
@@ -391,6 +483,11 @@ final class Quick: NSObject, NSTextFieldDelegate {
         blur.translatesAutoresizingMaskIntoConstraints = true
         panel.contentView = blur
 
+        let stats = NSView()
+        stats.translatesAutoresizingMaskIntoConstraints = false
+        blur.addSubview(stats)
+        statsBox = stats
+
         let ask = NSTextField()
         ask.font = Words.ask
         ask.textColor = Paint.ink
@@ -428,8 +525,16 @@ final class Quick: NSObject, NSTextFieldDelegate {
         let tall = foot.heightAnchor.constraint(equalToConstant: self.tail().isEmpty ? 0 : 15)
         footHeight = tall
 
+        let statsTall = stats.heightAnchor.constraint(equalToConstant: 0)
+        statsHeight = statsTall
+
         NSLayoutConstraint.activate([
-            ask.topAnchor.constraint(equalTo: blur.topAnchor, constant: 13),
+            stats.topAnchor.constraint(equalTo: blur.topAnchor),
+            stats.leadingAnchor.constraint(equalTo: blur.leadingAnchor),
+            stats.trailingAnchor.constraint(equalTo: blur.trailingAnchor),
+            statsTall,
+
+            ask.topAnchor.constraint(equalTo: stats.bottomAnchor, constant: 13),
             ask.leadingAnchor.constraint(equalTo: blur.leadingAnchor, constant: 14),
             ask.trailingAnchor.constraint(equalTo: blur.trailingAnchor, constant: -14),
             // Said out loud, because the panel's height is worked out below
@@ -459,6 +564,25 @@ final class Quick: NSObject, NSTextFieldDelegate {
 
         self.panel = panel
         return panel
+    }
+
+    /// The readings, redrawn each time the menu opens: they are a moment
+    /// old at most, and a stale number is worse than none.
+    private func drawStats() {
+        guard let box = statsBox else { return }
+        for view in box.subviews { view.removeFromSuperview() }
+        guard !readings.isEmpty else {
+            statsHeight?.constant = 0
+            return
+        }
+        let strip = QuickStats(readings)
+        box.addSubview(strip)
+        NSLayoutConstraint.activate([
+            strip.topAnchor.constraint(equalTo: box.topAnchor, constant: 12),
+            strip.leadingAnchor.constraint(equalTo: box.leadingAnchor),
+            strip.trailingAnchor.constraint(equalTo: box.trailingAnchor),
+        ])
+        statsHeight?.constant = 12 + QuickStats.tall
     }
 
     @objc private func slipped() { hide() }
@@ -667,7 +791,8 @@ final class Quick: NSObject, NSTextFieldDelegate {
         // is one, and 12 below.
         let count = max(1, rows.count)
         let said: CGFloat = tail().isEmpty ? 0 : 8 + 15
-        let height: CGFloat = 13 + 20 + 11 + 1 + 6
+        let top: CGFloat = readings.isEmpty ? 0 : 12 + QuickStats.tall
+        let height: CGFloat = top + 13 + 20 + 11 + 1 + 6
             + CGFloat(count) * QuickRow.tall + CGFloat(count - 1) * 2
             + CGFloat(heads) * (QuickGroup.tall + 2)
             + said + 10

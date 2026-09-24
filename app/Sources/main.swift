@@ -433,7 +433,7 @@ struct Action {
     /// Where the window opens. Not a thing nimo does — a look at what there
     /// is to do, so arriving somewhere calm is the first thing that happens.
     static let home = Action(title: "Home",
-                             blurb: "Your Mac right now. Nothing has changed.",
+                             blurb: "Your Mac right now.",
                              verb: "Refresh",
                              arguments: ["doctor"],
                              asks: nil,
@@ -447,7 +447,7 @@ struct Action {
         home,
 
         Action(title: "Desktop",
-               blurb: "Sorts everything on your desktop into Desktop/Tidy by type. Nothing is deleted or renamed.",
+               blurb: "Into Desktop/Tidy, by type. Nothing is deleted or renamed.",
                verb: "Tidy desktop",
                arguments: ["desktop"],
                asks: "Tidy your desktop?\n\nEverything moves into Desktop/Tidy, sorted by type. Nothing is deleted, and you can undo it.",
@@ -460,7 +460,7 @@ struct Action {
                reveal: "Desktop"),
 
         Action(title: "Downloads",
-               blurb: "Sorts your Downloads folder into Downloads/Tidy by type. Nothing is deleted or renamed.",
+               blurb: "Into Downloads/Tidy, by type. Nothing is deleted or renamed.",
                verb: "Tidy downloads",
                arguments: ["downloads"],
                asks: "Tidy your Downloads folder?\n\nEverything moves into Downloads/Tidy, sorted by type. Nothing is deleted, and you can undo it.",
@@ -473,7 +473,7 @@ struct Action {
                reveal: "Downloads"),
 
         Action(title: "Documents",
-               blurb: "Sorts loose files in your Documents folder into Documents/Tidy by type. Nothing is deleted or renamed.",
+               blurb: "Into Documents/Tidy, by type. Nothing is deleted or renamed.",
                verb: "Tidy documents",
                arguments: ["documents"],
                asks: "Tidy your Documents folder?\n\nLoose files move into Documents/Tidy, sorted by type. Folders you made stay where they are, nothing is deleted, and you can undo it.",
@@ -486,7 +486,7 @@ struct Action {
                reveal: "Documents"),
 
         Action(title: "Wallpaper",
-               blurb: "Switch between the wallpapers that come with your Mac. Nothing is downloaded.",
+               blurb: "Yours first, then your Mac's. Click one.",
                verb: "Next",
                arguments: ["next"],
                asks: nil,
@@ -501,7 +501,7 @@ struct Action {
                looksOnly: false, symbolic: true),
 
         Action(title: "Startup",
-               blurb: "Apps that open when you log in. Stop the ones you do not need.",
+               blurb: "What opens when you log in.",
                verb: "Refresh",
                arguments: ["startup", "--list"],
                asks: nil,
@@ -511,7 +511,7 @@ struct Action {
                counts: "items that open at login"),
 
         Action(title: "Dock",
-               blurb: "What sits in your Dock. Take out what you never open; the app stays installed.",
+               blurb: "What sits in your Dock. The apps stay installed.",
                verb: "Refresh",
                arguments: ["dock", "--list"],
                asks: nil,
@@ -524,7 +524,7 @@ struct Action {
                               symbol: "arrow.uturn.backward")]),
 
         Action(title: "Storage",
-               blurb: "The biggest folders in your home. Click one to look inside.",
+               blurb: "The biggest folders in your home.",
                verb: "Scan",
                arguments: ["top"],
                asks: nil,
@@ -535,7 +535,7 @@ struct Action {
                walks: true),
 
         Action(title: "Free up space",
-               blurb: "App caches and temporary files. Apps rebuild them when needed, and your own files are never touched.",
+               blurb: "App caches and the Trash. Your own files stay.",
                verb: "Clean up",
                arguments: ["clean"],
                asks: "Delete these caches and temporary files?\n\nApps rebuild them when needed. Your own files are not touched.",
@@ -556,7 +556,7 @@ struct Action {
                counts: "readings"),
 
         Action(title: "Undo",
-               blurb: "Everything Kliner has moved, newest first. Undo everything puts it all back.",
+               blurb: "Everything Kliner has moved, newest first.",
                verb: "Undo everything",
                arguments: ["undo", "--all"],
                asks: "Undo everything?\n\nFiles go back where they were, newest move first.",

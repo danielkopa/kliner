@@ -255,10 +255,10 @@ svg { display: block; }
 .head .words { min-width: 0; flex: 1; }
 .head h1 { font-size: 24px; font-weight: 600; letter-spacing: -.02em; line-height: 1.15; }
 .head p  { margin-top: 6px; color: var(--muted); font-size: 13px; max-width: 64ch; text-wrap: pretty; }
-             font-size: 11.5px; letter-spacing: .01em; color: var(--faint);
-             border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; background: var(--well); }
-.head .acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end;
-              padding-top: 2px; }
+.head .acts { display: flex; gap: 8px; align-items: center; justify-content: flex-end;
+              padding-top: 2px; flex-wrap: nowrap; }
+.head .acts .sq { width: 32px; height: 32px; border: 1px solid var(--line); flex: none; }
+.head .acts .sq:hover { border-color: var(--line-2); }
 
 /* buttons: one filled, the rest quiet */
 .btn {
@@ -932,12 +932,51 @@ svg.ring text { transition: opacity .2s ease; }
 .said { margin-top: 20px; display: flex; align-items: center; gap: 8px; color: var(--good); font-size: 13px; }
 .said .ic { width: 15px; height: 15px; stroke-width: 2.2; }
 
+/* ⌘K inside the window: the same rows, with room for their readings */
+.finder { position: fixed; inset: 0; z-index: 60; display: grid; justify-items: center;
+    align-content: start; padding-top: 16vh; background: color-mix(in srgb, var(--bg) 62%, transparent);
+    animation: in .14s ease both; }
+.fcard { width: min(560px, calc(100vw - 48px)); border-radius: 14px; border: 1px solid var(--line-2);
+    background: var(--card), var(--raise); box-shadow: 0 24px 60px rgba(0,0,0,.5); overflow: hidden;
+    animation: findIn .2s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes findIn { from { opacity: 0; transform: translateY(-8px) scale(.985); } }
+.ftop { display: flex; align-items: center; gap: 10px; padding: 13px 14px; box-shadow: inset 0 -1px 0 var(--line); }
+.ftop .ic { width: 16px; height: 16px; color: var(--faint); flex: none; }
+.fq { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--ink);
+    font: inherit; font-size: 15px; }
+.fq::placeholder { color: var(--faint); }
+.flist { padding: 6px; display: grid; gap: 2px; max-height: 52vh; overflow: auto; }
+.frow { display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 8px; border-radius: 8px;
+    color: var(--muted); text-align: left; }
+.frow .fi { width: 20px; display: grid; place-items: center; flex: none; }
+.frow .fi .ic { width: 15px; height: 15px; }
+.frow .fn { flex: 1; min-width: 0; color: var(--ink); font-size: 13.5px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+.frow .fn i { color: var(--faint); font-style: normal; font-size: 11.5px; margin-left: 8px; }
+.frow .ffig { display: flex; align-items: center; gap: 8px; flex: none; opacity: .5; transition: opacity .12s ease; }
+.frow .fbar { width: 46px; height: 4px; border-radius: 3px; background: var(--sel); overflow: hidden; }
+.frow .fbar i { display: block; height: 100%; background: var(--on); border-radius: 3px; }
+.frow .fv { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 6ch; text-align: right; }
+.frow.on { background: var(--picked); color: var(--ink); }
+.frow.on .ffig { opacity: 1; }
+.fnone { padding: 16px 10px; color: var(--faint); font-size: 13px; text-align: center; }
+
+/* you, in the strip and in Settings */
+.rail .spot.me .face2 { margin: 0; }
+.rail .spot.me .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.youbox { display: flex; gap: 20px; align-items: flex-start; padding-bottom: 6px; }
+.facewrap { flex: none; }
+.youfields { flex: 1; min-width: 0; display: grid; }
+.youfields .set { cursor: text; }
+.field.bad { border-color: var(--bad); }
+
 /* your account picture */
 .face2 { width: 34px; height: 34px; border-radius: 50%; flex: none; display: grid; place-items: center;
     overflow: hidden; background: var(--sel); border: 1px solid var(--line-2); color: var(--muted);
     font-size: 12.5px; font-weight: 600; letter-spacing: .02em; }
 .face2 img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.face2.small { width: 24px; height: 24px; font-size: 10px; }
+.face2.small { width: 22px; height: 22px; font-size: 9.5px; }
+.face2.big { width: 76px; height: 76px; font-size: 24px; }
 .who { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding-bottom: 14px;
     box-shadow: inset 0 -1px 0 var(--line); }
 .who .tt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }

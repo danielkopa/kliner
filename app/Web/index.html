@@ -265,10 +265,10 @@ svg { display: block; }
 .head .words { min-width: 0; flex: 1; }
 .head h1 { font-size: 24px; font-weight: 600; letter-spacing: -.02em; line-height: 1.15; }
 .head p  { margin-top: 6px; color: var(--muted); font-size: 13px; max-width: 64ch; text-wrap: pretty; }
-             font-size: 11.5px; letter-spacing: .01em; color: var(--faint);
-             border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; background: var(--well); }
-.head .acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end;
-              padding-top: 2px; }
+.head .acts { display: flex; gap: 8px; align-items: center; justify-content: flex-end;
+              padding-top: 2px; flex-wrap: nowrap; }
+.head .acts .sq { width: 32px; height: 32px; border: 1px solid var(--line); flex: none; }
+.head .acts .sq:hover { border-color: var(--line-2); }
 
 /* buttons: one filled, the rest quiet */
 .btn {
@@ -942,12 +942,51 @@ svg.ring text { transition: opacity .2s ease; }
 .said { margin-top: 20px; display: flex; align-items: center; gap: 8px; color: var(--good); font-size: 13px; }
 .said .ic { width: 15px; height: 15px; stroke-width: 2.2; }
 
+/* ⌘K inside the window: the same rows, with room for their readings */
+.finder { position: fixed; inset: 0; z-index: 60; display: grid; justify-items: center;
+    align-content: start; padding-top: 16vh; background: color-mix(in srgb, var(--bg) 62%, transparent);
+    animation: in .14s ease both; }
+.fcard { width: min(560px, calc(100vw - 48px)); border-radius: 14px; border: 1px solid var(--line-2);
+    background: var(--card), var(--raise); box-shadow: 0 24px 60px rgba(0,0,0,.5); overflow: hidden;
+    animation: findIn .2s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes findIn { from { opacity: 0; transform: translateY(-8px) scale(.985); } }
+.ftop { display: flex; align-items: center; gap: 10px; padding: 13px 14px; box-shadow: inset 0 -1px 0 var(--line); }
+.ftop .ic { width: 16px; height: 16px; color: var(--faint); flex: none; }
+.fq { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--ink);
+    font: inherit; font-size: 15px; }
+.fq::placeholder { color: var(--faint); }
+.flist { padding: 6px; display: grid; gap: 2px; max-height: 52vh; overflow: auto; }
+.frow { display: flex; align-items: center; gap: 11px; height: 34px; padding: 0 8px; border-radius: 8px;
+    color: var(--muted); text-align: left; }
+.frow .fi { width: 20px; display: grid; place-items: center; flex: none; }
+.frow .fi .ic { width: 15px; height: 15px; }
+.frow .fn { flex: 1; min-width: 0; color: var(--ink); font-size: 13.5px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+.frow .fn i { color: var(--faint); font-style: normal; font-size: 11.5px; margin-left: 8px; }
+.frow .ffig { display: flex; align-items: center; gap: 8px; flex: none; opacity: .5; transition: opacity .12s ease; }
+.frow .fbar { width: 46px; height: 4px; border-radius: 3px; background: var(--sel); overflow: hidden; }
+.frow .fbar i { display: block; height: 100%; background: var(--on); border-radius: 3px; }
+.frow .fv { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 6ch; text-align: right; }
+.frow.on { background: var(--picked); color: var(--ink); }
+.frow.on .ffig { opacity: 1; }
+.fnone { padding: 16px 10px; color: var(--faint); font-size: 13px; text-align: center; }
+
+/* you, in the strip and in Settings */
+.rail .spot.me .face2 { margin: 0; }
+.rail .spot.me .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.youbox { display: flex; gap: 20px; align-items: flex-start; padding-bottom: 6px; }
+.facewrap { flex: none; }
+.youfields { flex: 1; min-width: 0; display: grid; }
+.youfields .set { cursor: text; }
+.field.bad { border-color: var(--bad); }
+
 /* your account picture */
 .face2 { width: 34px; height: 34px; border-radius: 50%; flex: none; display: grid; place-items: center;
     overflow: hidden; background: var(--sel); border: 1px solid var(--line-2); color: var(--muted);
     font-size: 12.5px; font-weight: 600; letter-spacing: .02em; }
 .face2 img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.face2.small { width: 24px; height: 24px; font-size: 10px; }
+.face2.small { width: 22px; height: 22px; font-size: 9.5px; }
+.face2.big { width: 76px; height: 76px; font-size: 24px; }
 .who { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding-bottom: 14px;
     box-shadow: inset 0 -1px 0 var(--line); }
 .who .tt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -1988,6 +2027,8 @@ function drawFrame() {
         }
     }
     const foot = h('div', { class: 'foot' },
+        h('button', { class: 'spot me', 'data-tip': 'You', onclick: () => show(SETTINGS()) },
+          face('small'), h('span', { class: 'label' }, firstName())),
         h('button', { class: 'spot', 'data-page': HELP(), 'data-tip': 'Help', onclick: () => show(HELP()) },
           icon('help'), h('span', { class: 'label' }, 'Help')),
         h('button', { class: 'spot', 'data-page': SETTINGS(), 'data-tip': 'Settings', 'data-keys': '⌘,',
@@ -1995,8 +2036,7 @@ function drawFrame() {
           icon('gear'), h('span', { class: 'label' }, 'Settings')));
     const rail = h('nav', { class: 'rail' }, h('i', { class: 'mark', id: 'railmark' }),
                    h('div', { class: 'logo', 'data-tip': 'Kliner' }, eyesMark()), places, foot);
-    const me = h('div', { class: 'me', 'data-tip': (K.meta && K.meta.user) || '' }, face('small'));
-    foot.prepend(me);
+
 
     // the bar along the top
     const bar = h('header', { class: 'bar' },
@@ -2012,7 +2052,7 @@ function drawFrame() {
             h('button', { class: 'mode', id: 'mode', 'data-hole': '', onclick: flipPreview,
                           'data-tip': 'Show what would happen, change nothing' },
               icon('eye'), h('span', null, 'Preview')),
-            h('button', { class: 'sq', 'data-hole': '', 'data-tip': 'Search', 'data-keys': '⌘K', onclick: () => tell('quick') },
+            h('button', { class: 'sq', 'data-hole': '', 'data-tip': 'Search', 'data-keys': '⌘K', onclick: openFind },
               icon('search')),
             h('button', { class: 'bell', id: 'bell', 'data-hole': '', 'data-tip': 'History', onclick: toggleActivity },
               icon('bell'))));
@@ -2479,9 +2519,18 @@ function readHome(pieces) {
     if (f.Downloads) figures['2'] = f.Downloads.value;
     const cleanPage = pages().findIndex(p => p.kind === 'clean');
     if (home.junk > 0 && cleanPage >= 0) figures[String(cleanPage)] = size(home.junk);
+    // and the three readings the menu draws across its top, so ⌘K outside
+    // the window is a small Kliner rather than a list of names
     tell('figures', {
         headline: home.junk == null ? '' : home.junk > 0 ? size(home.junk) + ' can be freed' : 'nothing to free up',
         figures,
+        readings: [
+            home.desk != null ? { name: 'Desktop', value: String(home.desk), unit: home.desk === 1 ? 'item' : 'items',
+                                  part: Math.min(1, home.desk / 200) } : null,
+            home.downloads != null ? { name: 'Downloads', value: String(home.downloads), unit: home.downloads === 1 ? 'item' : 'items',
+                                       part: Math.min(1, home.downloads / 200) } : null,
+            total > 0 ? { name: 'Disk', value: percent(home.used, total), unit: size(free) + ' free', part: home.used / total } : null,
+        ].filter(Boolean),
     });
     tally();
 }
@@ -2952,6 +3001,127 @@ function monthsCard(home) {
         h('div', { class: 'heat' }, row, ax, scale));
 }
 
+/* ── search, inside the window ───────────────────────────────────────────
+   ⌘K outside the window is the little panel in the menu bar. Inside it, the
+   window has its own: the same rows, but with room for what each one would
+   do and how much of it there is. */
+
+/** Letters in order, anywhere in the word: "dsk" finds Desktop. */
+function loosely(text, want) {
+    let at = 0;
+    for (const letter of want) {
+        at = text.indexOf(letter, at);
+        if (at < 0) return false;
+        at += 1;
+    }
+    return true;
+}
+
+/** How well a row answers what was typed. Nought means it does not. */
+function scoreRow(row, want) {
+    const title_ = row.name.toLowerCase();
+    if (title_ === want) return 1000;
+    if (title_.startsWith(want)) return 900 - title_.length;
+    if (title_.includes(want)) return 700 - title_.length;
+    if (loosely(title_, want)) return 500 - title_.length;
+    if ((row.hint || '').toLowerCase().includes(want)) return 300;
+    return 0;
+}
+
+/** Every row ⌘K can take you to, with its own reading beside it. */
+function findRows() {
+    const home = K.home || {};
+    const all = pages().map((p, n) => {
+        let fig = '', part = 0;
+        if (n === 1 && home.desk != null) { fig = plural(home.desk, 'item'); part = Math.min(1, home.desk / 200); }
+        if (n === 2 && home.downloads != null) { fig = plural(home.downloads, 'item'); part = Math.min(1, home.downloads / 200); }
+        if (p.kind === 'clean' && home.junk != null) { fig = home.junk > 0 ? size(home.junk) : 'nothing'; part = Math.min(1, home.junk / 5e9); }
+        if (p.kind === 'top' && home.total > 0) { fig = percent(home.used, home.total) + ' used'; part = home.used / home.total; }
+        if (p.kind === 'doctor' && n === 0 && home.total > 0) { fig = size(home.free) + ' free'; part = home.free / home.total; }
+        return { name: p.title, hint: p.blurb || '', group: p.group || '', icon: p.symbol || 'dot', page: n, fig, part };
+    });
+    all.push({ name: 'Activity', hint: 'What is using this Mac right now.', group: 'Computer', icon: 'pulse', page: ACTIVITY(), fig: '', part: 0 });
+    all.push({ name: 'Settings', hint: 'Preferences and permissions.', group: '', icon: 'gear', page: SETTINGS(), fig: '', part: 0 });
+    all.push({ name: 'Help', hint: 'What every page does.', group: '', icon: 'help', page: HELP(), fig: '', part: 0 });
+    const sweep = cleanSweep();
+    if (sweep.length) all.push({ name: 'Clean my Mac', hint: 'Desktop, downloads, documents and caches, in one go.',
+                                 group: '', icon: 'sparkles', go: () => tidyBoth(sweep), fig: '', part: 0 });
+    all.push({ name: 'Close all apps', hint: 'Asks every open app to quit.', group: '', icon: 'x', go: closeApps, fig: '', part: 0 });
+    return all;
+}
+
+function openFind() {
+    if ($('.finder')) { closeFind(); return; }
+    const rows = findRows();
+    let shown = rows.slice(0, 9), at = 0;
+
+    const list = h('div', { class: 'flist' });
+    const field = h('input', { class: 'fq', placeholder: 'Search Kliner', spellcheck: 'false', autocapitalize: 'off' });
+    const box = h('div', { class: 'finder' }, h('div', { class: 'fcard' }, h('div', { class: 'ftop' }, icon('search'), field), list));
+
+    function paintList() {
+        list.replaceChildren(...shown.map((r, n) => h('button', { class: 'frow' + (n === at ? ' on' : ''),
+            onmouseenter: () => { at = n; paintList(); },
+            onclick: () => run(n) },
+            h('span', { class: 'fi' }, icon(r.icon)),
+            h('span', { class: 'fn' }, r.name, r.group ? h('i', null, r.group) : null),
+            r.fig ? h('span', { class: 'ffig' },
+                h('span', { class: 'fbar' }, h('i', { style: `width:${Math.round(Math.max(0.04, r.part) * 100)}%` })),
+                h('span', { class: 'fv' }, r.fig)) : null)));
+        if (!shown.length) list.replaceChildren(h('div', { class: 'fnone' }, 'Nothing matches that.'));
+    }
+    function run(n) {
+        const r = shown[n];
+        if (!r) return;
+        closeFind();
+        if (r.page != null) show(r.page); else if (r.go) r.go();
+    }
+    field.addEventListener('input', () => {
+        const want = field.value.trim().toLowerCase();
+        shown = !want ? rows.slice(0, 9)
+            : rows.map(r => [r, scoreRow(r, want)]).filter(x => x[1] > 0)
+                  .sort((a, b) => b[1] - a[1]).slice(0, 9).map(x => x[0]);
+        at = 0;
+        paintList();
+    });
+    box._keys = e => {
+        if (e.key === 'Escape') { e.preventDefault(); closeFind(); }
+        else if (e.key === 'ArrowDown') { e.preventDefault(); at = Math.min(shown.length - 1, at + 1); paintList(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); at = Math.max(0, at - 1); paintList(); }
+        else if (e.key === 'Enter') { e.preventDefault(); run(at); }
+    };
+    box.addEventListener('mousedown', e => { if (e.target === box) closeFind(); });
+    document.addEventListener('keydown', box._keys, true);
+    paintList();
+    document.body.append(box);
+    field.focus();
+}
+
+function closeFind() {
+    const box = $('.finder');
+    if (!box) return;
+    document.removeEventListener('keydown', box._keys, true);
+    box.remove();
+}
+
+/** What to call you: the name you gave, else your account's first name. */
+function firstName() {
+    const said = String((K.meta && K.meta.config && K.meta.config.name) || '').trim();
+    if (said) return said;
+    const full = String((K.meta && K.meta.user) || '').trim();
+    return full.split(/\s+/)[0] || 'You';
+}
+
+/** An address, near enough: one @, something either side, a dot after it. */
+function looksLikeEmail(text) {
+    const one_ = String(text || '').trim();
+    if (one_.length < 6 || one_.length > 120 || /\s/.test(one_)) return false;
+    const halves = one_.split('@');
+    if (halves.length !== 2 || !halves[0]) return false;
+    const host = halves[1];
+    return host.length >= 3 && host.includes('.') && !host.startsWith('.') && !host.endsWith('.');
+}
+
 /** Your account picture, the one macOS shows at the login window. If there
  *  is none, your initials in the same circle. */
 function face(cls) {
@@ -3088,8 +3258,11 @@ function head(i, extraActs) {
     const item = pages()[i];
     const acts = h('div', { class: 'acts' });
     if (item.reveal) {
-        acts.append(h('button', { class: 'btn bare small', onclick: () => walk([item.reveal]) }, icon('folder'), 'Look inside'));
-        acts.append(h('button', { class: 'btn bare small', onclick: () => tell('reveal', { page: i }) }, icon('finder'), 'Show in Finder'));
+        // The two ways of looking are pictures. Four labelled buttons across
+        // the top of every page is three more things to read than the one
+        // that does something.
+        acts.append(h('button', { class: 'sq', 'data-tip': 'Look inside', onclick: () => walk([item.reveal]) }, icon('folder')));
+        acts.append(h('button', { class: 'sq', 'data-tip': 'Show in Finder', onclick: () => tell('reveal', { page: i }) }, icon('finder')));
     }
     item.extras.forEach((ex, n) => {
         acts.append(h('button', { class: 'btn line', onclick: () => extra(i, n) }, ex.symbol ? icon(ex.symbol) : null, ex.title));
@@ -4093,7 +4266,12 @@ function drawDoctor(out, pieces) {
     // readings are facts, each its own kind of thing — a battery is not a
     // share of a disk — so they are listed, never charted against each other
     // and the rows that only mean something in a terminal
+    // The four that are already tiles above do not need a row as well: the
+    // list is for what the tiles do not show.
     const own = new Set(['Months', 'Desktop older', 'Downloads older', 'Last change', 'Next', 'nimo']);
+    for (const [label, tiled] of [['Disk', !!f.Disk], ['Memory', !!f.Memory], ['Battery', !!f.Battery], ['Uptime', !!f.Uptime]]) {
+        if (tiled && across.children.length) own.add(label);
+    }
     for (const sec of sections(pieces)) {
         const kept = sec.pieces.filter(p => !(p.k === 'row' && own.has(p.label)))
             .map(p => (p.k === 'row' && /\bmin [a-z]/.test(p.note || '') ? Object.assign({}, p, { note: '' }) : p));
@@ -4137,6 +4315,33 @@ async function drawSettings(out) {
 
 function settingsBody(st) {
     const days = String((K.meta.config.days || '30'));
+
+    const shown = h('span', { class: 'facewrap' }, face('big'));
+    const nameField = h('input', { class: 'field', value: K.meta.config.name || '', placeholder: firstName(), maxlength: '60',
+        oninput: e => { K.meta.config.name = e.target.value; tell('setConfig', { key: 'name', value: e.target.value }); } });
+    const mailField = h('input', { class: 'field', value: K.meta.email || '', placeholder: 'you@example.com', maxlength: '120',
+        oninput: e => {
+            const ok = looksLikeEmail(e.target.value);
+            e.target.classList.toggle('bad', !!e.target.value && !ok);
+            if (ok || !e.target.value) { K.meta.email = e.target.value; tell('setConfig', { key: 'email', value: e.target.value }); }
+        } });
+    const you = panel('', cap('house', 'You'),
+        h('div', { class: 'youbox' }, shown,
+            h('div', { class: 'youfields' },
+                h('label', { class: 'set' }, h('div', null, h('div', { class: 't' }, 'Name'),
+                    h('div', { class: 'd' }, 'What Kliner calls you.')), nameField),
+                h('label', { class: 'set' }, h('div', null, h('div', { class: 't' }, 'Email'),
+                    h('div', { class: 'd' }, 'Kept in your own settings file. Nothing is ever sent.')), mailField))),
+        setting('Your picture', 'Your account picture, or one of your own.',
+            h('div', { style: 'display:flex;gap:8px' },
+                h('button', { class: 'btn line small', onclick: async () => {
+                    const r = await ask('pickPicture');
+                    if (r && typeof r.portrait === 'string' && r.portrait) { K.meta.portrait = r.portrait; drawPage(true); }
+                } }, 'Choose…'),
+                K.meta.config.picture ? h('button', { class: 'btn bare small', onclick: () => {
+                    tell('setConfig', { key: 'picture', value: '' });
+                    K.meta.config.picture = '';
+                } }, 'Use my account picture') : null)));
     const kliner = panel('', cap('gear', 'Kliner'),
         setting('Open at login', st.login && st.login.possible ? 'Kliner starts in the menu bar when you log in.' : 'Opening at login needs macOS 13 or newer.',
             h('button', { class: 'switch' + (st.login && st.login.on ? ' on' : ''), disabled: !(st.login && st.login.possible),
@@ -4165,7 +4370,7 @@ function settingsBody(st) {
              'Touch anything outside your home folder.', 'Move a file without logging it first.']
                 .map(t => h('div', { class: 's no' }, icon('x'), h('span', null, t)))));
 
-    return h('div', { style: 'display:grid;gap:14px' }, h('div', { class: 'grid two' }, kliner, h('div', { style: 'display:grid;gap:14px;align-content:start' }, allowed, promise)),
+    return h('div', { style: 'display:grid;gap:14px' }, you, h('div', { class: 'grid two' }, kliner, h('div', { style: 'display:grid;gap:14px;align-content:start' }, allowed, promise)),
         h('div', { class: 'notes' }, h('div', null, `Kliner ${K.meta.version} · MIT · kliner.app`)));
 }
 
@@ -4374,8 +4579,8 @@ const GATE_WHY = {
 function startWelcome() {
     const cfg = K.meta.config;
     const first = String(K.meta.user || '').trim().split(/\s+/)[0] || '';
-    K.welcome = { step: 0, shown: -1, back: false, name: cfg.name || first, start: cfg.start || 'desktop',
-                  tidy: cfg.tidy || 'Tidy', login: !!(K.meta.login && K.meta.login.on), answers: {}, asking: -1,
+    K.welcome = { step: 0, shown: -1, back: false, name: cfg.name || first,
+                  tidy: cfg.tidy || 'Tidy', email: K.meta.email || '', login: !!(K.meta.login && K.meta.login.on), answers: {}, asking: -1,
                   deskCount: null, didDesk: false, didZen: false, didFast: false,
                   dockApps: null, dropped: new Set(), wallAt: 0, wallSaid: '', deskShots: null, busy: false, reading: false };
     drawWelcome();
@@ -4550,13 +4755,20 @@ function drawWelcome() {
                     h('p', { class: 'lead' }, 'All of it changes later, in Settings.'));
         const field = h('input', { class: 'field', id: 'name', value: w.name, placeholder: 'Your name', maxlength: '60',
                                    oninput: e => { w.name = e.target.value; } });
-        const starts = h('div', { class: 'chips' }, (K.meta.starts || []).map(st =>
-            h('button', { class: 'chip2' + (st.value === w.start ? ' on' : ''),
-                          onclick: e => { w.start = st.value; for (const c of e.currentTarget.parentNode.children) c.classList.toggle('on', c === e.currentTarget); } },
-              st.title)));
+        const mail = h('input', { class: 'field', id: 'mail', type: 'email', value: w.email, placeholder: 'you@example.com',
+                                  maxlength: '120', spellcheck: 'false', autocapitalize: 'off',
+                                  oninput: e => {
+                                      w.email = e.target.value;
+                                      const ok = looksLikeEmail(w.email);
+                                      e.target.classList.toggle('bad', !!w.email && !ok);
+                                      if (w.primary) w.primary.disabled = ok ? null : '';
+                                  } });
+        // No "open it on which page" any more. It opens on Home, which is
+        // the page that says what there is to do; picking a folder before
+        // you have seen one is a question with no answer yet.
         const rows = h('div', { class: 'form' },
             h('label', { class: 'row' }, h('span', { class: 'k' }, 'What should I call you?'), field),
-            h('div', { class: 'row' }, h('span', { class: 'k' }, 'Open Kliner on'), starts));
+            h('label', { class: 'row' }, h('span', { class: 'k' }, 'Your email'), mail));
         if (K.meta.login && K.meta.login.possible) {
             rows.append(h('div', { class: 'row' }, h('span', { class: 'k' }, 'Open at login'),
                 h('div', { class: 'toggle' }, h('button', { class: 'switch' + (w.login ? ' on' : ''),
@@ -4564,9 +4776,10 @@ function drawWelcome() {
                   h('span', null, 'Kliner waits in the menu bar. Press ⌘K anywhere.'))));
         }
         card.append(rows);
-        primary = h('button', { class: 'btn fill large', onclick: () => introGo(1) }, 'Continue', icon('right'));
+        primary = h('button', { class: 'btn fill large', disabled: looksLikeEmail(w.email) ? null : '',
+                                onclick: () => introGo(1) }, 'Continue', icon('right'));
         way.append(back, h('span', { class: 'gap' }), primary);
-        card.append(way);
+        card.append(way, h('p', { class: 'small left' }, 'Kliner keeps your email in its own settings file, beside the rest. It has no network code in it, so nothing can be sent anywhere.'));
         if (fresh) setTimeout(() => field.focus(), 60);
     } else {
         const name = (w.name || '').trim();
@@ -4772,16 +4985,18 @@ async function askAll() {
 
 async function finishWelcome() {
     const w = K.welcome;
-    const reply = await ask('finishSetup', { name: (w.name || '').trim(), start: w.start, tidy: (w.tidy || '').trim(), login: !!w.login });
+    const reply = await ask('finishSetup', { name: (w.name || '').trim(), email: (w.email || '').trim(),
+                                             tidy: (w.tidy || '').trim(), login: !!w.login });
     K.meta.config.name = (w.name || '').trim();
-    K.meta.config.start = w.start;
+    K.meta.email = (w.email || '').trim();
     K.welcome = null;
     const app = $('#app');
     app.style.gridTemplateColumns = '';
     drawFrame();
-    const start = reply && typeof reply.page === 'number' ? reply.page : 0;
+    // Home, every time. Whatever the reply says, this is where a window
+    // that has just been set up belongs.
     K.page = -1;
-    show(start, { remember: false });
+    show(0, { remember: false });
 }
 
 /* ── the keyboard ─────────────────────────────────────────────────────── */
@@ -4834,6 +5049,8 @@ const commands = {
         else drawPage(true);
     },
     settings: () => show(SETTINGS()),
+    // ⌘K with the window in front: the window's own search, not the panel
+    find: () => { if (!K.welcome) openFind(); },
     help: () => show(HELP()),
     setup: () => startWelcome(),
 };

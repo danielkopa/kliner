@@ -168,6 +168,12 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         _ = window.setFrameAutosaveName("kliner.window")
 
         view.navigationDelegate = self
+        // ⌘K while you are looking at the window is the window's own search.
+        Quick.shared.onFindInWindow = { [weak self] in
+            guard let self = self, self.loaded, NSApp.isActive, self.window.isKeyWindow else { return false }
+            self.command("find", 0)
+            return true
+        }
         view.allowsMagnification = false
         view.allowsBackForwardNavigationGestures = false
         // Hidden until the page has drawn itself, so what appears is the
@@ -314,6 +320,7 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         case "dockKeep":    dockKeep(body, id)
         case "stop":        stop(body, id)
         case "setConfig":   remember(body)
+        case "pickPicture": pickPicture(id)
         case "settings":    reply(id, settings())
         case "setLogin":    login(body, id)
         case "fullDisk":    fullDisk(id)
@@ -452,6 +459,7 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         out["welcomed"] = Config.value("welcomed") == Main.setup
         out["user"] = NSFullUserName()
         out["account"] = NSUserName()
+        out["email"] = Config.value("email") ?? ""
         if let face = Web.portrait() { out["portrait"] = face }
         out["login"] = ["possible": Login.possible, "on": Login.on]
         out["config"] = config
@@ -869,6 +877,44 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         }
     }
 
+    /// An address, near enough: one @, something on each side of it, a dot
+    /// after it, no spaces. Kliner only writes it down; nothing sends it.
+    private static func looksLikeEmail(_ text: String) -> Bool {
+        let one = text.trimmingCharacters(in: .whitespaces)
+        guard one.count >= 6, one.count <= 120, !one.contains(" ") else { return false }
+        let halves = one.components(separatedBy: "@")
+        guard halves.count == 2, !halves[0].isEmpty else { return false }
+        let host = halves[1]
+        guard host.count >= 3, host.contains("."), !host.hasPrefix("."), !host.hasSuffix(".") else { return false }
+        return true
+    }
+
+    /// A picture of your own instead of the account one. macOS does not let
+    /// an app change the account picture, so Kliner keeps its own: you point
+    /// at a file inside your home and it remembers where.
+    private func pickPicture(_ id: Int) {
+        let panel = NSOpenPanel()
+        panel.title = "Choose a picture"
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.allowedFileTypes = ["png", "jpg", "jpeg", "heic", "tiff", "gif"]
+        panel.begin { answer in
+            guard answer == .OK, let url = panel.url else {
+                self.reply(id, ["cancelled": true])
+                return
+            }
+            let home = FileManager.default.homeDirectoryForCurrentUser.resolvingSymlinksInPath().path
+            let real = url.resolvingSymlinksInPath()
+            guard real.path.hasPrefix(home + "/") else {
+                self.reply(id, ["outside": true])
+                return
+            }
+            Config.set("picture", real.path)
+            Web.portraitKept = nil
+            self.reply(id, ["portrait": Web.portrait() ?? ""])
+        }
+    }
+
     /// The picture on your account, the one macOS shows at the login window
     /// and in System Settings. Read from the local directory, for this
     /// account only: nothing is looked up on the network, no other account is
@@ -878,9 +924,14 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         var out = ""
         defer { portraitKept = out }
         var data: Data? = nil
+        // One you pointed Kliner at yourself wins over the account's own.
+        if let mine = Config.value("picture"), mine.hasPrefix("/"),
+           FileManager.default.fileExists(atPath: mine) {
+            data = try? Data(contentsOf: URL(fileURLWithPath: mine))
+        }
         // A stock picture is a path; one you chose yourself is kept in the
         // record itself, as hex. Try the path first, it is the cheap one.
-        if let said = Web.dscl("Picture") {
+        if data == nil, let said = Web.dscl("Picture") {
             let path = said.trimmingCharacters(in: .whitespacesAndNewlines)
             if path.hasPrefix("/"), FileManager.default.fileExists(atPath: path) {
                 data = try? Data(contentsOf: URL(fileURLWithPath: path))
@@ -939,7 +990,7 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         return out
     }
 
-    private static var portraitKept: String? = nil
+    fileprivate static var portraitKept: String? = nil
 
     /// A file nimo listed as a wallpaper, looked over before it is read:
     /// an absolute path, no tricks in it, in one of the places wallpapers
@@ -1387,6 +1438,10 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
             Config.set("preview", value)
         case "days" where ["7", "30", "90"].contains(value):
             Config.set("days", value)
+        case "name":
+            Config.set("name", Web.clean(value, limit: 60))
+        case "email" where Web.looksLikeEmail(value) || value.isEmpty:
+            Config.set("email", Web.clean(value, limit: 120))
         default:
             break
         }
@@ -1455,10 +1510,9 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         let name = Web.clean(words(body, "name") ?? "", limit: 60)
         Config.set("name", name)
 
-        let start = words(body, "start") ?? ""
-        if Main.starts.contains(where: { $0.0 == start }) {
-            Config.set("start", start)
-        }
+        let post = Web.clean(words(body, "email") ?? "", limit: 120)
+        if Web.looksLikeEmail(post) { Config.set("email", post) }
+
 
         // A folder to sort into is a name, not a route; the CLI refuses one
         // with a separator in it, and so does this.
@@ -1472,7 +1526,9 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
             if wanted != Login.on { _ = Login.set(wanted) }
         }
         Config.set("welcomed", Main.setup)
-        reply(id, ["page": Main.page(for: Config.value("start") ?? "desktop")])
+        // Home. Somebody who has just finished the introduction has not
+        // chosen a folder to land on, and should not have been asked to.
+        reply(id, ["page": 0])
     }
 
     /// Home's readings, handed to the menu behind ⌘K so pressing it anywhere
@@ -1489,6 +1545,20 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
             }
         }
         Quick.shared.figures = said
+
+        // The three readings the menu draws across its top.
+        var seen: [Quick.Reading] = []
+        for one in body["readings"] as? [Any] ?? [] {
+            guard let row = one as? [String: Any] else { continue }
+            let name = Web.clean(row["name"] as? String ?? "", limit: 20)
+            let value = Web.clean(row["value"] as? String ?? "", limit: 12)
+            let unit = Web.clean(row["unit"] as? String ?? "", limit: 20)
+            let part = (row["part"] as? NSNumber)?.doubleValue ?? 0
+            guard !name.isEmpty, !value.isEmpty else { continue }
+            seen.append(Quick.Reading(name: name, value: value, unit: unit, part: min(max(part, 0), 1)))
+            if seen.count == 3 { break }
+        }
+        Quick.shared.readings = seen
     }
 
     /// Where the page's title strip is, and which parts of it are buttons.
