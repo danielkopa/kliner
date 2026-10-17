@@ -1,5 +1,105 @@
 # Changelog
 
+## 0.62.0
+
+The tags between 0.45.0 and this one were points along the way. This is the
+release they led to, and the first with notes since 0.45.0.
+
+### Kliner is one window
+
+The window is a page drawn by the WebKit every Mac already has, loaded from
+inside the app and never from the network. It decides nothing: every request
+names a page by number, and the app looks the command up in its own list,
+asks you in a real macOS dialog before anything changes, and only then runs
+`min`.
+
+- One sidebar: Kliner beside the three lights, you, search, then every page
+  under the name of its place, each with what is waiting in it, and your disk
+  in a small card at the foot. One light slides to the page you are on. ⌘B
+  folds it to pictures
+- Home is a dashboard: how much of the disk is used, what is free, what can
+  be freed and how many files are loose, the free space and the loose files
+  with how far they moved since Kliner last looked; a picture of when the
+  loose files last changed, over 3, 6 or 12 months; what there is to do,
+  each with the button that does it (`\` hides and shows the files on your
+  desktop); what Kliner has done lately, each with the way back; this Mac;
+  and sending
+- ⌘K searches pages, actions and files, in the window and from anywhere
+- `?` opens Help and the keys
+- Light or dark, whichever your Mac is on — the whole window, the ⌘K panel
+  and every page, and it changes the moment the Mac does
+
+### The first minute
+
+- An introduction in seven steps: the folders macOS asks about, your desktop,
+  your Dock, a wallpaper, and your account. The picture in it is your own Mac,
+  read from it, and each step changes the real thing
+- Your account is one form: your name, your email and your @username, with
+  your card beside it — your picture, your name and your @username over your
+  wallpaper — drawn as you type. One button creates it
+- Your @username is checked as you type. When it is taken, Kliner asks about a
+  few names close to it and offers only the ones that came back free
+
+### Send a file to any @username
+
+- To a Mac nearby, straight from this Mac to that one. macOS asks once whether
+  Kliner may look for Macs on your network
+- To anyone else through Kliner Cloud: the file is locked on this Mac before it
+  leaves and unlocked on theirs, kept at most seven days and 5 GB at most
+- A file on its way to you brings the window forward and asks before anything
+  is saved
+- Send has a page of its own: drop a file anywhere on the window (or choose
+  one), type the @username — Kliner says whether it is a Mac nearby, somebody
+  on kliner.app or nobody yet — or pick one of the Macs nearby or the people
+  you sent to before. While it goes the page shows it on its way, and every
+  file sent or received since Kliner opened is listed with how far along it
+  is, with Stop and Show in Finder
+
+### Your @username
+
+- Change it in Settings › Profile. The old name stays yours for seven days:
+  files on their way to it still arrive, nobody else can take it while your
+  friends still know you by it, and you can change back any time that week
+- Hold a name before Kliner is on your Mac: open kliner.app/@thename, and if
+  nobody has it, hold it there. The page gives you a code; type the name into
+  Kliner, then the code, and the name is yours. It waits thirty days
+- kliner.app/@name says what a name is when there is no public page: free,
+  somebody's whose page is not public, held, or changed
+- Settings is quieter: Profile is you — your name, your @username, your email
+  and your picture — and your page at kliner.app has a part of its own
+
+### Kliner Cloud
+
+`server/` is one Cloudflare Worker: @usernames and their public keys, public
+profile pages at `/@name` (only when you turn yours on), the encrypted files
+waiting to be picked up, the waitlist, and the app itself at `/download`.
+`bash ~/nimo/server/deploy.sh` sets all of it up and is safe to run again.
+Once kliner.app is on the same Cloudflare account it puts the API on
+api.kliner.app and your profile on kliner.app/@you.
+
+Your page is black and white, so the only colour on it is your own apps: your
+picture and what you wrote, then your screen with your wallpaper and your
+Dock on it — the apps' own icons, exactly as macOS draws them — then your
+setup, this Mac, and what Kliner has freed and tidied. Nothing on it is
+fetched: no script, no tracking, and the typeface rides along inside the
+page.
+
+### In the terminal
+
+- `min rename FILE NEW` gives a file a new name, and `min undo` gives it back
+- `min dock --add NAME` puts an app in the Dock; `min dock --list` prints each
+  app's name and where it is (with `--all`, the installed apps that are not in
+  it)
+- `min zen --finder` hides the desktop the older way, through Finder
+
+### The app you download
+
+- `app/build.sh` writes the address of your Kliner Cloud into the app, so a
+  copy opened on any other Mac talks to the same server
+- It is still not signed with Apple's certificate. The first time you open it
+  macOS stops it; open **System Settings › Privacy & Security**, scroll to
+  Security and click **Open Anyway**. Once, and never again
+
 ## 0.45.0
 
 ### nimo is an app you download

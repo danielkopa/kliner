@@ -295,9 +295,11 @@ sluggish ones back.
 
 ### `min zen`
 
-The fastest calm desktop there is: Finder stops drawing icons on it. Nothing
-moves, nothing is deleted, everything is still in `~/Desktop` and still in
-Finder. `min zen --restore` brings the icons back.
+The fastest calm desktop there is: the icons on it go. Nothing moves, nothing
+is deleted, everything is still in `~/Desktop` and still in Finder.
+`min zen --restore` brings the icons back. On macOS 14 and later it is the
+Mac's own switch (Desktop & Dock › Show Items), applied at once; before
+that, Finder starts again without them — `--finder` does it that way anywhere.
 
 ### `min dock`
 
@@ -426,6 +428,7 @@ anything.
 | `min apps` | what you installed once and never opened again |
 | `min empty` | take the trash out |
 | `min blank FILE` | empty a file, keeping what was in it — `min undo` puts it back |
+| `min rename FILE NEW` | a new name, never over one that is taken — `min undo` gives the old one back |
 | `min dock --fast` | no wait before the dock slides, and a quick slide |
 | `min dock` | pick what stays — `--restore` puts it back |
 | `min startup` | what launches when you sign in, and stop the ones you tick |
@@ -661,7 +664,7 @@ What runs where, exactly:
 
 | | macOS | Windows | Linux |
 | --- | --- | --- | --- |
-| `desktop` `downloads` `screenshots` `blank` `undo` | yes | yes | yes |
+| `desktop` `downloads` `screenshots` `blank` `rename` `undo` | yes | yes | yes |
 | `clean` `preview` `top` `doctor` `duplicates` `empty` | yes | yes | yes |
 | `wallpaper` `dark` `light` `zen` `setup` `hide` `apps` `startup` `dock` | yes | yes | — |
 | `dock --fast` | yes | — | — |
