@@ -125,6 +125,8 @@ nimo_repl_command() {
             printf 'desktop'; return 0 ;;
         cleardownloads|cleandownloads|tidydownloads|sortdownloads|downloads)
             printf 'downloads'; return 0 ;;
+        cleardocuments|cleandocuments|tidydocuments|sortdocuments|documents)
+            printf 'documents'; return 0 ;;
         cleardock|cleandock|tidydock|fixdock|clearapps|cleanapps)
             printf 'dock'; return 0 ;;
         screenshots|screenshot|clearscreenshots|gatherscreenshots|shots)
@@ -143,6 +145,8 @@ nimo_repl_command() {
             printf 'apps'; return 0 ;;
         cleandoc|cleanfile|blankfile|emptyfile|blank)
             printf 'blank'; return 0 ;;
+        rename|renamefile|newname)
+            printf 'rename'; return 0 ;;
         startup|startupitems|loginitems|whatstarts|autostart|startsitself)
             printf 'startup'; return 0 ;;
         next|nextwallpaper|nextwall|anotherone)
@@ -168,6 +172,8 @@ nimo_repl_command() {
             printf 'desktop' ;;
         downloads|"clean downloads"|"clear downloads"|"tidy downloads"|"sort downloads")
             printf 'downloads' ;;
+        documents|"clean documents"|"clear documents"|"tidy documents"|"sort documents")
+            printf 'documents' ;;
         screenshots|screenshot|shots|"gather screenshots"|"clear screenshots")
             printf 'screenshots' ;;
         zen|focus|"hide icons"|"hide desktop"|"quiet desktop"|calm)
@@ -184,6 +190,8 @@ nimo_repl_command() {
             printf 'apps' ;;
         blank|"clean doc"|"clean file"|"empty file"|"blank file")
             printf 'blank' ;;
+        rename|"rename file"|"rename a file"|"new name")
+            printf 'rename' ;;
         startup|"login items"|"startup items"|"what starts"|autostart)
             printf 'startup' ;;
         next|"next wallpaper"|"another one")
@@ -242,7 +250,7 @@ nimo_repl_guess() {
     local phrase="$1" word name shared best="" best_score=0
 
     for word in $phrase; do
-        for name in clear auto tidy desktop downloads screenshots dock wallpaper zen dark light hide empty apps duplicates preview clean top doctor setup undo update menu; do
+        for name in clear auto tidy desktop downloads screenshots dock wallpaper zen dark light hide empty apps duplicates preview clean top doctor setup undo update menu documents; do
             shared=$(nimo_shared_prefix "$word" "$name")
             if [ "$shared" -gt "$best_score" ]; then
                 best_score="$shared"
@@ -317,7 +325,7 @@ nimo_auto_set() {
     return 0
 }
 
-NIMO_COMMAND_WORDS="blank clear tidy desktop downloads screenshots dock wallpaper next prev zen dark light hide empty apps startup duplicates preview clean top doctor setup undo update menu version"
+NIMO_COMMAND_WORDS="blank clear tidy desktop downloads screenshots dock wallpaper next prev zen dark light hide empty apps startup duplicates preview clean top doctor setup undo update menu version documents"
 
 # Everything that starts with what was typed.
 nimo_repl_prefix_all() {
@@ -367,7 +375,7 @@ nimo_repl_correct() {
     for word in $phrase; do
         best="$word"
         best_score=0
-        for name in clear auto tidy desktop downloads screenshots dock wallpaper zen dark light hide empty apps duplicates preview clean top doctor setup undo update menu; do
+        for name in clear auto tidy desktop downloads screenshots dock wallpaper zen dark light hide empty apps duplicates preview clean top doctor setup undo update menu documents; do
             shared=$(nimo_shared_prefix "$word" "$name")
             if [ "$shared" -gt "$best_score" ]; then
                 best_score="$shared"

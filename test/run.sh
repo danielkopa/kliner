@@ -478,6 +478,50 @@ check "and leaves that file exactly as it was" \
     "[ \$(wc -c < \"\$TABBED\") -eq 3 ]"
 rm -f "$TABBED"
 
+# ---- min rename ---------------------------------------------------------
+#
+# A home of its own, so the files it renames are not counted by anything
+# else in here.
+RBOX=$(mktemp -d "${TMPDIR:-/tmp}/nimo-rename.XXXXXX") || exit 1
+mkdir -p "$RBOX/Desktop"
+printf 'one\n' > "$RBOX/Desktop/poster final.jpg"
+printf 'two\n' > "$RBOX/Desktop/notes.pdf"
+rmin() { HOME="$RBOX" bash "$MIN" "$@" </dev/null; }
+
+check "rename needs to know which file"      "! rmin rename -q --no-color >/dev/null 2>&1"
+check "rename needs the new name"            "rmin rename '$RBOX/Desktop/notes.pdf' -y -q --no-color 2>&1 | grep -q 'needs the new name'"
+check "rename refuses outside your home"     "rmin rename /etc/hosts h -y -q --no-color 2>&1 | grep -q 'outside your home'"
+check "rename leaves the Desktop its name"   "rmin rename '$RBOX/Desktop' Desk -y -q --no-color 2>&1 | grep -q 'keeps for itself' && [ -d '$RBOX/Desktop' ]"
+check "a new name is not a route"            "rmin rename '$RBOX/Desktop/notes.pdf' 'a/b' -y -q --no-color 2>&1 | grep -q 'cannot have /' && [ -f '$RBOX/Desktop/notes.pdf' ]"
+check "nor a way to hide the file"           "rmin rename '$RBOX/Desktop/notes.pdf' .notes -y -q --no-color 2>&1 | grep -q 'hides the file' && [ -f '$RBOX/Desktop/notes.pdf' ]"
+check "rename never lands on a taken name"   "rmin rename '$RBOX/Desktop/notes.pdf' 'poster final.jpg' -y -q --no-color 2>&1 | grep -q 'already a' && grep -q two '$RBOX/Desktop/notes.pdf' && grep -q one '$RBOX/Desktop/poster final.jpg'"
+check "a preview renames nothing"            "rmin rename '$RBOX/Desktop/notes.pdf' other.pdf -n -q --no-color | grep -q 'nothing was renamed' && [ -f '$RBOX/Desktop/notes.pdf' ] && [ ! -e '$RBOX/Desktop/other.pdf' ]"
+check "the same name is a calm answer"       "rmin rename '$RBOX/Desktop/notes.pdf' notes.pdf -y -q --no-color | grep -q 'Already called that'"
+rmin rename "$RBOX/Desktop/poster final.jpg" "Loft logo.jpg" -y -q --no-color >/dev/null 2>&1
+check "rename changes the name"              "[ -f '$RBOX/Desktop/Loft logo.jpg' ] && [ ! -e '$RBOX/Desktop/poster final.jpg' ] && grep -q one '$RBOX/Desktop/Loft logo.jpg'"
+check "and writes the old one down first"    "grep -q 'poster final.jpg' \"\$(ls -1t '$RBOX/.nimo/undo'/rename-*.tsv | head -1)\""
+check "min undo lists it"                    "rmin undo --list -q --no-color | grep -q 'renamed a file'"
+rmin rename "$RBOX/Desktop/notes.pdf" --to "-draft.pdf" -y -q --no-color >/dev/null 2>&1
+check "--to takes a name that starts with a dash" "[ -f '$RBOX/Desktop/-draft.pdf' ]"
+check "rename --undo puts the newest back"   "rmin rename --undo -q --no-color | grep -q 'Back to notes.pdf' && [ -f '$RBOX/Desktop/notes.pdf' ]"
+check "and the one before it next"           "rmin rename --undo -q --no-color | grep -q 'Back to poster final.jpg' && [ -f '$RBOX/Desktop/poster final.jpg' ]"
+check "with nothing left, it says so"        "! rmin rename --undo -q --no-color >/dev/null 2>&1"
+check "a replayed log is kept, not deleted"  "[ \$(ls '$RBOX/.nimo/undo/done' | grep -c '^rename-') -eq 2 ]"
+rmin rename "$RBOX/Desktop/notes.pdf" Notes.pdf -y -q --no-color >/dev/null 2>&1
+check "a capital letter is a new name too"   "ls '$RBOX/Desktop' | grep -qx 'Notes.pdf' && ! ls '$RBOX/Desktop' | grep -qx 'notes.pdf'"
+rmin rename "$RBOX/Desktop/Notes.pdf" desktop -y -q --no-color >/dev/null 2>&1
+check "a new name can be a word nimo knows"  "[ -f '$RBOX/Desktop/desktop' ]"
+mkdir -p "$RBOX/Desktop/Tidy/Images"
+printf 'p\n' > "$RBOX/Desktop/Tidy/Images/pic.png"
+printf '%s\t%s\n' "$RBOX/Desktop/pic.png" "$RBOX/Desktop/Tidy/Images/pic.png" > "$RBOX/.nimo/undo/desktop-20260101-000000.tsv"
+touch -t 202601010000 "$RBOX/.nimo/undo/desktop-20260101-000000.tsv"
+rmin rename "$RBOX/Desktop/Tidy" "Old stuff" -y -q --no-color >/dev/null 2>&1
+check "a sorted folder renamed takes its records along" "grep -q 'Desktop/Old stuff/Images/pic.png' '$RBOX/.nimo/undo/desktop-20260101-000000.tsv'"
+check "and keeps them as old as they were"     "[ -z \"\$(find '$RBOX/.nimo/undo/desktop-20260101-000000.tsv' -newer '$RBOX/Desktop/notes.pdf' 2>/dev/null)\" ]"
+check "the record of the rename is left as it was" "grep -q 'Desktop/Tidy' \"\$(ls -1t '$RBOX/.nimo/undo'/rename-*.tsv | head -1)\""
+check "min undo gives the old names back"    "rmin undo --all -y -q --no-color >/dev/null 2>&1; ls '$RBOX/Desktop' | grep -qx 'notes.pdf'"
+rm -rf "$RBOX"
+
 # A folder to sort into is a name, not a route. Spliced onto the desktop, a
 # value with a separator in it sends every moved file outside the home folder.
 check "the tidy folder cannot be a route"  \
@@ -526,6 +570,15 @@ check "and update says what to type instead of typing it" \
 check "doctor counts what you can see, not what is there" \
     "d=\$(mktemp -d) && mkdir -p \"\$d/Tidy\" && touch \"\$d/one\" \"\$d/two\" \"\$d/.quiet\" \
      && [ \"\$(bash -c '. \"$ROOT/lib/core.sh\" 2>/dev/null; nimo_count_dir_items \"\$0\"' \"\$d\")\" = 2 ]"
+# ...and the counts beside it did not: an empty desktop said "2 over 30
+# days", which were .localized and a hidden folder. Old, and invisible.
+check "and what is old is only what you can see" \
+    "d=\$(mktemp -d) && mkdir -p \"\$d/Tidy\" \"\$d/.hidden\" && touch \"\$d/.localized\" \"\$d/old.pdf\" \
+     && touch -t 202001010000 \"\$d/Tidy\" \"\$d/.hidden\" \"\$d/.localized\" \"\$d/old.pdf\" \
+     && [ \"\$(bash -c '. \"$ROOT/lib/core.sh\" 2>/dev/null; nimo_older_count \"\$0\" 30' \"\$d\")\" = 1 ]"
+check "and the months count the same things" \
+    "d=\$(mktemp -d) && mkdir -p \"\$d/Desktop\" \"\$d/Downloads\" \"\$d/Desktop/Tidy\" && touch \"\$d/Desktop/.DS_Store\" \"\$d/Desktop/new.png\" \
+     && [ \"\$(HOME=\"\$d\" bash -c '. \"$ROOT/lib/core.sh\" 2>/dev/null; . \"$ROOT/lib/desktop.sh\" 2>/dev/null; nimo_month_counts' | tr ',' '\\n' | awk '{t+=\$1} END{print t}')\" = 1 ]"
 
 # SQLite's only escape inside a single-quoted string is a doubled quote. A
 # picture called "Dan's holiday.jpg" would otherwise close the string in the
@@ -649,13 +702,15 @@ check "the formula points at this tag"    "grep -q \"v\$(tr -d ' \n' < '$ROOT/VE
 
 # The website is documentation too. It drifted eighteen versions once while
 # nobody was looking at it, and a page that names a version it has never seen
-# is worse than a page with no version on it at all. The full site is kept
-# beside the holding page rather than thrown away, and it is still checked.
-check "the website knows this version"    "grep -q \"v\$(tr -d ' \n' < '$ROOT/VERSION')\" '$ROOT/docs/site.html'"
-# What kliner.app answers with today: him in the middle of the page, blinking,
-# and one line saying the rest is being built.
-check "the front page is Kliner and one line" \
-    "grep -q 'Website in the works' '$ROOT/docs/index.html' \
+# is worse than a page with no version on it at all. The front page names it,
+# and so does the older full site kept beside it.
+check "the website knows this version"    "grep -q \"v\$(tr -d ' \n' < '$ROOT/VERSION')\" '$ROOT/docs/index.html' \
+     && grep -q \"v\$(tr -d ' \n' < '$ROOT/VERSION')\" '$ROOT/docs/site.html'"
+# What kliner.app answers with: him at the top of the page, blinking, and the
+# Download button under him pointing at the zip the server hands out (the
+# repository is private, so a GitHub release is no download for anybody else).
+check "the front page is Kliner and the download" \
+    "grep -q \"\$(head -n 1 '$ROOT/server/cloud.url')/download\" '$ROOT/docs/index.html' \
      && grep -q 'class=\"kliner\"' '$ROOT/docs/index.html' \
      && grep -q 'id=\"eyes\"' '$ROOT/docs/index.html'"
 check "and he blinks on it"                \
@@ -803,7 +858,37 @@ check "and it never offers to delete"     "! top_keys q | grep -qi 'delete\\|rem
 # off a terminal it is the flat list it always was, and says where the rest is
 check "off a tty it just prints"          "HOME=\"$BIG\" bash \"$MIN\" top -q --no-color </dev/null | grep -q 'Movies'"
 check "and points at the way in"          "HOME=\"$BIG\" bash \"$MIN\" top -q --no-color </dev/null | grep -q 'step into these'"
-rm -rf "$BIG"
+
+# The du on a Mac takes -a or -d, never both: given the pair it prints its
+# usage and nothing else. Kliner's Storage page said "nothing in here worth
+# measuring" about a 55 GB home because of it. A du as strict as that one,
+# in front of the real one:
+MACDU="$BOX/macdu"
+REALDU=$(command -v du)
+mkdir -p "$MACDU"
+cat > "$MACDU/du" <<MACDU_EOF
+#!/usr/bin/env bash
+a=0 d=0
+for arg in "\$@"; do
+    case "\$arg" in
+        --*) ;;
+        -*) case "\$arg" in *a*) a=1 ;; esac
+            case "\$arg" in *d*) d=1 ;; esac ;;
+    esac
+done
+if [ "\$a\$d" = 11 ]; then
+    echo 'usage: du [-Aclnx] [-H | -L | -P] [-g | -h | -k | -m] [-a | -s | -d depth] [file ...]' >&2
+    exit 64
+fi
+exec "$REALDU" "\$@"
+MACDU_EOF
+chmod +x "$MACDU/du"
+
+check "the stand-in is as strict as a Mac" "! PATH=\"$MACDU:\$PATH\" du -k -a -d 1 \"$BIG\" >/dev/null 2>&1"
+check "a Mac's du still finds the folders" "PATH=\"$MACDU:\$PATH\" HOME=\"$BIG\" bash \"$MIN\" top -q --no-color </dev/null | grep -q 'Movies/'"
+check "and the loose files beside them"    "PATH=\"$MACDU:\$PATH\" HOME=\"$BIG\" bash \"$MIN\" top -q --no-color </dev/null | grep -q 'loose-file.iso'"
+check "biggest first there too"            "[ \"\$(PATH=\"$MACDU:\$PATH\" HOME=\"$BIG\" bash \"$MIN\" top -q --no-color </dev/null | grep '█' | head -1 | awk '{print \$1}')\" = 'Movies/' ]"
+rm -rf "$BIG" "$MACDU"
 
 # ---- machine readable, and readable by a machine -------------------------
 #
@@ -1175,8 +1260,11 @@ check "nimo draws its own buttons, centred"  \
     "grep -q 'final class Chip' '$APP/Sources/main.swift' && ! grep -q 'bezelStyle = .rounded' '$APP/Sources/main.swift'"
 check "and every page is on the keyboard"   \
     "grep -q 'func goByNumber' '$APP/Sources/main.swift' && grep -q 'keyEquivalent: \\\",\\\"' '$APP/Sources/main.swift'"
+# The window is one of two now, the page (Web) or the AppKit one behind
+# `ui = native` in ~/.nimo/config, so it is made inside an if. Both branches
+# have to come before the menu that points at whichever it is.
 check "the menu is built after the window it points at" \
-    "grep -A2 'func applicationDidFinishLaunching' '$APP/Sources/main.swift' | grep -q 'main = Main()'"
+    "awk '/func applicationDidFinishLaunching/{f=1} f && /main = Main\\(\\)/{m=NR} f && /web = Web\\(\\)/{w=NR} f && /NSApp.mainMenu = buildMenu\\(\\)/{b=NR; exit} END{exit !(m && w && b && m < b && w < b)}' '$APP/Sources/main.swift'"
 # A terminal in the window would be an NSTextView built and filled. The type
 # also turns up in NSTextFieldDelegate's signature, which is not one.
 check "there is no terminal left in the window" \
@@ -1195,13 +1283,35 @@ check "and it is spent in one place at a time" \
     "[ \$(grep -c 'Paint.accent' '$APP/Sources/main.swift') -le 12 ]"
 check "the window follows the system, light or dark" \
     "grep -q 'bestMatch(from: \[.aqua, .darkAqua\])' '$APP/Sources/main.swift' && ! grep -q 'window.appearance' '$APP/Sources/main.swift'"
-# Glass, with a veil of Kliner's own slate over it. Straight glass took its
-# colour from the wallpaper — on a warm photograph the whole app went brown —
-# and a flat opaque window threw the depth away with it.
-check "the window is glass"                 "grep -q 'NSVisualEffectView()' '$APP/Sources/main.swift'"
-check "and it lets the desktop through"     "grep -q 'window.isOpaque = false' '$APP/Sources/main.swift'"
-check "but the wallpaper's colour does not reach the page" \
-    "grep -q 'static let veil = duo' '$APP/Sources/main.swift' \
+# Glass on the chrome, and only the chrome. Kliner was glass all over once,
+# with a veil of its own slate over it, and the veil did not hold: inside a
+# vibrant NSVisualEffectView macOS blends what stands on it with the
+# wallpaper behind, so on a warm photograph the whole app went brown. That
+# is the thing these guard. The menu bar's window (main.swift) is opaque on
+# Kliner's own ground. The main window (Web.swift) is vibrant behind the
+# page, but the page paints its whole content side opaque over that, so
+# the wallpaper only ever reaches the chrome — the rail, the window's edge
+# and the pane on the right, the way the dashboard Dan picked has it — and
+# the page goes see-through at all only when the app says the window
+# behind it is vibrant (`glass`).
+check "the menu bar's window is not glass"  \
+    "! grep -q 'NSVisualEffectView(' '$APP/Sources/main.swift' \
+     && grep -q 'window.isOpaque = true' '$APP/Sources/main.swift' \
+     && grep -q 'window.backgroundColor = Paint.veil' '$APP/Sources/main.swift'"
+check "the main window's glass is the sidebar's, and only that" \
+    "grep -q 'behind.material = .sidebar' '$APP/Sources/Web.swift' \
+     && [ \$(grep -c 'NSVisualEffectView(' '$APP/Sources/Web.swift') -eq 1 ]"
+check "and the content never shows the desktop through it" \
+    "grep -q '^\.main { background: var(--ground); }' '$APP/Web/src/style.css' \
+     && grep -q '^html\.glass body { background: transparent; }' '$APP/Web/src/style.css' \
+     && ! grep -q 'html\.glass \.main' '$APP/Web/src/style.css'"
+check "and an app that does not say glass gets none" \
+    "grep -q \"out\\[\\\"glass\\\"\\] = true\" '$APP/Sources/Web.swift' \
+     && grep -q \"meta.glass) document.documentElement.classList.add('glass')\" '$APP/Web/src/app.js'"
+# veil is lined up with the colours under it, so there is more than one space
+# before its equals sign.
+check "so the wallpaper's colour does not reach the page" \
+    "grep -qE 'static let veil += duo' '$APP/Sources/main.swift' \
      && grep -q 'Surface(Paint.veil)' '$APP/Sources/main.swift'"
 check "the window opens on a look, not a job" \
     "grep -q 'static let home = Action' '$APP/Sources/main.swift' && grep -q 'func drawHome' '$APP/Sources/main.swift'"
@@ -1210,7 +1320,11 @@ check "home is doctor's own reading, not a second measurement" \
 check "home offers access when something is shut" \
     "grep -q 'askFromHome' '$APP/Sources/main.swift'"
 check "there is a settings page"            "grep -q 'func drawSettings' '$APP/Sources/main.swift'"
-check "every page can undo itself"          "[ \$(grep -c 'Put this back' '$APP/Sources/main.swift') -ge 3 ]"
+# "Put this back" became "Undo" when every word in the window was made short
+# and plain. Every page that tidies a folder still carries one, and it is the
+# --undo of that page's own command.
+check "every page can undo itself"          \
+    "awk '/^ *verb: \"Tidy /{t++} /^ *arguments: \\[\"[a-z]+\"],\$/{p=\$0; sub(/^[^\"]*\"/, \"\", p); sub(/\".*/, \"\", p)} /Extra\\(title: \"Undo\", arguments: \\[\"[a-z]+\", \"--undo\"]/{u=\$0; sub(/.*arguments: \\[\"/, \"\", u); sub(/\".*/, \"\", u); if (u == p) k++; else x++} END{exit !(k >= 3 && !x && k == t)}' '$APP/Sources/main.swift'"
 check "you can step into a folder"          "grep -q 'func walkInto' '$APP/Sources/main.swift' && grep -q 'walks: true' '$APP/Sources/main.swift'"
 check "and step back out of it"             "grep -q 'func walkUp' '$APP/Sources/main.swift'"
 check "a page can open its folder in Finder" "grep -q 'inFileViewerRootedAtPath' '$APP/Sources/main.swift'"
@@ -1283,6 +1397,10 @@ check "the page starts at the top of the window" \
 check "waiting is the face, with nothing written on it" \
     "grep -q 'final class Thinking' '$APP/Sources/main.swift' && ! grep -q 'one moment' '$APP/Sources/main.swift'"
 check "and something turns while it waits"  "grep -q 'CAShapeLayer' '$APP/Sources/main.swift'"
+# The eyes are the two quote marks: in front of the word in the wordmark, and
+# the whole of the mascot. tools/blinkcheck.py finds them as the two marks
+# furthest to the left and measures those; looking where they used to be, it
+# measured the letters of the word.
 check "both eyes shut when it blinks"       \
     "python3 '$ROOT/tools/blinkcheck.py' '$APP/Resources/wordmark-blink@3x.png'"
 check "and the open frame is not two lids"  \
@@ -1310,9 +1428,6 @@ check "the eyes in the wordmark blink"      \
 check "the list folds down to its pictures"  \
     "grep -q 'func foldSide' '$APP/Sources/main.swift' && grep -q 'func narrow' '$APP/Sources/main.swift'"
 check "and a folded row keeps its name"     "grep -q 'toolTip = yes ? name.stringValue' '$APP/Sources/main.swift'"
-# Home is cards now: the number, the bar it came out of, then the table
-# behind the bar. Each of the three has to be there, in that order, or the
-# page is a figure with no working shown.
 # Settings was a column of loose rows with a grey word over each group, which
 # on a window made of cards reads as the one screen somebody forgot.
 # A column headed "Key" over a column of "never" is a table that has not read
@@ -1325,10 +1440,15 @@ check "settings is laid out as cards too"    \
     "grep -q 'let mine = Card(\"Kliner\")' '$APP/Sources/main.swift' \
      && grep -q 'let allowed = Card(\"What macOS lets Kliner touch\")' '$APP/Sources/main.swift'"
 
-check "home is laid out as cards"            \
-    "grep -q 'final class Card' '$APP/Sources/main.swift' && grep -q 'let card = Card(\"What is on your disk\")' '$APP/Sources/main.swift'"
-# The figures across the top, then the bar they came out of, then the table
-# behind the bar. Out of that order it is three unrelated pictures.
+# Home was cards: the number, the bar it came out of, then the table behind
+# the bar. It is drawn the way the site draws it now (Overview.swift): the
+# one number with where the room sits, and the list of what to do, are each
+# framed by four corner brackets rather than boxed. A box says "this is a
+# container"; four corners say "look here".
+check "home is laid out in corner frames"    \
+    "grep -q 'final class Framed: NSView' '$APP/Sources/Overview.swift' \
+     && sed -n '/private func drawHome/,/^    }/p' '$APP/Sources/main.swift' | grep -q 'line(Framed(head))' \
+     && sed -n '/private func drawHome/,/^    }/p' '$APP/Sources/main.swift' | grep -q 'line(Framed(all))'"
 # Home ran out two thirds of the way down the window and what was under it
 # was nothing. The last thing on it is the one question anybody has before
 # they press any of the buttons above it.
@@ -1362,8 +1482,12 @@ check "a legend entry is as wide as its own words" \
     "grep -q 'hug.priority = .defaultLow' '$APP/Sources/main.swift' \
      && grep -q 'hugToo.priority = .defaultLow' '$APP/Sources/main.swift'"
 
-check "the figures sit above the bar" \
-    "awk '/across.addArrangedSubview\\(Metric\\(\"Disk\"/{m=NR} /card.add\\(Split\\(bands\\)/{s=NR} END{exit !(m && s && m<s)}' '$APP/Sources/main.swift'"
+# The figures across the top, then the picture they come out of: the disk as
+# one narrowing shape, and the ring of where the room sits. Out of that order
+# they are unrelated pictures. There is no bar under them any more; the
+# funnel and the ring are what Home draws instead.
+check "the figures sit above the picture of the disk" \
+    "awk '/private func drawHome/{f=1} f && /across.addArrangedSubview\\(Metric\\(\"Disk\"/{m=NR} f && /Funnel\\(\\[/{u=NR} f && /Ring\\(bands/{r=NR} f && /^    }/{exit} END{exit !(m && u && r && m < u && m < r)}' '$APP/Sources/main.swift'"
 # The bar and the table under it were the same three numbers twice. The bar
 # carries its own reading now, and there is no table.
 check "and the bar carries its own reading" \
@@ -1412,8 +1536,21 @@ check "the work sits in a column in the middle of the card" \
 check "and Kliner sits in the corner of the card" \
     "grep -q 'sitting.trailingAnchor.constraint(equalTo: pane.trailingAnchor,' '$APP/Sources/main.swift' \
      && grep -q 'sitting.bottomAnchor.constraint(equalTo: pane.bottomAnchor,' '$APP/Sources/main.swift'"
+# Two surfaces: the ground the window is made of, and the card the page sits
+# on. This counted two Surface(Paint…) calls and there are four now, because
+# the ground, the veil laid over it and the slate the list stands on are
+# three views; the veil and the slate were each put in to keep the
+# wallpaper's colour out. All three are one colour (rail is "the same
+# ground" as veil), so it is still two surfaces, and this counts the colours
+# they are painted in.
+SHADES=$(for paint in $(grep -o 'Surface(Paint\.[a-z]*' "$APP/Sources/main.swift" | sed 's/.*\.//' | sort -u); do
+             grep -E "^ *static let $paint += duo\(" "$APP/Sources/main.swift" | sed 's/.*= *//' | grep . \
+                 || echo "$paint, told some other way"
+         done | sort -u | wc -l | tr -d ' ')
 check "the window is two surfaces, not one" \
-    "[ \$(grep -c 'Surface(Paint' '$APP/Sources/main.swift') = 2 ]"
+    "grep -q 'let pane = Surface(Paint.card' '$APP/Sources/main.swift' \
+     && grep -q 'let slate = Surface(Paint.rail)' '$APP/Sources/main.swift' \
+     && [ '$SHADES' = 2 ]"
 check "back and forward remember where you were" \
     "grep -q 'func goBack' '$APP/Sources/main.swift' && grep -q 'behind.append' '$APP/Sources/main.swift'"
 check "the chrome sits past the three lights" \
@@ -1545,9 +1682,13 @@ check "and it squashes rather than turning"  \
 check "and he comes up out of nothing the first time" \
     "grep -q 'func arrive()' '$APP/Sources/main.swift' && grep -q 'face.arrive()' '$APP/Sources/main.swift'"
 # init runs before the window is ordered front, so an opening drawn there
-# plays to an empty screen and you are shown its last frame.
+# plays to an empty screen and you are shown its last frame. Which window to
+# make is decided at launch now, so the call is `main?.open()`, and what
+# matters is that it comes after the window is put on the screen.
 check "and the opening waits for the window to be on screen" \
-    "grep -q 'func open()' '$APP/Sources/main.swift' && grep -q 'main.open()' '$APP/Sources/main.swift' && ! sed -n '/^        build()/,/^    }/p' '$APP/Sources/main.swift' | grep -q 'drawWelcome()'"
+    "grep -q 'func open()' '$APP/Sources/main.swift' \
+     && awk '/func applicationDidFinishLaunching/{f=1} f && !s && /window.makeKeyAndOrderFront\\(nil\\)/{s=NR} f && /main[?][.]open\\(\\)/{o=NR; exit} END{exit !(s && o && s < o)}' '$APP/Sources/main.swift' \
+     && ! sed -n '/^        build()/,/^    }/p' '$APP/Sources/main.swift' | grep -q 'drawWelcome()'"
 check "and the window fades up rather than being there" \
     "grep -q 'window.alphaValue = 0' '$APP/Sources/main.swift' && grep -q 'window.animator().alphaValue = 1' '$APP/Sources/main.swift'"
 # The face is what asks, not the button. On the pages before it, the thing to
@@ -1582,9 +1723,18 @@ check "and a folder name is refused the same way in both" \
 # Landing on Home after answering "what should I start with" is the app not
 # having listened.
 # A setup that asks you something and then never uses it is a form for its
-# own sake.
+# own sake. The greeting went from the AppKit window when its Home was drawn
+# the way the site draws it. The window Kliner opens with now is the page,
+# and the page is where you are greeted: its introduction writes the name
+# down, Web.swift hands it to the page, and the page says good morning with
+# it (or with your @username, once you have one).
 check "and the name it asked for is used"    \
-    "grep -q 'Config.value(\"name\")' '$APP/Sources/main.swift' && grep -q 'Good morning' '$APP/Sources/main.swift'"
+    "grep -q 'Config.set(\"name\", name)' '$APP/Sources/Web.swift' \
+     && grep -q 'for key in \\[\"name\"' '$APP/Sources/Web.swift' \
+     && grep -q 'config\\[key] = Config.value(key)' '$APP/Sources/Web.swift' \
+     && sed -n '/^function dayPart()/,/^}/p' '$APP/Web/src/app.js' | grep -q 'Good morning' \
+     && [ \$(grep -c 'dayPart()' '$APP/Web/src/app.js') -ge 2 ] \
+     && grep -q 'config.name' '$APP/Web/src/app.js'"
 check "and it opens where you said to start" \
     "grep -q 'func openStart()' '$APP/Sources/main.swift' && grep -q 'show(Main.page(for: wanted))' '$APP/Sources/main.swift'"
 # Walking back to a question showed the default again rather than the answer.
@@ -1670,8 +1820,12 @@ check "but only for runs that changed something" \
     "grep -q 'arguments.contains(\\\"--yes\\\")' '$APP/Sources/main.swift'"
 check "every page's buttons are one group of pictures" \
     "grep -q 'symbolic: Bool = true' '$APP/Sources/main.swift' && ! grep -q 'runButton' '$APP/Sources/main.swift'"
+# Nine was the number of pages when this was written, and Documents and the
+# Dock have been added since. So the count is held against the pages: every
+# Action from Home to the end of the list names the picture for its button.
 check "and every page says what its button does" \
-    "[ \$(grep -c '^ *does: \\\"' '$APP/Sources/main.swift') = 9 ]"
+    "n=\$(grep -c '^ *does: \"' '$APP/Sources/main.swift') \
+     && [ \"\$n\" = \"\$(sed -n '/static let home = Action(title:/,/^    ]/p' '$APP/Sources/main.swift' | grep -c 'Action(title:')\" ]"
 # He asked for the dash gone from everything anybody reads.
 check "nothing on screen is joined with a dash" \
     "! grep -qE '\"[^\"]*—[^\"]*\"' '$APP/Sources/main.swift'"
@@ -1775,9 +1929,11 @@ check "and not with a grey box as well" \
     "! grep -q 'if chosen { background = Paint.picked }' '$APP/Sources/main.swift'"
 # Measured off the picture: its running text is about fourteen points set on
 # twenty-seven. A Mac app at the system thirteen on seventeen reads, beside
-# it, as something squashed to fit.
+# it, as something squashed to fit. Still fourteen on 1.55, in the face the
+# window is set in now: Words.face, Geist carried inside the app, not the
+# system font, which is for a window that wants to look like part of macOS.
 check "the running text is set the way the picture sets it" \
-    "grep -q 'static let body   = NSFont.systemFont(ofSize: 14, weight: .regular)' '$APP/Sources/main.swift' \
+    "grep -qE 'static let body += face\\(14, \\.regular\\)' '$APP/Sources/main.swift' \
      && grep -q 'style.lineHeightMultiple = 1.55' '$APP/Sources/main.swift'"
 
 check "paragraphs have room between their lines" \
@@ -1834,15 +1990,25 @@ check "and the setup keeps the one down the side" \
     "grep -q 'railLine?.isHidden = false' '$APP/Sources/main.swift' && grep -q 'barLine, chrome' '$APP/Sources/main.swift'"
 check "with no second line inside the row" \
     "! grep -q 'split.widthAnchor.constraint(equalToConstant: 1)' '$APP/Sources/main.swift'"
-# Home is a list of things to do, not four numbers and a shrug.
+# Home is a list of things to do, not four numbers and a shrug. It was a card
+# of Jobs headed "What to do"; drawn the way the site draws it, it is a list
+# headed "Everything", one Entry (Overview.swift) for each thing to do, with
+# its figure and the button that does it.
 check "home says what to do about it"        \
-    "grep -q 'final class Job' '$APP/Sources/main.swift' && grep -q 'let list = Card(\"What to do\")' '$APP/Sources/main.swift'"
+    "grep -q 'final class Entry: NSView' '$APP/Sources/Overview.swift' \
+     && sed -n '/private func drawHome/,/^    }/p' '$APP/Sources/main.swift' | grep -q 'labelWithString: \"Everything\"' \
+     && [ \$(sed -n '/private func drawHome/,/^    }/p' '$APP/Sources/main.swift' | grep -c 'verb: \"[A-Z][a-z]* it\", page: ') -ge 3 ]"
 check "and pressing one starts it"           \
     "grep -q 'func startOn' '$APP/Sources/main.swift'"
 check "a page can be asked again"            \
     "grep -q 'func refresh' '$APP/Sources/main.swift' && grep -q 'keyEquivalent: \"r\"' '$APP/Sources/main.swift'"
+# ⌘F went to searching the list when ⌘K became the quick menu everywhere, so
+# the introduction has no key of its own any more. It is in the View menu,
+# and both windows answer it.
 check "and the introduction shown again"     \
-    "grep -q 'func replaySetup' '$APP/Sources/main.swift' && grep -A1 'Show the introduction' '$APP/Sources/main.swift' | grep -q 'keyEquivalent: \"f\"'"
+    "grep -q 'func replaySetup' '$APP/Sources/main.swift' \
+     && grep -q 'func replaySetup() { command(\"setup\") }' '$APP/Sources/Web.swift' \
+     && grep -A1 'NSMenuItem(title: \"Show the introduction\"' '$APP/Sources/main.swift' | grep -q 'action: #selector(Main.replaySetup)'"
 # Two arcs crossing on a shape is something turning over; one arc going round
 # is a spinner wearing a costume.
 check "the waiting has two arcs, not one"    \
@@ -1965,21 +2131,47 @@ check "every page is built out of the same cards" \
 # it lists, how much room they take, and which one is the biggest.
 check "and every page puts its figures on top" \
     "grep -q 'func stats(_ pieces' '$APP/Sources/main.swift' && grep -q 'for box in stats(pieces)' '$APP/Sources/main.swift'"
+# Eight was the number of pages after Home when this was written, and
+# Documents and the Dock have been added since. So the count is held against
+# the list: every Action in it says what one of its rows is.
 check "and every page says what one of its rows is" \
-    "[ \$(grep -c '^ *counts: \"' '$APP/Sources/main.swift') = 8 ]"
-# Every panel in the window is the same panel: same corner, same hairline,
-# same fill, same air inside it.
-check "every panel in the window is the same panel" \
-    "grep -q 'enum Panel {' '$APP/Sources/main.swift' && [ \$(grep -c 'Panel.dress(self)' '$APP/Sources/main.swift') -ge 2 ]"
+    "n=\$(grep -c '^ *counts: \"' '$APP/Sources/main.swift') \
+     && [ \"\$n\" = \"\$(sed -n '/static let all: \\[Action] = \\[/,/^    ]/p' '$APP/Sources/main.swift' | grep -c 'Action(title:')\" ]"
+# One place dresses every panel: enum Panel. It had one look, a box, and
+# every panel wore it. Taking the boxes off the page gave it three: a box for
+# a choice, because a box is what makes a choice look pickable; a soft card;
+# and nothing at all for a figure standing on the page. Every panel still
+# takes its look from there, and the two looks with a corner share the one.
+check "every panel in the window is dressed in one place" \
+    "grep -q 'enum Panel {' '$APP/Sources/main.swift' \
+     && sed -n '/^final class Choice: NSView/,/^}/p' '$APP/Sources/main.swift' | grep -q 'Panel.dress(self)' \
+     && sed -n '/^final class Card: NSView/,/^}/p' '$APP/Sources/main.swift' | grep -q 'Panel.soft(self)' \
+     && sed -n '/^final class Metric: NSView/,/^}/p' '$APP/Sources/main.swift' | grep -q 'Panel.flat(self)' \
+     && [ \$(sed -n '/^enum Panel {/,/^}/p' '$APP/Sources/main.swift' | grep -c 'cornerRadius = round') = 2 ]"
 check "and none of them names its own corner" \
     "! grep -qE 'layer\\?.cornerRadius = 1[024]$' '$APP/Sources/main.swift'"
 # The eyes move, not the mark. A layer slid sideways is the whole word walking.
 check "only the eyes look sideways"          \
     "! sed -n '/^final class Wordmark/,/^}/p' '$APP/Sources/main.swift' | grep -q 'transform' && grep -q '\"-right\"' '$APP/Sources/main.swift'"
-check "and the frames are drawn from the art" \
-    "python3 '$ROOT/tools/glance.py' '$APP/Resources' >/dev/null"
-# Proved by the pixels: the looking frames differ from the one they came from
-# in one small place near the top, and nowhere else.
+# glance.py can still find the eyes in the art and draw every frame from it,
+# moving the eyes and nothing else. It draws into a copy. The frames Kliner
+# ships came with the art when it was redrawn as the two eyes, and this used
+# to draw over them: still looking for the eyes after the word, it gave the
+# wordmark frames with the e and the r moved instead.
+glance_copy() {
+    local box
+    box=$(mktemp -d "${TMPDIR:-/tmp}/nimo-glance.XXXXXX") || return 1
+    cp "$APP/Resources/"*.png "$box/" \
+        && python3 "$ROOT/tools/glance.py" "$box" >/dev/null \
+        && python3 "$ROOT/tools/glance.py" "$box" --check >/dev/null \
+        && printf 'ok'
+    rm -rf "$box"
+}
+check "and the frames are drawn from the art" "[ \"\$(glance_copy)\" = ok ]"
+# Proved by the pixels: the frames Kliner ships differ from the one they came
+# from only round the eyes, and nowhere else. The eyes used to be small and
+# near the top, so a change was allowed a third of the picture; they are most
+# of its height now, so the change has to stay inside the box round the eyes.
 check "proved by the pixels, not by the name" \
     "python3 '$ROOT/tools/glance.py' '$APP/Resources' --check"
 check "the meter fills rather than appearing filled" \
@@ -2024,7 +2216,9 @@ NAKED=$(awk '
 check "every row down the side has a picture" "[ -z '$NAKED' ]"
 check "ci builds the app"                 "grep -q 'app/build.sh' '$ROOT/.github/workflows/ci.yml'"
 check "the release carries the app"       "grep -q 'Kliner.app.zip' '$ROOT/.github/workflows/release.yml'"
-check "the site points at the release"    "grep -q 'releases/latest/download/Kliner.app.zip' '$ROOT/docs/site.html'"
+# The download is the zip the server hands out: the repository is private,
+# so a GitHub release is no download for anybody else.
+check "the site points at the download"   "grep -q \"\$(head -n 1 '$ROOT/server/cloud.url')/download\" '$ROOT/docs/site.html'"
 
 # ---- verdict ------------------------------------------------------------
 

@@ -1,17 +1,24 @@
 #!/usr/bin/env python3
-"""Make the frames where Kliner looks sideways.
+"""Make the frames where Kliner looks sideways, and prove the ones there are.
 
 Moving the whole mark two points across is the whole face sliding about. What
 was wanted is the eyes going and the face staying, and the art is a flat
 picture, so the only way to do that is to draw the frames: find the eyes, lift
 them out, and put them back a little to one side.
 
-In the wordmark the eyes are the two quote marks, drawn on nothing. In the
-mascot they are two holes cut out of the blob, so lifting one out means filling
-it in and cutting a new one along.
+The eyes are two quote marks, drawn on nothing. In the wordmark they stand in
+front of the word, so they are its two marks furthest to the left; the mascot
+is the two of them and nothing else. (The mascot used to be a blob with the
+eyes cut out of it, and the quotes came after the word. This looked for those
+until the art was redrawn.)
 
-    glance.py app/Resources
+    glance.py DIR            draw the looking frames in DIR from the open ones
+    glance.py DIR --check    prove the frames in DIR move the eyes, nothing else
+
+The frames in app/Resources came with the art, drawn as the same eyes moved,
+so the suite draws its own into a copy rather than over them.
 """
+
 import sys
 from collections import deque
 
@@ -23,7 +30,7 @@ SHIFT = 2
 
 
 def parts(alpha, want):
-    """Connected runs of pixels the test says yes to."""
+    """Connected runs of pixels the test says yes to, touching side or corner."""
     w, h = alpha.size
     px = alpha.load()
     seen = [[False] * w for _ in range(h)]
@@ -38,7 +45,8 @@ def parts(alpha, want):
             while queue:
                 cx, cy = queue.popleft()
                 found.append((cx, cy))
-                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1),
+                               (1, 1), (1, -1), (-1, 1), (-1, -1)):
                     nx, ny = cx + dx, cy + dy
                     if 0 <= nx < w and 0 <= ny < h and not seen[ny][nx] \
                             and want(px[nx, ny]):
@@ -48,52 +56,30 @@ def parts(alpha, want):
     return out
 
 
-def eyes(image, holes):
-    """The two runs that are the eyes.
+def eyes(image):
+    """The two runs of pixels that are the eyes.
 
-    In the mascot they are the two biggest holes that do not touch the edge of
-    the picture. In the wordmark they are the two rightmost marks, which is
-    where the quotes after the word are, and nothing else out there is small.
+    They are the two marks furthest to the left: in the wordmark the quotes
+    stand in front of the word, and the mascot is the two of them and nothing
+    else. A mark is ink that holds together, and pieces that share columns
+    are one mark, so a quote mark that comes apart in the alpha is still one
+    eye, and the dot of the i is part of the i.
     """
-    w, h = image.size
     alpha = image.split()[3]
-
-    if holes:
-        inside = []
-        for run in parts(alpha, lambda v: v < 128):
-            xs = [p[0] for p in run]
-            ys = [p[1] for p in run]
-            if min(xs) == 0 or max(xs) == w - 1 or min(ys) == 0 or max(ys) == h - 1:
-                continue
-            inside.append(run)
-        inside.sort(key=len, reverse=True)
-        keep = inside[:2]
-        tails = inside[2:]
-    else:
-        marks = parts(alpha, lambda v: v >= 128)
-        marks.sort(key=lambda run: -min(p[0] for p in run))
-        keep = marks[:2]
-        tails = marks[2:]
-
-    if len(keep) < 2:
+    found = sorted(parts(alpha, lambda v: v > 120),
+                   key=lambda run: min(p[0] for p in run))
+    marks = []
+    for run in found:
+        left = min(p[0] for p in run)
+        right = max(p[0] for p in run)
+        if marks and left <= marks[-1][1]:
+            marks[-1][1] = max(marks[-1][1], right)
+            marks[-1][2].extend(run)
+        else:
+            marks.append([left, right, list(run)])
+    if len(marks) < 2:
         return []
-
-    # A quote mark can break into a body and a tail in the alpha. Anything
-    # sitting inside an eye's box, give or take two pixels, is part of it.
-    box = []
-    for run in keep:
-        xs = [p[0] for p in run]
-        ys = [p[1] for p in run]
-        box.append((min(xs) - 2, max(xs) + 2, min(ys) - 2, max(ys) + 2))
-    for run in tails:
-        if len(run) > len(keep[0]):
-            continue
-        x, y = run[0]
-        for x0, x1, y0, y1 in box:
-            if x0 <= x <= x1 and y0 <= y <= y1:
-                keep.append(run)
-                break
-    return keep
+    return [marks[0][2], marks[1][2]]
 
 
 def shape(out, colour, kind, box, scale):
@@ -122,60 +108,43 @@ def shape(out, colour, kind, box, scale):
                 px[x, y] = colour
 
 
-def look(image, holes, shift, kind=None):
-    """The same picture with its eyes moved sideways."""
+def look(image, shift, kind=None):
+    """The same picture with its eyes moved sideways, or drawn as another kind."""
     out = image.copy()
     px = out.load()
     was = image.load()
-    found = eyes(image, holes)
+    w, h = image.size
+    found = eyes(image)
     if not found:
         return None
 
-    # What to put where an eye was. In the mascot that is the blob it was cut
-    # out of; in the wordmark it is nothing at all.
-    if holes:
-        filler = None
-        for run in found:
-            x, y = run[0]
-            for dx in range(1, 8):
-                if x - dx >= 0 and was[x - dx, y][3] >= 128:
-                    filler = was[x - dx, y]
-                    break
-            if filler:
-                break
-        if filler is None:
-            return None
-    else:
-        filler = (0, 0, 0, 0)
-
-    # What an eye is drawn in: the colour it already was, or, for a hole cut
-    # out of a blob, nothing at all.
-    ink = (0, 0, 0, 0)
-    if not holes:
-        best = 0
-        for run in found:
-            for x, y in run:
-                if was[x, y][3] > best:
-                    best = was[x, y][3]
-                    ink = was[x, y]
-
-    moved = []
+    # Each eye with its soft edge: everything with any ink at all inside its
+    # box, give or take two pixels. Lifting only the solid part would leave
+    # the outline of where it was behind.
     boxes = []
+    lifted = {}
     for run in found:
         xs = [p[0] for p in run]
         ys = [p[1] for p in run]
-        boxes.append((min(xs), max(xs), min(ys), max(ys)))
-        for x, y in run:
-            moved.append(((x, y), was[x, y]))
-            px[x, y] = filler
+        x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
+        boxes.append((x0, x1, y0, y1))
+        for y in range(max(0, y0 - 2), min(h, y1 + 3)):
+            for x in range(max(0, x0 - 2), min(w, x1 + 3)):
+                if was[x, y][3] > 0:
+                    lifted[(x, y)] = was[x, y]
+
+    # What an eye is drawn in: the most solid colour it already was. The eyes
+    # are drawn on nothing, so where one was is nothing at all.
+    ink = max(lifted.values(), key=lambda colour: colour[3])
+    for x, y in lifted:
+        px[x, y] = (0, 0, 0, 0)
 
     if kind is not None:
         for box in boxes:
-            shape(out, ink, kind, box, max(1, image.size[0] // 78))
+            shape(out, ink, kind, box, max(1, w // 78))
         return out
 
-    w, h = out.size
-    for (x, y), colour in moved:
+    for (x, y), colour in lifted.items():
         nx = x + shift
         if 0 <= nx < w:
             px[nx, y] = colour
@@ -198,10 +167,9 @@ def clear(image, side):
 def widen(path, pad):
     """Give a picture room either side, once.
 
-    The quote marks in the wordmark sit against the right edge of it, so eyes
-    that move would move off the picture. Every frame of the wordmark is given
-    the same margin, so they still line up with one another, and a picture that
-    already has the margin is left alone.
+    Eyes that move can move off the edge of the picture. Every frame of the
+    wordmark is given the same margin, so they still line up with one another,
+    and a picture that already has the margin is left alone.
     """
     image = Image.open(path).convert("RGBA")
     if clear(image, -1) >= pad and clear(image, 1) >= pad:
@@ -228,13 +196,23 @@ def only_eyes(base, aside, w, h):
 
 
 def check(where):
-    """The frames must differ from the one they came from in one small place,
-    up near the top. Anything wider than that is the whole mark moving, which
-    is the thing this replaced."""
+    """The frames must differ from the one they came from only where the eyes
+    are: inside the box round the two of them, grown by as far as an eye moves
+    and two pixels of soft edge. A change anywhere else is the whole mark
+    moving, or a letter, which is the thing this replaced."""
+    grow = SHIFT * 3 + 2
     for name, sides in (("wordmark", ("right", "round", "dash")),
                         ("mascot", ("left", "right", "round", "dash"))):
         base = Image.open("%s/%s@3x.png" % (where, name)).convert("RGBA")
         w, h = base.size
+        found = eyes(base)
+        if not found:
+            print("could not find the eyes in %s" % name)
+            return 1
+        xs = [p[0] for run in found for p in run]
+        ys = [p[1] for run in found for p in run]
+        x0, x1 = min(xs) - grow, max(xs) + grow
+        y0, y1 = min(ys) - grow, max(ys) + grow
         for side in sides:
             aside = Image.open("%s/%s-%s@3x.png" % (where, name, side)).convert("RGBA")
             if aside.size != base.size:
@@ -244,14 +222,12 @@ def check(where):
             if box is None:
                 print("%s-%s is the same picture as %s" % (name, side, name))
                 return 1
-            x0, x1, y0, y1 = box
-            if (x1 - x0) > w * 0.34 or (y1 - y0) > h * 0.34:
-                print("%s-%s changes %dx%d of a %dx%d picture: that is not the eyes"
-                      % (name, side, x1 - x0, y1 - y0, w, h))
-                return 1
-            if (y0 + y1) / 2 > h * 0.66:
-                print("%s-%s changes the bottom of the picture, not the eyes"
-                      % (name, side))
+            bx0, bx1, by0, by1 = box
+            if bx0 < x0 or bx1 > x1 or by0 < y0 or by1 > y1:
+                print("%s-%s changes x %d-%d, y %d-%d of a %dx%d picture, and the eyes"
+                      " are within x %d-%d, y %d-%d: that is not the eyes"
+                      % (name, side, bx0, bx1, by0, by1, w, h,
+                         max(0, x0), min(w - 1, x1), max(0, y0), min(h - 1, y1)))
                 return 1
     print("the eyes move and nothing else does")
     return 0
@@ -262,20 +238,20 @@ def main():
     if "--check" in sys.argv:
         return check(where)
     made = 0
-    # The quote marks sit at the end of the word with a letter right behind
-    # them, so in the wordmark they can only look outward. The mascot has room
-    # on both sides of its face.
-    for name, holes, ways in (("wordmark", False, ((1, "right"),)),
-                              ("mascot", True, ((-1, "left"), (1, "right")))):
+    # The wordmark has one glance, to the right, towards the word: there is
+    # room for it between the eyes and the k. The mascot is the two eyes on
+    # their own, with room either side, so it looks both ways.
+    for name, ways in (("wordmark", ((1, "right"),)),
+                       ("mascot", ((-1, "left"), (1, "right")))):
         for scale, tag in ((1, ""), (2, "@2x"), (3, "@3x")):
             pad = SHIFT * scale
-            if not holes:
+            if name == "wordmark":
                 for frame in ("", "-half", "-blink"):
                     widen("%s/%s%s%s.png" % (where, name, frame, tag), pad)
             path = "%s/%s%s.png" % (where, name, tag)
             image = Image.open(path).convert("RGBA")
             for way, side in ways:
-                shifted = look(image, holes, way * SHIFT * scale)
+                shifted = look(image, way * SHIFT * scale)
                 if shifted is None:
                     print("could not find the eyes in", path)
                     return 1
@@ -285,7 +261,7 @@ def main():
             # Two more eyes to wear: round, and a pair of dashes. A face with
             # one expression is a picture; a face with three is somebody.
             for kind in ("round", "dash"):
-                drawn = look(image, holes, 0, kind=kind)
+                drawn = look(image, 0, kind=kind)
                 if drawn is None:
                     print("could not find the eyes in", path)
                     return 1

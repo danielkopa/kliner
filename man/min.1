@@ -49,12 +49,16 @@ Nothing is deleted or renamed. \fB\-\-undo\fR puts it all back.
 .B min downloads
 The same sorter, pointed at \fI~/Downloads\fR.
 .TP
+.B min documents
+The same sorter, pointed at \fI~/Documents\fR, into \fIDocuments/Tidy/\fR.
+.TP
 .B min screenshots
 Gather every loose screenshot into \fI~/Pictures/Screenshots\fR.
 .TP
 .B min zen
 Stop drawing icons on the desktop. Nothing moves; \fB\-\-restore\fR brings
-them back.
+them back. On macOS 14 and later this is the switch in Desktop & Dock, which
+the Mac applies at once; before that, Finder starts again without them.
 .TP
 .B min dark \fR/\fB min light
 Switch the appearance. The previous setting is written down first.
@@ -92,6 +96,12 @@ longest instead, and says so. Never uninstalls anything.
 .B min blank \fIFILE\fR
 Empty a file, keeping a copy of what was in it in \fI~/.nimo/undo\fR, so
 \fBmin undo\fR can put the contents back. The file itself stays where it is.
+.TP
+.B min rename \fIFILE\fR \fINEW\fR
+Give a file a new name in the same folder. Never over a name that is taken,
+never with a \fB/\fR in it, and never for the folders your computer keeps for
+itself. Written down first, so \fBmin undo\fR, or \fBmin rename \-\-undo\fR
+for the newest one, puts the old name back.
 .TP
 .B min dock \-\-fast
 No wait before the dock slides, and a quick slide. Both settings are written
@@ -190,6 +200,24 @@ a script, \fBTERM=dumb\fR \- the same list is numbered and typed instead.
 .TP
 .B \-\-fast
 With \fBmin dock\fR: no wait before the dock slides, and a quicker slide.
+.TP
+.B \-\-finder
+With \fBmin zen\fR: the older way even on a newer Mac \(em Finder stops drawing
+the desktop, and starts again to do it.
+.TP
+.BI \-\-add " NAME"
+With \fBmin dock\fR: put an installed app in the dock, after the ones already
+there. The dock is exported first, so \fBmin dock \-\-restore\fR takes it out
+again. Several names go one to a line.
+.TP
+.BI \-\-to " NAME"
+With \fBmin rename\fR: the new name, spelled out \(em for a name that starts
+with a dash, or one that is also a word nimo knows.
+.TP
+.B \-\-paths
+With \fBmin wallpaper\fR: the wallpapers as file paths, one per line. With
+\fBmin dock \-\-list\fR: each app in the dock, its name, a tab and where it is;
+add \fB\-\-all\fR for the installed apps that are not in it.
 .TP
 .BI \-\-by " WHAT"
 Sort into folders by \fBkind\fR (the default), \fBletter\fR or \fBdate\fR.

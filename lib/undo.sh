@@ -32,6 +32,44 @@ nimo_undo_spend() {
     mv "$log" "$dest" 2>/dev/null || true
 }
 
+# What one preferences log changed, in the words the list uses. Most of them
+# are `min setup`, a dozen settings at once, and "changed preferences" is the
+# truth about those. The rest say which: `min zen` (and \ in an older Kliner)
+# wrote a log for every press, and seventy lines of "changed preferences" in
+# a row tell you nothing about any of them. The log holds what each setting
+# was before, so which way it went is read off it, not guessed: a desktop
+# switch that was off (or never set) and was written is icons that went.
+#   $1  the log    $2  "one" for the singular the newest-change line uses
+nimo_setup_says() {
+    local f="$1" domain key state type prior n=0 icons=0 hid=0 dock=0
+    while IFS=$'\t' read -r domain key state type prior; do
+        [ -n "${domain:-}" ] || continue
+        n=$((n + 1))
+        case "$domain $key" in
+            "com.apple.WindowManager HideDesktop"|"com.apple.WindowManager StandardHideDesktopIcons")
+                icons=$((icons + 1))
+                case "$state:${prior:-}" in had:1|had:true|had:yes) ;; *) hid=$((hid + 1)) ;; esac ;;
+            "com.apple.finder CreateDesktop")
+                icons=$((icons + 1))
+                case "$state:${prior:-}" in had:0|had:false|had:no) ;; *) hid=$((hid + 1)) ;; esac ;;
+            "com.apple.dock "*)
+                dock=$((dock + 1)) ;;
+        esac
+    done < "$f"
+    if [ "$n" -gt 0 ] && [ "$icons" -eq "$n" ]; then
+        if [ "$hid" -eq "$n" ]; then printf 'hid desktop icons'
+        elif [ "$hid" -eq 0 ]; then printf 'showed desktop icons'
+        else printf 'changed desktop icons'
+        fi
+    elif [ "$n" -gt 0 ] && [ "$dock" -eq "$n" ]; then
+        printf 'changed the dock'
+    elif [ "${2:-}" = "one" ]; then
+        printf 'changed a preference'
+    else
+        printf 'changed preferences'
+    fi
+}
+
 # 20260826-162929 -> 26 Aug 16:29
 # The newest thing nimo has done, in one line, for the page that opens on
 # what it has been up to. Empty when it has done nothing.
@@ -48,9 +86,10 @@ nimo_undo_last() {
             downloads-*)   label="sorted your downloads" ;;
             screenshots-*) label="gathered your screenshots" ;;
             blank-*)       label="emptied a file" ;;
+            rename-*)      label="renamed a file" ;;
             startup-*)     label="stopped things starting" ;;
             dock-*)        label="rebuilt your dock" ;;
-            setup-*)       label="changed a preference" ;;
+            setup-*)       label=$(nimo_setup_says "$f" one) ;;
             wallpaper.txt) label="changed your wallpaper" ;;
             *) continue ;;
         esac
@@ -97,9 +136,10 @@ nimo_cmd_undo() {
             downloads-*)   kind=desktop; label="sorted your downloads" ;;
             screenshots-*) kind=desktop; label="gathered screenshots" ;;
             blank-*)       kind=blank;   label="emptied a file" ;;
+            rename-*)      kind=rename;  label="renamed a file" ;;
             startup-*)     kind=startup; label="stopped things starting" ;;
             dock-*)        kind=dock;    label="rebuilt your dock" ;;
-            setup-*)       kind=setup;   label="changed preferences" ;;
+            setup-*)       kind=setup;   label=$(nimo_setup_says "$f") ;;
             wallpaper.txt) kind=wallpaper; label="changed your wallpaper" ;;
             *) continue ;;
         esac
@@ -108,7 +148,7 @@ nimo_cmd_undo() {
         # empty file behind, and offering that as something to reverse is
         # offering to put nothing back.
         case "$kind" in
-            desktop|setup|blank|startup)
+            desktop|setup|blank|rename|startup)
                 [ "$(nimo_file_lines "$f")" -gt 0 ] || continue ;;
         esac
 
@@ -119,6 +159,7 @@ nimo_cmd_undo() {
             desktop) lines="$(nimo_plural "$(nimo_file_lines "$f")" file)" ;;
             setup)   lines="$(nimo_plural "$(nimo_file_lines "$f")" setting)" ;;
             blank)   lines="$(basename "$(cut -f1 "$f" 2>/dev/null | head -1)")" ;;
+            rename)  lines="back to $(basename "$(cut -f1 "$f" 2>/dev/null | head -1)")" ;;
             startup) lines="$(nimo_plural "$(($(nimo_file_lines "$f") - 1))" thing)" ;;
             wallpaper) lines="back to $(nimo_wall_pretty "$(cat "$f" 2>/dev/null)")"; when="" ;;
             *)       lines="" ;;
@@ -191,6 +232,7 @@ EOF
                 dock)      nimo_dock_restore "$file" >/dev/null 2>&1 ;;
                 setup)     nimo_setup_restore "$file" >/dev/null 2>&1 ;;
                 blank)     nimo_blank_undo "$file" >/dev/null 2>&1 ;;
+                rename)    nimo_rename_undo "$file" >/dev/null 2>&1 ;;
                 startup)   nimo_startup_undo "$file" >/dev/null 2>&1 ;;
                 wallpaper) nimo_wall_restore >/dev/null 2>&1 ;;
             esac
@@ -258,6 +300,7 @@ EOF
         dock)      nimo_dock_restore "$file" ;;
         setup)     nimo_setup_restore "$file" ;;
         blank)     nimo_blank_undo "$file" ;;
+        rename)    nimo_rename_undo "$file" ;;
         startup)   nimo_startup_undo "$file" ;;
         wallpaper) nimo_wall_restore ;;
     esac

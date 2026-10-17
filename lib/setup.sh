@@ -397,6 +397,22 @@ nimo_zen_windows() {
     return 0
 }
 
+# The switches System Settings has had since macOS 14, Desktop & Dock › Show
+# Items: the Mac fades the icons out and back in at once, and Finder is not
+# started again. There are two of them — "On Desktop" and "In Stage Manager" —
+# and the Mac reads whichever one matches the mode it is in. nimo writes both.
+# One switch on and the other off is how this ends up looking broken: every
+# press flips the one nobody is reading, and the icons never move. Prints
+# them both; nothing on a Mac older than 14, where Finder's CreateDesktop is
+# the only way.
+nimo_zen_live_keys() {
+    [ "${NIMO_ZEN_FINDER:-0}" = "1" ] && return 1
+    local v
+    v=$(sw_vers -productVersion 2>/dev/null) || return 1
+    [ "${v%%.*}" -ge 14 ] 2>/dev/null || return 1
+    printf 'HideDesktop StandardHideDesktopIcons'
+}
+
 nimo_cmd_zen() {
     nimo_header
 
@@ -415,12 +431,20 @@ nimo_cmd_zen() {
 
     nimo_panel_open "zen"
 
-    local showing
-    showing=$(defaults read com.apple.finder CreateDesktop 2>/dev/null) || showing=1
-    case "$showing" in
-        0|false|no) showing=0 ;;
-        *)          showing=1 ;;
+    # Showing means both: Finder draws the desktop at all, and the Mac's own
+    # switch is not hiding it. Either one can be what hid it.
+    local showing finder=1 live_keys="" live_off=0 key
+    case "$(defaults read com.apple.finder CreateDesktop 2>/dev/null)" in
+        0|false|no) finder=0 ;;
     esac
+    live_keys=$(nimo_zen_live_keys) || live_keys=""
+    for key in $live_keys; do
+        case "$(defaults read com.apple.WindowManager "$key" 2>/dev/null)" in
+            1|true|yes) live_off=1 ;;
+        esac
+    done
+    showing=1
+    { [ "$finder" = 0 ] || [ "$live_off" = 1 ]; } && showing=0
 
     local want=0
     [ "${NIMO_RESTORE:-0}" = "1" ] && want=1
@@ -428,7 +452,7 @@ nimo_cmd_zen() {
     if [ "$want" = "1" ]; then
         nimo_say "Your desktop icons come back."
     else
-        nimo_say "Finder stops drawing icons on your desktop."
+        nimo_say "The icons on your desktop go."
         nimo_blank
         nimo_dim "the files stay exactly where they are, in ~/Desktop"
         nimo_dim "you reach them in Finder, or with  min zen --restore"
@@ -446,7 +470,15 @@ nimo_cmd_zen() {
     nimo_blank
 
     if [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
-        nimo_dim "\$ defaults write com.apple.finder CreateDesktop -bool $([ "$want" = 1 ] && echo true || echo false)"
+        if [ -n "$live_keys" ]; then
+            for key in $live_keys; do
+                nimo_dim "\$ defaults write com.apple.WindowManager $key -bool $([ "$want" = 1 ] && echo false || echo true)"
+            done
+            [ "$want" = 1 ] && [ "$finder" = 0 ] \
+                && nimo_dim "\$ defaults write com.apple.finder CreateDesktop -bool true"
+        else
+            nimo_dim "\$ defaults write com.apple.finder CreateDesktop -bool $([ "$want" = 1 ] && echo true || echo false)"
+        fi
         nimo_dim "preview only, nothing was changed"
         nimo_blank
         return 0
@@ -464,11 +496,25 @@ nimo_cmd_zen() {
     : > "$NIMO_SETUP_LOG"
 
     if [ "$want" = "1" ]; then
-        nimo_run defaults write com.apple.finder CreateDesktop -bool true
+        # the Mac's switches first, which is instant; Finder only if it was
+        # Finder that stopped drawing them, since only a new Finder draws again
+        for key in $live_keys; do
+            case "$(defaults read com.apple.WindowManager "$key" 2>/dev/null)" in
+                1|true|yes) nimo_run defaults write com.apple.WindowManager "$key" -bool false ;;
+            esac
+        done
+        if [ "$finder" = 0 ]; then
+            nimo_run defaults write com.apple.finder CreateDesktop -bool true
+            killall Finder >/dev/null 2>&1
+        fi
+    elif [ -n "$live_keys" ]; then
+        for key in $live_keys; do
+            nimo_run defaults write com.apple.WindowManager "$key" -bool true
+        done
     else
         nimo_run defaults write com.apple.finder CreateDesktop -bool false
+        killall Finder >/dev/null 2>&1
     fi
-    killall Finder >/dev/null 2>&1
 
     nimo_blank
     if [ "$want" = "1" ]; then

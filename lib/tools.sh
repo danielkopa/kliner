@@ -2,8 +2,6 @@
 # nimo :: lib/tools.sh — min top, min doctor, min update.
 
 # ---- min top -------------------------------------------------------------
-
-# ---- min top -------------------------------------------------------------
 #
 # "Where did my disk go" is a question about a tree, and a flat list of your
 # home folder answers it once and then leaves you to guess. So this one steps:
@@ -12,12 +10,14 @@
 #
 # It measures and nothing else. There is no key in here that deletes anything.
 
-# kb <TAB> path, biggest first, for the children of one folder
-# -a, because a folder of files is a folder you can step into and see nothing
-# without it: du lists directories only unless you ask for everything.
+# kb <TAB> path, biggest first, for the children of one folder: the files as
+# well as the folders, because a folder of files is a folder you can step into
+# and see nothing otherwise.
+# One `du -s` for each thing in it, the way nimo_children_kb measures. Not
+# `du -a -d 1`: that pair is GNU's. The du on a Mac refuses it outright and
+# prints its usage instead, which read here as a home with nothing in it.
 nimo_top_children() {
-    du -k -a -d 1 "$1" 2>/dev/null \
-        | awk -v h="$1" -F'\t' '$2 != h && $2 != h"/"' \
+    find "$1" -mindepth 1 -maxdepth 1 -exec du -sk {} + 2>/dev/null \
         | sort -rn
 }
 

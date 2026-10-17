@@ -23,6 +23,74 @@ nimo_dock_name() {
     printf '%s' "$name" | sed -e 's/%20/ /g' -e 's/%26/\&/g' -e "s/%27/'/g"
 }
 
+# file:///Applications/Google%20Chrome.app/ -> /Applications/Google Chrome.app
+# Every %XX back to the byte it stands for. A backslash in a name is doubled
+# first, so printf keeps it as the one it was.
+nimo_dock_path() {
+    local path="${1#file://}"
+    path="${path%/}"
+    case "$path" in
+        /*) ;;
+        *) return 0 ;;
+    esac
+    path=$(printf '%s' "$path" | sed -e 's/\\/\\\\/g' -e 's/%\([0-9A-Fa-f][0-9A-Fa-f]\)/\\x\1/g')
+    printf '%b' "$path"
+}
+
+# /Applications/Google Chrome.app -> file:///Applications/Google%20Chrome.app/
+# The way the Dock itself writes one down: every byte that is not a letter,
+# a digit or one of / . _ ~ - as %XX.
+nimo_dock_url() {
+    local LC_ALL=C
+    local path="$1" out="" c i=0
+    while [ "$i" -lt "${#path}" ]; do
+        c="${path:$i:1}"
+        case "$c" in
+            [A-Za-z0-9/._~-]) out="$out$c" ;;
+            *) out="$out$(printf '%%%02X' "'$c")" ;;
+        esac
+        i=$((i + 1))
+    done
+    printf 'file://%s/' "$out"
+}
+
+# Where apps are installed, in the order a name is looked for. nimo only
+# reads these folders: an app goes into the Dock as a line in the Dock's own
+# preferences, and the app itself is not touched. NIMO_APP_DIRS is for the
+# tests, which have no /Applications.
+nimo_dock_app_dirs() {
+    if [ -n "${NIMO_APP_DIRS:-}" ]; then
+        printf '%s\n' "$NIMO_APP_DIRS" | tr ':' '\n'
+        return 0
+    fi
+    printf '%s\n' /Applications /Applications/Utilities /System/Applications \
+        /System/Applications/Utilities "$HOME/Applications"
+}
+
+# Every app installed in those places, by name, a tab, and where it is. One
+# line per name: the first place that has it wins, the way it is looked for.
+nimo_dock_installed() {
+    local dir app tab
+    tab=$(printf '\t')
+    nimo_dock_app_dirs | while IFS= read -r dir; do
+        [ -d "$dir" ] || continue
+        for app in "$dir"/*.app; do
+            [ -d "$app" ] || continue
+            printf '%s\t%s\n' "$(basename "$app" .app)" "$app"
+        done
+    done | awk -F "$tab" '!seen[tolower($1)]++' | LC_ALL=C sort -f
+}
+
+# Whether an app is already in the dock whose urls come in on stdin.
+nimo_dock_holds() {
+    local want="$1" url
+    while IFS= read -r url; do
+        [ -n "$url" ] || continue
+        [ "$(nimo_dock_path "$url")" = "$want" ] && return 0
+    done
+    return 1
+}
+
 nimo_dock_urls() {
     defaults read com.apple.dock persistent-apps 2>/dev/null \
         | grep '_CFURLString"' \
@@ -241,13 +309,36 @@ INNER
 # needs a terminal. The dock is exported first, the same as the picker does,
 # so `min dock --restore` still puts back exactly what was there.
 nimo_dock_drop_one() {
-    local urls="$1" url name keep="" found=""
+    local urls="$1" url name keep="" found="" used="" want hit
 
+    # NIMO_ONLY is one name, or several with one on each line. Kliner's
+    # starter takes a few apps out at once, and one backup before all of them
+    # is what lets "put the dock back" bring every one of them back: one run
+    # per app made a backup per app, and the newest held all but the last.
+    # Each name takes out one icon, the first that answers to it.
     while IFS= read -r url; do
         [ -n "$url" ] || continue
         name=$(nimo_dock_name "$url")
-        if [ -z "$found" ] && nimo_same_word "$name" "$NIMO_ONLY"; then
-            found="$name"
+        hit=""
+        while IFS= read -r want; do
+            [ -n "$want" ] || continue
+            case "$used" in
+                *"
+$want
+"*) continue ;;
+            esac
+            if nimo_same_word "$name" "$want"; then
+                hit="$want"
+                break
+            fi
+        done <<WANT
+$NIMO_ONLY
+WANT
+        if [ -n "$hit" ]; then
+            used="$used
+$hit
+"
+            found="${found:+$found, }$name"
             continue
         fi
         keep="$keep$url
@@ -256,13 +347,48 @@ nimo_dock_drop_one() {
 $urls
 INNER
 
-    if [ -z "$found" ]; then
-        nimo_warn "nimo cannot find \"$NIMO_ONLY\" in your dock"
+    # every name that answered to nothing, said by its name
+    while IFS= read -r want; do
+        [ -n "$want" ] || continue
+        case "$used" in
+            *"
+$want
+"*) ;;
+            *) nimo_warn "nimo cannot find \"$want\" in your dock" ;;
+        esac
+    done <<WANT
+$NIMO_ONLY
+WANT
+
+    # NIMO_ADD: apps to put in, by name, one to a line, each found where
+    # apps are installed and added after the ones that stay. Adding happens
+    # in the same run as taking out, after the same one backup.
+    local added="" path
+    while IFS= read -r want; do
+        [ -n "$want" ] || continue
+        path=$(nimo_dock_installed | awk -F "$(printf '\t')" -v w="$want" 'tolower($1) == tolower(w) { print $2; exit }')
+        if [ -z "$path" ]; then
+            nimo_warn "nimo cannot find an app called \"$want\""
+            continue
+        fi
+        # already in, and staying: there is nothing to add
+        printf '%s' "$keep" | nimo_dock_holds "$path" && continue
+        added="${added:+$added, }$(basename "$path" .app)"
+        keep="$keep$(nimo_dock_url "$path")
+"
+    done <<WANT
+${NIMO_ADD:-}
+WANT
+
+    if [ -z "$found" ] && [ -z "$added" ]; then
         nimo_blank
         return 1
     fi
 
-    if ! nimo_confirm "Take $found out of your dock?"; then
+    local question="Take $found out of your dock?"
+    [ -z "$found" ] && question="Put $added in your dock?"
+    [ -n "$found" ] && [ -n "$added" ] && question="Take $found out of your dock, and put $added in?"
+    if ! nimo_confirm "$question"; then
         nimo_blank
         nimo_dim "your dock is exactly as it was"
         nimo_blank
@@ -280,14 +406,49 @@ INNER
     printf '%s' "$keep" | nimo_dock_rewrite
 
     nimo_blank
-    nimo_ok "Out of your dock: $found"
-    nimo_dim "the app stays installed, only the dock icon goes"
+    [ -n "$found" ] && nimo_ok "Out of your dock: $found"
+    [ -n "$added" ] && nimo_ok "Into your dock: $added"
+    nimo_dim "the apps stay where they are, only the dock changes"
     nimo_dim "backup: $(basename "$backup")"
     nimo_blank
     return 0
 }
 
+# The slow dock back: the newest record of `min dock --fast`, replayed, and
+# nothing else. `min setup --restore` puts back the newest preferences of any
+# kind, which after a dark mode or a hidden menu bar is not the dock at all.
+nimo_dock_fast_restore() {
+    nimo_header
+    local log="" f
+    while IFS= read -r f; do
+        [ -n "$f" ] && [ -f "$f" ] || continue
+        if grep -q 'autohide-time-modifier' "$f" 2>/dev/null; then
+            log="$f"
+            break
+        fi
+    done <<EOF
+$(ls -1t "$NIMO_BACKUP_DIR"/setup-*.tsv 2>/dev/null)
+EOF
+    if [ -z "$log" ]; then
+        nimo_panel_open "a dock that keeps up"
+        nimo_dim "nimo has not sped the dock up, nothing to put back"
+        nimo_panel_close
+        nimo_blank
+        return 1
+    fi
+    NIMO_UNDO_QUIET=1 nimo_setup_restore "$log"
+    killall Dock >/dev/null 2>&1
+    nimo_undo_spend "$log"
+    nimo_ok "The dock is back to how it was."
+    nimo_blank
+    return 0
+}
+
 nimo_cmd_dock() {
+    if [ "${NIMO_FAST:-0}" = "1" ] && [ "${NIMO_RESTORE:-0}" = "1" ]; then
+        nimo_dock_fast_restore
+        return $?
+    fi
     if [ "${NIMO_FAST:-0}" = "1" ]; then
         nimo_cmd_dock_fast
         return $?
@@ -298,6 +459,38 @@ nimo_cmd_dock() {
             return 0
         fi
         nimo_dock_restore
+        return 0
+    fi
+
+    # --paths: every app in the dock as its name, a tab, and where the app
+    # is, and nothing else. Kliner draws your Dock from this, icons and all;
+    # the name is the one  --only  answers to.
+    if [ "${NIMO_PATHS:-0}" = "1" ]; then
+        nimo_is_macos || return 0
+        local one
+        # --all: the apps that are installed and not in it, the same way,
+        # which is what Kliner offers to put in
+        if [ "${NIMO_ALL:-0}" = "1" ]; then
+            local held name path tab
+            tab=$(printf '\t')
+            held=$(nimo_dock_urls | while IFS= read -r one; do
+                [ -n "$one" ] || continue
+                nimo_dock_path "$one"
+                echo
+            done)
+            nimo_dock_installed | while IFS="$tab" read -r name path; do
+                [ -n "$path" ] || continue
+                printf '%s\n' "$held" | grep -Fxq -- "$path" && continue
+                printf '%s\t%s\n' "$name" "$path"
+            done
+            return 0
+        fi
+        while IFS= read -r one; do
+            [ -n "$one" ] || continue
+            printf '%s\t%s\n' "$(nimo_dock_name "$one")" "$(nimo_dock_path "$one")"
+        done <<EOF
+$(nimo_dock_urls)
+EOF
         return 0
     fi
 
@@ -327,7 +520,7 @@ nimo_cmd_dock() {
         return 1
     fi
 
-    if [ -n "${NIMO_ONLY:-}" ]; then
+    if [ -n "${NIMO_ONLY:-}" ] || [ -n "${NIMO_ADD:-}" ]; then
         nimo_panel_close
         nimo_blank
         nimo_dock_drop_one "$urls"
@@ -340,7 +533,7 @@ nimo_cmd_dock() {
         name=$(nimo_dock_name "$url")
         hint=""
         nimo_dock_is_stock "$name" && hint="came with macOS"
-        labels="$labels$(printf '%-24s %s' "$name" "$hint")
+        labels="$labels$(printf '%-24s  %s' "$name" "$hint")
 "
         i=$((i + 1))
     done <<EOF

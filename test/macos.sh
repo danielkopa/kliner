@@ -223,6 +223,27 @@ cat >> "$FAKE/osascript" <<'SHIM'
 shift 2>/dev/null || true
 printf '%s\n' "$*" >> "$SCRIPTED"
 
+# JavaScript for Automation: the AppKit route, NSWorkspace asked directly.
+# It asks no other app for anything, so NIMO_OSA_FAIL does not stop it. It
+# is off unless NIMO_JXA_OK=1, so everything else in this file still tests
+# the Macs where it is not there: the store, and the AppleScript after it.
+if [ "${1:-}" = "JavaScript" ]; then
+    if [ "${NIMO_JXA_OK:-0}" != "1" ]; then
+        echo "execution error: Error: this Mac has no AppKit bridge (-2700)" >&2
+        exit 1
+    fi
+    case "$*" in
+        *setDesktopImageURLForScreenOptionsError*)
+            printf '%s\n' "$NIMO_WALL_PIC" > "$WALL"
+            echo
+            exit 0 ;;
+        *desktopImageURLForScreen*)
+            cat "$WALL" 2>/dev/null
+            exit 0 ;;
+    esac
+    exit 0
+fi
+
 # The login items, kept one per line as  name<TAB>path , and answered the way
 # AppleScript answers a list: "a, b, c" on one line.
 case "$*" in
@@ -331,6 +352,28 @@ check "decodes %20 in app names"          "mac dock --list -q --no-color | grep 
 check "marks what Apple put there"        "mac dock --list -q --no-color | grep -q 'TV.*came with macOS'"
 check "does not mark apps you installed"  "! mac dock --list -q --no-color | grep 'Safari' | grep -q 'came with'"
 check "--list changes nothing"            "[ \$(grep -c . '$DOCK') -eq 5 ]"
+# what Kliner draws your Dock from: a name --only answers to, and the app
+check "--paths gives each app and where"  "mac dock --list --paths | grep -q '^Google Chrome	/Applications/Google Chrome.app\$'"
+check "--paths is one line an app"        "[ \$(mac dock --list --paths | grep -c .) -eq 5 ]"
+check "--paths prints nothing else"       "! mac dock --list --paths | grep -qv '	/'"
+check "--paths changes nothing"           "[ \$(grep -c . '$DOCK') -eq 5 ]"
+
+# putting apps in: found where apps are installed, written the Dock's way,
+# and the Dock exported first so --restore takes them out again
+mkdir -p "$BOX/Apps/Figma.app" "$BOX/Apps/Zed Preview.app"
+check "--all offers what is not in it"    "NIMO_APP_DIRS='$BOX/Apps' mac dock --list --paths --all | grep -q '^Figma	$BOX/Apps/Figma.app\$'"
+NIMO_APP_DIRS="$BOX/Apps" mac dock --add "figma" -y -q --no-color >/dev/null 2>&1
+check "--add puts the app in, last"       "[ \$(grep -c . '$DOCK') -eq 6 ] && tail -1 '$DOCK' | grep -q '/Apps/Figma.app/\$'"
+check "and --all stops offering it"       "! NIMO_APP_DIRS='$BOX/Apps' mac dock --list --paths --all | grep -q '^Figma	'"
+NIMO_APP_DIRS="$BOX/Apps" mac dock --add "Zed Preview" -y -q --no-color >/dev/null 2>&1
+check "a space is written as %20"         "grep -q 'Zed%20Preview.app/' '$DOCK'"
+check "and read back as a name"           "mac dock --list --paths | grep -q '^Zed Preview	'"
+NIMO_APP_DIRS="$BOX/Apps" mac dock --add "Nothing Like It" -y -q --no-color >/dev/null 2>&1
+check "an app that is not there is not"   "[ \$(grep -c . '$DOCK') -eq 7 ]"
+PATH="$FAKE:$PATH" HOME="$BOX" bash "$MIN" dock --restore -q --no-color >/dev/null 2>&1
+check "--restore takes the last one out"  "[ \$(grep -c . '$DOCK') -eq 6 ] && ! grep -q 'Zed' '$DOCK'"
+# the checks below start from the five the dock began with
+grep -v 'Figma' "$DOCK" > "$DOCK.was" && mv "$DOCK.was" "$DOCK"
 
 # tick the first two (TV, Podcasts) and confirm
 printf ' \033[B \n' | PATH="$FAKE:$PATH" HOME="$BOX" NIMO_PICK_FORCE=1 \
@@ -449,12 +492,25 @@ check "nothing to restore says so calmly"  "mac setup --restore -q --no-color | 
 rm -rf "$BOX/.nimo/backups"
 : > "$PREFS"; : > "$WROTE"
 
-check "zen hides the desktop icons"        "mac zen -y -q --no-color >/dev/null 2>&1; [ \"\$(fakedefaults read com.apple.finder CreateDesktop)\" = false ]"
+# macOS 14 and later (this fake Mac says 15.5): the switch in Desktop & Dock,
+# which the Mac applies at once. Finder is left alone and not restarted.
+check "zen hides the desktop icons"        "mac zen -y -q --no-color >/dev/null 2>&1; [ \"\$(fakedefaults read com.apple.WindowManager StandardHideDesktopIcons)\" = true ]"
+check "with the Mac's own switch, not Finder" "! grep -q 'com.apple.finder CreateDesktop' '$WROTE'"
 check "zen writes down how to undo it"     "ls '$BOX'/.nimo/backups/setup-*.tsv >/dev/null 2>&1"
 check "zen twice is not a problem"         "mac zen -y -q --no-color | grep -q 'already like that'"
-check "zen --restore brings them back"     "mac zen --restore -y -q --no-color >/dev/null 2>&1; [ \"\$(fakedefaults read com.apple.finder CreateDesktop)\" = true ]"
-check "zen --dry-run changes nothing"      "fakedefaults write com.apple.finder CreateDesktop -bool true; mac zen --dry-run -q --no-color >/dev/null 2>&1; [ \"\$(fakedefaults read com.apple.finder CreateDesktop)\" = true ]"
-check "zen --dry-run shows the command"    "mac zen --dry-run -q --no-color | grep -q 'CreateDesktop -bool false'"
+check "zen --restore brings them back"     "mac zen --restore -y -q --no-color >/dev/null 2>&1; [ \"\$(fakedefaults read com.apple.WindowManager StandardHideDesktopIcons)\" = false ]"
+check "zen --dry-run changes nothing"      "mac zen --dry-run -q --no-color >/dev/null 2>&1; [ \"\$(fakedefaults read com.apple.WindowManager StandardHideDesktopIcons)\" = false ]"
+check "zen --dry-run shows the command"    "mac zen --dry-run -q --no-color | grep -q 'StandardHideDesktopIcons -bool true'"
+# In Stage Manager the switch is the other one, "In Stage Manager".
+fakedefaults write com.apple.WindowManager GloballyEnabled -bool true
+check "in Stage Manager it is that switch" "mac zen -y -q --no-color >/dev/null 2>&1; [ \"\$(fakedefaults read com.apple.WindowManager HideDesktop)\" = true ]"
+check "and it comes back the same way"     "mac zen --restore -y -q --no-color >/dev/null 2>&1; [ \"\$(fakedefaults read com.apple.WindowManager HideDesktop)\" = false ]"
+fakedefaults write com.apple.WindowManager GloballyEnabled -bool false
+# The older way, and the only one before macOS 14: Finder stops drawing the
+# desktop and starts again.
+check "zen --finder is Finder's way"       "mac zen --finder -y -q --no-color >/dev/null 2>&1; [ \"\$(fakedefaults read com.apple.finder CreateDesktop)\" = false ]"
+check "and either way reads as hidden"     "mac zen -y -q --no-color | grep -q 'already like that'"
+check "--restore brings Finder's back too" "mac zen --restore -y -q --no-color >/dev/null 2>&1; [ \"\$(fakedefaults read com.apple.finder CreateDesktop)\" = true ]"
 
 # ---- appearance and the menu bar -----------------------------------------
 
@@ -535,7 +591,7 @@ mkdir -p "$PICS/Solid Colors"
 
 # mode: list | set | restore
 wall() {
-    PATH="$FAKE:$PATH" HOME="$BOX" NIMO_OSA_FAIL="${NIMO_OSA_FAIL:-0}" bash -c '
+    PATH="$FAKE:$PATH" HOME="$BOX" NIMO_OSA_FAIL="${NIMO_OSA_FAIL:-0}" NIMO_JXA_OK="${NIMO_JXA_OK:-0}" bash -c '
         NIMO_VERSION=test
         NIMO_QUIET=1
         NIMO_COLOR=never
@@ -677,7 +733,7 @@ make_store "/System/Library/Desktop%20Pictures/Radial%20Sky%20Blue.heic"
 : > "$SCRIPTED"
 OUT=$(NIMO_OSA_FAIL=1 wall set)
 check "it works with AppleScript refused"  "printf '%s' \"\$OUT\" | grep -q 'Wallpaper set'"
-check "and it never had to ask permission" "[ ! -s '$SCRIPTED' ]"
+check "and it never had to ask permission" "! grep -q 'tell application' '$SCRIPTED'"
 check "the store is what changed"          "store_says | grep -q 'Black'"
 
 # Two ways back, and the second is the one that matters when the first
@@ -750,6 +806,28 @@ printf '%s\n' "$WAS" > "$STATE/wallpaper"
 OUT=$(NIMO_OSA_FAIL=1 wall set)
 check "unreadable is a different sentence" "printf '%s' \"\$OUT\" | grep -q 'cannot read your wallpaper\|could not read the wallpaper'"
 check "and it names the permission"        "printf '%s' \"\$OUT\" | grep -q 'Automation'"
+
+# ---- AppKit, which is what System Settings does --------------------------
+#
+# NSWorkspace, through JavaScript for Automation, is tried first. It asks no
+# other app for anything, so it works with Automation refused, and it is the
+# one route WallpaperAgent keeps: a hand-edited store was put back later.
+
+printf '%s\n' "$PICS/Sonoma Horizon.heic" > "$STATE/wallpaper"
+rm -rf "$BOX/.nimo/backups"
+make_store "/System/Library/Desktop%20Pictures/Radial%20Sky%20Blue.heic"
+: > "$SCRIPTED"
+OUT=$(NIMO_JXA_OK=1 NIMO_OSA_FAIL=1 wall set)
+check "AppKit sets it, AppleScript refused" "printf '%s' \"\$OUT\" | grep -q 'Wallpaper set, Black'"
+check "and the screen really has it"       "grep -q 'Black' '$STATE/wallpaper'"
+check "it asked no other app for anything" "! grep -q 'tell application' '$SCRIPTED'"
+check "and the store was not edited by hand" "store_says | grep -q 'Radial'"
+LIST=$(NIMO_JXA_OK=1 wall list)
+check "the list says which one is on now"  "printf '%s' \"\$LIST\" | grep 'Black' | grep -q 'on now'"
+rm -f "$STORE_DIR/Index.plist"
+rm -rf "$BOX/.nimo/backups"
+printf '%s\n' "$PICS/Sonoma Horizon.heic" > "$STATE/wallpaper"
+: > "$SCRIPTED"
 
 # ---- flipping through them ----------------------------------------------
 #

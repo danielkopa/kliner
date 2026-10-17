@@ -337,13 +337,13 @@ nimo_cmd_startup() {
         [ -n "${where:-}" ] || continue
         if nimo_startup_mine "$where"; then
             mine=$((mine + 1))
-            labels="$labels$(printf '%-28s %s' "$name" "$(nimo_startup_where "$where")")
+            labels="$labels$(printf '%-28s  %s' "$name" "$(nimo_startup_where "$where")")
 "
             targets="${targets}${where}	${name}	${what}
 "
         else
             theirs=$((theirs + 1))
-            others="$others$(printf '%-28s %s' "$name" "$(nimo_startup_why "$where")")
+            others="$others$(printf '%-28s  %s' "$name" "$(nimo_startup_why "$where")")
 "
         fi
     done <<INNER

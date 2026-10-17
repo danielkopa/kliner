@@ -302,20 +302,36 @@ nimo_disk_line() {
 # kilobytes -> bytes, for --json
 nimo_kb_to_bytes() { awk -v k="${1:-0}" 'BEGIN {printf "%.0f", k * 1024}'; }
 
-# How many things are sitting in a folder, counted the way the person looking
-# at it counts them.
+# nimo_seen_in <dir> [find tests] -> the things directly in a folder that the
+# person looking at it can see, one path to a line: not the dotfiles Finder
+# hides, and not the folder nimo made to sort into. Any find tests after the
+# folder narrow it further:  nimo_seen_in "$desk" -mtime +30
 #
-# The raw count said 140 while the desktop showed 137 icons and clearing it
-# moved 137, because it was also counting the dotfiles Finder hides and the
-# folder nimo itself had made to tidy into. A count nobody can reproduce by
-# looking is worse than no count.
+# Every count of a folder goes through here. The item count once said 140
+# while the desktop showed 137 icons, and when that was fixed the counts
+# beside it were not: an empty desktop still said "2 over 30 days", which
+# were .localized and a hidden folder nobody can see.
+nimo_seen_in() {
+    local dir="${1:-}" item name
+    [ -d "$dir" ] || return 0
+    shift
+    while IFS= read -r item; do
+        [ -n "$item" ] || continue
+        name="${item##*/}"
+        case "$name" in
+            .*|"${NIMO_TIDY_DIR_NAME:-Tidy}") continue ;;
+        esac
+        printf '%s\n' "$item"
+    done <<EOF
+$(find "$dir" -mindepth 1 -maxdepth 1 "$@" 2>/dev/null)
+EOF
+}
+
 # nimo_older_count <dir> <days> -> how many things sitting directly in it
 # have not been touched in that long. Shallow on purpose: what is loose in a
 # folder is the question, not what is buried in the folders inside it.
 nimo_older_count() {
-    [ -d "${1:-}" ] || { printf '0'; return 0; }
-    find "$1" -mindepth 1 -maxdepth 1 -mtime "+${2:-30}" 2>/dev/null \
-        | wc -l | tr -d ' '
+    nimo_seen_in "${1:-}" -mtime "+${2:-30}" | wc -l | tr -d ' '
 }
 
 # nimo_month_counts -> twelve numbers, oldest first, comma separated.
@@ -339,11 +355,9 @@ nimo_month_counts() {
             [ -d "$d" ] || continue
             if [ "$i" -eq 0 ]; then
                 # +0 means "more than a day old", which drops today.
-                n=$((n + $(find "$d" -mindepth 1 -maxdepth 1 -mtime "-$hi" \
-                    2>/dev/null | wc -l | tr -d ' ')))
+                n=$((n + $(nimo_seen_in "$d" -mtime "-$hi" | wc -l | tr -d ' ')))
             else
-                n=$((n + $(find "$d" -mindepth 1 -maxdepth 1 -mtime "+$lo" \
-                    -mtime "-$hi" 2>/dev/null | wc -l | tr -d ' ')))
+                n=$((n + $(nimo_seen_in "$d" -mtime "+$lo" -mtime "-$hi" | wc -l | tr -d ' ')))
             fi
         done
         out="$out$n"
@@ -352,20 +366,10 @@ nimo_month_counts() {
     printf '%s' "$out"
 }
 
+# How many things are sitting in a folder, counted the way the person looking
+# at it counts them.
 nimo_count_dir_items() {
-    [ -d "$1" ] || { printf '0'; return 0; }
-    local item name n=0
-    while IFS= read -r item; do
-        [ -n "$item" ] || continue
-        name="${item##*/}"
-        case "$name" in
-            .*|"${NIMO_TIDY_DIR_NAME:-Tidy}") continue ;;
-        esac
-        n=$((n + 1))
-    done <<EOF
-$(find "$1" -mindepth 1 -maxdepth 1 2>/dev/null)
-EOF
-    printf '%s' "$n"
+    nimo_seen_in "${1:-}" | wc -l | tr -d ' '
 }
 
 # How many non-empty lines are in this string?

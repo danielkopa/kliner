@@ -202,8 +202,11 @@ nimo_folder_items() {
         [ -e "$item" ] || continue
 
         name="${item##*/}"
+        # Kliner itself, opened from where it was downloaded: filing the app
+        # that is running away into Tidy/Apps is the one move that breaks
+        # every move after it.
         case "$name" in
-            .*|"$NIMO_TIDY_DIR_NAME") continue ;;
+            .*|"$NIMO_TIDY_DIR_NAME"|Kliner.app) continue ;;
         esac
         nimo_still_arriving "$item" && continue
         case "$item" in

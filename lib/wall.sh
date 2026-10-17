@@ -23,24 +23,35 @@ nimo_wall_dirs() {
         /*) ;;
         *)  mine="$HOME/$mine" ;;
     esac
+    # Yours, then the pictures macOS ships, then the ones it has downloaded
+    # since (Sonoma and later keep those under AssetsV2), and the solid
+    # colours last: a list that opened on eleven plain squares read as a
+    # list with nothing in it.
     printf '%s\n' \
         "$mine" \
         "/System/Library/Desktop Pictures" \
-        "/System/Library/Desktop Pictures/Solid Colors" \
         "/Library/Desktop Pictures" \
-        "$HOME/Library/Application Support/com.apple.mobileAssetDesktop"
+        "/System/Library/AssetsV2/com_apple_MobileAsset_DesktopPicture" \
+        "$HOME/Library/Application Support/com.apple.mobileAssetDesktop" \
+        "/System/Library/Desktop Pictures/Solid Colors"
 }
 
 nimo_wall_list() {
-    local dir
+    local dir deep
     while IFS= read -r dir; do
         [ -d "$dir" ] || continue
+        # Downloaded wallpapers sit a few folders down, in each asset's
+        # AssetData; everywhere else they are right in the folder.
+        deep=1
+        case "$dir" in */AssetsV2/*) deep=3 ;; esac
         # Sorted inside each folder, never across them: the folders come in
         # the order nimo_wall_dirs gives, yours first. One sort over the lot
-        # would put /System before /Users and bury your own pictures.
-        find "$dir" -maxdepth 1 -type f \
-            \( -name '*.heic' -o -name '*.jpg' -o -name '*.jpeg' -o -name '*.png' \) \
-            2>/dev/null | sort
+        # would put /System before /Users and bury your own pictures. By
+        # name, whatever the case of the name or the language of the Mac,
+        # and the extension in any case too: a camera writes .JPG.
+        find "$dir" -maxdepth "$deep" -type f \
+            \( -iname '*.heic' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) \
+            2>/dev/null | LC_ALL=C sort -f
     done <<EOF
 $(nimo_wall_dirs)
 EOF
@@ -55,7 +66,11 @@ nimo_wall_pretty() {
 
 nimo_wall_current() {
     if [ "$(nimo_platform)" = "macos" ]; then
-        # the store first: no Automation permission, no dialog, no -1743
+        # AppKit first, then the store: neither needs Automation permission,
+        # no dialog, no -1743. AppKit answers at once; the store is written
+        # by WallpaperAgent a moment later, so right after a change it can
+        # still name the one before.
+        nimo_wall_appkit_read && return 0
         nimo_wall_store_read && return 0
     fi
     if [ "$(nimo_platform)" = "windows" ]; then
@@ -241,6 +256,43 @@ nimo_wall_store_write() {
     return 0
 }
 
+# ---- AppKit, which is what System Settings itself does ------------------
+#
+# NSWorkspace sets the wallpaper for each screen, through JavaScript for
+# Automation. Nothing is asked of another app, so it needs no permission,
+# and WallpaperAgent keeps what it is told this way. Editing the store by
+# hand was undone later: the agent holds its own state and writes it back.
+# The picture travels in the environment, so no quote in a file name can
+# end the script early.
+nimo_wall_appkit_set() {
+    nimo_have osascript || return 1
+    NIMO_WALL_WHY=$(NIMO_WALL_PIC="$1" osascript -l JavaScript -e '
+        ObjC.import("AppKit");
+        var env = $.NSProcessInfo.processInfo.environment;
+        var url = $.NSURL.fileURLWithPath(env.objectForKey("NIMO_WALL_PIC"));
+        var ws = $.NSWorkspace.sharedWorkspace;
+        var screens = $.NSScreen.screens;
+        var n = screens.count, done = 0;
+        for (var i = 0; i < n; i++) {
+            if (ws.setDesktopImageURLForScreenOptionsError(url, screens.objectAtIndex(i), $({}), null)) done++;
+        }
+        (n > 0 && done === n) ? "" : "set on " + done + " of " + n + " screens";
+    ' 2>&1)
+    [ -z "$NIMO_WALL_WHY" ]
+}
+
+nimo_wall_appkit_read() {
+    nimo_have osascript || return 1
+    local got
+    got=$(osascript -l JavaScript -e '
+        ObjC.import("AppKit");
+        var url = $.NSWorkspace.sharedWorkspace.desktopImageURLForScreen($.NSScreen.mainScreen);
+        (url && !url.isNil()) ? ObjC.unwrap(url.path) : "";
+    ' 2>/dev/null) || return 1
+    [ -n "$got" ] || return 1
+    printf '%s' "$got"
+}
+
 NIMO_WALL_METHOD=""   # the one that worked here, once we know
 NIMO_WALL_WHY=""      # what the system said, when nothing worked
 NIMO_WALL_UNSURE=0    # it was told to; nimo could not check that it did
@@ -286,6 +338,7 @@ nimo_wall_apply() {
     # session uses it directly — flipping through forty wallpapers should not
     # re-run the whole audition each time.
     case "$NIMO_WALL_METHOD" in
+        appkit) nimo_wall_appkit_set "$pic"; return 0 ;;
         store)  nimo_wall_store_write "$pic"; return 0 ;;
         events) nimo_wall_osa "tell application \"System Events\" to tell every desktop to set picture to POSIX file \"$pic\""; return 0 ;;
         finder) nimo_wall_osa "tell application \"Finder\" to set desktop picture to POSIX file \"$pic\""; return 0 ;;
@@ -300,7 +353,12 @@ nimo_wall_apply() {
             return 0 ;;
     esac
 
-    # The store first. It is the only way that asks nobody for anything.
+    # AppKit first: it asks nobody for anything, and the Mac keeps it.
+    if nimo_wall_appkit_set "$pic"; then
+        if nimo_wall_took "$pic"; then NIMO_WALL_METHOD=appkit; return 0; fi
+    fi
+
+    # Then the store, which also asks nobody, on a Mac where AppKit would not.
     if nimo_wall_store_write "$pic"; then
         if nimo_wall_took "$pic"; then NIMO_WALL_METHOD=store; return 0; fi
     fi
@@ -358,6 +416,24 @@ nimo_wall_unsure_note() {
 nimo_wall_complain() {
     local why="${NIMO_WALL_WHY:-}" store
     store=$(nimo_wall_store)
+
+    # In Kliner's window, words for a window: no terminal, no commands.
+    if [ "${NIMO_FROM_APP:-0}" = "1" ]; then
+        if [ "${1:-1}" = "2" ]; then
+            nimo_warn "Kliner cannot read your wallpaper, so it cannot set one either"
+            nimo_dim "allow Kliner in System Settings › Privacy & Security › Automation"
+            return 0
+        fi
+        case "$why" in
+            *-1743*|*"Not authorised"*|*"Not authorized"*)
+                nimo_warn "Your Mac will not let Kliner change the wallpaper"
+                nimo_dim "allow Kliner in System Settings › Privacy & Security › Automation" ;;
+            *)
+                nimo_warn "Your Mac did not take the new wallpaper"
+                [ -n "$why" ] && nimo_dim "it said: $why" ;;
+        esac
+        return 0
+    fi
 
     if [ "${1:-1}" = "2" ]; then
         nimo_warn "nimo cannot read your wallpaper, so it cannot set one either"
@@ -518,6 +594,9 @@ nimo_wall_step() {
         return 0
     fi
 
+    # A wallpaper that did not change is a failure, said with a non-zero
+    # status too: Kliner's window reads the status, not only the words.
+    local status=0
     if nimo_wall_apply "$nextone"; then
         nimo_wall_remember "$nextone"
         at=$(nimo_wall_where "$list" "$nextone")
@@ -526,9 +605,10 @@ nimo_wall_step() {
         nimo_wall_unsure_note
     else
         nimo_wall_complain "$?"
+        status=1
     fi
     nimo_blank
-    return 0
+    return "$status"
 }
 
 nimo_cmd_next() { nimo_wall_step 1; }
@@ -746,16 +826,24 @@ EOF
         return 1
     fi
 
-    local suggested
+    local suggested current=""
     suggested=$(nimo_wall_suggest "$list")
+    # The one on the screen now, said beside it in the list. Read once.
+    if [ "${NIMO_LIST:-0}" = "1" ] || [ "${NIMO_DRY_RUN:-0}" = "1" ]; then
+        current=$(nimo_wall_current 2>/dev/null) || current=""
+    fi
 
     local labels="" pic hint limit="${NIMO_LIMIT:-15}" i=1
     while IFS= read -r pic; do
         [ -n "$pic" ] || continue
         [ "$i" -gt "$limit" ] && break
         hint=""
-        [ "$pic" = "$suggested" ] && hint="nimo would pick this one"
-        labels="$labels$(printf '%-30s %s' "$(nimo_wall_pretty "$pic")" "$hint")
+        if [ -n "$current" ] && [ "$pic" = "$current" ]; then
+            hint="on now"
+        elif [ "$pic" = "$suggested" ]; then
+            hint="nimo would pick this one"
+        fi
+        labels="$labels$(printf '%-30s  %s' "$(nimo_wall_pretty "$pic")" "$hint")
 "
         i=$((i + 1))
     done <<EOF
@@ -854,6 +942,7 @@ EOF
     nimo_wall_keep_original
 
     nimo_blank
+    local status=0
     if nimo_wall_apply "$chosen"; then
         nimo_wall_remember "$chosen"
         nimo_ok "Wallpaper set, $(nimo_wall_pretty "$chosen")"
@@ -861,7 +950,8 @@ EOF
         nimo_wall_unsure_note
     else
         nimo_wall_complain "$?"
+        status=1
     fi
     nimo_blank
-    return 0
+    return "$status"
 }
