@@ -165,32 +165,32 @@ enum Paint {
 
     // ---- the surfaces, darkest first ---------------------------------------
     //
-    // Back to a dark window with no colour in it. The warm one was drawn to a
-    // different reference; this one is the drawing Kliner is actually for,
-    // and it is the one the site is in.
+    // Since v18 the Claude app's: warm paper by day, warm charcoal by night,
+    // the same values as the page's tokens (style.css, the v18 block), so the
+    // menu bar's window and the main one are one product.
     /// The window's own ground.
-    static let veil   = duo(0xF4F4F3, 0x0A0A0A)
+    static let veil   = duo(0xF3F1EA, 0x1F1E1D)
     /// The side of the window: the same ground.
-    static let rail   = duo(0xF4F4F3, 0x0A0A0A)
+    static let rail   = duo(0xF3F1EA, 0x1F1E1D)
     /// A card standing on it, barely lighter — the hairline does the telling.
-    static let card   = duo(0xFFFFFF, 0x101010)
+    static let card   = duo(0xFFFFFF, 0x30302E)
     /// And a panel standing on that card is lighter again.
-    static let panel  = duo(0xFFFFFF, 0x151515)
+    static let panel  = duo(0xFFFFFF, 0x3A3936)
     /// Kept for anything measured against the page rather than drawn on it.
-    static let ground = duo(0xFAFAF9, 0x0D0D0D)
+    static let ground = duo(0xFAF9F5, 0x262624)
 
-    static let line   = duo(0xE6E5E2, 0x1F1F1F)
-    static let hover  = duo(0xF0EFED, 0x181818)
+    static let line   = duo(0xE4E3DF, 0x3C3C39)
+    static let hover  = duo(0xF0EFEB, 0x30302E)
     /// The row you are on, and the fill under anything chosen.
-    static let picked = duo(0xE9E8E5, 0x1C1C1C)
+    static let picked = duo(0xECE9E0, 0x393836)
     /// The unlit half of anything that fills, and the ground under a chip.
-    static let track  = duo(0xECEBE8, 0x1A1A1A)
+    static let track  = duo(0xECE9E0, 0x33332F)
 
     // ---- what is written on them -------------------------------------------
-    static let ink    = duo(0x121212, 0xEDEDED)
-    static let body   = duo(0x333333, 0xC4C4C4)
-    static let muted  = duo(0x6F6F6F, 0x8A8A8A)
-    static let faint  = duo(0x9B9B9B, 0x5A5A5A)
+    static let ink    = duo(0x1F1E1D, 0xF4F3EE)
+    static let body   = duo(0x3D3C38, 0xDEDCD3)
+    static let muted  = duo(0x75736C, 0xA8A59C)
+    static let faint  = duo(0xA3A097, 0x7A7871)
 
     /// The window has no colour in it.
     ///
@@ -200,15 +200,15 @@ enum Paint {
     /// decoded; the same breakdown in five weaves is read in the order it is
     /// drawn, and it survives being printed, screenshotted, or looked at by
     /// somebody who cannot tell one colour from another.
-    static let accent   = duo(0x121212, 0xF2F2F2)
-    static let onAccent = duo(0xFFFFFF, 0x0A0A0A)
+    static let accent   = duo(0x1F1E1D, 0xF4F3EE)
+    static let onAccent = duo(0xFAF9F5, 0x1F1E1D)
 
     /// The only two coloured things in the window, and they are never what
     /// you look at first: up and down. A number that moved says which way in
     /// its own colour, because that is the one reading where the direction
     /// matters more than the figure.
-    static let better = duo(0x179A62, 0x3FCF8E)
-    static let worse  = duo(0xC93C4A, 0xF0616D)
+    static let better = duo(0x3B8A5A, 0x7CC79B)
+    static let worse  = duo(0xC2523C, 0xE8876F)
 
     /// A lift rather than a tint: the same light the card is made of, a
     /// little more of it.
@@ -291,10 +291,10 @@ enum Nimo {
         guard let min = executable,
               FileManager.default.fileExists(atPath: min.path) else {
             return Outcome(ok: false, text: """
-              nimo could not find its own copy of min.
+              Kliner is missing a part of itself.
 
-              The app was unpacked incompletely. Move the whole Kliner app —
-              not a piece of it — into Applications.
+              The app was unpacked incompletely. Move the whole Kliner app
+              into Applications and open it again.
             """)
         }
 
@@ -799,7 +799,9 @@ enum Config {
         while let last = kept.last, last.trimmingCharacters(in: .whitespaces).isEmpty {
             kept.removeLast()
         }
-        kept.append("\(key) = \(value)")
+        // One setting, one line: a value can never start a line of its own.
+        let one = value.components(separatedBy: .newlines).joined(separator: " ")
+        kept.append("\(key) = \(one)")
         try? (kept.joined(separator: "\n") + "\n").write(to: url, atomically: true, encoding: .utf8)
     }
 }

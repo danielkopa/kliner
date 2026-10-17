@@ -73,6 +73,67 @@ final class Canvas: WKWebView {
     override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
         menu.removeAllItems()
     }
+
+    // MARK: a file dropped on the window
+
+    /// A file dragged onto the window is a file to send. The page is told
+    /// while one is held over it (true) and when it goes (false), and given
+    /// the files let go of. Only files from the Finder count: anything else
+    /// dragged here is the web view's own business, handed on untouched.
+    var dragging: ((Bool) -> Void)?
+    var dropped: (([URL]) -> Void)?
+    /// Whether the drag over the window now is one of ours, and whether the
+    /// one that just ended was, so its end is not handed on either.
+    private var holding = false
+    private var took = false
+
+    private func files(_ info: NSDraggingInfo) -> [URL] {
+        let options: [NSPasteboard.ReadingOptionKey: Any] = [.urlReadingFileURLsOnly: true]
+        return (info.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: options) as? [URL]) ?? []
+    }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        holding = dropped != nil && !files(sender).isEmpty
+        guard holding else { return super.draggingEntered(sender) }
+        dragging?(true)
+        return .copy
+    }
+
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        guard holding else { return super.draggingUpdated(sender) }
+        return .copy
+    }
+
+    override func draggingExited(_ sender: NSDraggingInfo?) {
+        guard holding else {
+            super.draggingExited(sender)
+            return
+        }
+        holding = false
+        dragging?(false)
+    }
+
+    override func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        guard holding else { return super.prepareForDragOperation(sender) }
+        return true
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        guard holding, let dropped = dropped else { return super.performDragOperation(sender) }
+        holding = false
+        took = true
+        dragging?(false)
+        dropped(files(sender))
+        return true
+    }
+
+    override func concludeDragOperation(_ sender: NSDraggingInfo?) {
+        if took {
+            took = false
+            return
+        }
+        super.concludeDragOperation(sender)
+    }
 }
 
 /// Holds the window weakly. The page's messages are handed to whoever is
@@ -113,12 +174,23 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
     private var lastTicks: (busy: UInt64, total: UInt64)?
     private var icons: [String: String] = [:]
 
+    /// How many wallpapers the page is shown, and so the highest number a
+    /// click can ask for. One number, used in the three places that count.
+    static let wallLimit = 80
+    /// The wallpapers nimo last listed, by the number the page knows them
+    /// by. Kept on the main thread, so the pictures can come a dozen at a
+    /// time without nimo listing them all again for every dozen.
+    private static var wallPaths: [String] = []
+
     /// The window's ground, the page's own: so there is no white flash
     /// while it loads, and no light edge on a dark window.
+    /// What the window is behind the page, so the frame it is drawn in is
+    /// never a different colour from the page for a moment. The same two
+    /// grounds the page's own tokens use.
     private static let ground = NSColor(name: nil) { look in
         look.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            ? NSColor(srgbRed: 0.039, green: 0.039, blue: 0.039, alpha: 1)
-            : NSColor(srgbRed: 0.980, green: 0.980, blue: 0.980, alpha: 1)
+            ? NSColor(srgbRed: 0x26 / 255, green: 0x26 / 255, blue: 0x24 / 255, alpha: 1)
+            : NSColor(srgbRed: 0xfa / 255, green: 0xf9 / 255, blue: 0xf5 / 255, alpha: 1)
     }
 
     /// What macOS decides about, in the order the introduction asks.
@@ -156,10 +228,31 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         window.titleVisibility = .hidden
         window.isReleasedWhenClosed = false
         window.tabbingMode = .disallowed
-        window.backgroundColor = Web.ground
+        // Glass. The window is clear and an NSVisualEffectView fills it, so
+        // whatever is behind the window shows through wherever the page
+        // paints nothing — which is the rail, and only the rail: the page
+        // paints its content side over this. The web view is told not to
+        // draw its own background, or it would cover the effect with one
+        // flat colour. `drawsBackground` is not in WKWebView's public
+        // interface and is set by name; it has been there since 10.12, and
+        // if a future macOS drops it the window simply stays opaque.
+        window.backgroundColor = .clear
+        window.isOpaque = false
         window.minSize = NSSize(width: 820, height: 560)
         window.delegate = self
-        window.contentView = view
+        let behind = NSVisualEffectView(frame: view.bounds)
+        behind.material = .sidebar
+        behind.blendingMode = .behindWindow
+        behind.state = .followsWindowActiveState
+        behind.autoresizingMask = [.width, .height]
+        let shell = NSView(frame: view.bounds)
+        shell.autoresizingMask = [.width, .height]
+        view.frame = shell.bounds
+        view.autoresizingMask = [.width, .height]
+        view.setValue(false, forKey: "drawsBackground")
+        shell.addSubview(behind)
+        shell.addSubview(view)
+        window.contentView = shell
 
         // Where it was last time, or the middle of the screen the first time.
         if !window.setFrameUsingName("kliner.window") {
@@ -170,7 +263,11 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         view.navigationDelegate = self
         // ⌘K while you are looking at the window is the window's own search.
         Quick.shared.onFindInWindow = { [weak self] in
-            guard let self = self, self.loaded, NSApp.isActive, self.window.isKeyWindow else { return false }
+            guard let self = self, self.loaded, NSApp.isActive else { return false }
+            // While Kliner is asking something, a sheet on the window or an
+            // alert of its own, ⌘K waits: the question is the thing in front.
+            if NSApp.modalWindow != nil || self.window.attachedSheet != nil { return true }
+            guard self.window.isKeyWindow else { return false }
             self.command("find", 0)
             return true
         }
@@ -183,6 +280,56 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
 
         let page = folder.appendingPathComponent("index.html")
         _ = view.loadFileURL(page, allowingReadAccessTo: resources)
+
+        // Sending to an @username: every step of it is told to the page, and
+        // a file on its way here brings the window forward to ask.
+        Nearby.shared.tell = { [weak self] event in self?.command("send", event) }
+        // A file dropped anywhere on the window is a file to send, held the
+        // same way as one picked with the Mac's own chooser: the page gets
+        // its name, size and picture, and a token that stands for it.
+        view.dragging = { [weak self] over in self?.command("send", ["kind": "drag", "over": over]) }
+        view.dropped = { [weak self] urls in
+            guard let self = self, let first = urls.first else { return }
+            var held = Nearby.shared.hold(first)
+            held["many"] = urls.count
+            self.command("send", ["kind": "dropped", "file": held])
+        }
+        Nearby.shared.wake = { [weak self] in
+            guard let self = self else { return }
+            self.window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        }
+        Nearby.shared.start()
+
+        // Sending through kliner.app, to a name that is not nearby: told to
+        // the page the same way, and a file waiting there brings the window
+        // forward to ask.
+        Cloud.shared.tell = { [weak self] event in self?.command("send", event) }
+        Cloud.shared.wake = { [weak self] in
+            guard let self = self else { return }
+            self.window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        }
+        Cloud.shared.start()
+        // kliner.app is asked every twenty seconds while Kliner is in front,
+        // every two minutes while it is behind, and at once when it comes forward
+        Cloud.shared.quiet = !NSApp.isActive
+        _ = NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
+            Cloud.shared.quiet = false
+            Cloud.shared.lookNow()
+        }
+        _ = NotificationCenter.default.addObserver(forName: NSApplication.didResignActiveNotification, object: nil, queue: .main) { _ in
+            Cloud.shared.quiet = true
+        }
+        // A name claimed on this Mac while kliner.app could not be reached is
+        // claimed there too, the first time it can be. Taken there by then:
+        // the page says so and asks for another.
+        if Cloud.shared.user.isEmpty, !Nearby.shared.user.isEmpty {
+            let mine = Nearby.shared.user
+            Cloud.shared.claim(mine) { [weak self] answer in
+                if answer["taken"] as? Bool == true { self?.command("send", ["kind": "cloudClash", "user": mine]) }
+            }
+        }
     }
 
     /// The page asks for everything it needs when it has loaded.
@@ -208,7 +355,10 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
 
     @objc func openSettings() { command("settings") }
     @objc func foldSide() { command("fold") }
-    @objc func focusSearch() { Quick.shared.show() }
+    /// View › Search: the window's own search, the same one ⌘K opens in it.
+    @objc func focusSearch() {
+        if loaded { command("find", 0) } else { Quick.shared.show() }
+    }
     @objc func refresh() { command("refresh") }
     @objc func replaySetup() { command("setup") }
     @objc func goBack() { command("back") }
@@ -300,7 +450,7 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         case "go":          go(body, id)
         case "extra":       extra(body, id)
         case "tidy":        tidy(body, id)
-        case "walls":       read(["wallpaper", "--list", "--limit", "24"], id)
+        case "walls":       read(["wallpaper", "--list", "--limit", String(Web.wallLimit)], id)
         case "walk":        walk(body, id)
         case "show":        show(body)
         case "reveal":      reveal(body)
@@ -313,14 +463,79 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         case "unpin":       unpin(body, id)
         case "closeApps":   closeApps(id)
         case "wallFolder":  wallFolder(id)
-        case "wallPictures": wallPictures(id)
+        case "wallPictures": wallPictures(body, id)
+        case "wallBig":     wallBig(body, id)
+        case "dockApps":    dockApps(id)
+        case "dockMore":    dockMore(id)
         case "setWall":     setWall(body, id)
         case "zen":         zen(body, id)
-        case "dockFast":    dockFast(id)
+        case "rename":      rename(body, id)
+        case "userCheck":   Nearby.shared.check(words(body, "name") ?? "") { [weak self] answer in self?.reply(id, answer) }
+        case "userClaim":   Nearby.shared.claim(words(body, "name") ?? "") { [weak self] answer in self?.reply(id, answer) }
+        case "nearby":
+            Nearby.shared.watch(flag(body, "on"))
+            reply(id, ["ok": true])
+        case "sendPick":    Nearby.shared.pick { [weak self] answer in self?.reply(id, answer) }
+        case "sendItem":    sendItem(body, id)
+        // A name a Mac in sight answers to goes straight across; any other
+        // goes through kliner.app, once this Mac has a name there. Stopping
+        // and answering go to whichever of the two the file belongs to.
+        case "send":
+            let token = words(body, "token") ?? ""
+            let to = words(body, "to") ?? ""
+            if Nearby.shared.sees(to) || Cloud.shared.user.isEmpty {
+                reply(id, Nearby.shared.send(token: token, to: to))
+            } else if let url = Nearby.shared.held(token) {
+                reply(id, Cloud.shared.send(url, to: to))
+            } else {
+                reply(id, ["ok": false, "text": "Pick the file again."])
+            }
+        case "sendCancel":
+            let job = words(body, "job") ?? ""
+            if Cloud.shared.owns(job) { Cloud.shared.cancel(job) } else { Nearby.shared.cancel(job) }
+        case "receive":
+            let job = words(body, "job") ?? ""
+            if Cloud.shared.owns(job) {
+                Cloud.shared.answer(job, yes: flag(body, "yes"))
+            } else {
+                Nearby.shared.answer(job, yes: flag(body, "yes"))
+            }
+        case "cloudCheck":   Cloud.shared.check(words(body, "name") ?? "") { [weak self] answer in self?.reply(id, answer) }
+        case "cloudClaim":
+            Cloud.shared.claim(words(body, "name") ?? "", code: words(body, "code") ?? "") { [weak self] answer in
+                // Nearby reads the name back from the config: both announce the same one
+                if answer["ok"] as? Bool == true { Nearby.shared.start() }
+                self?.reply(id, answer)
+            }
+        case "cloudRename":
+            Cloud.shared.rename(words(body, "name") ?? "", code: words(body, "code") ?? "") { [weak self] answer in
+                if answer["ok"] as? Bool == true { Nearby.shared.start() }
+                self?.reply(id, answer)
+            }
+        case "profileGet":   Cloud.shared.profile { [weak self] answer in self?.reply(id, answer) }
+        case "profilePut":   Cloud.shared.publish(body["profile"] as? [String: Any] ?? [:]) { [weak self] answer in self?.reply(id, answer) }
+        case "machine":      machine(id)
+        // a public profile, in the browser: only kliner.app's own pages
+        case "openProfile":
+            if let raw = words(body, "url"), let url = URL(string: raw), url.scheme == "https",
+               let host = url.host, host == "kliner.app" || host.hasSuffix(".kliner.app") || host.hasSuffix(".workers.dev") {
+                _ = NSWorkspace.shared.open(url)
+            }
+        case "accountDelete":
+            Cloud.shared.deleteAccount { [weak self] answer in
+                if answer["ok"] as? Bool == true { Nearby.shared.start() }
+                self?.reply(id, answer)
+            }
+        case "receiving":
+            Nearby.shared.setReceiving(flag(body, "on"))
+            reply(id, ["on": Nearby.shared.receiving])
+        case "showReceived": Nearby.reveal(words(body, "path") ?? "")
+        case "dockFast":    dockFast(body, id)
         case "dockKeep":    dockKeep(body, id)
         case "stop":        stop(body, id)
         case "setConfig":   remember(body)
         case "pickPicture": pickPicture(id)
+        case "accountPicture": accountPicture(id)
         case "settings":    reply(id, settings())
         case "setLogin":    login(body, id)
         case "fullDisk":    fullDisk(id)
@@ -449,9 +664,15 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         }
 
         var config: [String: Any] = [:]
-        for key in ["name", "start", "tidy", "days", "rail", "preview"] {
+        for key in ["name", "start", "tidy", "days", "rail", "sidebar", "frame", "preview", "tour", "profile", "sent",
+                    "userWas", "userWasUntil"] {
             config[key] = Config.value(key) ?? ""
         }
+        // the @username, as it was claimed, and whether Macs nearby may send here
+        config["user"] = Nearby.shared.user
+        config["receive"] = Nearby.shared.receiving ? "on" : "off"
+        // the name as kliner.app knows it ("" while it is only claimed on this Mac)
+        config["cloudUser"] = Cloud.shared.user
 
         var out: [String: Any] = [:]
         out["version"] = Nimo.version
@@ -461,14 +682,23 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         out["account"] = NSUserName()
         out["email"] = Config.value("email") ?? ""
         if let face = Web.portrait() { out["portrait"] = face }
+        out["customPicture"] = (Config.value("picture") ?? "").hasPrefix("/")
+        out["desktopHidden"] = Web.desktopHidden()
         out["login"] = ["possible": Login.possible, "on": Login.on]
         out["config"] = config
         out["pages"] = pages
         out["places"] = places
         out["starts"] = starts
         out["gates"] = gates
-        out["seeing"] = Web.seeing()
+        // Only once the starter is done. Reading the folders is what makes
+        // macOS ask about them, and before then the starter's own step is
+        // the moment it should, not the second the window opens.
+        if Config.value("welcomed") == Main.setup { out["seeing"] = Web.seeing() }
         if let last = Web.lastLookBack() { out["lastLook"] = last }
+        // a file can be dropped on the window to send it
+        out["drop"] = true
+        // The page only goes see-through when the window behind it is.
+        out["glass"] = true
         return out
     }
 
@@ -485,11 +715,23 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         return out
     }
 
+    /// Whether the icons on the desktop are away. Desk reads the screen when
+    /// the screen can say, and the settings when it cannot.
+    static func desktopHidden() -> Bool { Desk.hidden() }
+
+    /// Which press of \ is the newest, so a check still waiting from an
+    /// older one does nothing.
+    private static var zenTurn = 0
+
+
+
     private func settings() -> [String: Any] {
         var out: [String: Any] = [:]
         out["login"] = ["possible": Login.possible, "on": Login.on]
         out["fullDisk"] = Access.everything
-        out["folders"] = Access.may(Access.desktop) && Access.may(Access.downloads)
+        // every folder the pages read, Documents too
+        out["folders"] = !Web.seeing().values.contains(false)
+        out["desktopHidden"] = Web.desktopHidden()
         out["version"] = Nimo.version
         return out
     }
@@ -498,13 +740,16 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
 
     /// Runs `min` off the main thread and hands back what it said.
     private func run(_ arguments: [String], _ id: Int, with extra: [String: Any] = [:],
-                     then: ((Outcome) -> Void)? = nil) {
+                     changes: Bool = false, then: ((Outcome) -> Void)? = nil) {
         DispatchQueue.global(qos: .userInitiated).async {
             let result = Nimo.run(arguments)
             DispatchQueue.main.async {
                 var payload = extra
                 payload["ok"] = result.ok
                 payload["text"] = result.text
+                // A change is only a change once it has happened: a run that
+                // failed offers no Undo and throws no reading away.
+                if changes { payload["changed"] = result.ok }
                 then?(result)
                 self.reply(id, payload)
             }
@@ -523,7 +768,7 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
             return
         }
         changing = true
-        run(arguments, id, with: ["changed": true]) { result in
+        run(arguments, id, changes: true) { result in
             self.changing = false
             // Only the line nimo already wrote — no second opinion.
             if let done = Web.firstGood(result.text) {
@@ -700,7 +945,7 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
                     one["page"] = index
                     one["ok"] = result.ok
                     one["text"] = result.text
-                    one["changed"] = really
+                    one["changed"] = really && result.ok
                     one["preview"] = !really
                     results.append(one)
                     if really, let done = Web.firstGood(result.text) {
@@ -789,8 +1034,16 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let manager = FileManager.default
             let keys: [URLResourceKey] = [.fileSizeKey, .contentModificationDateKey]
-            let found = (try? manager.contentsOfDirectory(at: folder, includingPropertiesForKeys: keys,
-                                                           options: [])) ?? []
+            let found: [URL]
+            do {
+                found = try manager.contentsOfDirectory(at: folder, includingPropertiesForKeys: keys, options: [])
+            } catch {
+                // A folder that is there but cannot be read is not an empty
+                // one: macOS has not let Kliner look. The page says which.
+                let there = manager.fileExists(atPath: folder.path)
+                DispatchQueue.main.async { self?.reply(id, ["items": [Any](), "shut": there]) }
+                return
+            }
             var items: [[String: Any]] = []
             for url in found {
                 let name = url.lastPathComponent
@@ -848,15 +1101,44 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
             return
         }
         let base = FileManager.default.homeDirectoryForCurrentUser.resolvingSymlinksInPath().path
+        // `icons`: what is not a picture comes back as the icon Finder draws
+        // for it, so the starter can show your desktop the way Finder does
+        let icons = flag(body, "icons")
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             var out: [String: String] = [:]
             for name in names {
-                guard let url = Web.drawable(name, in: folder, home: base),
-                      let jpeg = Web.thumbnail(of: url, side: 360, quality: 0.72) else { continue }
-                out[name] = "data:image/jpeg;base64," + jpeg.base64EncodedString()
+                if let url = Web.drawable(name, in: folder, home: base),
+                   let jpeg = Web.thumbnail(of: url, side: 360, quality: 0.72) {
+                    out[name] = "data:image/jpeg;base64," + jpeg.base64EncodedString()
+                } else if icons, let url = Web.present(name, in: folder, home: base),
+                          let png = Web.png(NSWorkspace.shared.icon(forFile: url.path), side: 96) {
+                    out[name] = png
+                }
             }
             DispatchQueue.main.async { self?.reply(id, ["thumbs": out]) }
         }
+    }
+
+    /// Anything in that folder by one plain name, still inside your home once
+    /// links are followed. Only its icon is ever asked for.
+    private static func present(_ name: String, in folder: URL, home base: String) -> URL? {
+        guard Web.plain(name) else { return nil }
+        let real = folder.appendingPathComponent(name).resolvingSymlinksInPath()
+        guard real.path.hasPrefix(base + "/"), FileManager.default.fileExists(atPath: real.path) else { return nil }
+        return real
+    }
+
+    /// A picture as a PNG the page can draw, `side` pixels square.
+    private static func png(_ image: NSImage, side: Int) -> String? {
+        guard let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: side, pixelsHigh: side,
+                                         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                         colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0) else { return nil }
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        image.draw(in: NSRect(x: 0, y: 0, width: side, height: side))
+        NSGraphicsContext.restoreGraphicsState()
+        guard let data = rep.representation(using: .png, properties: [:]) else { return nil }
+        return "data:image/png;base64," + data.base64EncodedString()
     }
 
     /// One of them, big enough to look at in Kliner's own viewer. It is
@@ -890,11 +1172,14 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
     }
 
     /// A picture of your own instead of the account one. macOS does not let
-    /// an app change the account picture, so Kliner keeps its own: you point
-    /// at a file inside your home and it remembers where.
+    /// an app change the account picture, so Kliner keeps its own: the one
+    /// you choose is drawn small and kept in ~/.nimo, so it stays when the
+    /// file it came from moves, and what ~/.nimo/config remembers is a path
+    /// Kliner made rather than one a file name chose.
     private func pickPicture(_ id: Int) {
         let panel = NSOpenPanel()
         panel.title = "Choose a picture"
+        panel.prompt = "Use Picture"
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
         panel.allowedFileTypes = ["png", "jpg", "jpeg", "heic", "tiff", "gif"]
@@ -903,16 +1188,29 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
                 self.reply(id, ["cancelled": true])
                 return
             }
-            let home = FileManager.default.homeDirectoryForCurrentUser.resolvingSymlinksInPath().path
-            let real = url.resolvingSymlinksInPath()
-            guard real.path.hasPrefix(home + "/") else {
-                self.reply(id, ["outside": true])
+            let folder = FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".nimo", isDirectory: true)
+            let kept = folder.appendingPathComponent("picture.jpg")
+            guard let jpeg = Web.thumbnail(of: url, side: 512, quality: 0.86) else {
+                self.reply(id, ["bad": true])
                 return
             }
-            Config.set("picture", real.path)
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            guard (try? jpeg.write(to: kept, options: .atomic)) != nil else {
+                self.reply(id, ["bad": true])
+                return
+            }
+            Config.set("picture", kept.path)
             Web.portraitKept = nil
             self.reply(id, ["portrait": Web.portrait() ?? ""])
         }
+    }
+
+    /// Back to the picture macOS has for your account.
+    private func accountPicture(_ id: Int) {
+        Config.set("picture", "")
+        Web.portraitKept = nil
+        reply(id, ["portrait": Web.portrait() ?? ""])
     }
 
     /// The picture on your account, the one macOS shows at the login window
@@ -1000,7 +1298,8 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         let real = URL(fileURLWithPath: path).resolvingSymlinksInPath()
         let home = FileManager.default.homeDirectoryForCurrentUser.resolvingSymlinksInPath().path
         var inside = false
-        for root in ["/System/Library/Desktop Pictures/", "/Library/Desktop Pictures/", home + "/"] {
+        for root in ["/System/Library/Desktop Pictures/", "/Library/Desktop Pictures/",
+                     "/System/Library/AssetsV2/com_apple_MobileAsset_DesktopPicture/", home + "/"] {
             if real.path.hasPrefix(root) { inside = true }
         }
         guard inside else { return nil }
@@ -1010,27 +1309,173 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         return real
     }
 
-    /// Previews of the wallpapers, in the order the page lists them. The
-    /// page names no file: nimo prints the paths it has already found, and
-    /// only those are opened, only to be drawn.
-    private func wallPictures(_ id: Int) {
+    /// The wallpapers as nimo lists them: file paths, one to a line.
+    private static func readWallPaths() -> [String] {
+        let result = Nimo.run(["wallpaper", "--list", "--paths", "--limit", String(Web.wallLimit)])
+        guard result.ok else { return [] }
+        var paths: [String] = []
+        for line in result.text.components(separatedBy: "\n") {
+            let path = line.trimmingCharacters(in: .whitespaces)
+            if path.isEmpty { continue }
+            paths.append(path)
+            if paths.count >= Web.wallLimit { break }
+        }
+        return paths
+    }
+
+    /// Previews of the wallpapers, in the order the page lists them, a
+    /// dozen or so at a time: `from` is the first one's number, `count` how
+    /// many. The page names no file: nimo prints the paths it has already
+    /// found, and only those are opened, only to be drawn. The first batch
+    /// asks nimo for the list; the rest use the list it gave.
+    private func wallPictures(_ body: [String: Any], _ id: Int) {
+        let from = max(1, number(body, "from") ?? 1)
+        let count = max(1, min(Web.wallLimit, number(body, "count") ?? Web.wallLimit))
+        let known: [String] = from == 1 ? [] : Web.wallPaths
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let result = Nimo.run(["wallpaper", "--list", "--paths", "--limit", "24"])
+            let paths = known.isEmpty ? Web.readWallPaths() : known
+            // How many at the top of the list are yours: nimo lists your own
+            // folder first, and the page draws a line where the Mac's begin.
+            let home = FileManager.default.homeDirectoryForCurrentUser.path
+            var mine = 0
+            for path in paths {
+                guard path.hasPrefix(home + "/"), !path.hasPrefix(home + "/Library/") else { break }
+                mine += 1
+            }
+            // A dozen at once, on every core there is, and each one kept in
+            // Caches the first time it is drawn: opening the page again is
+            // reading small files, not decoding forty 4K pictures again.
+            // Past the end of the list is no rows, not a range that runs
+            // backwards, which Swift stops the whole app for.
+            let end = min(from + count, paths.count + 1)
+            let rows = from < end ? Array(from..<end) : []
+            var found = [String?](repeating: nil, count: rows.count)
+            let lock = NSLock()
+            DispatchQueue.concurrentPerform(iterations: rows.count) { k in
+                guard let url = Web.wallpaperFile(paths[rows[k] - 1]),
+                      let jpeg = Web.cachedThumbnail(of: url, side: 440) else { return }
+                let uri = "data:image/jpeg;base64," + jpeg.base64EncodedString()
+                lock.lock()
+                found[k] = uri
+                lock.unlock()
+            }
             var out: [String: String] = [:]
-            if result.ok {
-                var at = 0
-                for line in result.text.components(separatedBy: "\n") {
-                    let path = line.trimmingCharacters(in: .whitespaces)
-                    if path.isEmpty { continue }
-                    at += 1
-                    if at > 24 { break }
-                    guard let url = Web.wallpaperFile(path) else { continue }
-                    guard let jpeg = Web.thumbnail(of: url, side: 440, quality: 0.7, whole: false) else { continue }
-                    out[String(at)] = "data:image/jpeg;base64," + jpeg.base64EncodedString()
+            for (k, row) in rows.enumerated() {
+                if let uri = found[k] { out[String(row)] = uri }
+            }
+            // Which shelf each one sits on, with the first dozen: the Kliner
+            // folder, your own, the Mac's, and the Mac's plain colours.
+            var payload: [String: Any] = ["pictures": out, "mine": mine, "total": paths.count]
+            if from == 1 {
+                payload["kinds"] = paths.map { path -> String in
+                    if path.hasPrefix(home + "/") { return path.contains("/Kliner Wallpapers/") ? "kliner" : "yours" }
+                    if path.contains("/Solid Colors/") { return "colors" }
+                    return "mac"
                 }
             }
-            DispatchQueue.main.async { self?.reply(id, ["pictures": out]) }
+            DispatchQueue.main.async {
+                Web.wallPaths = paths
+                self?.reply(id, payload)
+            }
         }
+    }
+
+    /// One wallpaper big enough to fill the picture of your screen in the
+    /// starter: row `at` of nimo's list, or with no `at`, the one on your
+    /// screen now, as the Mac itself says. Read only, only to be drawn.
+    private func wallBig(_ body: [String: Any], _ id: Int) {
+        let at = number(body, "at") ?? 0
+        guard at >= 0, at <= Web.wallLimit else {
+            reply(id, [:])
+            return
+        }
+        let known = Web.wallPaths
+        let screen = NSScreen.main ?? NSScreen.screens.first
+        let now: String? = at == 0 ? screen.flatMap { NSWorkspace.shared.desktopImageURL(for: $0)?.path } : nil
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            var path = now
+            if at > 0 {
+                let paths = known.count >= at ? known : Web.readWallPaths()
+                path = at <= paths.count ? paths[at - 1] : nil
+            }
+            var payload: [String: Any] = [:]
+            if let path = path, let url = Web.wallpaperFile(path),
+               let jpeg = Web.thumbnail(of: url, side: 1400, quality: 0.8) {
+                payload["picture"] = "data:image/jpeg;base64," + jpeg.base64EncodedString()
+            }
+            DispatchQueue.main.async { self?.reply(id, payload) }
+        }
+    }
+
+    /// Your Dock, with each app's own icon. nimo lists every app in it by the
+    /// name `--only` answers to and where the app is; only those apps are
+    /// looked at, and only to draw their icons. Finder and the Trash sit at
+    /// the two ends of every Dock and are drawn from the Mac's own pictures.
+    private func dockApps(_ id: Int) {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let result = Nimo.run(["dock", "--list", "--paths"])
+            var apps: [[String: Any]] = []
+            if result.ok {
+                for line in result.text.components(separatedBy: "\n") {
+                    let parts = line.components(separatedBy: "\t")
+                    guard parts.count == 2 else { continue }
+                    let name = parts[0].trimmingCharacters(in: .whitespaces)
+                    guard !name.isEmpty, name.count <= 200 else { continue }
+                    var one: [String: Any] = ["name": name]
+                    if let app = Web.appBundle(parts[1]),
+                       let png = Web.png(NSWorkspace.shared.icon(forFile: app.path), side: 128) {
+                        one["icon"] = png
+                    }
+                    apps.append(one)
+                    if apps.count >= 60 { break }
+                }
+            }
+            DispatchQueue.main.async {
+                var payload: [String: Any] = ["apps": apps, "ok": result.ok]
+                if let finder = Web.png(NSWorkspace.shared.icon(forFile: "/System/Library/CoreServices/Finder.app"), side: 128) {
+                    payload["finder"] = finder
+                }
+                if let bin = NSImage(named: NSImage.trashEmptyName), let png = Web.png(bin, side: 128) {
+                    payload["trash"] = png
+                }
+                self?.reply(id, payload)
+            }
+        }
+    }
+
+    /// An app nimo named in your Dock: a whole path, nothing hidden in it,
+    /// ending in .app, and a folder that is there.
+    private static func appBundle(_ path: String) -> URL? {
+        guard path.hasPrefix("/"), path.count <= 4096, !path.contains("\u{0}"), path.hasSuffix(".app") else { return nil }
+        var folder: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: path, isDirectory: &folder), folder.boolValue else { return nil }
+        return URL(fileURLWithPath: path)
+    }
+
+    /// A wallpaper's small picture, from Caches when it has been drawn
+    /// before and the file has not changed since; drawn and kept otherwise.
+    /// The name is the path, the size and the date, so a changed file is a
+    /// new name and an old picture is never shown for it.
+    private static func cachedThumbnail(of url: URL, side: Int) -> Data? {
+        let manager = FileManager.default
+        let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey])
+        let stamp = "\(url.path)|\(values?.fileSize ?? 0)|\(Int(values?.contentModificationDate?.timeIntervalSince1970 ?? 0))|\(side)"
+        var hash: UInt64 = 0xcbf2_9ce4_8422_2325
+        for byte in stamp.utf8 {
+            hash ^= UInt64(byte)
+            hash = hash &* 0x0000_0100_0000_01b3
+        }
+        let caches = manager.urls(for: .cachesDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("app.kliner.mac", isDirectory: true)
+            .appendingPathComponent("walls", isDirectory: true)
+        let kept = caches?.appendingPathComponent(String(format: "%016llx.jpg", hash))
+        if let kept = kept, let data = try? Data(contentsOf: kept), !data.isEmpty { return data }
+        guard let fresh = thumbnail(of: url, side: side, quality: 0.75) else { return nil }
+        if let caches = caches, let kept = kept {
+            try? manager.createDirectory(at: caches, withIntermediateDirectories: true)
+            try? fresh.write(to: kept, options: .atomic)
+        }
+        return fresh
     }
 
     /// One picture, at most `side` pixels along its longer edge, as JPEG.
@@ -1078,7 +1523,7 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
     /// same list the page was shown. No dialog — it is one picture, it is on
     /// the screen a second later, and "Original" puts back the one you had.
     private func setWall(_ body: [String: Any], _ id: Int) {
-        guard let at = number(body, "at"), at >= 1, at <= 24 else {
+        guard let at = number(body, "at"), at >= 1, at <= Web.wallLimit else {
             reply(id, ["cancelled": true])
             return
         }
@@ -1089,6 +1534,30 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
     /// do not move: this is one setting, and nimo can set it back.
     private func zen(_ body: [String: Any], _ id: Int) {
         let back = flag(body, "back")
+        // From the \ key, or a switch: no question. The files do not move,
+        // only the icons go, and \ again puts them back — a dialog in front
+        // of a key you press to see your desktop is a key that does not work.
+        //
+        // And no min either: \ is pressed to see the desktop, so it is
+        // written straight, in about a millisecond, and the page is told what
+        // happened in the same breath. `toggle` lets this side pick the
+        // direction, from what is actually on screen, so a settings file left
+        // half-written by an older Kliner cannot send the key the wrong way.
+        if flag(body, "quick") {
+            Web.zenTurn += 1
+            let turn = Web.zenTurn
+            let hide = flag(body, "toggle") ? !Desk.hidden() : !back
+            Desk.set(hide)
+            reply(id, ["ok": true, "changed": true, "hidden": hide, "text": ""])
+            // Should the icons still be the wrong way a moment later, this
+            // Mac did not take the switch: Finder's way instead, slower but
+            // certain. Unless the key was pressed again in the meantime.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                guard Web.zenTurn == turn, Desk.onScreen() == hide else { return }
+                DispatchQueue.global(qos: .userInitiated).async { Desk.finderWay(hide) }
+            }
+            return
+        }
         let question = back ? "Show icons on your desktop again?"
                             : "Stop showing icons on your desktop?"
         let why = back ? "They are the same files that were always there."
@@ -1102,10 +1571,95 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         }
     }
 
+    /// A new name for one file in a page's folder, typed on the small desktop
+    /// in the starter. The typing is the question, as it is in Finder: the
+    /// name was written by the person it belongs to, in a field of its own,
+    /// and Return is the yes. nimo renames it in the same folder, never over
+    /// a name that is taken, and writes the old name down first, so the
+    /// page's Undo — `undo` here — and `min undo` both give it back.
+    private func rename(_ body: [String: Any], _ id: Int) {
+        guard let folder = folder(of: body) else {
+            reply(id, ["ok": false, "text": ""])
+            return
+        }
+        if flag(body, "undo") {
+            run(["rename", "--undo"], id, changes: true)
+            return
+        }
+        guard let name = body["name"] as? String, Web.plain(name),
+              let typed = body["to"] as? String else {
+            reply(id, ["ok": false, "text": ""])
+            return
+        }
+        let to = typed.trimmingCharacters(in: .whitespaces)
+        guard Web.plain(to), !to.hasPrefix("."), !to.contains(":") else {
+            reply(id, ["ok": false, "text": "! a name cannot start with a dot or have / or : in it"])
+            return
+        }
+        let path = folder.appendingPathComponent(name).path
+        run(["rename", path, "--to", to, "--yes"], id, with: ["name": to], changes: true)
+    }
+
+    /// What this Mac is, for the public profile, as the Mac says it itself:
+    /// the model's name, the chip, the memory and macOS, and whether the Dock
+    /// hides. Asked of system_profiler once, off the main thread.
+    private func machine(_ id: Int) {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            var out: [String: Any] = [:]
+            let version = ProcessInfo.processInfo.operatingSystemVersion
+            out["macos"] = version.patchVersion > 0
+                ? "macOS \(version.majorVersion).\(version.minorVersion).\(version.patchVersion)"
+                : "macOS \(version.majorVersion).\(version.minorVersion)"
+            out["memory"] = ByteCountFormatter.string(fromByteCount: Int64(ProcessInfo.processInfo.physicalMemory), countStyle: .memory)
+            let task = Process()
+            task.executableURL = URL(fileURLWithPath: "/usr/sbin/system_profiler")
+            task.arguments = ["SPHardwareDataType", "-json"]
+            let pipe = Pipe()
+            task.standardOutput = pipe
+            task.standardError = FileHandle.nullDevice
+            if (try? task.run()) != nil {
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                task.waitUntilExit()
+                if let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+                   let first = (json["SPHardwareDataType"] as? [[String: Any]])?.first {
+                    if let name = first["machine_name"] as? String { out["model"] = name }
+                    if let chip = first["chip_type"] as? String { out["chip"] = chip }
+                    else if let cpu = first["cpu_type"] as? String { out["chip"] = cpu }
+                    if let memory = first["physical_memory"] as? String { out["memory"] = memory }
+                }
+            }
+            if let dock = UserDefaults(suiteName: "com.apple.dock") {
+                out["dockAutohide"] = dock.bool(forKey: "autohide")
+            }
+            let answer = out
+            DispatchQueue.main.async { self?.reply(id, answer) }
+        }
+    }
+
+    /// A file the page knows by its folder and name — one on your desktop —
+    /// held for sending, the same way a picked one is.
+    private func sendItem(_ body: [String: Any], _ id: Int) {
+        guard let folder = folder(of: body), let name = words(body, "name"), Web.plain(name) else {
+            reply(id, ["ok": false, "text": "That file cannot be sent from here."])
+            return
+        }
+        reply(id, Nearby.shared.hold(folder.appendingPathComponent(name)))
+    }
+
+    /// A Dock that slides out of the way until you reach for it — or, with
+    /// `back`, the Dock as it was before, from what nimo wrote down.
+    private func dockFast(_ body: [String: Any], _ id: Int) {
+        if flag(body, "back") {
+            run(["dock", "--fast", "--restore", "--yes"], id, changes: true)
+            return
+        }
+        dockFast(id)
+    }
+
     /// A Dock that slides out of the way until you reach for it.
     private func dockFast(_ id: Int) {
         confirm("Let your Dock slide away?",
-                "It comes back the moment you move to the edge of the screen. Kliner saves your Dock first, so \"Put the Dock back\" is exact.",
+                "It comes back the moment you move the pointer to the edge of the screen. To keep it on screen again, turn off \"Automatically hide and show the Dock\" in System Settings › Desktop & Dock.",
                 button: "Let it slide") { yes in
             guard yes else {
                 self.reply(id, ["cancelled": true])
@@ -1115,25 +1669,29 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         }
     }
 
-    /// The apps that were not ticked, out of the Dock, in one question
-    /// rather than one each. Same rules as taking one out: a plain name, the
-    /// app itself untouched, and nimo writes the whole Dock down first.
+    /// What the starter changes in the Dock, in one question and one run:
+    /// the apps that come out and the ones that go in. Same rules as taking
+    /// one out: plain names, the apps themselves untouched, and nimo writes
+    /// the whole Dock down first, once, before any of it.
     private func dockKeep(_ body: [String: Any], _ id: Int) {
-        let asked = (body["drop"] as? [Any] ?? []).compactMap { $0 as? String }
-        var names: [String] = []
-        for name in asked {
-            guard !name.isEmpty, name.count <= 200, !name.hasPrefix("-"),
-                  !name.contains("\u{0}"), name.rangeOfCharacter(from: .newlines) == nil else { continue }
-            names.append(name)
+        func plainNames(_ key: String) -> [String] {
+            let asked = (body[key] as? [Any] ?? []).compactMap { $0 as? String }
+            return asked.filter { name in
+                !name.isEmpty && name.count <= 200 && !name.hasPrefix("-")
+                    && !name.contains("\u{0}") && name.rangeOfCharacter(from: .newlines) == nil
+            }
         }
-        guard !names.isEmpty, names.count <= 60 else {
+        let drop = plainNames("drop"), add = plainNames("add")
+        guard !(drop.isEmpty && add.isEmpty), drop.count <= 60, add.count <= 60 else {
             reply(id, ["cancelled": true])
             return
         }
-        let many = names.count == 1 ? "1 app" : "\(names.count) apps"
-        confirm("Take \(many) out of your Dock?",
-                "The apps stay installed. Only the Dock icons go, and Kliner saves your Dock first.",
-                button: "Take them out") { yes in
+        let apps: (Int) -> String = { $0 == 1 ? "1 app" : "\($0) apps" }
+        let title = drop.isEmpty ? "Put \(apps(add.count)) in your Dock?"
+            : add.isEmpty ? "Take \(apps(drop.count)) out of your Dock?"
+            : "Take \(apps(drop.count)) out of your Dock, and put \(apps(add.count)) in?"
+        confirm(title, "The apps themselves stay where they are. Only the Dock changes, and Kliner saves it first.",
+                button: "Change the Dock") { yes in
             guard yes else {
                 self.reply(id, ["cancelled": true])
                 return
@@ -1143,23 +1701,55 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
                 return
             }
             self.changing = true
-            self.dropOne(names, 0, id, done: 0)
+            // One run for all of it, one name to a line: one backup of the
+            // Dock before anything moves, so "Put the Dock back" is exact.
+            // No name can hold a line break; each was checked above.
+            var arguments = ["dock"]
+            if !drop.isEmpty { arguments += ["--only", drop.joined(separator: "\n")] }
+            if !add.isEmpty { arguments += ["--add", add.joined(separator: "\n")] }
+            arguments.append("--yes")
+            DispatchQueue.global(qos: .userInitiated).async {
+                let result = Nimo.run(arguments)
+                DispatchQueue.main.async {
+                    self.changing = false
+                    // nimo names each one it could not find; the rest went
+                    let missingOut = result.text.components(separatedBy: "cannot find \"").count - 1
+                    let missingIn = result.text.components(separatedBy: "cannot find an app called \"").count - 1
+                    let out = result.ok ? max(0, drop.count - missingOut) : 0
+                    let inn = result.ok ? max(0, add.count - missingIn) : 0
+                    if out + inn > 0 {
+                        Word.say("Dock", out > 0 && inn > 0 ? "\(apps(out)) out, \(apps(inn)) in"
+                                         : out > 0 ? "\(apps(out)) taken out" : "\(apps(inn)) put in")
+                    }
+                    self.reply(id, ["ok": result.ok && out == drop.count && inn == add.count, "changed": out + inn > 0,
+                                    "closed": out, "added": inn, "asked": drop.count, "text": result.text])
+                }
+            }
         }
     }
 
-    /// One at a time, because each one rewrites the Dock and restarts it.
-    private func dropOne(_ names: [String], _ at: Int, _ id: Int, done: Int) {
-        guard at < names.count else {
-            self.changing = false
-            Word.say("Dock", done == 1 ? "1 app taken out" : "\(done) apps taken out")
-            self.reply(id, ["ok": true, "changed": true, "closed": done])
-            return
-        }
-        DispatchQueue.global(qos: .userInitiated).async {
-            let result = Nimo.run(["dock", "--only", names[at], "--yes"])
-            DispatchQueue.main.async {
-                self.dropOne(names, at + 1, id, done: done + (result.ok ? 1 : 0))
+    /// The apps that are installed and not in your Dock, with their icons,
+    /// for the starter to offer. nimo lists them; only their icons are read.
+    private func dockMore(_ id: Int) {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let result = Nimo.run(["dock", "--list", "--paths", "--all"])
+            var apps: [[String: Any]] = []
+            if result.ok {
+                for line in result.text.components(separatedBy: "\n") {
+                    let parts = line.components(separatedBy: "\t")
+                    guard parts.count == 2 else { continue }
+                    let name = parts[0].trimmingCharacters(in: .whitespaces)
+                    guard !name.isEmpty, name.count <= 200 else { continue }
+                    var one: [String: Any] = ["name": name]
+                    if let app = Web.appBundle(parts[1]),
+                       let png = Web.png(NSWorkspace.shared.icon(forFile: app.path), side: 96) {
+                        one["icon"] = png
+                    }
+                    apps.append(one)
+                    if apps.count >= 240 { break }
+                }
             }
+            DispatchQueue.main.async { self?.reply(id, ["apps": apps]) }
         }
     }
 
@@ -1254,11 +1844,6 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
 
             JPEG, PNG and HEIC. The name of the file is the name Kliner shows.
 
-            To keep them somewhere else instead, put a line like this in
-            ~/.nimo/config:
-
-                wallpapers = Pictures/My Wallpapers
-
             """
             try? words.data(using: .utf8)?.write(to: readme)
         }
@@ -1317,7 +1902,7 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
 
     /// How long the processors have spent busy, and in all, since the Mac
     /// started. Two of these, a moment apart, are how busy it is now.
-    private static func cpuTicks() -> (busy: UInt64, total: UInt64)? {
+    static func cpuTicks() -> (busy: UInt64, total: UInt64)? {
         var info = host_cpu_load_info_data_t()
         var count = mach_msg_type_number_t(MemoryLayout<host_cpu_load_info_data_t>.size / MemoryLayout<integer_t>.size)
         let result = withUnsafeMutablePointer(to: &info) { pointer in
@@ -1434,14 +2019,42 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         switch key {
         case "rail" where ["list", "icons"].contains(value):
             Config.set("rail", value)
+        // the sidebar with its names, or folded to pictures (⌘B)
+        case "sidebar" where ["open", "folded"].contains(value):
+            Config.set("sidebar", value)
+        // the window's left edge: a rail of pictures (the default), or the
+        // pages with their names beside them (⌘B)
+        case "frame" where ["rail", "names"].contains(value):
+            Config.set("frame", value)
         case "preview" where ["on", "off"].contains(value):
             Config.set("preview", value)
+        // what the public profile says, kept here as well: one line of JSON
+        case "profile" where value.count <= 4000:
+            Config.set("profile", value)
+        // the map of the window has been seen, so it is not shown by itself
+        // again; Help still has it
+        case "tour" where value == "done":
+            Config.set("tour", value)
         case "days" where ["7", "30", "90"].contains(value):
             Config.set("days", value)
         case "name":
             Config.set("name", Web.clean(value, limit: 60))
         case "email" where Web.looksLikeEmail(value) || value.isEmpty:
             Config.set("email", Web.clean(value, limit: 120))
+        // the folder things are sorted into, after you renamed it: a name,
+        // never a route, the same rule nimo and the starter have
+        // who files were sent to lately, for the Send page: @usernames only,
+        // by the same rules as any other, and eight at most
+        case "sent":
+            let names = value.split(separator: ",").map(String.init)
+            if names.count <= 8, names.allSatisfy({ Nearby.valid($0) == nil }) {
+                Config.set("sent", names.joined(separator: ","))
+            }
+        case "tidy":
+            let into = Web.clean(value, limit: 60)
+            if !into.isEmpty, !into.contains("/"), !into.contains(".."), into != ".", !into.hasPrefix("-"), !into.hasPrefix(".") {
+                Config.set("tidy", into)
+            }
         default:
             break
         }
@@ -1482,8 +2095,8 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
         for gate in Web.gates {
             if let folder = gate.folder { Access.may(folder) }
         }
-        reply(id, ["folders": Access.may(Access.desktop) && Access.may(Access.downloads),
-                   "seeing": Web.seeing()])
+        let seen = Web.seeing()
+        reply(id, ["folders": !seen.values.contains(false), "seeing": seen])
     }
 
     /// One of the introduction's questions to macOS, and what it answered.
@@ -1507,12 +2120,18 @@ final class Web: NSObject, NSWindowDelegate, WKScriptMessageHandler, WKNavigatio
     /// What the introduction was told, written where both halves of Kliner
     /// read it. ~/.nimo/config is the CLI's own file: read, never sourced.
     private func finish(_ body: [String: Any], _ id: Int) {
+        // The email is not optional, and the page is not the only one who
+        // checks: without one the starter is not finished, nothing is written,
+        // and the page goes back to the step that asks for it.
+        let post = Web.clean(words(body, "email") ?? "", limit: 120)
+        guard Web.looksLikeEmail(post) else {
+            reply(id, ["bad": "email"])
+            return
+        }
+        Config.set("email", post)
+
         let name = Web.clean(words(body, "name") ?? "", limit: 60)
         Config.set("name", name)
-
-        let post = Web.clean(words(body, "email") ?? "", limit: 120)
-        if Web.looksLikeEmail(post) { Config.set("email", post) }
-
 
         // A folder to sort into is a name, not a route; the CLI refuses one
         // with a separator in it, and so does this.

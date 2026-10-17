@@ -7,7 +7,8 @@
 #   download, drag into Applications, and delete again by dragging out.
 #
 #   Run it on a Mac:  bash app/build.sh
-#   Out comes:        app/build/Kliner.app  and  app/build/Kliner.app.zip
+#   Out comes:        app/build/Kliner.app, app/build/Kliner-<version>.dmg
+#                     (what people download) and app/build/Kliner.app.zip
 #
 set -eu
 
@@ -19,7 +20,7 @@ if [ "$(uname -s)" != "Darwin" ]; then
     exit 1
 fi
 
-for tool in swiftc sips iconutil lipo codesign ditto; do
+for tool in swiftc sips iconutil lipo codesign ditto hdiutil; do
     command -v "$tool" >/dev/null 2>&1 || {
         echo "build.sh: $tool is missing — install the Xcode command line tools:" >&2
         echo "  xcode-select --install" >&2
@@ -63,8 +64,24 @@ cp app/Resources/fonts/* "$app/Contents/Resources/fonts/"
 mkdir -p "$app/Contents/Resources/web"
 cp app/Web/index.html "$app/Contents/Resources/web/"
 
+# --- where it talks to ---------------------------------------------------
+# The server deploy.sh put up, written into the app so that a copy opened on
+# any other Mac talks to the same one: KLINER_CLOUD when it is set, else the
+# `cloud =` line in ~/.nimo/config (read, never sourced), else
+# server/cloud.url. Only an https address with a plain host goes in.
+cloud="${KLINER_CLOUD:-}"
+if [ -z "$cloud" ] && [ -f "$HOME/.nimo/config" ]; then
+    cloud=$(sed -n 's/^[[:space:]]*cloud[[:space:]]*=[[:space:]]*//p' "$HOME/.nimo/config" | head -n 1 | tr -d ' \r')
+fi
+if [ -z "$cloud" ] && [ -f server/cloud.url ]; then
+    cloud=$(head -n 1 server/cloud.url | tr -d ' \r')
+fi
+printf '%s' "$cloud" | grep -Eq '^https://[A-Za-z0-9.-]+(:[0-9]+)?/?$' || cloud=""
+cloud="${cloud%/}"
+if [ -n "$cloud" ]; then echo "==> talks to $cloud"; else echo "==> talks to kliner.app"; fi
+
 # --- the plist ----------------------------------------------------------
-sed "s/__VERSION__/$version/g" app/Info.plist > "$app/Contents/Info.plist"
+sed "s/__VERSION__/$version/g; s#__CLOUD__#$cloud#g" app/Info.plist > "$app/Contents/Info.plist"
 printf 'APPL????' > "$app/Contents/PkgInfo"
 
 # --- the program --------------------------------------------------------
@@ -172,7 +189,24 @@ codesign --verify --deep --strict "$app" || {
 echo "==> zipping"
 ( cd "$build" && ditto -c -k --sequesterRsrc --keepParent Kliner.app Kliner.app.zip )
 
-size=$(du -h "$build/Kliner.app.zip" | cut -f1)
+# --- and the disk image, which is what people download -------------------
+# A Mac expects to open a .dmg and drag the app onto Applications, so the
+# image holds exactly that: Kliner.app, and a link to /Applications beside
+# it. hdiutil comes with macOS. The zip stays for the links already out there.
+echo "==> disk image"
+dmg="$build/Kliner-$version.dmg"
+stage="$build/dmg"
+rm -rf "$stage" "$dmg"
+mkdir -p "$stage"
+ditto "$app" "$stage/Kliner.app"
+ln -s /Applications "$stage/Applications"
+hdiutil create -volname "Kliner $version" -srcfolder "$stage" -fs HFS+ -format UDZO -ov "$dmg" >/dev/null || {
+    echo "build.sh: hdiutil could not make the disk image" >&2
+    exit 1
+}
+rm -rf "$stage"
+
 echo
-echo "    $build/Kliner.app.zip  ($size)"
+echo "    $dmg  ($(du -h "$dmg" | cut -f1 | tr -d ' '))"
+echo "    $build/Kliner.app.zip  ($(du -h "$build/Kliner.app.zip" | cut -f1 | tr -d ' '))"
 echo

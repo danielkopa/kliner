@@ -241,11 +241,90 @@ final class QuickGroup: NSView {
     required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
 }
 
+/// The processor over the last minute: one line with a soft fill under it
+/// and a dot where it is now. The same reading the window's Activity page
+/// makes, taken here once a second while the menu is open.
+final class QuickGraph: NSView {
+    static let tall: CGFloat = 44
+
+    var values: [Double] = [] {
+        didSet {
+            said.stringValue = values.last.map { "\(Int($0.rounded()))%" } ?? "–"
+            needsDisplay = true
+        }
+    }
+    private let name = NSTextField(labelWithString: "CPU")
+    private let said = NSTextField(labelWithString: "–")
+
+    init() {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        name.font = Words.label
+        name.textColor = Paint.faint
+        name.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(name)
+        said.font = Words.strong
+        said.textColor = Paint.ink
+        said.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(said)
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: QuickGraph.tall),
+            name.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
+            name.topAnchor.constraint(equalTo: topAnchor, constant: 5),
+            said.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
+            said.topAnchor.constraint(equalTo: name.bottomAnchor, constant: 2),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("Kliner has no nib") }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let area = NSRect(x: 84, y: 5, width: max(10, bounds.width - 84 - 18), height: max(10, bounds.height - 10))
+        let points = values
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            // nought, as a hairline
+            Paint.line.setFill()
+            NSBezierPath(rect: NSRect(x: area.minX, y: area.minY, width: area.width, height: 1)).fill()
+            guard points.count > 1 else { return }
+            // the first readings spread across the width and close up as
+            // more arrive, until a minute of them fills it
+            let step = area.width / CGFloat(points.count - 1)
+            let line = NSBezierPath()
+            for (k, value) in points.enumerated() {
+                let x = area.minX + CGFloat(k) * step
+                let y = area.minY + area.height * CGFloat(min(max(value, 0), 100) / 100)
+                if k == 0 { line.move(to: NSPoint(x: x, y: y)) } else { line.line(to: NSPoint(x: x, y: y)) }
+            }
+            if let under = line.copy() as? NSBezierPath {
+                under.line(to: NSPoint(x: area.maxX, y: area.minY))
+                under.line(to: NSPoint(x: area.minX, y: area.minY))
+                under.close()
+                Paint.ink.withAlphaComponent(0.12).setFill()
+                under.fill()
+            }
+            Paint.ink.setStroke()
+            line.lineWidth = 1.5
+            line.lineJoinStyle = .round
+            line.stroke()
+            let last = points[points.count - 1]
+            let y = area.minY + area.height * CGFloat(min(max(last, 0), 100) / 100)
+            Paint.ink.setFill()
+            NSBezierPath(ovalIn: NSRect(x: area.maxX - 2.5, y: y - 2.5, width: 5, height: 5)).fill()
+        }
+    }
+}
+
 /// The readings across the top of the menu. ⌘K away from the window is
 /// meant to answer "how bad is it" without opening anything, so the menu
 /// opens with the same three numbers the window leads with.
 final class QuickStats: NSView {
-    static let tall: CGFloat = 52
+    static let tall: CGFloat = 58
     private var meters: [NSView] = []
 
     init(_ readings: [Quick.Reading]) {
@@ -367,6 +446,12 @@ final class Quick: NSObject, NSTextFieldDelegate {
     private var footHeight: NSLayoutConstraint?
     private var statsBox: NSView?
     private var statsHeight: NSLayoutConstraint?
+    /// The processor, read once a second while the menu is open.
+    private var graph: QuickGraph?
+    private var sampler: Timer?
+    private var cpu: [Double] = []
+    private var ticks: (busy: UInt64, total: UInt64)?
+    private var sampled = Date.distantPast
     /// One width for the panel, so nothing is 520 in two places.
     static let wide: CGFloat = 480
     private var rows: [QuickRow] = []
@@ -374,10 +459,6 @@ final class Quick: NSObject, NSTextFieldDelegate {
     /// rather than measuring it, so it has to know.
     private var heads = 0
     private var sel = 0
-    /// Whether Kliner had a window on the screen before the menu opened. If
-    /// it did not, closing the menu hands the screen back to whatever you
-    /// were doing rather than leaving an empty app in front.
-    private var borrowed = false
 
     private struct Entry {
         let index: Int
@@ -418,14 +499,20 @@ final class Quick: NSObject, NSTextFieldDelegate {
     func toggle() {
         if panel?.isVisible == true { hide(); return }
         if onFindInWindow?() == true { return }
+        // An alert of Kliner's own is up: that question comes first.
+        guard NSApp.modalWindow == nil else { return }
         show()
     }
 
     func show() {
         let panel = make()
-        // If Kliner was not the app in front, the menu is borrowing the
-        // screen and has to give it back when it closes.
-        borrowed = !NSApp.isActive
+        // A minute old at most, or the line would join two different minutes.
+        if Date().timeIntervalSince(sampled) > 5 { cpu = [] }
+        ticks = Web.cpuTicks()
+        sampler?.invalidate()
+        sampler = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.sample()
+        }
 
         drawStats()
         field?.stringValue = ""
@@ -435,10 +522,10 @@ final class Quick: NSObject, NSTextFieldDelegate {
         place()
 
         panel.alphaValue = 0
-        // Activate first, order second. The other way round, activating makes
-        // some other window of ours key, the panel resigns key the instant it
-        // appears, and the thing shuts itself.
-        NSApp.activate(ignoringOtherApps: true)
+        // Not activating Kliner. The panel takes the keyboard by itself, the
+        // way a non-activating panel does, so pressing ⌘K over a full-screen
+        // app does not switch Spaces to Kliner's, and a hidden Kliner window
+        // stays hidden.
         panel.makeKeyAndOrderFront(nil)
         panel.makeFirstResponder(field)
 
@@ -451,14 +538,29 @@ final class Quick: NSObject, NSTextFieldDelegate {
 
     func hide() {
         guard let panel = panel, panel.isVisible else { return }
+        sampler?.invalidate()
+        sampler = nil
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.09
             panel.animator().alphaValue = 0
         }, completionHandler: {
             panel.orderOut(nil)
-            // Give the screen back to whatever was in front.
-            if self.borrowed { NSApp.hide(nil) }
         })
+    }
+
+    /// One reading of the processor: how busy it was since the last one.
+    private func sample() {
+        guard let now = Web.cpuTicks() else { return }
+        if let was = ticks, now.total > was.total, now.busy >= was.busy {
+            let used = Double(now.busy - was.busy) / Double(now.total - was.total) * 100
+            if used.isFinite {
+                cpu.append(min(100, max(0, used)))
+                if cpu.count > 60 { cpu.removeFirst(cpu.count - 60) }
+                sampled = Date()
+                graph?.values = cpu
+            }
+        }
+        ticks = now
     }
 
     // MARK: building it once
@@ -489,6 +591,11 @@ final class Quick: NSObject, NSTextFieldDelegate {
         statsBox = stats
 
         let ask = NSTextField()
+        // One line that scrolls sideways, never a second line cut off below.
+        ask.usesSingleLineMode = true
+        ask.cell?.wraps = false
+        ask.cell?.isScrollable = true
+        ask.lineBreakMode = .byClipping
         ask.font = Words.ask
         ask.textColor = Paint.ink
         ask.placeholderString = "Search Kliner"
@@ -566,23 +673,36 @@ final class Quick: NSObject, NSTextFieldDelegate {
         return panel
     }
 
-    /// The readings, redrawn each time the menu opens: they are a moment
-    /// old at most, and a stale number is worse than none.
+    /// The processor's line, then the readings, redrawn each time the menu
+    /// opens: they are a moment old at most, and a stale number is worse
+    /// than none.
     private func drawStats() {
         guard let box = statsBox else { return }
         for view in box.subviews { view.removeFromSuperview() }
-        guard !readings.isEmpty else {
-            statsHeight?.constant = 0
-            return
-        }
-        let strip = QuickStats(readings)
-        box.addSubview(strip)
+        let line = QuickGraph()
+        line.values = cpu
+        box.addSubview(line)
+        graph = line
         NSLayoutConstraint.activate([
-            strip.topAnchor.constraint(equalTo: box.topAnchor, constant: 12),
-            strip.leadingAnchor.constraint(equalTo: box.leadingAnchor),
-            strip.trailingAnchor.constraint(equalTo: box.trailingAnchor),
+            line.topAnchor.constraint(equalTo: box.topAnchor, constant: 8),
+            line.leadingAnchor.constraint(equalTo: box.leadingAnchor),
+            line.trailingAnchor.constraint(equalTo: box.trailingAnchor),
         ])
-        statsHeight?.constant = 12 + QuickStats.tall
+        if !readings.isEmpty {
+            let strip = QuickStats(readings)
+            box.addSubview(strip)
+            NSLayoutConstraint.activate([
+                strip.topAnchor.constraint(equalTo: line.bottomAnchor, constant: 6),
+                strip.leadingAnchor.constraint(equalTo: box.leadingAnchor),
+                strip.trailingAnchor.constraint(equalTo: box.trailingAnchor),
+            ])
+        }
+        statsHeight?.constant = statsTall
+    }
+
+    /// How tall the top of the menu is: the line, and the readings if there are any.
+    private var statsTall: CGFloat {
+        8 + QuickGraph.tall + (readings.isEmpty ? 0 : 6 + QuickStats.tall)
     }
 
     @objc private func slipped() { hide() }
@@ -665,7 +785,19 @@ final class Quick: NSObject, NSTextFieldDelegate {
     private func matching(_ typed: String) -> [Entry] {
         let want = typed.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let all: [Entry] = entries
-        guard !want.isEmpty else { return Array(all.prefix(12)) }
+        guard !want.isEmpty else {
+            // Not the first dozen names in a row: the few a key pressed from
+            // anywhere is most often for, from every heading.
+            let kinds: Set<String> = ["desktop", "downloads", "next", "clean"]
+            let others: Set<Int> = [Action.all.count + 2, Quick.monitor, Quick.closeApps, Action.all.count]
+            var out: [Entry] = []
+            for entry in all {
+                let page = entry.index < Action.all.count
+                let kind = page ? (Action.all[entry.index].arguments.first ?? "") : ""
+                if (page && kinds.contains(kind)) || others.contains(entry.index) { out.append(entry) }
+            }
+            return out
+        }
         // Written out instead of chained. The chained version reads better
         // and swiftc gives up on it: "unable to type-check this expression
         // in reasonable time". A loop compiles in no time and does the same.
@@ -756,7 +888,6 @@ final class Quick: NSObject, NSTextFieldDelegate {
 
     private func run(_ index: Int) {
         if index == Quick.monitor {
-            borrowed = false
             hide()
             if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.ActivityMonitor") {
                 NSWorkspace.shared.open(url)
@@ -764,16 +895,12 @@ final class Quick: NSObject, NSTextFieldDelegate {
             return
         }
         if index == Quick.closeApps {
-            borrowed = false
             hide()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
                 Web.closeEverything(on: nil) { _ in }
             }
             return
         }
-        // Before hiding, not after: the fade's completion reads this, and the
-        // window is about to come forward, so nothing should be given back.
-        borrowed = false
         hide()
         // And after the menu is out of the way: a window rising under a panel
         // that is still fading is two things moving at once.
@@ -791,7 +918,7 @@ final class Quick: NSObject, NSTextFieldDelegate {
         // is one, and 12 below.
         let count = max(1, rows.count)
         let said: CGFloat = tail().isEmpty ? 0 : 8 + 15
-        let top: CGFloat = readings.isEmpty ? 0 : 12 + QuickStats.tall
+        let top: CGFloat = statsTall
         let height: CGFloat = top + 13 + 20 + 11 + 1 + 6
             + CGFloat(count) * QuickRow.tall + CGFloat(count - 1) * 2
             + CGFloat(heads) * (QuickGroup.tall + 2)

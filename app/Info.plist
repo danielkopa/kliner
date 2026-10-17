@@ -39,13 +39,30 @@
 	     when you choose "Open nimo in Terminal…", and macOS wants that said
 	     out loud before it will let it happen. -->
 	<key>NSAppleEventsUsageDescription</key>
-	<string>Kliner opens a Terminal window when you ask it to, and sets your wallpaper.</string>
+	<string>Kliner uses this to list the apps that open when you log in, and to stop the ones you choose.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Kliner gathers loose screenshots into your Pictures folder.</string>
 	<key>NSDesktopFolderUsageDescription</key>
 	<string>Kliner sorts your desktop into folders. It never deletes your files.</string>
 	<key>NSDownloadsFolderUsageDescription</key>
 	<string>Kliner sorts your downloads into folders. It never deletes your files.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Kliner sorts loose files in Documents into folders. It never deletes your files.</string>
+	<!-- Sending a file to an @username goes straight from this Mac to the
+	     other one on the same network, and macOS asks before an app may
+	     look for Macs nearby. Nothing goes through a server. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Kliner finds Macs near you so you can send a file to an @username. It goes straight from this Mac to theirs.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_kliner-send._tcp</string>
+		<string>_kliner-send._udp</string>
+	</array>
+	<!-- Where this copy finds Kliner's server: written in by app/build.sh
+	     from the address deploy.sh put up, so a copy opened on any other Mac
+	     talks to the same one. Empty means kliner.app's own. -->
+	<key>KlinerCloud</key>
+	<string>__CLOUD__</string>
 	<key>NSSupportsSuddenTermination</key>
 	<true/>
 </dict>
