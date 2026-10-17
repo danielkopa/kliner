@@ -1,287 +1,2144 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<meta name="description" content="Kliner — a quieter Mac. The site is being built.">
-<meta property="og:title" content="Kliner">
-<meta property="og:description" content="A quieter Mac. The site is being built.">
+<meta name="theme-color" content="#0a0a0a">
+<title>Kliner — a calmer Mac</title>
+<meta name="description" content="Kliner is a Mac app that clears your desktop, tidies your downloads, cleans the Dock and frees up space safely. It asks before it changes anything, and everything it does can be undone. Open source, MIT.">
+<meta property="og:title" content="Kliner — a calmer Mac">
+<meta property="og:description" content="A clear desktop, a quiet Dock and the disk back. Kliner asks before it changes anything, and everything it does can be undone.">
 <meta property="og:type" content="website">
-<title>Kliner — coming soon</title>
+<meta property="og:site_name" content="Kliner">
+<meta name="twitter:card" content="summary">
+<link rel="icon" type="image/png" href="data:image/png;base64,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">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap">
+<script>document.documentElement.className = "js";</script>
 
 <style>
-  /* One screen, one character, one line. Everything here is in service of
-     him being alive on it: he floats, he blinks, he looks about. */
-  :root {
-    --ground:  #0B0F11;
-    --rise:    #141A1D;
-    --ink:     #EDF1F2;
-    --muted:   #8B959B;
-    --faint:   #59636A;
-    --accent:  #5FD3C6;
-    --eye:     #0B0F11;
+/* Kliner's site. The same ground, greys and white button as the window
+   itself (app/Web/src/style.css), so the page and the app read as one
+   product. The only colour on it comes from wallpapers, as on a Mac. */
+
+:root {
+  color-scheme: dark;
+  --bg:     #0a0a0a;
+  --raise:  #0f0f0f;
+  --well:   #0d0d0d;
+  --hover:  #151515;
+  --sel:    #1b1b1b;
+  --sel-2:  #242424;
+  --line:   #1f1f1f;
+  --line-2: #2c2c2c;
+  --ink:    #ededed;
+  --body:   #c4c4c4;
+  --muted:  #8f8f8f;  /* secondary text */
+  --dim:    #808080;  /* the smallest text that still reads on the ground */
+  --faint:  #5c5c5c;  /* hairline-grade: icons and decoration only */
+  --ghost:  #3a3a3a;
+  --good:   #3fcf8e;
+  --on:     #f2f2f2;
+  --on-ink: #0a0a0a;
+  --card: linear-gradient(180deg, rgba(255,255,255,.028), rgba(255,255,255,.008));
+  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --ease: cubic-bezier(.16, 1, .3, 1);
+  --gut: 24px;
+
+  /* wallpapers: soft, layered, the way a Mac's look from across a room */
+  --wp1: radial-gradient(80% 90% at 12% 10%, #a5b8ff 0%, transparent 55%),
+         radial-gradient(70% 80% at 88% 22%, #f2a7c9 0%, transparent 55%),
+         radial-gradient(90% 90% at 60% 105%, #4c35c4 0%, transparent 62%),
+         linear-gradient(160deg, #3d4fc4, #7b5ee6 55%, #2a1f6e);
+  --wp2: radial-gradient(80% 90% at 18% 15%, #e0fbea 0%, transparent 50%),
+         radial-gradient(85% 90% at 88% 88%, #0b6b62 0%, transparent 62%),
+         linear-gradient(140deg, #7ee8bd, #12b886 50%, #075e4c);
+  --wp3: radial-gradient(90% 75% at 82% 8%, #f6f6f7 0%, transparent 55%),
+         radial-gradient(90% 90% at 8% 95%, #34343b 0%, transparent 60%),
+         linear-gradient(135deg, #6c6c75, #a3a3ad 50%, #d6d6dc);
+  --wp4: radial-gradient(80% 80% at 82% 15%, #fde4f3 0%, transparent 50%),
+         radial-gradient(85% 90% at 15% 92%, #b0175a 0%, transparent 60%),
+         linear-gradient(135deg, #f580b9, #e5489a 45%, #9b1ca6);
+  --wp5: radial-gradient(80% 80% at 18% 12%, #d4fbff 0%, transparent 50%),
+         radial-gradient(90% 90% at 88% 92%, #0c3e6b 0%, transparent 60%),
+         linear-gradient(150deg, #2fd6ee, #0ea2e6 50%, #1d4bd2);
+  --wp6: radial-gradient(80% 80% at 82% 12%, #fff3cf 0%, transparent 50%),
+         radial-gradient(90% 90% at 12% 92%, #8f2f12 0%, transparent 60%),
+         linear-gradient(135deg, #fbc13a, #f6781a 50%, #bd1f43);
+  --wp7: radial-gradient(70% 70% at 76% 24%, #7a3cf0 0%, transparent 56%),
+         radial-gradient(80% 80% at 18% 88%, #0e9bd8 0%, transparent 56%),
+         linear-gradient(160deg, #0b1026, #1e1b4b 60%, #0f172a);
+  --wp8: radial-gradient(80% 80% at 20% 18%, #eefcd2 0%, transparent 50%),
+         radial-gradient(90% 90% at 86% 88%, #33501a 0%, transparent 60%),
+         linear-gradient(135deg, #a9b98f, #6b9073 50%, #2f3e46);
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.6 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+img, svg { display: block; }
+a { color: inherit; }
+p { margin: 0; }
+h1, h2, h3 { margin: 0; font-weight: 600; text-wrap: balance; }
+button { font: inherit; color: inherit; }
+code, kbd { font-family: var(--mono); }
+kbd {
+  display: inline-grid; place-items: center;
+  min-width: 1.6em; height: 1.55em; padding: 0 .35em;
+  border-radius: .38em; border: 1px solid var(--line-2);
+  background: linear-gradient(#1a1a1a, #121212);
+  box-shadow: inset 0 -1px 0 rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.04);
+  font-size: .82em; font-weight: 500; line-height: 1; color: var(--ink);
+  vertical-align: .08em;
+}
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 6px; }
+::selection { background: rgba(255,255,255,.18); }
+
+.wrap { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 var(--gut); }
+@media (max-width: 600px) { :root { --gut: 16px; } }
+
+.ic { width: 16px; height: 16px; flex: 0 0 auto; fill: none; stroke: currentColor;
+      stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+.skip {
+  position: absolute; left: 12px; top: -60px; z-index: 100;
+  padding: 10px 14px; border-radius: 10px; background: var(--on); color: var(--on-ink);
+  font-weight: 500; text-decoration: none; transition: top .2s;
+}
+.skip:focus { top: 12px; }
+
+.sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---- buttons ---------------------------------------------------------- */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  height: 46px; padding: 0 20px; border-radius: 12px;
+  font: 500 15.5px/1 var(--sans); letter-spacing: -.005em;
+  text-decoration: none; white-space: nowrap; cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform .25s var(--ease), background-color .2s, box-shadow .25s, border-color .2s, color .2s;
+}
+.btn .ic { width: 17px; height: 17px; }
+.btn-on {
+  background: var(--on); color: var(--on-ink);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.12), 0 10px 30px -10px rgba(255,255,255,.35), inset 0 -1px 0 rgba(0,0,0,.14);
+}
+.btn-on:hover { background: #fff; transform: translateY(-1px);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.2), 0 14px 36px -8px rgba(255,255,255,.4), inset 0 -1px 0 rgba(0,0,0,.14); }
+.btn-ghost { color: var(--ink); background: rgba(255,255,255,.035); border-color: var(--line-2); }
+.btn-ghost:hover { background: rgba(255,255,255,.07); border-color: #3d3d3d; }
+.btn-ghost .ic { color: var(--muted); transition: transform .3s var(--ease); }
+.btn-ghost:hover .ic { transform: translateY(2px); }
+.btn-sm { height: 34px; padding: 0 14px; border-radius: 9px; font-size: 14px; }
+
+/* ---- the bar along the top -------------------------------------------- */
+
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(10,10,10,.6);
+  -webkit-backdrop-filter: saturate(140%) blur(14px);
+  backdrop-filter: saturate(140%) blur(14px);
+  border-bottom: 1px solid transparent;
+  transition: border-color .3s, background-color .3s;
+}
+.nav.scrolled { border-bottom-color: var(--line); background: rgba(10,10,10,.78); }
+.nav-in { display: flex; align-items: center; gap: 28px; height: 62px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none;
+         font-weight: 600; font-size: 16.5px; letter-spacing: -.02em; border-radius: 8px; }
+.mark { width: 25px; height: 16px; fill: var(--ink); }
+.links { display: flex; gap: 4px; }
+.links a { color: var(--muted); text-decoration: none; font-size: 14.5px; padding: 6px 10px;
+           border-radius: 8px; transition: color .2s, background-color .2s; }
+.links a:hover { color: var(--ink); background: rgba(255,255,255,.04); }
+.nav-end { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.kbtn { height: 34px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--line-2);
+        background: rgba(255,255,255,.02); color: var(--muted); cursor: pointer;
+        display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; transition: color .2s, border-color .2s; }
+.kbtn:hover { color: var(--ink); border-color: #3d3d3d; }
+.kbtn kbd { font-size: 11px; height: 20px; border-radius: 5px; }
+.gh { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; color: var(--muted);
+      transition: color .2s, background-color .2s; }
+.gh:hover { color: var(--ink); background: rgba(255,255,255,.05); }
+.gh .ic { width: 18px; height: 18px; fill: currentColor; stroke: none; }
+@media (max-width: 860px) { .links { display: none; } }
+@media (max-width: 600px) { .kbtn { display: none; } .nav-in { height: 56px; } }
+
+/* ---- hero ------------------------------------------------------------- */
+
+.hero { position: relative; padding-top: clamp(36px, 6vw, 72px); overflow-x: clip; }
+.hero-glow {
+  position: absolute; left: 0; right: 0; top: -62px; height: 820px; pointer-events: none;
+  background:
+    radial-gradient(48% 52% at 50% 0%, rgba(255,255,255,.085), transparent 72%),
+    radial-gradient(30% 34% at 50% 18%, rgba(255,255,255,.04), transparent 70%);
+}
+/* A gradient this wide on a ground this dark bands into rings; a little
+   grain over the top is the fix that keeps the gradient. */
+.grain {
+  position: absolute; inset: 0; pointer-events: none; opacity: .045; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+}
+.hero-in { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; }
+
+.mascot { position: relative; width: clamp(92px, 10.5vw, 124px); margin-bottom: 30px; }
+.mascot::before {
+  content: ""; position: absolute; inset: -55%; z-index: -1; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255,255,255,.075), transparent);
+}
+.kliner { width: 100%; height: auto; overflow: visible; fill: var(--ink); cursor: pointer;
+          filter: drop-shadow(0 20px 40px rgba(0,0,0,.55)); -webkit-tap-highlight-color: transparent; }
+.kliner .eyes { fill: var(--bg); }
+.look { transition: transform .5s var(--ease); }
+
+/* The eyes are their own group, so they can shut and look about without
+   the face moving with them. The origin is the middle of the pair, which
+   is what makes a blink close rather than slide. */
+.eyes {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.eyes.shut   { transform: scaleY(0.08); transition-duration: 70ms; }
+.eyes.left   { transform: translateX(-2.2px); }
+.eyes.right  { transform: translateX(2.2px); }
+
+.floor {
+  position: absolute; left: 50%; bottom: -16px; width: 64%; height: 12px; border-radius: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(closest-side, rgba(255,255,255,.13), transparent);
+}
+.js .kliner { animation: arrive 1s var(--ease) both, breathe 5.5s ease-in-out 1s infinite; }
+.js .floor  { animation: floor 5.5s ease-in-out 1s infinite; }
+@keyframes arrive { from { opacity: 0; transform: translateY(16px) scale(.94); } to { opacity: 1; transform: none; } }
+/* Barely: enough that he is alive, not enough to pull at the eye. */
+@keyframes breathe { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-8px) scale(1.012); } }
+@keyframes floor { 0%, 100% { transform: translateX(-50%) scale(1); opacity: 1; } 50% { transform: translateX(-50%) scale(.8); opacity: .55; } }
+
+h1 {
+  font-size: clamp(46px, 7.6vw, 92px); line-height: .98; letter-spacing: -.052em;
+}
+.grad { color: var(--ink); }
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .grad {
+    background: linear-gradient(180deg, #fafafa 25%, #a6a6a6 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
   }
+}
+.lede {
+  margin-top: 22px; max-width: 34em; font-size: clamp(17px, 1.55vw, 19.5px); line-height: 1.55;
+  color: #a3a3a3; text-wrap: balance;
+}
+.ctas { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 34px; }
+.meta { margin-top: 18px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 12px;
+        font: 13px/1.4 var(--mono); color: var(--dim); }
+.meta i { width: 3px; height: 3px; border-radius: 50%; background: var(--ghost); }
+.js .hero-in > :not(.mascot) { animation: rise .9s var(--ease) both; }
+.js .hero-in > h1 { animation-delay: .12s; }
+.js .hero-in > .lede { animation-delay: .2s; }
+.js .hero-in > .ctas { animation-delay: .28s; }
+.js .hero-in > .meta { animation-delay: .34s; }
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@media (max-width: 480px) {
+  .ctas { width: 100%; max-width: 360px; }
+  .ctas .btn { flex: 1 1 100%; }
+}
 
-  * { box-sizing: border-box; }
+/* ---- the window, drawn ------------------------------------------------ */
+/* Everything inside is sized in em, and the em is a fixed share of the
+   window's width, so the drawing scales as one piece at any size. Below a
+   tablet's width it lays itself out again rather than shrinking to dust. */
 
-  html, body { height: 100%; }
+.stage { position: relative; margin-top: clamp(48px, 6.5vw, 76px); }
+.shot { position: relative; max-width: 1120px; margin: 0 auto; container: shot / inline-size; }
+.js .shot { animation: lift 1.1s var(--ease) .38s both; }
+@keyframes lift { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
 
-  body {
-    margin: 0;
-    background: var(--ground);
-    color: var(--ink);
-    font-family: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    display: grid;
-    grid-template-rows: 1fr auto;
-    overflow: hidden;
-  }
+.aura { position: absolute; left: 4%; right: 4%; top: -4%; height: 78%; pointer-events: none;
+        filter: blur(72px) saturate(120%); opacity: .4; transform: translateZ(0); }
+.aura .wl { border-radius: 40%; }
 
-  /* The ground is not flat: a wide, slow bloom behind him, and a second one
-     drifting, so the dark has some depth to it rather than being a void. */
-  .sky {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    background:
-      radial-gradient(62vmax 62vmax at 50% 40%, var(--rise) 0%, transparent 64%),
-      radial-gradient(26vmax 26vmax at 50% 38%, rgba(95, 211, 198, 0.16) 0%, transparent 68%),
-      radial-gradient(11vmax 11vmax at 50% 38%, rgba(95, 211, 198, 0.10) 0%, transparent 72%);
-    animation: drift 14s ease-in-out infinite;
-  }
+.wl { position: absolute; inset: 0; background: var(--w); transition: opacity 1.4s ease; }
+.wl.b { opacity: 0; }
+[data-top="b"] > .wl.b { opacity: 1; }
 
-  /* A gradient this wide on a ground this dark bands into rings — the screen
-     runs out of steps between one shade and the next. A little grain over the
-     top is the oldest fix there is, and the only one that does not mean
-     giving up the gradient. */
-  .grain {
-    position: fixed;
-    inset: -50%;
-    pointer-events: none;
-    opacity: 0.035;
-    mix-blend-mode: overlay;
-    background-image: url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'>\
-<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/></filter>\
-<rect width='160' height='160' filter='url(%23n)'/></svg>");
-  }
+.win {
+  position: relative; font-size: calc(100cqw / 93.33); line-height: 1.4;
+  display: grid; grid-template-columns: 6.3em 1fr;
+  border-radius: 1.25em; overflow: hidden; text-align: left;
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  box-shadow: 0 0 0 .55em rgba(255,255,255,.025), 0 0 0 calc(.55em + 1px) rgba(255,255,255,.05),
+              0 3em 7em -1em rgba(0,0,0,.85);
+  -webkit-mask-image: linear-gradient(#000 80%, transparent 99%);
+  mask-image: linear-gradient(#000 80%, transparent 99%);
+  user-select: none; -webkit-user-select: none;
+}
+.win::before { content: ""; position: absolute; top: 0; left: 12%; right: 12%; height: 1px; z-index: 2;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); }
+.win .ic { width: 1.3em; height: 1.3em; stroke-width: 1.6; }
 
-  @keyframes drift {
-    0%, 100% { transform: scale(1);    opacity: 1; }
-    50%      { transform: scale(1.06); opacity: 0.86; }
-  }
+.w-rail { position: relative; border-right: 1px solid #1c1c1c; display: flex; flex-direction: column; align-items: center;
+          padding: 1.35em 0 1.3em; }
+.w-lights { align-self: flex-start; display: flex; gap: .6em; margin-left: 1.3em; }
+.w-lights i { width: 1em; height: 1em; border-radius: 50%; background: #ff5f57; box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); }
+.w-lights i:nth-child(2) { background: #febc2e; }
+.w-lights i:nth-child(3) { background: #28c840; }
+.w-logo { width: 2.3em; height: 1.5em; margin: 2.3em 0 1.6em; fill: var(--ink); }
+.w-spots, .w-foot { display: flex; flex-direction: column; align-items: center; gap: .4em; }
+.w-foot { margin-top: auto; gap: 1em; }
+.w-spot { position: relative; width: 3em; height: 3em; border-radius: .75em; display: grid; place-items: center; color: #6e6e6e; }
+.w-spot.on { background: #1b1b1b; color: var(--ink); }
+.w-spot.on::before { content: ""; position: absolute; left: -1.65em; top: .65em; width: .26em; height: 1.7em;
+                     border-radius: 0 .3em .3em 0; background: var(--ink); }
+.w-spot b { position: absolute; top: -.2em; right: -.45em; min-width: 1.3em; height: 1.3em; padding: 0 .3em;
+            border-radius: 1em; background: #262626; color: #c4c4c4; font-size: .8em; font-weight: 500;
+            display: grid; place-items: center; box-shadow: 0 0 0 .2em #0a0a0a; }
+.w-av { width: 2.4em; height: 2.4em; border-radius: 50%; background: #1b1b1b; border: 1px solid #2a2a2a;
+        display: grid; place-items: center; }
+.w-av svg, .w-face svg { width: 62%; height: auto; }
+.mini-b { fill: var(--ink); }
+.mini-e { fill: #1b1b1b; }
 
-  main {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2.25rem;
-    padding: 2rem 1.5rem;
-    text-align: center;
-  }
+.w-main { min-width: 0; }
+.w-bar { height: 4.35em; border-bottom: 1px solid #1c1c1c; display: flex; align-items: center; gap: 1.05em;
+         padding: 0 1.4em 0 1.3em; color: #5c5c5c; }
+.w-where { display: flex; align-items: center; gap: .65em; color: var(--ink); margin-left: .5em; }
+.w-where span { font-size: 1.12em; font-weight: 500; }
+.w-where .ic { color: #8a8a8a; }
+.w-bar-r { margin-left: auto; display: flex; align-items: center; gap: 1.2em; color: #6e6e6e; }
+.w-state { width: 1.3em; height: 1.3em; border-radius: 50%; border: .13em solid #2c2c2c; display: grid; place-items: center; }
+.w-state::after { content: ""; width: .42em; height: .42em; border-radius: 50%; background: var(--good); }
 
-  /* ---- him ------------------------------------------------------------ */
+.w-page { padding: 1.9em 2.2em 2.4em; }
+.w-head { display: flex; align-items: center; gap: 1.2em; padding-bottom: 1.6em; border-bottom: 1px solid #1c1c1c; }
+.w-face { width: 4.3em; height: 4.3em; flex: none; border-radius: 50%; background: #141414; border: 1px solid #262626;
+          display: grid; place-items: center; }
+.w-face .mini-e { fill: #141414; }
+.w-hello { display: grid; gap: .15em; }
+.w-hello b { font-size: 1.78em; font-weight: 600; letter-spacing: -.02em; line-height: 1.15; }
+.w-hello span { font-size: 1.08em; color: #8a8a8a; }
+.w-find { margin-left: auto; width: 19em; height: 2.6em; display: flex; align-items: center; gap: .7em; padding: 0 .55em 0 .9em;
+          border: 1px solid #1f1f1f; background: #0d0d0d; border-radius: .7em; color: #8a8a8a; }
+.w-find span { font-size: 1.04em; }
+.w-find i { margin-left: auto; font-style: normal; font-size: .82em; color: #6e6e6e; border: 1px solid #262626;
+            border-radius: .45em; padding: .05em .45em; }
 
-  .kliner {
-    width: clamp(150px, 26vw, 240px);
-    height: auto;
-    color: var(--ink);
-    overflow: visible;
-    filter: drop-shadow(0 24px 60px rgba(0, 0, 0, 0.55));
-    animation: arrive 1s cubic-bezier(0.16, 1, 0.3, 1) both,
-               breathe 5.5s ease-in-out 1s infinite;
-  }
+.w-chips { display: flex; flex-wrap: wrap; align-items: center; gap: .6em; margin: 1.5em 0 1.5em; }
+.w-chip { height: 2.65em; padding: 0 1.05em; border-radius: 99em; border: 1px solid #222; background: #0f0f0f;
+          display: inline-flex; align-items: center; gap: .55em; color: #c4c4c4; white-space: nowrap; }
+.w-chip span { font-size: 1.04em; }
+.w-chip b { font-weight: 600; color: var(--ink); }
+.w-chip .ic { width: 1.15em; height: 1.15em; color: #8a8a8a; }
+.w-chip.on { background: #f2f2f2; border-color: #f2f2f2; color: #0a0a0a; }
+.w-chip.on span { font-weight: 600; }
+.w-chip.on .ic { color: #0a0a0a; }
+.w-chip i { font-style: normal; display: grid; place-items: center; width: 1.6em; height: 1.6em; border-radius: .4em;
+            border: 1px solid #333; font-family: var(--mono); font-size: .9em; color: var(--ink); }
+.w-sep { width: 1px; height: 1.7em; background: #262626; margin: 0 .35em; }
 
-  @keyframes arrive {
-    from { opacity: 0; transform: translateY(18px) scale(0.94); }
-    to   { opacity: 1; transform: none; }
-  }
+.w-grid { display: grid; grid-template-columns: 1.45fr 1fr; gap: 1.1em; align-items: start; }
+.w-col { display: grid; gap: 1.1em; }
+.w-card { border: 1px solid #1f1f1f; border-radius: 1.15em; background: linear-gradient(180deg, rgba(255,255,255,.024), rgba(255,255,255,.006));
+          padding: 1.25em; min-width: 0; }
+.w-ch { display: flex; align-items: center; gap: .6em; color: #8a8a8a; margin-bottom: 1.1em; }
+.w-ch span { font-size: 1.04em; }
+.w-ch .r { margin-left: auto; display: flex; align-items: center; gap: 1em; }
+.w-ch .r b { color: var(--ink); font-weight: 600; font-size: 1em; }
+.w-ch .r em { font-style: normal; font-size: .95em; padding: .2em .7em; border-radius: .5em; background: #161616; color: #c4c4c4; }
 
-  /* Barely: enough that he is alive, not enough to be movement in the corner
-     of your eye while you are reading the line under him. */
-  @keyframes breathe {
-    0%, 100% { transform: translateY(0)      scale(1); }
-    50%      { transform: translateY(-9px)   scale(1.012); }
-  }
+.w-screen { position: relative; aspect-ratio: 16 / 10; border-radius: .75em; overflow: hidden; margin: .32em;
+            box-shadow: 0 0 0 .32em #161616, 0 0 0 calc(.32em + 1px) #2a2a2a; }
+.w-menu { position: absolute; z-index: 1; top: 0; left: 0; right: 0; height: 1.55em; display: flex; align-items: center; gap: .6em;
+          padding: 0 .9em; background: rgba(255,255,255,.2); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.w-menu i { height: .38em; width: 1.8em; border-radius: 1em; background: rgba(255,255,255,.9); }
+.w-menu i:first-child { width: .6em; height: .6em; }
+.w-menu i:nth-child(2) { width: 2.6em; }
+.w-menu i:nth-child(4) { width: 1.4em; }
+.w-menu svg { margin-left: auto; width: 1.3em; height: .9em; fill: #fff; }
+.w-menu b { font-size: .78em; font-weight: 500; color: #fff; }
+.w-ficon { position: absolute; z-index: 1; top: 2.7em; right: 1.7em; display: grid; justify-items: center; gap: .3em;
+           transition: opacity .35s var(--ease), transform .35s var(--ease); }
+.w-ficon span { font-size: .78em; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.45); }
+.w-screen.hid .w-ficon { opacity: 0; transform: scale(.85); }
+.fold { position: relative; width: 3.3em; height: 2.55em; border-radius: .35em; margin-top: .4em;
+        background: linear-gradient(180deg, #8ccbfb, #4f9fe8); box-shadow: 0 .15em .4em rgba(0,0,0,.25); }
+.fold::before { content: ""; position: absolute; left: 0; top: -.38em; width: 45%; height: .6em; border-radius: .3em .3em 0 0; background: #6fb6f5; }
+.w-dock { position: absolute; z-index: 1; left: 50%; bottom: .85em; transform: translateX(-50%); display: flex; align-items: center; gap: .42em;
+          padding: .42em; border-radius: 1.05em; background: rgba(255,255,255,.24); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,.28), 0 .5em 1.5em rgba(0,0,0,.2); }
+.w-dock i { width: 2.35em; height: 2.35em; border-radius: .6em; background: var(--c); display: grid; place-items: center;
+            font-style: normal; color: #fff; box-shadow: inset 0 -.12em 0 rgba(0,0,0,.12); }
+.w-dock i span { font-size: 1.05em; font-weight: 600; }
+.w-dock .sep { width: 1px; height: 1.9em; background: rgba(255,255,255,.4); border-radius: 0; box-shadow: none; margin: 0 .15em; }
+.w-walls { display: grid; grid-template-columns: repeat(7, 1fr); gap: .65em; margin-top: 1.25em; }
+.w-walls i { aspect-ratio: 16 / 10; border-radius: .55em; background: var(--w); box-shadow: inset 0 0 0 1px rgba(255,255,255,.1);
+             transition: box-shadow .5s var(--ease); }
+.w-walls i.on { box-shadow: 0 0 0 .2em #0a0a0a, 0 0 0 .38em var(--ink); }
 
-  /* The eyes are their own group, so they can shut and look about without
-     the face moving with them. The origin is the middle of the pair, which
-     is what makes a blink close rather than slide. */
-  .eyes {
-    transform-box: fill-box;
-    transform-origin: 50% 50%;
-    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .eyes.shut   { transform: scaleY(0.08); transition-duration: 70ms; }
-  .eyes.left   { transform: translateX(-2.2px); }
-  .eyes.right  { transform: translateX(2.2px); }
+.w-disk-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.w-big { font-size: 2.7em; font-weight: 600; letter-spacing: -.035em; line-height: 1; }
+.w-big small { font-size: .42em; font-weight: 500; color: #8a8a8a; letter-spacing: 0; margin-left: .25em; }
+.w-sub { font-size: .98em; color: #8a8a8a; margin-top: .45em; }
+.w-pct { text-align: right; display: grid; gap: .2em; }
+.w-pct b { font-weight: 600; }
+.w-pct span { font-size: .9em; color: #6e6e6e; }
+.w-ringrow { display: grid; grid-template-columns: 10.6em 1fr; gap: 1.5em; align-items: center; margin-top: 1.2em; }
+.w-ring { position: relative; }
+.w-ring svg { width: 100%; height: auto; transform: rotate(-90deg); }
+.w-ring-c { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.w-ring-c b { font-size: 1.75em; font-weight: 600; letter-spacing: -.02em; line-height: 1.1; }
+.w-ring-c span { font-size: .82em; color: #8a8a8a; }
+.w-leg { display: grid; gap: .95em; }
+.w-leg div { display: grid; grid-template-columns: 1em 1fr auto; gap: .55em; align-items: center; color: #c4c4c4; }
+.w-leg span, .w-leg b { font-size: .95em; }
+.w-leg b { font-weight: 500; color: var(--ink); }
+.w-leg i { width: .95em; height: .95em; border-radius: .22em; }
+.lg-a { background: repeating-linear-gradient(-45deg, #e9e9e9 0 .14em, transparent .14em .3em); box-shadow: inset 0 0 0 1px #6e6e6e; }
+.lg-b { background: #f2f2f2; }
+.lg-c { background: repeating-linear-gradient(45deg, #6e6e6e 0 .09em, transparent .09em .28em); box-shadow: inset 0 0 0 1px #4a4a4a; }
 
-  /* ---- what it says --------------------------------------------------- */
+.w-sorted { display: flex; align-items: center; gap: .9em; }
+.w-tick { width: 2.4em; height: 2.4em; flex: none; border-radius: 50%; background: #161616; border: 1px solid #262626; display: grid; place-items: center; color: var(--ink); }
+.w-tick .ic { width: 1.1em; height: 1.1em; stroke-width: 2.2; }
+.w-sorted b { display: block; font-weight: 600; }
+.w-sorted span { font-size: .95em; color: #8a8a8a; }
+.w-dl-n { display: flex; align-items: baseline; gap: .4em; }
+.w-dl-n b { font-size: 2.3em; font-weight: 600; line-height: 1; letter-spacing: -.03em; }
+.w-dl-n span { color: #8a8a8a; }
+.w-seg { display: grid; grid-template-columns: 2fr 2fr 1fr; gap: .25em; margin: 1em 0 .9em; }
+.w-seg i { height: .65em; border-radius: .2em; background: #e9e9e9; }
+.w-seg i:nth-child(2) { background: #8a8a8a; }
+.w-seg i:nth-child(3) { background: #4a4a4a; }
+.w-kinds { display: flex; gap: 1.2em; color: #c4c4c4; }
+.w-kinds span { font-size: .92em; }
+.w-kinds b { font-weight: 600; color: var(--ink); margin-left: .25em; }
 
-  .said {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.9rem;
-    animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.28s both;
-  }
+@container shot (max-width: 720px) {
+  .win { font-size: calc(100cqw / 37); grid-template-columns: 4.6em 1fr; }
+  .w-lights { margin-left: .85em; gap: .4em; }
+  .w-lights i { width: .8em; height: .8em; }
+  .w-logo { margin: 1.8em 0 1.3em; }
+  .w-spot { width: 2.8em; height: 2.8em; }
+  .w-spot.on::before { left: -.9em; }
+  .w-spots .w-spot:nth-child(n+5) { display: none; }
+  .w-bar .nav-ic, .w-find, .w-sep, .w-chips .w-chip:nth-child(n+5), .w-desk, .w-dl { display: none; }
+  .w-page { padding: 1.5em 1.4em 1.8em; }
+  .w-head { padding-bottom: 1.3em; }
+  .w-face { width: 3.6em; height: 3.6em; }
+  .w-chips { margin: 1.2em 0; }
+  .w-grid { grid-template-columns: 1fr; }
+  .w-walls { grid-template-columns: repeat(5, 1fr); }
+  .w-walls i:nth-child(n+6) { display: none; }
+  .w-ringrow { grid-template-columns: 8.5em 1fr; }
+}
 
-  @keyframes rise {
-    from { opacity: 0; transform: translateY(14px); }
-    to   { opacity: 1; transform: none; }
-  }
+/* ---- sections --------------------------------------------------------- */
 
-  h1 {
-    margin: 0;
-    font-size: clamp(1.6rem, 4.6vw, 2.25rem);
-    font-weight: 600;
-    letter-spacing: -0.022em;
-    line-height: 1.1;
-  }
+.sec { position: relative; padding-top: clamp(96px, 12vw, 150px); scroll-margin-top: 40px; }
+.sec-head { max-width: 760px; }
+.sec-head.center { margin: 0 auto; text-align: center; }
+.eyebrow { display: inline-flex; align-items: center; gap: 9px; margin-bottom: 18px;
+           font: 500 13px/1.2 var(--mono); color: var(--muted); letter-spacing: .01em; }
+.eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 2px; background: currentColor; opacity: .7; }
+h2 { font-size: clamp(34px, 4.6vw, 54px); line-height: 1.04; letter-spacing: -.042em; }
+.sec-sub { margin-top: 18px; max-width: 37em; font-size: clamp(16.5px, 1.5vw, 18.5px); line-height: 1.55; color: var(--muted); text-wrap: pretty; }
+.sec-head.center .sec-sub { margin-left: auto; margin-right: auto; }
 
-  .status {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.6rem;
-    margin: 0;
-    font-family: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
-    font-size: 0.8125rem;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
+/* ---- bento ------------------------------------------------------------ */
 
-  /* One teal thing on the page, and it is the one that says work is going on. */
-  .dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 0 0 rgba(95, 211, 198, 0.5);
-    animation: beat 2s ease-out infinite;
-  }
+.bento { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; margin-top: 56px; }
+.card {
+  position: relative; grid-column: span 12; display: flex; flex-direction: column; min-width: 0;
+  border-radius: 20px; border: 1px solid var(--line); background: linear-gradient(180deg, #111 0%, #0c0c0c 100%);
+  overflow: hidden; isolation: isolate;
+}
+/* the light that follows the pointer: a glow inside, and a brighter edge */
+.card::before, .card::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  opacity: 0; transition: opacity .35s; }
+.card::before { z-index: -1; background: radial-gradient(520px circle at var(--mx, 50%) var(--my, 0%), rgba(255,255,255,.045), transparent 42%); }
+.card::after { padding: 1px; background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 0%), rgba(255,255,255,.22), transparent 45%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
+@media (hover: hover) { .card:hover::before, .card:hover::after { opacity: 1; } }
 
-  @keyframes beat {
-    0%   { box-shadow: 0 0 0 0 rgba(95, 211, 198, 0.45); opacity: 1; }
-    70%  { box-shadow: 0 0 0 9px rgba(95, 211, 198, 0);  opacity: 0.55; }
-    100% { box-shadow: 0 0 0 0 rgba(95, 211, 198, 0);    opacity: 1; }
-  }
+.c-hide { grid-column: span 7; } .c-tidy { grid-column: span 5; }
+.c-wall, .c-dock, .c-k { grid-column: span 4; }
+.c-free { grid-column: span 7; } .c-store { grid-column: span 5; }
+@media (max-width: 1000px) {
+  .c-hide, .c-free, .c-store { grid-column: span 12; }
+  .c-tidy, .c-wall, .c-dock, .c-k { grid-column: span 6; }
+}
+@media (max-width: 700px) { .bento .card { grid-column: span 12; } }
 
-  .note {
-    margin: 0;
-    max-width: 30rem;
-    font-size: 0.95rem;
-    line-height: 1.65;
-    color: var(--faint);
-  }
+.vis { position: relative; height: 300px; overflow: hidden; container-type: inline-size;
+       background: radial-gradient(90% 80% at 50% 0%, rgba(255,255,255,.03), transparent 70%); }
+.c-wall .vis, .c-dock .vis, .c-k .vis { height: 262px; }
+.c-free .vis, .c-store .vis { height: 304px; }
+.txt { padding: 4px 26px 26px; margin-top: auto; }
+.txt .eyebrow { font-size: 12px; margin-bottom: 10px; }
+.txt h3 { font-size: 19px; line-height: 1.3; letter-spacing: -.02em; }
+.txt p { margin-top: 8px; color: var(--muted); font-size: 15px; line-height: 1.55; max-width: 44em; }
+.try { margin-top: 14px !important; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font: 12.5px/1.4 var(--mono); color: var(--dim) !important; }
+.try kbd { font-size: 12px; }
+.try button { all: unset; cursor: pointer; color: var(--body); border-bottom: 1px solid var(--line-2); }
+.try button:hover { color: var(--ink); border-color: var(--muted); }
+.try button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 3px; }
 
-  /* ---- the bottom of the page ----------------------------------------- */
+/* small file pictures, shared by the desk and the tidy vignettes */
+.fic { position: relative; flex: none; width: 22px; height: 27px; border-radius: 3px 7px 3px 3px;
+       background: linear-gradient(#fbfbfb, #e3e3e3); box-shadow: 0 1px 2px rgba(0,0,0,.35); }
+.fic::after { content: ""; position: absolute; left: 3px; right: 3px; bottom: 4px; height: 4px; border-radius: 2px; background: var(--tag, #a3a3a3); }
+.fic.pdf { --tag: #ef4444; } .fic.txt { --tag: #60a5fa; } .fic.xls { --tag: #22c55e; } .fic.key { --tag: #f59e0b; }
+.fic.zip { background: repeating-linear-gradient(180deg, #d4d4d4 0 2px, #ececec 2px 4px); }
+.fic.zip::after { left: 8px; right: 8px; bottom: 6px; height: 6px; background: #8a8a8a; border-radius: 1px; }
+.fic.img, .fic.shot { width: 28px; height: 22px; border-radius: 3px; border: 2px solid #fff; background: var(--w, var(--wp5)); }
+.fic.img::after, .fic.shot::after { display: none; }
+.fic.fold2 { width: 30px; height: 23px; border-radius: 4px; background: linear-gradient(#8ccbfb, #4f9fe8); }
+.fic.fold2::after { left: 0; right: auto; top: -4px; bottom: auto; width: 13px; height: 6px; border-radius: 3px 3px 0 0; background: #6fb6f5; }
+.fic.dmg { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle, #555 0 3px, #d9d9d9 3.5px 100%); }
+.fic.dmg::after { display: none; }
 
-  footer {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1.4rem;
-    flex-wrap: wrap;
-    padding: 1.6rem;
-    font-size: 0.8125rem;
-    color: var(--faint);
-    animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
-  }
+/* A. the key */
+.desk { position: absolute; inset: 22px; border-radius: 14px; overflow: hidden; background: var(--wp7);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.desk-menu { position: absolute; left: 0; right: 0; top: 0; height: 22px; display: flex; align-items: center; gap: 9px; padding: 0 12px;
+             background: rgba(255,255,255,.12); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.desk-menu i { width: 26px; height: 5px; border-radius: 4px; background: rgba(255,255,255,.75); }
+.desk-menu i:first-child { width: 8px; height: 8px; border-radius: 50%; }
+.desk-menu i:nth-child(3) { width: 34px; }
+.desk-menu b { margin-left: auto; font-size: 11px; font-weight: 500; color: #fff; }
+.desk-icons { position: absolute; top: 34px; right: 12px; bottom: 10px; display: grid; grid-auto-flow: column;
+              grid-template-rows: repeat(4, 1fr); gap: 2px 6px; direction: rtl; }
+.fi { direction: ltr; width: 76px; display: grid; justify-items: center; align-content: center; gap: 5px;
+      transition: opacity .32s var(--ease), transform .32s var(--ease); transition-delay: calc(var(--d, 0) * 24ms); }
+.fi .fic { transform: scale(1.1); }
+.fi b { max-width: 76px; padding: 0 3px; font-size: 10.5px; font-weight: 500; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+.desk.hid .fi { opacity: 0; transform: scale(.9); }
+.desk-toast { position: absolute; left: calc(50% + 34px); bottom: 18px; min-width: 196px; display: grid; justify-items: center; gap: 6px;
+              padding: 12px 18px 11px; border-radius: 14px; background: rgba(18,18,18,.9); border: 1px solid rgba(255,255,255,.1);
+              -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 16px 40px rgba(0,0,0,.45);
+              opacity: 0; transform: translate(-50%, 10px) scale(.97); transition: opacity .3s, transform .45s var(--ease); }
+.desk-toast .ic { width: 20px; height: 20px; }
+.desk-toast b { font-size: 13.5px; font-weight: 600; }
+.desk-toast span { font-size: 11.5px; color: #9a9a9a; display: inline-flex; align-items: center; gap: 6px; }
+.desk-toast kbd { font-size: 10.5px; }
+.desk.hid .desk-toast { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.keycap { position: absolute; left: 40px; bottom: 42px; z-index: 2; width: 72px; height: 72px; padding: 0; border-radius: 16px; cursor: pointer;
+          font: 500 30px/1 var(--mono); color: var(--ink);
+          background: linear-gradient(180deg, #2b2b2b, #191919); border: 1px solid #3c3c3c;
+          box-shadow: 0 6px 0 #0d0d0d, 0 7px 0 #333, 0 22px 34px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.14);
+          transition: transform .12s, box-shadow .12s; -webkit-tap-highlight-color: transparent; }
+.keycap:hover { background: linear-gradient(180deg, #303030, #1c1c1c); }
+.keycap.down, .keycap:active { transform: translateY(5px);
+  box-shadow: 0 1px 0 #0d0d0d, 0 2px 0 #333, 0 10px 18px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.1); }
+.keycap:focus-visible { outline-offset: 6px; border-radius: 16px; }
+@container (max-width: 520px) {
+  .keycap { width: 58px; height: 58px; font-size: 25px; left: 34px; bottom: 36px; border-radius: 14px; }
+  .desk-toast { left: 50%; bottom: auto; top: 34px; }
+  .desk-icons { grid-template-rows: repeat(4, 1fr); }
+  .fi { width: 64px; }
+}
 
-  footer a {
-    color: var(--muted);
-    text-decoration: none;
-    border-bottom: 1px solid transparent;
-    padding-bottom: 1px;
-    transition: color 160ms ease, border-color 160ms ease;
-  }
-  footer a:hover  { color: var(--ink); border-bottom-color: rgba(95, 211, 198, 0.6); }
-  footer a:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 3px;
-    border-radius: 3px;
-  }
+/* B. tidy */
+.v-tidy { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 22px 22px 60px; }
+/* six files and a header fit in the room above the status line, so the list
+   never runs under it; the files still fly out of their pane into the other */
+.v-tidy { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 20px 22px 56px; }
+.v-tidy .pane { padding: 10px; }
+.v-tidy .pane-l { margin-bottom: 8px; }
+.v-tidy .tf-list, .v-tidy .kinds { gap: 4px; }
+.v-tidy .tf { height: 26px; }
+.v-tidy .kinds li { height: 30px; min-width: 0; overflow: hidden; }
+.v-tidy .tlog { bottom: 13px; }
+.v-tidy .pane:first-child { z-index: 1; }  /* a file on its way over passes above the folders, not under them */
+@media (max-width: 480px) {
+  .v-tidy { gap: 8px; padding-left: 16px; padding-right: 16px; }
+  .v-tidy .tlog { left: 16px; right: 16px; }
+  .v-tidy .tf, .v-tidy .kinds li { font-size: 12px; }
+  .v-tidy .kinds li { padding: 0 8px; gap: 6px; }
+}
+.pane { position: relative; min-width: 0; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.015); padding: 12px; }
+.pane-l { display: flex; align-items: center; gap: 8px; margin: 0 0 10px 2px; font-size: 12.5px; color: var(--muted); }
+.pane-l .ic { width: 14px; height: 14px; }
+.pane-l .fic { transform: scale(.62); margin: -6px -6px -6px -4px; }
+.tf-list { display: grid; gap: 5px; }
+.tf { display: flex; align-items: center; gap: 9px; height: 30px; padding: 0 9px; border-radius: 8px; background: #151515; border: 1px solid #222;
+      font-size: 12.5px; color: var(--body); white-space: nowrap; overflow: hidden;
+      transition: transform .7s var(--ease), opacity .55s ease; }
+.tf .fic { transform: scale(.6); margin: 0 -5px; }
+.tf.gone { opacity: 0; }
+.v-tidy.done .tf { opacity: 0; transform: translateX(40px) scale(.7); }
+.empty { position: absolute; inset: 40px 12px 12px; display: grid; place-content: center; justify-items: center; gap: 6px; text-align: center;
+         font-size: 12.5px; color: var(--muted); opacity: 0; transition: opacity .4s; pointer-events: none; }
+.empty .ic { width: 18px; height: 18px; color: var(--good); }
+.v-tidy.done .empty { opacity: 1; }
+.kinds { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.kinds li { display: flex; align-items: center; gap: 9px; height: 34px; padding: 0 10px; border-radius: 8px; font-size: 13px; color: var(--body);
+            background: rgba(255,255,255,.02); border: 1px solid #1b1b1b; transition: background-color .3s, border-color .3s; }
+.kinds li .ic { width: 14px; height: 14px; color: #6fb6f5; }
+.kinds li b { margin-left: auto; font: 500 12px var(--mono); color: var(--ink); min-width: 1.4em; text-align: right; }
+.kinds li.hit { background: rgba(255,255,255,.06); border-color: #2c2c2c; }
+.tlog { position: absolute; left: 22px; right: 22px; bottom: 16px; height: 30px; display: flex; align-items: center; gap: 8px;
+        font: 12px/1 var(--mono); color: var(--muted); }
+.tlog .ok { color: var(--good); }
+.tlog .msg { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: opacity .3s; }
+.pill { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: 8px;
+        border: 1px solid var(--line-2); background: #141414; color: var(--ink); font: 500 12.5px var(--sans); transition: transform .15s, background-color .2s; }
+.pill .ic { width: 13px; height: 13px; }
+.pill.press { transform: scale(.94); background: #262626; }
 
-  @media (prefers-reduced-motion: reduce) {
-    .sky, .kliner, .said, footer, .dot { animation: none; }
-    .grain { opacity: 0.02; }
-    .kliner, .said, footer { opacity: 1; transform: none; }
-    .eyes { transition: none; }
-  }
+/* C. wallpapers */
+.v-wall { display: grid; place-content: center; justify-items: center; padding: 18px; }
+.wp-screen { position: relative; width: min(268px, 86cqw); aspect-ratio: 16 / 10; border-radius: 10px; overflow: hidden;
+             box-shadow: 0 0 0 4px #161616, 0 0 0 5px #2c2c2c, 0 22px 40px rgba(0,0,0,.5); }
+.wp-screen .bar { position: absolute; z-index: 1; left: 0; right: 0; top: 0; height: 12px; background: rgba(255,255,255,.18); }
+.wp-screen .dk { position: absolute; z-index: 1; left: 50%; bottom: 7px; transform: translateX(-50%); width: 46%; height: 14px; border-radius: 5px;
+                 background: rgba(255,255,255,.3); box-shadow: inset 0 0 0 1px rgba(255,255,255,.3); }
+.shelves { display: flex; gap: 14px; margin-top: 20px; }
+.shelf > span { display: block; margin: 0 0 6px 1px; font: 10.5px/1 var(--mono); color: var(--dim); }
+.shelf > div { display: flex; gap: 6px; }
+.wt { width: 38px; aspect-ratio: 16 / 10; padding: 0; border: 0; border-radius: 6px; background: var(--w); cursor: pointer;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); transition: box-shadow .3s var(--ease), transform .3s var(--ease); }
+.wt:hover { transform: translateY(-2px); }
+.wt[aria-pressed="true"] { box-shadow: 0 0 0 2px #0c0c0c, 0 0 0 3.5px var(--ink); }
+.wt:focus-visible { outline-offset: 4px; }
+
+/* D. dock */
+.v-dock { display: grid; place-items: center; background: radial-gradient(70% 70% at 50% 120%, rgba(123,94,230,.32), transparent 70%),
+                                                          radial-gradient(60% 60% at 15% 110%, rgba(14,162,230,.22), transparent 70%); }
+.dock { --t: clamp(26px, 9.6cqw, 38px); display: flex; align-items: flex-end; gap: 6px; padding: 7px; border-radius: 17px; margin-top: 26px;
+        background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.14);
+        -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: 0 20px 40px rgba(0,0,0,.4); }
+.app { position: relative; width: var(--t); height: var(--t); border-radius: 26%; background: var(--c); color: #fff; font-style: normal;
+       display: grid; place-items: center; font-weight: 600; font-size: calc(var(--t) * .44);
+       box-shadow: inset 0 -2px 0 rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.2);
+       transition: width .55s var(--ease), margin .55s var(--ease), opacity .4s, transform .55s var(--ease); }
+.app.mk::after { content: ""; position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%;
+  background: #2a2a2a url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M5 5l6 6M11 5l-6 6' stroke='%23ededed' stroke-width='1.6' stroke-linecap='round'/></svg>") center / 14px no-repeat;
+  border: 1px solid #444; transition: opacity .3s; }
+.dock.clean .app.mk { width: 0; margin-left: -6px; opacity: 0; transform: scale(.3); }
+.app.tr { background: linear-gradient(#e9e9e9, #bdbdbd); color: #555; }
+.app.tr .ic { width: 52%; height: 52%; }
+.dsep { width: 1px; align-self: stretch; margin: 3px 1px; background: rgba(255,255,255,.22); }
+.dchip { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 7px; height: 30px;
+         padding: 0 12px; border-radius: 99px; background: #151515; border: 1px solid #2a2a2a; font-size: 12.5px; color: var(--body);
+         white-space: nowrap; transition: opacity .3s; }
+.dchip .ic { width: 14px; height: 14px; color: var(--good); }
+.dchip.swap { opacity: 0; }
+
+/* E. ⌘K */
+.v-k { display: grid; place-items: center; padding: 18px; }
+.pk { width: min(100%, 330px); border-radius: 14px; background: #121212; border: 1px solid #2a2a2a; overflow: hidden;
+      box-shadow: 0 24px 50px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.05); }
+.pk-q { display: flex; align-items: center; gap: 9px; height: 44px; padding: 0 12px 0 14px; border-bottom: 1px solid #222; font-size: 14px; }
+.pk-q .ic { color: var(--muted); }
+.caret { width: 1.5px; height: 17px; margin-left: -6px; background: var(--ink); }
+.js .caret { animation: caret 1.05s steps(1) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+.pk-q kbd { margin-left: auto; font-size: 10.5px; color: var(--muted); }
+.pk-rows { list-style: none; margin: 0; padding: 6px; }
+.pk-rows li { display: flex; align-items: center; gap: 10px; height: 35px; padding: 0 10px; border-radius: 8px; font-size: 13px; color: var(--body); white-space: nowrap; }
+.pk-rows li .ic { width: 15px; height: 15px; color: var(--muted); }
+.pk-rows li.on { background: #1f1f1f; color: var(--ink); }
+.pk-rows em { margin-left: auto; font: 11px var(--mono); font-style: normal; color: var(--dim); }
+
+/* F. free up space */
+.v-free { display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; padding: 22px; }
+.fr-h { display: flex; align-items: center; gap: 8px; margin: 0 0 6px 2px; font-size: 13px; font-weight: 500; color: var(--ink); }
+.fr-h .ic { width: 15px; height: 15px; color: var(--muted); }
+.fr-h span { margin-left: auto; font: 11px var(--mono); font-weight: 400; color: var(--dim); }
+.rows { list-style: none; margin: 0; padding: 0; }
+.rows li { display: flex; align-items: center; gap: 9px; height: 31px; border-bottom: 1px solid #191919; font-size: 13px; color: var(--body); white-space: nowrap; }
+.rows li:last-child { border-bottom: 0; }
+.rows li b { margin-left: auto; font: 500 12px var(--mono); color: var(--ink); }
+.box { width: 15px; height: 15px; flex: none; border-radius: 4px; background: var(--ink); color: #0a0a0a; display: grid; place-items: center; }
+.box .ic { width: 11px; height: 11px; stroke-width: 2.6; }
+.keep li { color: var(--muted); }
+.keep li b { color: var(--muted); }
+.keep li .ic { width: 14px; height: 14px; color: var(--faint); }
+.fr-sum { display: flex; align-items: baseline; justify-content: space-between; margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+.fr-n { font-size: 22px; font-weight: 600; letter-spacing: -.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.fr-bar { height: 6px; margin-top: 8px; border-radius: 6px; background: #1d1d1d; overflow: hidden; }
+.fr-bar i { display: block; height: 100%; width: var(--p, 100%); border-radius: inherit; background: linear-gradient(90deg, #bdbdbd, #fafafa); transition: width 1.3s var(--ease); }
+.keep .note { margin-top: 10px; font: 11px/1.45 var(--mono); color: var(--dim); }
+@container (max-width: 560px) {
+  .v-free { grid-template-columns: 1fr; }
+  .v-free .keep li:nth-child(n+3) { display: none; }
+  .v-free .keep .note { display: none; }
+}
+
+/* G. storage and startup */
+.v-store { display: grid; grid-template-rows: auto auto; align-content: start; gap: 14px; padding: 22px; }
+.bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.bars li { display: grid; grid-template-columns: 78px 1fr 46px; align-items: center; gap: 10px; height: 19px; font-size: 12.5px; color: var(--body); }
+.bars i { height: 8px; width: calc(var(--v) * 100%); border-radius: 4px; background: linear-gradient(90deg, #8a8a8a, #ededed);
+          transform-origin: left; transition: transform 1s var(--ease); transition-delay: calc(var(--d, 0) * 70ms); }
+.bars.zero i { transform: scaleX(0); }
+.bars b { font: 500 11.5px var(--mono); text-align: right; color: var(--ink); }
+.su { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.su li { display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 8px 0 10px; border-radius: 10px; background: #121212; border: 1px solid #1e1e1e; }
+.su .ico { width: 24px; height: 24px; flex: none; border-radius: 6px; display: grid; place-items: center; background: var(--c); color: #fff; font-size: 11px; font-weight: 600; font-style: normal; }
+.su span { min-width: 0; display: grid; font-size: 12.5px; line-height: 1.25; transition: opacity .3s; }
+.su em { font: 10.5px var(--mono); font-style: normal; color: var(--dim); }
+.su li.off span { opacity: .45; }
+.su .pill { height: 26px; font-size: 12px; }
+
+/* ---- send ------------------------------------------------------------- */
+
+.duo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); gap: clamp(40px, 6vw, 80px); align-items: center; }
+/* a card is twelve columns wide in the bento; beside text it is just a cell */
+.duo > .card { grid-column: auto; }
+.facts { list-style: none; margin: 30px 0 0; padding: 0; display: grid; gap: 14px; }
+.facts li { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: start; font-size: 15.5px; line-height: 1.5; color: var(--body); }
+.facts .ic { width: 18px; height: 18px; margin-top: 2px; color: var(--ink); }
+.facts code { font-size: .88em; color: var(--ink); }
+
+.route-card { padding: 22px 22px 20px; }
+.rc-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.rc-top p { font-size: 13px; color: var(--dim); font-family: var(--mono); }
+.seg { display: inline-flex; padding: 3px; border-radius: 11px; background: #0b0b0b; box-shadow: inset 0 0 0 1px var(--line); }
+.seg button { height: 30px; padding: 0 13px; border: 0; border-radius: 8px; background: none; color: var(--muted); cursor: pointer;
+              display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; transition: color .2s, background-color .2s; }
+.seg button .ic { width: 14px; height: 14px; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: #242424; color: var(--ink); box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 1px 3px rgba(0,0,0,.35); }
+.route { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 38px 0 30px; }
+.node { position: relative; z-index: 1; display: grid; justify-items: center; align-content: start; gap: 10px; text-align: center;
+        transition: opacity .5s, transform .5s var(--ease), filter .5s; }
+.nd { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: #141414; border: 1px solid #2c2c2c;
+      box-shadow: 0 0 0 7px #0e0e0e; color: var(--ink); }
+.nd .ic { width: 24px; height: 24px; }
+.me .nd { background: var(--on); border-color: var(--on); }
+.me .nd svg { width: 34px; height: auto; fill: #0a0a0a; }
+.node b { font-size: 14px; font-weight: 500; }
+.node em { min-height: 2.9em; max-width: 16ch; font: 11.5px/1.45 var(--mono); font-style: normal; color: var(--dim); }
+.track { position: absolute; left: calc(100% / 6); right: calc(100% / 6); top: 31px; height: 2px; container-type: inline-size;
+         background: repeating-linear-gradient(90deg, #3a3a3a 0 6px, transparent 6px 12px); }
+.pkt { position: absolute; z-index: 2; left: 0; top: -13px; height: 26px; padding: 0 10px; border-radius: 13px; display: flex; align-items: center; gap: 6px;
+       background: var(--ink); color: #0a0a0a; font: 500 11px var(--mono); white-space: nowrap; box-shadow: 0 8px 22px rgba(0,0,0,.55);
+       transform: translateX(calc(50cqw - 50%)); }
+.pkt .ic { width: 13px; height: 13px; stroke-width: 2; }
+.route.play .pkt { animation: far 5.2s cubic-bezier(.45,0,.25,1) infinite; }
+.route.near.play .pkt { animation-name: near; animation-duration: 3.6s; }
+.route.near .hub { opacity: .22; transform: scale(.9); filter: grayscale(1); }
+.route.near .pkt .lk { display: none; }
+@keyframes far {
+  0%   { transform: translateX(-50%); opacity: 0; }
+  7%   { opacity: 1; }
+  38%, 62% { transform: translateX(calc(50cqw - 50%)); }
+  93%  { transform: translateX(calc(100cqw - 50%)); opacity: 1; }
+  100% { transform: translateX(calc(100cqw - 50%)); opacity: 0; }
+}
+@keyframes near {
+  0%   { transform: translateX(-50%); opacity: 0; }
+  9%   { opacity: 1; }
+  88%  { transform: translateX(calc(100cqw - 50%)); opacity: 1; }
+  100% { transform: translateX(calc(100cqw - 50%)); opacity: 0; }
+}
+.spec { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; border-top: 1px solid var(--line); }
+.spec div { padding: 14px 4px 2px 0; }
+.spec div + div { padding-left: 14px; border-left: 1px solid var(--line); }
+.spec dt { font: 11px/1.3 var(--mono); color: var(--dim); }
+.spec dd { margin: 5px 0 0; font-size: 13.5px; line-height: 1.35; color: var(--ink); }
+.spec.near-only { display: none; }
+.route-card.near .spec.far-only { display: none; }
+.route-card.near .spec.near-only { display: grid; }
+
+.prof-row { margin-top: clamp(80px, 9vw, 120px); }
+.prof-row .duo { grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); }
+.prof { padding: 0; }
+.pf-bar { height: 42px; display: flex; align-items: center; padding: 0 14px; border-bottom: 1px solid var(--line); }
+.pf-bar .lights { display: flex; gap: 6px; }
+.pf-bar .lights i { width: 10px; height: 10px; border-radius: 50%; background: #2c2c2c; }
+.pf-url { margin: 0 auto; transform: translateX(-20px); display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 12px;
+          border-radius: 8px; background: #121212; border: 1px solid #222; font: 12px var(--mono); color: var(--muted); }
+.pf-url .ic { width: 12px; height: 12px; }
+.pf-body { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.2fr); gap: 20px; padding: 22px; align-items: center; }
+.pf-id { display: flex; align-items: center; gap: 12px; }
+.pf-av { width: 50px; height: 50px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--wp2); box-shadow: 0 0 0 1px rgba(255,255,255,.12); transition: background .4s; }
+.pf-id .pf-av b { font-size: 21px; font-weight: 600; letter-spacing: -.02em; color: var(--muted); opacity: 0; transition: opacity .3s; }
+.pf-id b { display: block; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+.pf-id span { font: 13px var(--mono); color: var(--muted); }
+.pf-lines { margin-top: 18px; display: grid; gap: 10px; }
+.pf-line { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--body); transition: opacity .4s, filter .4s; }
+.pf-line .ic { width: 15px; height: 15px; color: var(--muted); }
+.pf-shot { position: relative; aspect-ratio: 16 / 10; border-radius: 10px; overflow: hidden; background: #161616;
+           box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 16px 34px rgba(0,0,0,.45); }
+.pf-shot .wl, .pf-dock { transition: opacity .45s, filter .45s; }
+.pf-dock { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); display: flex; gap: 4px; padding: 4px; border-radius: 9px;
+           background: rgba(255,255,255,.26); box-shadow: inset 0 0 0 1px rgba(255,255,255,.3); }
+.pf-dock i { width: 17px; height: 17px; border-radius: 5px; background: var(--c); }
+.pf-hid { position: absolute; inset: 0; display: grid; place-items: center; font: 11.5px var(--mono); color: var(--dim); opacity: 0; transition: opacity .4s; }
+/* the three ticks the app has: Picture, This Mac, Setup */
+.prof.no-picture .pf-av { background: var(--sel-2); }
+.prof.no-picture .pf-id .pf-av b { opacity: 1; }
+.prof.no-setup .pf-shot .wl { opacity: 0 !important; }
+.prof.no-setup .pf-hid.w { opacity: 1; }
+.prof.no-setup .pf-dock { opacity: 0; filter: blur(4px); }
+.prof.no-mac .pf-line.mac, .prof.no-setup .pf-line.setup { opacity: .16; filter: blur(3px); }
+.pf-show { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 14px 22px 16px; border-top: 1px solid var(--line); }
+.pf-show > span { margin-right: 4px; font-size: 13px; color: var(--dim); }
+.tg { height: 32px; padding: 0 12px 0 10px; border-radius: 99px; border: 1px solid var(--line-2); background: transparent; color: var(--muted); cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; transition: color .2s, background-color .2s, border-color .2s; }
+.tg .ic { width: 14px; height: 14px; stroke-width: 2.2; opacity: 0; transform: scale(.6); transition: opacity .2s, transform .25s var(--ease); }
+.tg[aria-pressed="true"] { color: var(--ink); background: #1b1b1b; border-color: #3a3a3a; }
+.tg[aria-pressed="true"] .ic { opacity: 1; transform: none; }
+.tg:hover { color: var(--ink); }
+
+/* ---- promises --------------------------------------------------------- */
+
+.promises { list-style: none; margin: 56px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px;
+            background: var(--line); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; }
+.promises li { position: relative; padding: 30px 30px 34px; background: var(--bg); transition: background-color .3s; }
+.promises li:hover { background: #0d0d0d; }
+.pi { width: 40px; height: 40px; margin-bottom: 22px; border-radius: 11px; display: grid; place-items: center; color: var(--ink);
+      border: 1px solid var(--line-2); background: linear-gradient(#171717, #0e0e0e); box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
+.pi .ic { width: 19px; height: 19px; }
+.promises h3 { font-size: 17px; letter-spacing: -.015em; line-height: 1.3; }
+.promises p { margin-top: 8px; font-size: 15px; line-height: 1.55; color: var(--muted); }
+.promises code { font-size: .88em; color: var(--body); }
+.promises a { color: var(--body); text-decoration: underline; text-decoration-color: var(--ghost); text-underline-offset: 3px; }
+.promises a:hover { color: var(--ink); text-decoration-color: var(--muted); }
+@media (max-width: 960px) { .promises { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .promises { grid-template-columns: 1fr; } .promises li { padding: 26px 22px 28px; } }
+
+/* ---- terminal --------------------------------------------------------- */
+
+.term-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.2fr); gap: clamp(40px, 6vw, 76px); align-items: start; }
+.cmds { list-style: none; margin: 30px 0 0; padding: 0; display: grid; gap: 4px; }
+.cmd { width: 100%; display: grid; gap: 3px; padding: 12px 14px; border-radius: 12px; border: 1px solid transparent; background: none;
+       text-align: left; cursor: default; transition: background-color .2s, border-color .2s; }
+.js .cmd { cursor: pointer; }
+.cmd code { font-size: 14px; font-weight: 500; color: var(--ink); }
+.cmd span { font-size: 14.5px; line-height: 1.45; color: var(--muted); }
+.js .cmd:hover { background: rgba(255,255,255,.025); }
+.cmd[aria-selected="true"] { background: rgba(255,255,255,.04); border-color: var(--line-2); }
+.fine { margin-top: 18px; padding-left: 14px; font-size: 14.5px; line-height: 1.5; color: var(--dim); }
+.fine code { color: var(--body); font-size: .9em; }
+.term { border-radius: 16px; border: 1px solid #272727; background: #0c0c0c; overflow: hidden;
+        box-shadow: 0 0 0 6px rgba(255,255,255,.02), 0 30px 80px rgba(0,0,0,.6); }
+.term-bar { position: relative; height: 40px; display: flex; align-items: center; padding: 0 14px; border-bottom: 1px solid #1c1c1c; background: #111; }
+.term-bar .lights { display: flex; gap: 7px; }
+.term-bar .lights i { width: 11px; height: 11px; border-radius: 50%; background: #2c2c2c; }
+.term-bar b { position: absolute; left: 50%; transform: translateX(-50%); font: 500 12px var(--mono); color: var(--dim); }
+.term pre { margin: 0; padding: 18px 20px 22px; min-height: 452px; overflow-x: auto; overflow-y: hidden; font: 13px/1.62 var(--mono); color: #cfcfcf;
+            white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 4; }
+.js .term pre:not(.on) { display: none; }
+.term pre + pre { border-top: 1px solid #1c1c1c; }
+.js .term pre + pre { border-top: 0; }
+.term .ln { display: block; min-height: 1.62em; }
+.term .ln.hide { visibility: hidden; }
+.term .ps { color: #6b6b6b; }
+.term .c { color: #fafafa; }
+.term .d { color: #7d7d7d; }
+.term .k { color: #9a9a9a; }
+.term .ok { color: var(--good); }
+.term .v { color: #fafafa; }
+.cur { display: inline-block; width: .58em; height: 1.15em; margin-left: 2px; vertical-align: -.2em; background: #cfcfcf; }
+.js .cur { animation: caret 1.05s steps(1) infinite; }
+@media (max-width: 600px) { .term pre { font-size: 11.6px; padding: 14px 14px 18px; min-height: 0; } }
+
+/* ---- the end ---------------------------------------------------------- */
+
+.end { position: relative; margin-top: clamp(110px, 13vw, 170px); padding: clamp(90px, 11vw, 140px) 0 clamp(90px, 11vw, 130px);
+       text-align: center; overflow: clip; border-top: 1px solid var(--line); }
+.end-glow { position: absolute; left: 50%; bottom: -320px; width: min(1100px, 140vw); height: 560px; transform: translateX(-50%);
+            border-radius: 50%; filter: blur(60px); opacity: .32; background: var(--wp1); pointer-events: none; }
+.end::before { content: ""; position: absolute; left: 50%; top: -1px; width: min(560px, 80vw); height: 1px; transform: translateX(-50%);
+               background: linear-gradient(90deg, transparent, rgba(255,255,255,.4), transparent); }
+.end-in { position: relative; display: flex; flex-direction: column; align-items: center; }
+.kl-mini { width: 72px; height: auto; overflow: visible; margin-bottom: 30px; fill: var(--ink); filter: drop-shadow(0 14px 30px rgba(0,0,0,.6)); }
+.kl-mini .eyes { fill: var(--bg); }
+.js .kl-mini { animation: breathe 5.5s ease-in-out infinite; }
+.end p { margin-top: 18px; color: var(--muted); font-size: 17px; }
+.end p.first-open { margin-top: 10px; max-width: 46em; font-size: 14px; line-height: 1.55; color: var(--dim); text-wrap: balance; }
+.end p.first-open b { color: var(--muted); font-weight: 600; }
+
+.foot { border-top: 1px solid var(--line); padding: 30px 0 40px; }
+.foot-in { display: flex; align-items: center; gap: 18px 32px; flex-wrap: wrap; }
+.foot-brand { display: flex; align-items: center; gap: 11px; font-size: 14px; color: var(--muted); }
+.foot-brand img { width: 30px; height: 30px; }
+.foot-brand b { color: var(--ink); font-weight: 600; }
+.foot-links { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-left: auto; }
+.foot-links a { color: var(--muted); font-size: 14px; text-decoration: none; transition: color .2s; }
+.foot-links a:hover { color: var(--ink); }
+.foot-v { font: 12.5px var(--mono); color: var(--dim); }
+@media (max-width: 760px) { .foot-links { margin-left: 0; width: 100%; order: 3; } }
+
+/* ---- ⌘K on the page itself, and the toast ----------------------------- */
+
+.pal { width: min(580px, calc(100vw - 32px)); max-width: none; max-height: none; margin: 13vh auto auto; padding: 0;
+       border: 0; background: transparent; color: var(--ink); overflow: visible; }
+.pal::backdrop { background: rgba(0,0,0,.6); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.pal[open] .pal-in { animation: pop .28s var(--ease); }
+@keyframes pop { from { opacity: 0; transform: translateY(-6px) scale(.985); } }
+.pal-in { border-radius: 16px; background: #121212; border: 1px solid #2c2c2c; overflow: hidden;
+          box-shadow: 0 40px 120px rgba(0,0,0,.75), inset 0 1px 0 rgba(255,255,255,.05); }
+.pal-q { display: flex; align-items: center; gap: 11px; height: 56px; padding: 0 16px; border-bottom: 1px solid #232323; }
+.pal-q .ic { width: 18px; height: 18px; color: var(--muted); }
+.pal-q input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: none; color: var(--ink); font: 16px var(--sans); }
+.pal-q input::placeholder { color: var(--dim); }
+.pal-q kbd { font-size: 11px; color: var(--muted); }
+.pal ul { list-style: none; margin: 0; padding: 8px; max-height: min(52vh, 420px); overflow-y: auto; }
+.pal li { display: flex; align-items: center; gap: 12px; height: 42px; padding: 0 12px; border-radius: 9px; color: var(--body); cursor: pointer; font-size: 14.5px; }
+.pal li .ic { color: var(--muted); }
+.pal li em { margin-left: auto; font: 11.5px var(--mono); font-style: normal; color: var(--dim); }
+.pal li[aria-selected="true"] { background: #212121; color: var(--ink); }
+.pal li[aria-selected="true"] .ic { color: var(--ink); }
+.pal .none { justify-content: center; color: var(--dim); cursor: default; }
+.pal-foot { display: flex; gap: 16px; padding: 10px 16px; border-top: 1px solid #1e1e1e; font: 11.5px var(--mono); color: var(--dim); }
+
+.toast { position: fixed; z-index: 70; left: 50%; bottom: 26px; display: flex; align-items: center; gap: 12px; padding: 12px 18px 12px 14px;
+         border-radius: 14px; background: rgba(20,20,20,.92); border: 1px solid #2c2c2c; box-shadow: 0 20px 50px rgba(0,0,0,.6);
+         -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); font-size: 14px; pointer-events: none;
+         opacity: 0; transform: translate(-50%, 14px); transition: opacity .3s, transform .45s var(--ease); }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast .ic { width: 18px; height: 18px; }
+.toast span { color: var(--muted); font-size: 13px; }
+
+/* ---- arriving as you scroll -------------------------------------------- */
+/* Only once someone scrolls: until then nothing is hidden, so the page is
+   whole without JavaScript, in a screenshot, or for anyone who never moves. */
+.armed [data-reveal] { transition: opacity .85s var(--ease), transform .85s var(--ease), background-color .3s; transition-delay: calc(var(--i, 0) * 70ms); }
+.armed [data-reveal]:not(.in) { opacity: 0; transform: translateY(20px); }
+
+@media (max-width: 900px) {
+  .duo, .prof-row .duo, .term-grid { grid-template-columns: minmax(0, 1fr); }
+  .prof-row .duo > :first-child { order: 2; }
+}
+@media (max-width: 520px) {
+  .pf-body { grid-template-columns: 1fr; }
+  .route-card { padding: 18px 14px 16px; }
+  .nd { width: 54px; height: 54px; }
+  .track { top: 26px; }
+  .spec dd { font-size: 12.5px; }
+  .spec div + div { padding-left: 10px; }
+  .txt { padding: 4px 20px 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; transition-delay: 0s !important; }
+  .eyes { transition: none; }
+}
+
+/* ---- your @username, held from here -------------------------------------
+   Before there is a Mac to put Kliner on, or before somebody else gets
+   there: kliner.app holds the name for 30 days and hands back a code, which
+   Kliner asks for when that name is typed into it. The page asks the same
+   server the app does, as you type, and says what it said. */
+.claim-row { margin-top: clamp(80px, 9vw, 120px); }
+.claim { padding: 26px 26px 24px; gap: 14px; }
+.cl-field { position: relative; display: flex; align-items: stretch; height: 58px; border-radius: 14px; border: 1px solid var(--line-2);
+  background: rgba(255,255,255,.03); overflow: hidden; transition: border-color .2s, box-shadow .2s; }
+.cl-field:focus-within { border-color: #4a4a4a; box-shadow: 0 0 0 4px rgba(255,255,255,.05); }
+.cl-field.good { border-color: color-mix(in srgb, var(--good) 55%, var(--line-2)); }
+.cl-field.bad { border-color: color-mix(in srgb, #f87171 50%, var(--line-2)); }
+.cl-pre { display: flex; align-items: center; padding: 0 4px 0 18px; font: 500 17px/1 var(--sans); color: var(--dim); white-space: nowrap; }
+.cl-field input { flex: 1; min-width: 0; padding: 0 44px 0 0; border: 0; background: transparent; outline: none;
+  font: 600 22px/1 var(--sans); letter-spacing: -.02em; color: var(--ink); }
+.cl-field input::placeholder { color: var(--ghost); font-weight: 500; }
+.cl-sign { position: absolute; right: 16px; top: 50%; width: 18px; height: 18px; margin-top: -9px; border-radius: 50%; }
+.cl-sign.wait { border: 2px solid var(--line-2); border-top-color: var(--muted); animation: cl-turn .8s linear infinite; }
+.cl-sign.good { background: var(--good); -webkit-mask: none; }
+.cl-sign.good::after { content: ""; position: absolute; left: 6px; top: 3px; width: 4px; height: 8px; border: solid #0a0a0a; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.cl-sign.bad { background: #f87171; }
+.cl-sign.bad::before, .cl-sign.bad::after { content: ""; position: absolute; left: 8px; top: 4px; width: 2px; height: 10px; background: #0a0a0a; border-radius: 1px; transform: rotate(45deg); }
+.cl-sign.bad::after { transform: rotate(-45deg); }
+@keyframes cl-turn { to { transform: rotate(360deg); } }
+.cl-say { min-height: 20px; font-size: 14px; line-height: 20px; color: var(--muted); }
+.cl-say.good { color: var(--good); }
+.cl-say.bad { color: #f87171; }
+.claim .btn { align-self: flex-start; }
+.claim .btn[disabled] { opacity: .45; pointer-events: none; }
+.claim .btn[hidden] { display: none; }
+.cl-done { display: flex; flex-direction: column; gap: 10px; padding-top: 16px; border-top: 1px solid var(--line); }
+.cl-done[hidden] { display: none; }
+.cl-k { font-size: 14px; color: var(--muted); }
+.cl-k b { color: var(--ink); font-weight: 600; }
+.cl-code { font: 600 clamp(28px, 3.6vw, 38px)/1.1 var(--mono); letter-spacing: .08em; color: var(--ink); }
+.cl-small { max-width: 34em; font-size: 14px; line-height: 1.55; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .cl-sign.wait { animation: none; } }
+@media (max-width: 920px) { .claim-row .duo > :first-child { order: 0; } }
 </style>
 </head>
 <body>
-<div class="sky" aria-hidden="true"></div>
-<div class="grain" aria-hidden="true"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <pattern id="hatch" width="2.6" height="2.6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="1.25" height="2.6" fill="#e9e9e9"/></pattern>
+    <pattern id="lines" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><rect width=".8" height="3" fill="#5c5c5c"/></pattern>
+    <symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M5 20h14"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m6 13 6 6 6-6"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 10.2 12 4l8 6.2V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></symbol>
+    <symbol id="i-mon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12.5" rx="2"/><path d="M8.5 20h7M12 16.5V20"/></symbol>
+    <symbol id="i-drive" viewBox="0 0 24 24"><path d="M3.5 13.5 6 6.2A1.8 1.8 0 0 1 7.7 5h8.6a1.8 1.8 0 0 1 1.7 1.2l2.5 7.3"/><rect x="3.5" y="13.5" width="17" height="6" rx="1.8"/><path d="M7.5 16.5h.01M10.5 16.5h.01"/></symbol>
+    <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx=".8"/><path d="M9.5 3v3M14.5 3v3M9.5 18v3M14.5 18v3M3 9.5h3M3 14.5h3M18 9.5h3M18 14.5h3"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-side" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.2"/><path d="M9.5 4.5v15"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="m14.5 6-6 6 6 6"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3 10.5 13.5"/><path d="m21 3-6.5 18-4-7.5L3 9.5z"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M11 3.5c.6 3.9 1.9 5.9 5.5 7-3.6 1.1-4.9 3.1-5.5 7-.6-3.9-1.9-5.9-5.5-7 3.6-1.1 4.9-3.1 5.5-7z"/><path d="M18.5 14.5c.25 1.6.8 2.4 2.2 2.8-1.4.4-1.95 1.2-2.2 2.8-.25-1.6-.8-2.4-2.2-2.8 1.4-.4 1.95-1.2 2.2-2.8z"/></symbol>
+    <symbol id="i-img" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.2"/><circle cx="9" cy="10" r="1.8"/><path d="m20.5 16-4.5-4.5L6 19.5"/></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24"><path d="M6 12h.01M12 12h.01M18 12h.01" stroke-width="3.2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14.5 4 9.5l5-5"/><path d="M4 9.5h10a5.5 5.5 0 0 1 0 11h-3"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></symbol>
+    <symbol id="i-eyeoff" viewBox="0 0 24 24"><path d="m3.5 3.5 17 17"/><path d="M10.2 5.7A9 9 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-2.7 3.6M6.7 6.9C4 8.6 2.5 12 2.5 12S6 18.5 12 18.5a9 9 0 0 0 4.6-1.3"/><path d="M10 10a2.8 2.8 0 0 0 4 4"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.5 7.5a2 2 0 0 1 2-2h3.8l2 2.2h7.2a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3.5H7.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z"/><path d="M14 3.5V8h4.5"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5 19 6v5.5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/><path d="m9 12 2.2 2.2L15.5 10"/></symbol>
+    <symbol id="i-yes" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.3 2.3 2.3 4.7-4.8"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m15.5 17.5 5.5-5.5-5.5-5.5M8.5 6.5 3 12l5.5 5.5"/></symbol>
+    <symbol id="i-at" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.8"/><path d="M15.8 8.2v5a2.6 2.6 0 0 0 5.2 0V12a9 9 0 1 0-3.5 7.1"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.6 5.1 3.6 8.5s-1.2 6.2-3.6 8.5c-2.4-2.3-3.6-5.1-3.6-8.5S9.6 5.8 12 3.5z"/></symbol>
+    <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2.5 9.2a14 14 0 0 1 19 0M5.8 12.6a9.2 9.2 0 0 1 12.4 0M9 16a4.6 4.6 0 0 1 6 0"/><path d="M12 19.5h.01"/></symbol>
+    <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3.5v8"/><path d="M17.7 6.8a8 8 0 1 1-11.4 0"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M7 16v-4M12 16V7M17 16v-6"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15M10 11v6M14 11v6M6 7l1 12.2a1.5 1.5 0 0 0 1.5 1.3h7a1.5 1.5 0 0 0 1.5-1.3L18 7M9 7V4.5h6V7"/></symbol>
+    <symbol id="i-term" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2.2"/><path d="m7.5 9.5 3 2.5-3 2.5M12.5 15h4"/></symbol>
+    <symbol id="i-gh" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></symbol>
+  </defs>
+</svg>
 
-<main>
-  <svg class="kliner" viewBox="0 0 100 100" fill="none" role="img"
-       aria-label="Kliner, waiting">
-    <path class="body" fill="currentColor" d="M 45.434 2.864 C 46.024 2.810 46.628 2.785 47.232 2.768 C 47.836 2.751 48.450 2.753 49.057 2.762 C 49.663 2.770 50.270 2.789 50.870 2.820 C 51.470 2.850 52.067 2.887 52.657 2.942 C 53.247 2.998 53.834 3.059 54.408 3.151 C 54.983 3.242 55.549 3.355 56.105 3.490 C 56.662 3.626 57.206 3.790 57.747 3.963 C 58.288 4.137 58.823 4.324 59.350 4.531 C 59.877 4.737 60.398 4.957 60.909 5.203 C 61.420 5.449 61.921 5.717 62.415 6.004 C 62.909 6.291 63.396 6.598 63.872 6.924 C 64.348 7.249 64.819 7.591 65.272 7.957 C 65.724 8.322 66.165 8.709 66.586 9.115 C 67.007 9.521 67.412 9.953 67.800 10.394 C 68.187 10.835 68.558 11.295 68.910 11.760 C 69.262 12.225 69.594 12.702 69.910 13.184 C 70.227 13.665 70.525 14.154 70.810 14.649 C 71.095 15.143 71.363 15.645 71.621 16.150 C 71.880 16.656 72.114 17.171 72.359 17.682 C 72.604 18.193 72.830 18.712 73.091 19.217 C 73.351 19.722 73.618 20.226 73.923 20.710 C 74.229 21.194 74.561 21.671 74.922 22.123 C 75.283 22.574 75.676 23.012 76.090 23.420 C 76.504 23.828 76.948 24.214 77.404 24.570 C 77.860 24.925 78.341 25.250 78.825 25.555 C 79.310 25.860 79.811 26.133 80.312 26.402 C 80.813 26.671 81.323 26.919 81.833 27.167 C 82.343 27.414 82.858 27.649 83.372 27.888 C 83.886 28.126 84.402 28.360 84.916 28.597 C 85.430 28.835 85.943 29.075 86.457 29.313 C 86.971 29.552 87.488 29.782 87.999 30.027 C 88.510 30.272 89.022 30.514 89.523 30.783 C 90.024 31.052 90.518 31.341 91.005 31.642 C 91.493 31.943 91.975 32.260 92.450 32.592 C 92.925 32.923 93.398 33.263 93.856 33.633 C 94.313 34.004 94.766 34.398 95.194 34.812 C 95.622 35.226 96.040 35.668 96.423 36.118 C 96.806 36.568 97.168 37.035 97.491 37.514 C 97.815 37.992 98.103 38.485 98.364 38.990 C 98.625 39.494 98.856 40.011 99.058 40.540 C 99.260 41.069 99.439 41.607 99.577 42.163 C 99.715 42.718 99.814 43.289 99.885 43.873 C 99.955 44.456 99.981 45.061 100.000 45.663 C 100.019 46.265 100.016 46.881 100.000 47.485 C 99.984 48.088 99.958 48.692 99.904 49.282 C 99.850 49.873 99.774 50.454 99.674 51.025 C 99.573 51.596 99.443 52.154 99.301 52.708 C 99.159 53.262 98.993 53.806 98.822 54.347 C 98.651 54.889 98.468 55.426 98.273 55.958 C 98.079 56.490 97.872 57.016 97.655 57.539 C 97.439 58.062 97.212 58.581 96.974 59.095 C 96.737 59.609 96.492 60.120 96.229 60.624 C 95.966 61.128 95.685 61.624 95.397 62.117 C 95.109 62.610 94.803 63.096 94.502 63.584 C 94.201 64.072 93.899 64.559 93.589 65.044 C 93.280 65.528 92.967 66.011 92.642 66.489 C 92.317 66.967 91.971 67.436 91.638 67.911 C 91.306 68.386 90.959 68.854 90.646 69.338 C 90.334 69.821 90.036 70.310 89.765 70.810 C 89.494 71.310 89.251 71.822 89.019 72.339 C 88.788 72.856 88.577 73.381 88.375 73.910 C 88.173 74.439 87.989 74.975 87.809 75.513 C 87.629 76.051 87.465 76.596 87.296 77.138 C 87.128 77.681 86.963 78.225 86.798 78.770 C 86.633 79.314 86.470 79.859 86.306 80.403 C 86.142 80.948 85.984 81.495 85.811 82.036 C 85.639 82.577 85.461 83.116 85.269 83.649 C 85.077 84.182 84.873 84.710 84.658 85.234 C 84.444 85.758 84.218 86.277 83.981 86.791 C 83.744 87.305 83.500 87.817 83.234 88.319 C 82.968 88.822 82.696 89.322 82.384 89.805 C 82.072 90.288 81.733 90.763 81.361 91.219 C 80.990 91.675 80.578 92.121 80.155 92.539 C 79.732 92.957 79.281 93.362 78.823 93.727 C 78.364 94.093 77.887 94.427 77.402 94.734 C 76.916 95.041 76.417 95.313 75.910 95.568 C 75.403 95.824 74.888 96.060 74.361 96.265 C 73.833 96.470 73.298 96.657 72.745 96.801 C 72.192 96.945 71.622 97.054 71.042 97.127 C 70.463 97.200 69.860 97.232 69.267 97.238 C 68.673 97.244 68.068 97.215 67.481 97.162 C 66.893 97.109 66.312 97.025 65.744 96.919 C 65.175 96.813 64.618 96.679 64.069 96.527 C 63.519 96.374 62.979 96.199 62.446 96.006 C 61.913 95.814 61.390 95.600 60.871 95.373 C 60.352 95.147 59.841 94.901 59.334 94.646 C 58.827 94.391 58.327 94.121 57.829 93.843 C 57.332 93.565 56.841 93.271 56.350 92.977 C 55.860 92.682 55.373 92.379 54.886 92.076 C 54.399 91.773 53.913 91.454 53.429 91.158 C 52.944 90.861 52.463 90.526 51.979 90.297 C 51.496 90.068 51.014 89.847 50.530 89.782 C 50.046 89.718 49.559 89.773 49.075 89.909 C 48.591 90.044 48.107 90.329 47.624 90.595 C 47.141 90.861 46.660 91.201 46.176 91.505 C 45.691 91.808 45.205 92.118 44.717 92.418 C 44.228 92.718 43.738 93.014 43.246 93.305 C 42.754 93.596 42.263 93.889 41.764 94.164 C 41.265 94.438 40.764 94.707 40.254 94.954 C 39.743 95.200 39.227 95.432 38.701 95.640 C 38.174 95.849 37.640 96.037 37.096 96.203 C 36.552 96.368 35.997 96.508 35.436 96.633 C 34.876 96.758 34.306 96.867 33.731 96.953 C 33.157 97.039 32.573 97.115 31.990 97.147 C 31.407 97.180 30.814 97.183 30.232 97.147 C 29.650 97.112 29.066 97.036 28.497 96.936 C 27.929 96.837 27.368 96.706 26.819 96.553 C 26.270 96.399 25.731 96.221 25.203 96.016 C 24.676 95.810 24.159 95.581 23.654 95.319 C 23.150 95.057 22.656 94.768 22.179 94.445 C 21.702 94.123 21.235 93.765 20.792 93.382 C 20.350 93.000 19.923 92.580 19.522 92.148 C 19.121 91.717 18.741 91.259 18.386 90.796 C 18.032 90.332 17.703 89.853 17.397 89.368 C 17.090 88.882 16.811 88.385 16.548 87.882 C 16.284 87.378 16.042 86.866 15.815 86.348 C 15.588 85.829 15.383 85.302 15.186 84.771 C 14.989 84.239 14.813 83.700 14.634 83.161 C 14.456 82.623 14.285 82.081 14.114 81.539 C 13.944 80.997 13.778 80.453 13.610 79.910 C 13.441 79.368 13.277 78.823 13.105 78.282 C 12.934 77.740 12.760 77.199 12.580 76.662 C 12.400 76.124 12.217 75.587 12.024 75.054 C 11.831 74.522 11.634 73.991 11.421 73.466 C 11.209 72.942 10.992 72.419 10.748 71.907 C 10.505 71.396 10.244 70.891 9.958 70.397 C 9.672 69.903 9.350 69.424 9.031 68.943 C 8.712 68.463 8.370 67.992 8.044 67.514 C 7.718 67.037 7.394 66.558 7.075 66.078 C 6.755 65.598 6.437 65.117 6.127 64.633 C 5.817 64.149 5.506 63.665 5.213 63.174 C 4.921 62.682 4.642 62.185 4.372 61.685 C 4.102 61.184 3.847 60.677 3.594 60.169 C 3.340 59.662 3.089 59.154 2.850 58.640 C 2.612 58.126 2.377 57.610 2.164 57.086 C 1.950 56.562 1.752 56.032 1.568 55.495 C 1.385 54.959 1.219 54.415 1.064 53.867 C 0.908 53.318 0.765 52.765 0.638 52.205 C 0.510 51.646 0.392 51.082 0.298 50.508 C 0.205 49.934 0.126 49.352 0.077 48.762 C 0.027 48.173 0.000 47.569 0.000 46.972 C 0.000 46.376 0.026 45.771 0.077 45.182 C 0.128 44.594 0.205 44.010 0.307 43.440 C 0.409 42.870 0.537 42.310 0.691 41.761 C 0.844 41.212 1.023 40.674 1.228 40.146 C 1.432 39.618 1.661 39.101 1.916 38.594 C 2.171 38.087 2.449 37.589 2.757 37.104 C 3.065 36.619 3.401 36.144 3.765 35.684 C 4.130 35.224 4.530 34.774 4.944 34.346 C 5.358 33.918 5.801 33.501 6.251 33.117 C 6.702 32.734 7.169 32.374 7.645 32.045 C 8.121 31.716 8.613 31.425 9.109 31.142 C 9.604 30.859 10.111 30.605 10.617 30.347 C 11.123 30.089 11.631 29.838 12.143 29.594 C 12.654 29.350 13.169 29.114 13.686 28.884 C 14.204 28.654 14.728 28.441 15.247 28.215 C 15.766 27.990 16.286 27.767 16.801 27.531 C 17.316 27.295 17.827 27.050 18.336 26.801 C 18.846 26.551 19.354 26.299 19.856 26.034 C 20.359 25.769 20.864 25.504 21.353 25.210 C 21.842 24.916 22.330 24.612 22.790 24.271 C 23.250 23.929 23.696 23.560 24.112 23.160 C 24.527 22.761 24.917 22.323 25.282 21.875 C 25.647 21.427 25.988 20.952 26.301 20.471 C 26.614 19.989 26.897 19.492 27.160 18.988 C 27.422 18.485 27.645 17.965 27.877 17.448 C 28.108 16.931 28.315 16.404 28.548 15.888 C 28.781 15.372 29.018 14.858 29.274 14.351 C 29.531 13.845 29.803 13.345 30.088 12.851 C 30.373 12.356 30.667 11.865 30.985 11.385 C 31.303 10.904 31.634 10.426 31.996 9.966 C 32.358 9.505 32.748 9.051 33.156 8.620 C 33.563 8.188 34.000 7.768 34.443 7.376 C 34.887 6.983 35.347 6.608 35.817 6.266 C 36.288 5.924 36.770 5.608 37.265 5.325 C 37.761 5.043 38.272 4.797 38.791 4.571 C 39.309 4.344 39.841 4.150 40.378 3.967 C 40.915 3.783 41.458 3.616 42.010 3.470 C 42.562 3.325 43.121 3.195 43.692 3.094 C 44.263 2.993 44.844 2.918 45.434 2.864 Z"/>
-    <g class="eyes" id="eyes">
-      <path fill="var(--eye)" d="M 41.664 34.017 C 41.923 33.902 42.221 33.850 42.517 33.808 C 42.813 33.766 43.131 33.773 43.442 33.766 C 43.753 33.759 44.071 33.763 44.383 33.766 C 44.696 33.770 45.012 33.763 45.316 33.786 C 45.620 33.810 45.925 33.833 46.207 33.908 C 46.490 33.983 46.759 34.092 47.013 34.237 C 47.267 34.381 47.503 34.576 47.731 34.775 C 47.960 34.974 48.186 35.200 48.382 35.429 C 48.578 35.659 48.769 35.896 48.909 36.152 C 49.049 36.408 49.159 36.688 49.222 36.964 C 49.285 37.241 49.314 37.557 49.285 37.811 C 49.256 38.066 49.186 38.320 49.050 38.493 C 48.913 38.667 48.700 38.767 48.466 38.853 C 48.232 38.938 47.923 38.942 47.647 39.006 C 47.370 39.069 47.075 39.129 46.807 39.235 C 46.538 39.342 46.291 39.505 46.034 39.643 C 45.777 39.781 45.527 39.935 45.267 40.064 C 45.006 40.193 44.726 40.285 44.472 40.417 C 44.217 40.550 43.950 40.677 43.740 40.859 C 43.530 41.041 43.343 41.264 43.211 41.510 C 43.078 41.756 43.001 42.043 42.944 42.332 C 42.886 42.620 42.881 42.933 42.866 43.241 C 42.852 43.549 42.859 43.866 42.857 44.179 C 42.856 44.492 42.857 44.807 42.857 45.121 C 42.857 45.434 42.863 45.763 42.857 46.062 C 42.851 46.361 42.858 46.692 42.820 46.915 C 42.783 47.138 42.728 47.337 42.631 47.399 C 42.534 47.462 42.378 47.405 42.241 47.288 C 42.104 47.171 41.940 46.925 41.810 46.696 C 41.679 46.467 41.577 46.176 41.456 45.914 C 41.335 45.653 41.213 45.388 41.082 45.128 C 40.951 44.868 40.788 44.622 40.671 44.356 C 40.555 44.091 40.449 43.821 40.383 43.534 C 40.317 43.248 40.297 42.942 40.276 42.637 C 40.256 42.332 40.262 42.015 40.260 41.702 C 40.257 41.389 40.260 41.074 40.260 40.761 C 40.260 40.447 40.260 40.133 40.260 39.819 C 40.260 39.505 40.260 39.191 40.260 38.878 C 40.260 38.564 40.260 38.250 40.260 37.936 C 40.260 37.622 40.253 37.306 40.260 36.994 C 40.266 36.683 40.259 36.367 40.299 36.069 C 40.339 35.772 40.389 35.473 40.499 35.211 C 40.610 34.948 40.768 34.694 40.962 34.495 C 41.156 34.296 41.405 34.131 41.664 34.017 Z"/>
-      <path fill="var(--eye)" d="M 54.651 34.017 C 54.910 33.902 55.208 33.850 55.504 33.808 C 55.801 33.766 56.118 33.773 56.429 33.766 C 56.740 33.759 57.058 33.763 57.370 33.766 C 57.683 33.770 57.999 33.763 58.303 33.786 C 58.607 33.810 58.912 33.833 59.194 33.908 C 59.477 33.983 59.746 34.092 60.000 34.237 C 60.254 34.381 60.490 34.576 60.718 34.775 C 60.947 34.974 61.173 35.200 61.369 35.429 C 61.565 35.659 61.756 35.896 61.896 36.152 C 62.036 36.408 62.146 36.688 62.209 36.964 C 62.272 37.241 62.301 37.557 62.272 37.811 C 62.243 38.066 62.173 38.320 62.037 38.493 C 61.900 38.667 61.687 38.767 61.453 38.853 C 61.219 38.938 60.910 38.942 60.634 39.006 C 60.357 39.069 60.062 39.129 59.794 39.235 C 59.525 39.342 59.278 39.505 59.021 39.643 C 58.764 39.781 58.514 39.935 58.254 40.064 C 57.993 40.193 57.713 40.285 57.459 40.417 C 57.204 40.550 56.937 40.677 56.727 40.859 C 56.517 41.041 56.330 41.264 56.198 41.510 C 56.065 41.756 55.988 42.043 55.931 42.332 C 55.873 42.620 55.868 42.933 55.853 43.241 C 55.839 43.549 55.846 43.866 55.844 44.179 C 55.843 44.492 55.844 44.807 55.844 45.121 C 55.844 45.434 55.850 45.763 55.844 46.062 C 55.838 46.361 55.845 46.692 55.807 46.915 C 55.770 47.138 55.715 47.337 55.618 47.399 C 55.521 47.462 55.365 47.405 55.228 47.288 C 55.091 47.171 54.927 46.925 54.797 46.696 C 54.666 46.467 54.564 46.176 54.443 45.914 C 54.322 45.653 54.200 45.388 54.069 45.128 C 53.938 44.868 53.775 44.622 53.658 44.356 C 53.542 44.091 53.436 43.821 53.370 43.534 C 53.304 43.248 53.284 42.942 53.263 42.637 C 53.243 42.332 53.249 42.015 53.247 41.702 C 53.244 41.389 53.247 41.074 53.247 40.761 C 53.247 40.447 53.247 40.133 53.247 39.819 C 53.247 39.505 53.247 39.191 53.247 38.878 C 53.247 38.564 53.247 38.250 53.247 37.936 C 53.247 37.622 53.240 37.306 53.247 36.994 C 53.253 36.683 53.246 36.367 53.286 36.069 C 53.326 35.772 53.376 35.473 53.486 35.211 C 53.597 34.948 53.755 34.694 53.949 34.495 C 54.143 34.296 54.392 34.131 54.651 34.017 Z"/>
-    </g>
-  </svg>
+<a class="skip" href="#main">Skip to content</a>
 
-  <div class="said">
-    <h1>Kliner</h1>
-    <p class="status"><span class="dot"></span>Website in the works</p>
-    <p class="note">
-      A quieter Mac: a clear desktop, sorted downloads, the disk back.
-      Nothing is deleted, and every step can be undone.
-    </p>
+<header class="nav" id="top">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top" aria-label="Kliner, back to the top">
+      <svg class="mark" viewBox="39.4 33 23.6 15.1" aria-hidden="true"><use href="#k-eye-l"/><use href="#k-eye-r"/></svg>
+      <span>Kliner</span>
+    </a>
+    <nav class="links" aria-label="Sections">
+      <a href="#features">Features</a>
+      <a href="#send">Send</a>
+      <a href="#claim">Your name</a>
+      <a href="#promises">Promises</a>
+      <a href="#terminal">Terminal</a>
+    </nav>
+    <div class="nav-end">
+      <button class="kbtn" type="button" data-pal aria-label="Search this page">Search <kbd>⌘K</kbd></button>
+      <a class="gh" href="https://github.com/danielkopa/nimo" aria-label="Kliner on GitHub"><svg class="ic" aria-hidden="true"><use href="#i-gh"/></svg></a>
+      <a class="btn btn-on btn-sm" href="https://api.kliner.app/download">Download</a>
+    </div>
   </div>
+</header>
+
+<main id="main">
+
+<section class="hero" aria-labelledby="hero-h">
+  <div class="hero-glow" aria-hidden="true"><div class="grain"></div></div>
+  <div class="wrap hero-in">
+    <div class="mascot">
+      <svg class="kliner" viewBox="0 0 100 100" role="img" aria-label="Kliner, a soft white shape with two quote-mark eyes, blinking now and then">
+        <path id="k-body" d="M 45.434 2.864 C 46.024 2.810 46.628 2.785 47.232 2.768 C 47.836 2.751 48.450 2.753 49.057 2.762 C 49.663 2.770 50.270 2.789 50.870 2.820 C 51.470 2.850 52.067 2.887 52.657 2.942 C 53.247 2.998 53.834 3.059 54.408 3.151 C 54.983 3.242 55.549 3.355 56.105 3.490 C 56.662 3.626 57.206 3.790 57.747 3.963 C 58.288 4.137 58.823 4.324 59.350 4.531 C 59.877 4.737 60.398 4.957 60.909 5.203 C 61.420 5.449 61.921 5.717 62.415 6.004 C 62.909 6.291 63.396 6.598 63.872 6.924 C 64.348 7.249 64.819 7.591 65.272 7.957 C 65.724 8.322 66.165 8.709 66.586 9.115 C 67.007 9.521 67.412 9.953 67.800 10.394 C 68.187 10.835 68.558 11.295 68.910 11.760 C 69.262 12.225 69.594 12.702 69.910 13.184 C 70.227 13.665 70.525 14.154 70.810 14.649 C 71.095 15.143 71.363 15.645 71.621 16.150 C 71.880 16.656 72.114 17.171 72.359 17.682 C 72.604 18.193 72.830 18.712 73.091 19.217 C 73.351 19.722 73.618 20.226 73.923 20.710 C 74.229 21.194 74.561 21.671 74.922 22.123 C 75.283 22.574 75.676 23.012 76.090 23.420 C 76.504 23.828 76.948 24.214 77.404 24.570 C 77.860 24.925 78.341 25.250 78.825 25.555 C 79.310 25.860 79.811 26.133 80.312 26.402 C 80.813 26.671 81.323 26.919 81.833 27.167 C 82.343 27.414 82.858 27.649 83.372 27.888 C 83.886 28.126 84.402 28.360 84.916 28.597 C 85.430 28.835 85.943 29.075 86.457 29.313 C 86.971 29.552 87.488 29.782 87.999 30.027 C 88.510 30.272 89.022 30.514 89.523 30.783 C 90.024 31.052 90.518 31.341 91.005 31.642 C 91.493 31.943 91.975 32.260 92.450 32.592 C 92.925 32.923 93.398 33.263 93.856 33.633 C 94.313 34.004 94.766 34.398 95.194 34.812 C 95.622 35.226 96.040 35.668 96.423 36.118 C 96.806 36.568 97.168 37.035 97.491 37.514 C 97.815 37.992 98.103 38.485 98.364 38.990 C 98.625 39.494 98.856 40.011 99.058 40.540 C 99.260 41.069 99.439 41.607 99.577 42.163 C 99.715 42.718 99.814 43.289 99.885 43.873 C 99.955 44.456 99.981 45.061 100.000 45.663 C 100.019 46.265 100.016 46.881 100.000 47.485 C 99.984 48.088 99.958 48.692 99.904 49.282 C 99.850 49.873 99.774 50.454 99.674 51.025 C 99.573 51.596 99.443 52.154 99.301 52.708 C 99.159 53.262 98.993 53.806 98.822 54.347 C 98.651 54.889 98.468 55.426 98.273 55.958 C 98.079 56.490 97.872 57.016 97.655 57.539 C 97.439 58.062 97.212 58.581 96.974 59.095 C 96.737 59.609 96.492 60.120 96.229 60.624 C 95.966 61.128 95.685 61.624 95.397 62.117 C 95.109 62.610 94.803 63.096 94.502 63.584 C 94.201 64.072 93.899 64.559 93.589 65.044 C 93.280 65.528 92.967 66.011 92.642 66.489 C 92.317 66.967 91.971 67.436 91.638 67.911 C 91.306 68.386 90.959 68.854 90.646 69.338 C 90.334 69.821 90.036 70.310 89.765 70.810 C 89.494 71.310 89.251 71.822 89.019 72.339 C 88.788 72.856 88.577 73.381 88.375 73.910 C 88.173 74.439 87.989 74.975 87.809 75.513 C 87.629 76.051 87.465 76.596 87.296 77.138 C 87.128 77.681 86.963 78.225 86.798 78.770 C 86.633 79.314 86.470 79.859 86.306 80.403 C 86.142 80.948 85.984 81.495 85.811 82.036 C 85.639 82.577 85.461 83.116 85.269 83.649 C 85.077 84.182 84.873 84.710 84.658 85.234 C 84.444 85.758 84.218 86.277 83.981 86.791 C 83.744 87.305 83.500 87.817 83.234 88.319 C 82.968 88.822 82.696 89.322 82.384 89.805 C 82.072 90.288 81.733 90.763 81.361 91.219 C 80.990 91.675 80.578 92.121 80.155 92.539 C 79.732 92.957 79.281 93.362 78.823 93.727 C 78.364 94.093 77.887 94.427 77.402 94.734 C 76.916 95.041 76.417 95.313 75.910 95.568 C 75.403 95.824 74.888 96.060 74.361 96.265 C 73.833 96.470 73.298 96.657 72.745 96.801 C 72.192 96.945 71.622 97.054 71.042 97.127 C 70.463 97.200 69.860 97.232 69.267 97.238 C 68.673 97.244 68.068 97.215 67.481 97.162 C 66.893 97.109 66.312 97.025 65.744 96.919 C 65.175 96.813 64.618 96.679 64.069 96.527 C 63.519 96.374 62.979 96.199 62.446 96.006 C 61.913 95.814 61.390 95.600 60.871 95.373 C 60.352 95.147 59.841 94.901 59.334 94.646 C 58.827 94.391 58.327 94.121 57.829 93.843 C 57.332 93.565 56.841 93.271 56.350 92.977 C 55.860 92.682 55.373 92.379 54.886 92.076 C 54.399 91.773 53.913 91.454 53.429 91.158 C 52.944 90.861 52.463 90.526 51.979 90.297 C 51.496 90.068 51.014 89.847 50.530 89.782 C 50.046 89.718 49.559 89.773 49.075 89.909 C 48.591 90.044 48.107 90.329 47.624 90.595 C 47.141 90.861 46.660 91.201 46.176 91.505 C 45.691 91.808 45.205 92.118 44.717 92.418 C 44.228 92.718 43.738 93.014 43.246 93.305 C 42.754 93.596 42.263 93.889 41.764 94.164 C 41.265 94.438 40.764 94.707 40.254 94.954 C 39.743 95.200 39.227 95.432 38.701 95.640 C 38.174 95.849 37.640 96.037 37.096 96.203 C 36.552 96.368 35.997 96.508 35.436 96.633 C 34.876 96.758 34.306 96.867 33.731 96.953 C 33.157 97.039 32.573 97.115 31.990 97.147 C 31.407 97.180 30.814 97.183 30.232 97.147 C 29.650 97.112 29.066 97.036 28.497 96.936 C 27.929 96.837 27.368 96.706 26.819 96.553 C 26.270 96.399 25.731 96.221 25.203 96.016 C 24.676 95.810 24.159 95.581 23.654 95.319 C 23.150 95.057 22.656 94.768 22.179 94.445 C 21.702 94.123 21.235 93.765 20.792 93.382 C 20.350 93.000 19.923 92.580 19.522 92.148 C 19.121 91.717 18.741 91.259 18.386 90.796 C 18.032 90.332 17.703 89.853 17.397 89.368 C 17.090 88.882 16.811 88.385 16.548 87.882 C 16.284 87.378 16.042 86.866 15.815 86.348 C 15.588 85.829 15.383 85.302 15.186 84.771 C 14.989 84.239 14.813 83.700 14.634 83.161 C 14.456 82.623 14.285 82.081 14.114 81.539 C 13.944 80.997 13.778 80.453 13.610 79.910 C 13.441 79.368 13.277 78.823 13.105 78.282 C 12.934 77.740 12.760 77.199 12.580 76.662 C 12.400 76.124 12.217 75.587 12.024 75.054 C 11.831 74.522 11.634 73.991 11.421 73.466 C 11.209 72.942 10.992 72.419 10.748 71.907 C 10.505 71.396 10.244 70.891 9.958 70.397 C 9.672 69.903 9.350 69.424 9.031 68.943 C 8.712 68.463 8.370 67.992 8.044 67.514 C 7.718 67.037 7.394 66.558 7.075 66.078 C 6.755 65.598 6.437 65.117 6.127 64.633 C 5.817 64.149 5.506 63.665 5.213 63.174 C 4.921 62.682 4.642 62.185 4.372 61.685 C 4.102 61.184 3.847 60.677 3.594 60.169 C 3.340 59.662 3.089 59.154 2.850 58.640 C 2.612 58.126 2.377 57.610 2.164 57.086 C 1.950 56.562 1.752 56.032 1.568 55.495 C 1.385 54.959 1.219 54.415 1.064 53.867 C 0.908 53.318 0.765 52.765 0.638 52.205 C 0.510 51.646 0.392 51.082 0.298 50.508 C 0.205 49.934 0.126 49.352 0.077 48.762 C 0.027 48.173 0.000 47.569 0.000 46.972 C 0.000 46.376 0.026 45.771 0.077 45.182 C 0.128 44.594 0.205 44.010 0.307 43.440 C 0.409 42.870 0.537 42.310 0.691 41.761 C 0.844 41.212 1.023 40.674 1.228 40.146 C 1.432 39.618 1.661 39.101 1.916 38.594 C 2.171 38.087 2.449 37.589 2.757 37.104 C 3.065 36.619 3.401 36.144 3.765 35.684 C 4.130 35.224 4.530 34.774 4.944 34.346 C 5.358 33.918 5.801 33.501 6.251 33.117 C 6.702 32.734 7.169 32.374 7.645 32.045 C 8.121 31.716 8.613 31.425 9.109 31.142 C 9.604 30.859 10.111 30.605 10.617 30.347 C 11.123 30.089 11.631 29.838 12.143 29.594 C 12.654 29.350 13.169 29.114 13.686 28.884 C 14.204 28.654 14.728 28.441 15.247 28.215 C 15.766 27.990 16.286 27.767 16.801 27.531 C 17.316 27.295 17.827 27.050 18.336 26.801 C 18.846 26.551 19.354 26.299 19.856 26.034 C 20.359 25.769 20.864 25.504 21.353 25.210 C 21.842 24.916 22.330 24.612 22.790 24.271 C 23.250 23.929 23.696 23.560 24.112 23.160 C 24.527 22.761 24.917 22.323 25.282 21.875 C 25.647 21.427 25.988 20.952 26.301 20.471 C 26.614 19.989 26.897 19.492 27.160 18.988 C 27.422 18.485 27.645 17.965 27.877 17.448 C 28.108 16.931 28.315 16.404 28.548 15.888 C 28.781 15.372 29.018 14.858 29.274 14.351 C 29.531 13.845 29.803 13.345 30.088 12.851 C 30.373 12.356 30.667 11.865 30.985 11.385 C 31.303 10.904 31.634 10.426 31.996 9.966 C 32.358 9.505 32.748 9.051 33.156 8.620 C 33.563 8.188 34.000 7.768 34.443 7.376 C 34.887 6.983 35.347 6.608 35.817 6.266 C 36.288 5.924 36.770 5.608 37.265 5.325 C 37.761 5.043 38.272 4.797 38.791 4.571 C 39.309 4.344 39.841 4.150 40.378 3.967 C 40.915 3.783 41.458 3.616 42.010 3.470 C 42.562 3.325 43.121 3.195 43.692 3.094 C 44.263 2.993 44.844 2.918 45.434 2.864 Z"/>
+        <g class="look" id="look">
+          <g class="eyes" id="eyes">
+            <path id="k-eye-l" d="M 41.664 34.017 C 41.923 33.902 42.221 33.850 42.517 33.808 C 42.813 33.766 43.131 33.773 43.442 33.766 C 43.753 33.759 44.071 33.763 44.383 33.766 C 44.696 33.770 45.012 33.763 45.316 33.786 C 45.620 33.810 45.925 33.833 46.207 33.908 C 46.490 33.983 46.759 34.092 47.013 34.237 C 47.267 34.381 47.503 34.576 47.731 34.775 C 47.960 34.974 48.186 35.200 48.382 35.429 C 48.578 35.659 48.769 35.896 48.909 36.152 C 49.049 36.408 49.159 36.688 49.222 36.964 C 49.285 37.241 49.314 37.557 49.285 37.811 C 49.256 38.066 49.186 38.320 49.050 38.493 C 48.913 38.667 48.700 38.767 48.466 38.853 C 48.232 38.938 47.923 38.942 47.647 39.006 C 47.370 39.069 47.075 39.129 46.807 39.235 C 46.538 39.342 46.291 39.505 46.034 39.643 C 45.777 39.781 45.527 39.935 45.267 40.064 C 45.006 40.193 44.726 40.285 44.472 40.417 C 44.217 40.550 43.950 40.677 43.740 40.859 C 43.530 41.041 43.343 41.264 43.211 41.510 C 43.078 41.756 43.001 42.043 42.944 42.332 C 42.886 42.620 42.881 42.933 42.866 43.241 C 42.852 43.549 42.859 43.866 42.857 44.179 C 42.856 44.492 42.857 44.807 42.857 45.121 C 42.857 45.434 42.863 45.763 42.857 46.062 C 42.851 46.361 42.858 46.692 42.820 46.915 C 42.783 47.138 42.728 47.337 42.631 47.399 C 42.534 47.462 42.378 47.405 42.241 47.288 C 42.104 47.171 41.940 46.925 41.810 46.696 C 41.679 46.467 41.577 46.176 41.456 45.914 C 41.335 45.653 41.213 45.388 41.082 45.128 C 40.951 44.868 40.788 44.622 40.671 44.356 C 40.555 44.091 40.449 43.821 40.383 43.534 C 40.317 43.248 40.297 42.942 40.276 42.637 C 40.256 42.332 40.262 42.015 40.260 41.702 C 40.257 41.389 40.260 41.074 40.260 40.761 C 40.260 40.447 40.260 40.133 40.260 39.819 C 40.260 39.505 40.260 39.191 40.260 38.878 C 40.260 38.564 40.260 38.250 40.260 37.936 C 40.260 37.622 40.253 37.306 40.260 36.994 C 40.266 36.683 40.259 36.367 40.299 36.069 C 40.339 35.772 40.389 35.473 40.499 35.211 C 40.610 34.948 40.768 34.694 40.962 34.495 C 41.156 34.296 41.405 34.131 41.664 34.017 Z"/>
+            <path id="k-eye-r" d="M 54.651 34.017 C 54.910 33.902 55.208 33.850 55.504 33.808 C 55.801 33.766 56.118 33.773 56.429 33.766 C 56.740 33.759 57.058 33.763 57.370 33.766 C 57.683 33.770 57.999 33.763 58.303 33.786 C 58.607 33.810 58.912 33.833 59.194 33.908 C 59.477 33.983 59.746 34.092 60.000 34.237 C 60.254 34.381 60.490 34.576 60.718 34.775 C 60.947 34.974 61.173 35.200 61.369 35.429 C 61.565 35.659 61.756 35.896 61.896 36.152 C 62.036 36.408 62.146 36.688 62.209 36.964 C 62.272 37.241 62.301 37.557 62.272 37.811 C 62.243 38.066 62.173 38.320 62.037 38.493 C 61.900 38.667 61.687 38.767 61.453 38.853 C 61.219 38.938 60.910 38.942 60.634 39.006 C 60.357 39.069 60.062 39.129 59.794 39.235 C 59.525 39.342 59.278 39.505 59.021 39.643 C 58.764 39.781 58.514 39.935 58.254 40.064 C 57.993 40.193 57.713 40.285 57.459 40.417 C 57.204 40.550 56.937 40.677 56.727 40.859 C 56.517 41.041 56.330 41.264 56.198 41.510 C 56.065 41.756 55.988 42.043 55.931 42.332 C 55.873 42.620 55.868 42.933 55.853 43.241 C 55.839 43.549 55.846 43.866 55.844 44.179 C 55.843 44.492 55.844 44.807 55.844 45.121 C 55.844 45.434 55.850 45.763 55.844 46.062 C 55.838 46.361 55.845 46.692 55.807 46.915 C 55.770 47.138 55.715 47.337 55.618 47.399 C 55.521 47.462 55.365 47.405 55.228 47.288 C 55.091 47.171 54.927 46.925 54.797 46.696 C 54.666 46.467 54.564 46.176 54.443 45.914 C 54.322 45.653 54.200 45.388 54.069 45.128 C 53.938 44.868 53.775 44.622 53.658 44.356 C 53.542 44.091 53.436 43.821 53.370 43.534 C 53.304 43.248 53.284 42.942 53.263 42.637 C 53.243 42.332 53.249 42.015 53.247 41.702 C 53.244 41.389 53.247 41.074 53.247 40.761 C 53.247 40.447 53.247 40.133 53.247 39.819 C 53.247 39.505 53.247 39.191 53.247 38.878 C 53.247 38.564 53.247 38.250 53.247 37.936 C 53.247 37.622 53.240 37.306 53.247 36.994 C 53.253 36.683 53.246 36.367 53.286 36.069 C 53.326 35.772 53.376 35.473 53.486 35.211 C 53.597 34.948 53.755 34.694 53.949 34.495 C 54.143 34.296 54.392 34.131 54.651 34.017 Z"/>
+          </g>
+        </g>
+      </svg>
+      <span class="floor" aria-hidden="true"></span>
+    </div>
+    <h1 id="hero-h" class="grad">A calmer Mac.</h1>
+    <p class="lede">Kliner clears your desktop, tidies your downloads and gives you the disk back. It asks before it changes anything, and everything it does can be undone.</p>
+    <div class="ctas">
+      <a class="btn btn-on" href="https://api.kliner.app/download"><svg class="ic" aria-hidden="true"><use href="#i-dl"/></svg>Download for Mac</a>
+      <a class="btn btn-ghost" href="#features">See what it does<svg class="ic" aria-hidden="true"><use href="#i-down"/></svg></a>
+    </div>
+    <p class="meta"><span data-dl-v>v0.62.0</span><i aria-hidden="true"></i><span data-dl-f>disk image (.dmg)</span><i aria-hidden="true"></i><span>macOS 12 or later</span><i aria-hidden="true"></i><span>open source, MIT</span></p>
+  </div>
+
+  <div class="wrap stage">
+    <div class="aura" aria-hidden="true" data-top="a"><i class="wl a" style="--w:var(--wp1)"></i><i class="wl b"></i></div>
+    <figure class="shot" style="margin:0 auto">
+      <div class="win" role="img" aria-label="A drawing of Kliner's Home page: a greeting, one-click actions such as Clean all, your Mac drawn small with its wallpaper and Dock, a row of wallpapers, and a ring showing how full the disk is.">
+        <div class="w-rail">
+          <div class="w-lights"><i></i><i></i><i></i></div>
+          <svg class="w-logo" viewBox="39.4 33 23.6 15.1"><use href="#k-eye-l"/><use href="#k-eye-r"/></svg>
+          <div class="w-spots">
+            <span class="w-spot"><svg class="ic"><use href="#i-search"/></svg></span>
+            <span class="w-spot on"><svg class="ic"><use href="#i-home"/></svg></span>
+            <span class="w-spot"><svg class="ic"><use href="#i-grid"/></svg><b>5</b></span>
+            <span class="w-spot"><svg class="ic"><use href="#i-mon"/></svg></span>
+            <span class="w-spot"><svg class="ic"><use href="#i-drive"/></svg></span>
+            <span class="w-spot"><svg class="ic"><use href="#i-cpu"/></svg></span>
+          </div>
+          <div class="w-foot">
+            <span class="w-spot"><svg class="ic"><use href="#i-gear"/></svg></span>
+            <span class="w-av"><svg viewBox="0 0 100 100"><use class="mini-b" href="#k-body"/><use class="mini-e" href="#k-eye-l"/><use class="mini-e" href="#k-eye-r"/></svg></span>
+          </div>
+        </div>
+        <div class="w-main">
+          <div class="w-bar">
+            <svg class="ic nav-ic"><use href="#i-side"/></svg>
+            <svg class="ic nav-ic"><use href="#i-left"/></svg>
+            <svg class="ic nav-ic" style="color:#333"><use href="#i-right"/></svg>
+            <span class="w-where"><svg class="ic"><use href="#i-home"/></svg><span>Overview</span></span>
+            <span class="w-bar-r"><svg class="ic"><use href="#i-send"/></svg><i class="w-state"></i></span>
+          </div>
+          <div class="w-page">
+            <div class="w-head">
+              <span class="w-face"><svg viewBox="0 0 100 100"><use class="mini-b" href="#k-body"/><use class="mini-e" href="#k-eye-l"/><use class="mini-e" href="#k-eye-r"/></svg></span>
+              <div class="w-hello"><b id="hi">Good afternoon</b><span>What are we clearing today?</span></div>
+              <span class="w-find"><svg class="ic"><use href="#i-search"/></svg><span>Search</span><i>⌘K</i></span>
+            </div>
+            <div class="w-chips">
+              <span class="w-chip"><svg class="ic"><use href="#i-dl"/></svg><span><b>5</b> in Downloads</span></span>
+              <span class="w-chip"><svg class="ic"><use href="#i-spark"/></svg><span><b>8.6 GB</b> to free up</span></span>
+              <span class="w-chip on"><svg class="ic"><use href="#i-spark"/></svg><span>Clean all</span></span>
+              <i class="w-sep"></i>
+              <span class="w-chip"><i>\</i><span id="w-hide">Hide desktop files</span></span>
+              <span class="w-chip"><svg class="ic"><use href="#i-img"/></svg><span>New wallpaper</span></span>
+              <span class="w-chip"><svg class="ic"><use href="#i-dots"/></svg><span>Clean the Dock</span></span>
+            </div>
+            <div class="w-grid">
+              <div class="w-card">
+                <div class="w-ch"><svg class="ic"><use href="#i-mon"/></svg><span>Your Mac</span><span class="r"><em>All wallpapers</em></span></div>
+                <div class="w-screen" data-top="a">
+                  <i class="wl a" style="--w:var(--wp1)"></i><i class="wl b"></i>
+                  <div class="w-menu"><i></i><i></i><i></i><i></i><svg viewBox="39.4 33 23.6 15.1"><use href="#k-eye-l"/><use href="#k-eye-r"/></svg><b>9:41</b></div>
+                  <div class="w-ficon"><i class="fold"></i><span>Tidy</span></div>
+                  <div class="w-dock">
+                    <i style="--c:#3b82f6"><span>F</span></i><i style="--c:#6b7280"><span>A</span></i><i style="--c:#2563eb"><span>M</span></i>
+                    <i style="--c:#71717a"><span>S</span></i><i style="--c:#6366f1"><span>D</span></i><i style="--c:#0ea5e9"><span>S</span></i>
+                    <i class="sep"></i><i style="--c:#a1a1aa"><span>T</span></i>
+                  </div>
+                </div>
+                <div class="w-walls">
+                  <i style="--w:var(--wp3)"></i><i style="--w:var(--wp2)"></i><i class="on" style="--w:var(--wp1)"></i><i style="--w:var(--wp4)"></i>
+                  <i style="--w:var(--wp5)"></i><i style="--w:var(--wp7)"></i><i style="--w:var(--wp6)"></i>
+                </div>
+              </div>
+              <div class="w-col">
+                <div class="w-card">
+                  <div class="w-disk-top">
+                    <div><div class="w-big">306<small>GB</small></div><div class="w-sub">used of 494 GB</div></div>
+                    <div class="w-pct"><b>62% used</b><span>188 GB free</span></div>
+                  </div>
+                  <div class="w-ringrow">
+                    <div class="w-ring">
+                      <svg viewBox="0 0 120 120">
+                        <circle cx="60" cy="60" r="48" fill="none" stroke="#1b1b1b" stroke-width="13"/>
+                        <circle cx="60" cy="60" r="48" fill="none" stroke="url(#hatch)" stroke-width="13" stroke-dasharray="179.3 301.6"/>
+                        <circle cx="60" cy="60" r="48" fill="none" stroke="#f2f2f2" stroke-width="13" stroke-dasharray="5.1 301.6" stroke-dashoffset="-182.3"/>
+                        <circle cx="60" cy="60" r="48" fill="none" stroke="url(#lines)" stroke-width="13" stroke-dasharray="110.2 301.6" stroke-dashoffset="-189.4"/>
+                      </svg>
+                      <div class="w-ring-c"><b>62%</b><span>used</span></div>
+                    </div>
+                    <div class="w-leg">
+                      <div><i class="lg-a"></i><span>Your files</span><b>297 GB</b></div>
+                      <div><i class="lg-b"></i><span>Can be freed</span><b>8.6 GB</b></div>
+                      <div><i class="lg-c"></i><span>Free</span><b>188 GB</b></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="w-card w-desk">
+                  <div class="w-sorted"><span class="w-tick"><svg class="ic"><use href="#i-check"/></svg></span>
+                    <div><b>All sorted.</b><span>Nothing loose. What was here is in Desktop/Tidy.</span></div></div>
+                </div>
+                <div class="w-card w-dl">
+                  <div class="w-ch"><svg class="ic"><use href="#i-dl"/></svg><span>Your downloads</span></div>
+                  <div class="w-dl-n"><b>5</b><span>items</span></div>
+                  <div class="w-seg"><i></i><i></i><i></i></div>
+                  <div class="w-kinds"><span>Archives<b>2</b></span><span>Folders<b>2</b></span><span>Documents<b>1</b></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<section class="sec" id="features" aria-labelledby="f-h">
+  <div class="wrap">
+    <header class="sec-head" data-reveal>
+      <p class="eyebrow">what it does</p>
+      <h2 id="f-h" class="grad">A clear desk, a quiet Dock, and the disk back.</h2>
+      <p class="sec-sub">Each thing is one click, and the Mac's own dialog still asks first.</p>
+    </header>
+
+    <div class="bento">
+
+      <article class="card c-hide" id="f-hide" data-reveal>
+        <div class="vis v-hide">
+          <div class="desk" aria-hidden="true">
+            <div class="desk-menu"><i></i><i></i><i></i><i></i><b>9:41</b></div>
+            <div class="desk-icons">
+              <span class="fi" style="--d:0"><i class="fic fold2"></i><b>Projects</b></span>
+              <span class="fi" style="--d:1"><i class="fic shot" style="--w:var(--wp5)"></i><b>Screenshot</b></span>
+              <span class="fi" style="--d:2"><i class="fic pdf"></i><b>invoice.pdf</b></span>
+              <span class="fi" style="--d:3"><i class="fic zip"></i><b>Archive.zip</b></span>
+              <span class="fi" style="--d:4"><i class="fic txt"></i><b>notes.txt</b></span>
+              <span class="fi" style="--d:5"><i class="fic img" style="--w:var(--wp6)"></i><b>IMG_2041</b></span>
+              <span class="fi" style="--d:6"><i class="fic xls"></i><b>budget.xlsx</b></span>
+              <span class="fi" style="--d:7"><i class="fic dmg"></i><b>Installer.dmg</b></span>
+            </div>
+            <div class="desk-toast"><svg class="ic"><use href="#i-eyeoff"/></svg><b>Desktop files hidden</b><span><kbd>\</kbd> shows them again</span></div>
+          </div>
+          <button class="keycap" type="button" aria-pressed="false" aria-label="Hide the files on this desktop">\</button>
+        </div>
+        <div class="txt">
+          <p class="eyebrow">your desk</p>
+          <h3>Hide the desktop with one key</h3>
+          <p>Press <kbd>\</kbd> to hide the files on your desktop, instantly, and again to bring them back. Nothing moves: every file stays exactly where it was.</p>
+          <p class="try">Try it here: press <kbd>\</kbd> or tap the key.</p>
+        </div>
+      </article>
+
+      <article class="card c-tidy" id="f-tidy" data-reveal>
+        <div class="vis v-tidy done" aria-hidden="true">
+          <div class="pane">
+            <p class="pane-l"><svg class="ic"><use href="#i-dl"/></svg>Downloads</p>
+            <div class="tf-list">
+              <span class="tf" data-k="0"><i class="fic shot" style="--w:var(--wp2)"></i>Screenshot.png</span>
+              <span class="tf" data-k="1"><i class="fic pdf"></i>report.pdf</span>
+              <span class="tf" data-k="2"><i class="fic zip"></i>fonts.zip</span>
+              <span class="tf" data-k="0"><i class="fic img" style="--w:var(--wp4)"></i>photo.heic</span>
+              <span class="tf" data-k="1"><i class="fic txt"></i>notes.txt</span>
+              <span class="tf" data-k="3"><i class="fic dmg"></i>Setup.dmg</span>
+            </div>
+            <div class="empty"><svg class="ic"><use href="#i-check"/></svg>Nothing loose.</div>
+          </div>
+          <div class="pane">
+            <p class="pane-l"><i class="fic fold2"></i>Downloads/Tidy</p>
+            <ul class="kinds">
+              <li data-k="0"><svg class="ic"><use href="#i-folder"/></svg>Images<b>2</b></li>
+              <li data-k="1"><svg class="ic"><use href="#i-folder"/></svg>Documents<b>2</b></li>
+              <li data-k="2"><svg class="ic"><use href="#i-folder"/></svg>Archives<b>1</b></li>
+              <li data-k="3"><svg class="ic"><use href="#i-folder"/></svg>Apps<b>1</b></li>
+            </ul>
+          </div>
+          <div class="tlog"><span class="ok">✓</span><span class="msg">Sorted, 6 items filed away</span><span class="pill"><svg class="ic"><use href="#i-undo"/></svg>Undo</span></div>
+        </div>
+        <div class="txt">
+          <p class="eyebrow">desktop · downloads · documents</p>
+          <h3>Tidy, by type</h3>
+          <p>Loose files on your Desktop, in Downloads and in Documents move into a Tidy folder, sorted by type. Every move is logged, and Undo puts each one back. Nothing is deleted or renamed.</p>
+        </div>
+      </article>
+
+      <article class="card c-wall" id="f-wall" data-reveal>
+        <div class="vis v-wall">
+          <div class="wp-screen" aria-hidden="true" data-top="a"><i class="wl a" style="--w:var(--wp2)"></i><i class="wl b"></i><i class="bar"></i><i class="dk"></i></div>
+          <div class="shelves" role="group" aria-label="Wallpapers">
+            <div class="shelf"><span aria-hidden="true">Kliner</span><div>
+              <button class="wt" type="button" style="--w:var(--wp2)" data-w="--wp2" aria-pressed="true" aria-label="Kliner wallpaper, mint"></button>
+              <button class="wt" type="button" style="--w:var(--wp7)" data-w="--wp7" aria-pressed="false" aria-label="Kliner wallpaper, night"></button>
+            </div></div>
+            <div class="shelf"><span aria-hidden="true">Yours</span><div>
+              <button class="wt" type="button" style="--w:var(--wp6)" data-w="--wp6" aria-pressed="false" aria-label="One of your own pictures"></button>
+            </div></div>
+            <div class="shelf"><span aria-hidden="true">macOS</span><div>
+              <button class="wt" type="button" style="--w:var(--wp5)" data-w="--wp5" aria-pressed="false" aria-label="A wallpaper that came with the Mac, blue"></button>
+              <button class="wt" type="button" style="--w:var(--wp3)" data-w="--wp3" aria-pressed="false" aria-label="A wallpaper that came with the Mac, grey"></button>
+            </div></div>
+          </div>
+        </div>
+        <div class="txt">
+          <p class="eyebrow">your screen</p>
+          <h3>Wallpapers, one click</h3>
+          <p>The ones your Mac came with, and your own: drop pictures in Pictures/Kliner Wallpapers and they are on the list. Your old wallpaper is kept, so you can always go back.</p>
+        </div>
+      </article>
+
+      <article class="card c-dock" id="f-dock" data-reveal>
+        <div class="vis v-dock" aria-hidden="true">
+          <span class="dchip"><svg class="ic"><use href="#i-check"/></svg><span class="dchip-t">Dock saved first</span></span>
+          <div class="dock">
+            <i class="app" style="--c:#3b82f6">F</i>
+            <i class="app mk" style="--c:#8b5cf6">P</i>
+            <i class="app" style="--c:#2563eb">M</i>
+            <i class="app mk" style="--c:#f97316">T</i>
+            <i class="app" style="--c:#71717a">S</i>
+            <i class="app mk" style="--c:#10b981">N</i>
+            <i class="app" style="--c:#0ea5e9">B</i>
+            <i class="dsep"></i>
+            <i class="app tr"><svg class="ic"><use href="#i-trash"/></svg></i>
+          </div>
+        </div>
+        <div class="txt">
+          <p class="eyebrow">your screen</p>
+          <h3>Clean the Dock</h3>
+          <p>Take out what you never open. The apps stay installed, and your Dock is saved first, so putting it back is exact.</p>
+        </div>
+      </article>
+
+      <article class="card c-k" id="f-k" data-reveal>
+        <div class="vis v-k" aria-hidden="true">
+          <div class="pk">
+            <div class="pk-q"><svg class="ic"><use href="#i-search"/></svg><span class="pk-t">tidy</span><i class="caret"></i><kbd>esc</kbd></div>
+            <ul class="pk-rows">
+              <li class="on"><svg class="ic"><use href="#i-spark"/></svg><span>Tidy downloads</span><em>action</em></li>
+              <li><svg class="ic"><use href="#i-spark"/></svg><span>Tidy desktop</span><em>action</em></li>
+              <li><svg class="ic"><use href="#i-grid"/></svg><span>Downloads</span><em>page</em></li>
+              <li><svg class="ic"><use href="#i-file"/></svg><span>tidy-up-notes.txt</span><em>file</em></li>
+            </ul>
+          </div>
+        </div>
+        <div class="txt">
+          <p class="eyebrow">anywhere</p>
+          <h3>Everything, one ⌘K away</h3>
+          <p>Search pages, actions and files. From any other app, ⌘K opens Kliner's menu in the menu bar.</p>
+          <p class="try"><button type="button" data-pal>Try <kbd>⌘K</kbd> on this page</button></p>
+        </div>
+      </article>
+
+      <article class="card c-free" id="f-free" data-reveal>
+        <div class="vis v-free" aria-hidden="true">
+          <div class="pane">
+            <p class="fr-h"><svg class="ic"><use href="#i-spark"/></svg>Safe to clean<span>apps rebuild these</span></p>
+            <ul class="rows">
+              <li><i class="box"><svg class="ic"><use href="#i-check"/></svg></i>App caches<b>5.2 GB</b></li>
+              <li><i class="box"><svg class="ic"><use href="#i-check"/></svg></i>Xcode derived data<b>1.9 GB</b></li>
+              <li><i class="box"><svg class="ic"><use href="#i-check"/></svg></i>npm / yarn / pnpm cache<b>640 MB</b></li>
+              <li><i class="box"><svg class="ic"><use href="#i-check"/></svg></i>Trash<b>860 MB</b></li>
+            </ul>
+            <div class="fr-sum"><span class="fr-l">Can go</span><span class="fr-n">8.6 GB</span></div>
+            <div class="fr-bar"><i></i></div>
+          </div>
+          <div class="pane keep">
+            <p class="fr-h"><svg class="ic"><use href="#i-eye"/></svg>Worth a look<span>never touched</span></p>
+            <ul class="rows">
+              <li><svg class="ic"><use href="#i-lock"/></svg>Old downloads<b>3.4 GB</b></li>
+              <li><svg class="ic"><use href="#i-lock"/></svg>iPhone backups<b>11 GB</b></li>
+              <li><svg class="ic"><use href="#i-lock"/></svg>node_modules<b>6.2 GB</b></li>
+            </ul>
+            <p class="note">measured and shown,<br>left exactly where they are</p>
+          </div>
+        </div>
+        <div class="txt">
+          <p class="eyebrow">your disk</p>
+          <h3>Free up space, safely</h3>
+          <p>Only caches your apps rebuild by themselves, and the Trash. Downloads, backups and node_modules are measured and shown, never touched. Afterwards Kliner measures again, so the number it shows is the space you got.</p>
+        </div>
+      </article>
+
+      <article class="card c-store" id="f-store" data-reveal>
+        <div class="vis v-store" aria-hidden="true">
+          <div>
+            <p class="fr-h"><svg class="ic"><use href="#i-chart"/></svg>Storage<span>biggest in your home</span></p>
+            <ul class="bars">
+              <li style="--v:1;--d:0"><span>Library</span><i></i><b>64 GB</b></li>
+              <li style="--v:.62;--d:1"><span>Movies</span><i></i><b>40 GB</b></li>
+              <li style="--v:.44;--d:2"><span>Developer</span><i></i><b>28 GB</b></li>
+              <li style="--v:.3;--d:3"><span>Pictures</span><i></i><b>19 GB</b></li>
+              <li style="--v:.15;--d:4"><span>Downloads</span><i></i><b>9 GB</b></li>
+            </ul>
+          </div>
+          <div>
+            <p class="fr-h"><svg class="ic"><use href="#i-power"/></svg>Startup<span>opens when you log in</span></p>
+            <ul class="su">
+              <li><i class="ico" style="--c:#0ea5e9">S</i><span>Sync helper<em>login item</em></span><b class="pill">Stop</b></li>
+              <li class="off"><i class="ico" style="--c:#71717a">U</i><span>Updater<em>background agent · stopped</em></span><b class="pill"><svg class="ic"><use href="#i-undo"/></svg>Undo</b></li>
+            </ul>
+          </div>
+        </div>
+        <div class="txt">
+          <p class="eyebrow">your disk · startup</p>
+          <h3>What's big, and what starts at login</h3>
+          <p>A map of the biggest folders in your home. And everything that opens when you log in: stop it, and undo it if you change your mind. Nothing is uninstalled.</p>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="send" aria-labelledby="s-h">
+  <div class="wrap">
+    <div class="duo">
+      <div data-reveal>
+        <p class="eyebrow">send</p>
+        <h2 id="s-h" class="grad">Any file, to any @username.</h2>
+        <p class="sec-sub">Full quality, never compressed. To a Mac nearby it goes straight across; to anyone else it goes through kliner.app, encrypted on your Mac before it leaves.</p>
+        <ul class="facts">
+          <li><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg><span>Encrypted on your Mac with <code>ChaCha20-Poly1305</code>, a fresh key for every file.</span></li>
+          <li><svg class="ic" aria-hidden="true"><use href="#i-at"/></svg><span>That key is sealed to the receiver, so kliner.app only ever holds ciphertext.</span></li>
+          <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>Kept for seven days at most.</span></li>
+        </ul>
+      </div>
+      <div class="card route-card" data-reveal>
+        <div class="rc-top">
+          <div class="seg" role="group" aria-label="Show the route to">
+            <button type="button" data-mode="near" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-wifi"/></svg>Nearby</button>
+            <button type="button" data-mode="far" aria-pressed="true"><svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg>Anywhere</button>
+          </div>
+          <p aria-hidden="true">IMG_0412.HEIC</p>
+        </div>
+        <div class="route" aria-hidden="true">
+          <div class="node me"><span class="nd"><svg viewBox="39.4 33 23.6 15.1"><use href="#k-eye-l"/><use href="#k-eye-r"/></svg></span><b>Your Mac</b><em>encrypts it first</em></div>
+          <div class="node hub"><span class="nd"><svg class="ic"><use href="#i-globe"/></svg></span><b>kliner.app</b><em>ciphertext only, 7 days at most</em></div>
+          <div class="node"><span class="nd"><svg class="ic"><use href="#i-at"/></svg></span><b>@username</b><em class="to">opens it on their Mac</em></div>
+          <div class="track"><span class="pkt"><svg class="ic lk"><use href="#i-lock"/></svg>24.6 MB</span></div>
+        </div>
+        <dl class="spec far-only">
+          <div><dt>cipher</dt><dd>ChaCha20-Poly1305</dd></div>
+          <div><dt>key</dt><dd>sealed to the receiver</dd></div>
+          <div><dt>kept</dt><dd>7 days at most</dd></div>
+        </dl>
+        <dl class="spec near-only">
+          <div><dt>found</dt><dd>on the same network</dd></div>
+          <div><dt>route</dt><dd>straight across, no server</dd></div>
+          <div><dt>file</dt><dd>the bytes as they are</dd></div>
+        </dl>
+      </div>
+    </div>
+
+    <div class="prof-row" id="profile">
+      <div class="duo">
+        <div class="card prof" data-reveal>
+          <div class="pf-bar" aria-hidden="true"><span class="lights"><i></i><i></i><i></i></span><span class="pf-url"><svg class="ic"><use href="#i-lock"/></svg>kliner.app/@name</span></div>
+          <div class="pf-body" aria-hidden="true">
+            <div>
+              <div class="pf-id"><span class="pf-av"><b>Y</b></span><div><b>Your name</b><span>@name</span></div></div>
+              <div class="pf-lines">
+                <div class="pf-line mac"><svg class="ic"><use href="#i-cpu"/></svg>MacBook Air · Apple silicon</div>
+                <div class="pf-line setup"><svg class="ic"><use href="#i-img"/></svg>Wallpaper · Dock and desktop</div>
+              </div>
+            </div>
+            <div class="pf-shot"><i class="wl" style="--w:var(--wp4)"></i><span class="pf-hid w">setup hidden</span>
+              <span class="pf-dock"><i style="--c:#3b82f6"></i><i style="--c:#2563eb"></i><i style="--c:#71717a"></i><i style="--c:#0ea5e9"></i><i style="--c:#e5e5e5"></i></span></div>
+          </div>
+          <div class="pf-show" role="group" aria-label="What your profile shows">
+            <span>Show</span>
+            <button class="tg" type="button" data-part="picture" aria-pressed="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Picture</button>
+            <button class="tg" type="button" data-part="mac" aria-pressed="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>This Mac</button>
+            <button class="tg" type="button" data-part="setup" aria-pressed="true"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Setup</button>
+          </div>
+        </div>
+        <div data-reveal>
+          <p class="eyebrow">kliner.app/@name</p>
+          <h3 class="grad" style="font-size:clamp(28px,3.4vw,40px);line-height:1.08;letter-spacing:-.038em">A page for your Mac.</h3>
+          <p class="sec-sub">A public profile at kliner.app/@name: your Mac, your wallpaper and your Dock. Only what you choose to show, for anyone with the link.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="claim-row" id="claim">
+      <div class="duo">
+        <div data-reveal>
+          <p class="eyebrow">your @username</p>
+          <h3 class="grad" style="font-size:clamp(28px,3.4vw,40px);line-height:1.08;letter-spacing:-.038em">Hold your name now.</h3>
+          <p class="sec-sub">One @username is one person, everywhere. Hold yours here before somebody else does: kliner.app keeps it for 30 days and gives you a code. Type the name into Kliner, then the code, and it is yours.</p>
+        </div>
+        <form class="card claim" id="claim-form" data-reveal novalidate>
+          <label class="cl-field" id="cl-field" for="cl-name"><span class="cl-pre">kliner.app/@</span><input id="cl-name" name="name" type="text" maxlength="21" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="yourname" aria-describedby="cl-say"><span class="cl-sign" id="cl-sign" aria-hidden="true"></span></label>
+          <p class="cl-say" id="cl-say" role="status">3 to 20 small letters, numbers, dots or underscores.</p>
+          <button class="btn btn-on" id="cl-go" type="submit" disabled>Hold it for 30 days</button>
+          <div class="cl-done" id="cl-done" hidden>
+            <p class="cl-k">The code for <b id="cl-for">@name</b></p>
+            <p class="cl-code" id="cl-code"></p>
+            <p class="cl-small">Kept for you until <span id="cl-until"></span>. It is shown once, so copy it somewhere. In Kliner, type <b id="cl-for2">@name</b> as your username, then this code.</p>
+            <button class="btn btn-ghost btn-sm" type="button" id="cl-copy">Copy the code</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="promises" aria-labelledby="p-h">
+  <div class="wrap">
+    <header class="sec-head center" data-reveal>
+      <p class="eyebrow">promises</p>
+      <h2 id="p-h" class="grad">Six promises, and the code to check them against.</h2>
+    </header>
+    <ul class="promises">
+      <li data-reveal><span class="pi"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg></span><h3>Never asks for your password</h3><p>No sudo, ever. Anything that would need an administrator is left alone, and Kliner says so.</p></li>
+      <li data-reveal><span class="pi"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg></span><h3>Only inside your home folder</h3><p>Anything outside your home folder is refused, and so is the home folder itself.</p></li>
+      <li data-reveal><span class="pi"><svg class="ic" aria-hidden="true"><use href="#i-yes"/></svg></span><h3>Nothing happens without a yes</h3><p>Whatever would change something shows you what it is about to do, and waits.</p></li>
+      <li data-reveal><span class="pi"><svg class="ic" aria-hidden="true"><use href="#i-undo"/></svg></span><h3>Everything can be undone</h3><p>Moves are logged file by file, the Dock is saved before it is touched, old settings are kept. Emptying the Trash is the one exception, and it says so.</p></li>
+      <li data-reveal><span class="pi"><svg class="ic" aria-hidden="true"><use href="#i-eye"/></svg></span><h3>Preview changes nothing</h3><p><code>--dry-run</code> and Preview show what would happen, and change nothing at all.</p></li>
+      <li data-reveal><span class="pi"><svg class="ic" aria-hidden="true"><use href="#i-code"/></svg></span><h3>Open source, MIT</h3><p>Every line is on <a href="https://github.com/danielkopa/nimo">GitHub</a>, to read, build and check.</p></li>
+    </ul>
+  </div>
+</section>
+
+<section class="sec" id="terminal" aria-labelledby="t-h">
+  <div class="wrap term-grid">
+    <div data-reveal>
+      <p class="eyebrow">for the terminal</p>
+      <h2 id="t-h" class="grad">Underneath, a tool you can read.</h2>
+      <p class="sec-sub">Kliner is a window on <code>min</code>, a small bash tool that comes inside the app. What the window changes, it changes by running <code>min</code>, so a terminal gets the same commands, the same questions and the same undo.</p>
+      <div class="cmds" id="cmds">
+        <button class="cmd" type="button" data-t="t1" aria-selected="true"><code>min clear desktop</code><span>Your desktop into Desktop/Tidy, by type.</span></button>
+        <button class="cmd" type="button" data-t="t2" aria-selected="false"><code>min zen</code><span>The icons on your desktop go. <code>--restore</code> brings them back.</span></button>
+        <button class="cmd" type="button" data-t="t3" aria-selected="false"><code>min clean</code><span>Caches apps rebuild, and the Trash. Never your files.</span></button>
+        <button class="cmd" type="button" data-t="t4" aria-selected="false"><code>min undo</code><span>Everything it has done, and the way back from each.</span></button>
+      </div>
+      <p class="fine">Add <code>--dry-run</code> to anything: it shows what would happen, and changes nothing.</p>
+    </div>
+    <div class="term" data-reveal>
+      <div class="term-bar" aria-hidden="true"><span class="lights"><i></i><i></i><i></i></span><b>~ — min</b></div>
+<pre class="on" id="t1"><span class="ln"><span class="ps">~ $</span> <span class="c">min clear desktop</span></span><span class="ln"></span><span class="ln"><span class="k">╭─ your desktop ───────────────────────</span></span><span class="ln">  Screenshots              <span class="v">23 items</span></span><span class="ln">  Images                    <span class="v">9 items</span></span><span class="ln">  Documents                 <span class="v">6 items</span></span><span class="ln">  Other                     <span class="v">3 items</span></span><span class="ln">  <span class="k">─────────────────────────────────</span></span><span class="ln">  In there                 <span class="v">41 items</span></span><span class="ln"><span class="k">╰──────────────────────────────────────</span></span><span class="ln"></span><span class="ln"><span class="d">  everything moves into  Desktop/Tidy/&lt;kind&gt;/</span></span><span class="ln"><span class="d">  nothing is deleted, nothing is renamed</span></span><span class="ln"></span><span class="ln">  Sort 41 items? [y/N] <span class="v">y</span></span><span class="ln"></span><span class="ln">  <span class="ok">✓</span> Sorted, 41 items filed away</span><span class="ln"><span class="d">  Desktop/Tidy/</span></span><span class="ln"></span><span class="ln"><span class="d">  changed your mind?  min desktop --undo</span></span><span class="ln"></span><span class="ln"><span class="ps">~ $</span> <i class="cur"></i></span></pre>
+<pre id="t2"><span class="ln"><span class="ps">~ $</span> <span class="c">min zen</span></span><span class="ln"></span><span class="ln"><span class="k">╭─ zen ────────────────────────────────</span></span><span class="ln">  The icons on your desktop go.</span><span class="ln"></span><span class="ln"><span class="d">  the files stay exactly where they are, in ~/Desktop</span></span><span class="ln"><span class="d">  you reach them in Finder, or with  min zen --restore</span></span><span class="ln"><span class="k">╰──────────────────────────────────────</span></span><span class="ln"></span><span class="ln">  Hide your desktop icons? [y/N] <span class="v">y</span></span><span class="ln"></span><span class="ln">  <span class="ok">✓</span> Quiet desktop.</span><span class="ln"><span class="d">  bring it back with  min zen --restore</span></span><span class="ln"></span><span class="ln"><span class="ps">~ $</span> <i class="cur"></i></span></pre>
+<pre id="t3"><span class="ln"><span class="ps">~ $</span> <span class="c">min clean --dry-run</span></span><span class="ln"></span><span class="ln"><span class="k">╭─ safe to clean ──────────────────────</span></span><span class="ln">  App caches                 <span class="v">5.2 GB</span></span><span class="ln">  Xcode derived data         <span class="v">1.9 GB</span></span><span class="ln">  npm / yarn / pnpm cache    <span class="v">640 MB</span></span><span class="ln">  Trash                      <span class="v">860 MB</span></span><span class="ln">  <span class="k">─────────────────────────────────</span></span><span class="ln">  Total                      <span class="v">8.6 GB</span></span><span class="ln"><span class="k">╰──────────────────────────────────────</span></span><span class="ln"></span><span class="ln"><span class="k">╭─ worth a look ───────────────────────</span></span><span class="ln"><span class="d">  nimo never deletes anything in this section</span></span><span class="ln">  node_modules folders       <span class="v">6.2 GB</span></span><span class="ln">  Old downloads              <span class="v">3.4 GB</span></span><span class="ln">  iPhone / iPad backups       <span class="v">11 GB</span></span><span class="ln"><span class="k">╰──────────────────────────────────────</span></span><span class="ln"></span><span class="ln"><span class="d">  preview only, nothing was deleted</span></span><span class="ln"></span><span class="ln"><span class="ps">~ $</span> <i class="cur"></i></span></pre>
+<pre id="t4"><span class="ln"><span class="ps">~ $</span> <span class="c">min undo</span></span><span class="ln"></span><span class="ln"><span class="k">╭─ what nimo has done ─────────────────</span></span><span class="ln"><span class="d">  pick the one to reverse. nothing else is touched.</span></span><span class="ln"></span><span class="ln">  <span class="v">▸ cleared your desktop</span></span><span class="ln">    rebuilt your dock</span><span class="ln">    changed your wallpaper</span><span class="ln"></span><span class="ln"><span class="d">  ↑↓ move   enter reverse   q cancel</span></span><span class="ln"><span class="k">╰──────────────────────────────────────</span></span><span class="ln"></span><span class="ln">  <span class="ok">✓</span> 41 files put back</span><span class="ln"></span><span class="ln"><span class="ps">~ $</span> <i class="cur"></i></span></pre>
+    </div>
+  </div>
+</section>
+
+<section class="end" id="download" aria-labelledby="e-h">
+  <div class="end-glow" aria-hidden="true"></div>
+  <div class="wrap end-in" data-reveal>
+    <svg class="kl-mini" viewBox="0 0 100 100" aria-hidden="true"><use href="#k-body"/><g class="eyes" id="eyes2"><use href="#k-eye-l"/><use href="#k-eye-r"/></g></svg>
+    <h2 id="e-h" class="grad">What are we clearing today?</h2>
+    <p>Kliner <span data-dl-v>v0.62.0</span> for macOS 12 or later. Open the .dmg, drag Kliner onto Applications. Open source, MIT.</p>
+    <p class="first-open">The first time you open it, macOS stops it once: it is not signed with Apple's $99-a-year certificate. Open <b>System Settings › Privacy &amp; Security</b>, scroll to Security and click <b>Open Anyway</b>.</p>
+    <div class="ctas">
+      <a class="btn btn-on" href="https://api.kliner.app/download"><svg class="ic" aria-hidden="true"><use href="#i-dl"/></svg>Download for Mac</a>
+      <a class="btn btn-ghost" href="https://github.com/danielkopa/nimo"><svg class="ic" aria-hidden="true" style="fill:currentColor;stroke:none"><use href="#i-gh"/></svg>View on GitHub</a>
+    </div>
+  </div>
+</section>
+
 </main>
 
-<footer>
-  <a href="join.html">Get told when it is ready</a>
-  <span aria-hidden="true">·</span>
-  <a href="mailto:daniel@rlx.sk">daniel@rlx.sk</a>
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div class="foot-brand"><img src="data:image/png;base64,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" alt="" width="30" height="30"><b>Kliner</b><span>A calmer Mac.</span></div>
+    <nav class="foot-links" aria-label="More">
+      <a href="https://api.kliner.app/download">Download</a>
+      <a href="https://github.com/danielkopa/nimo">GitHub</a>
+      <a href="https://github.com/danielkopa/nimo">MIT license</a>
+      <a href="join.html">Join the list</a>
+      <a href="mailto:daniel@rlx.sk">daniel@rlx.sk</a>
+    </nav>
+    <span class="foot-v" data-dl-v>v0.62.0</span>
+  </div>
 </footer>
 
-<script>
-  // He blinks the way somebody blinks: not on a beat. A fixed keyframe loop
-  // reads as a machine ticking, so the timing is drawn each time, and now and
-  // then he blinks twice, or looks off to one side and comes back.
-  (function () {
-    var eyes = document.getElementById("eyes");
-    if (!eyes) { return; }
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { return; }
+<dialog class="pal" id="pal" aria-label="Search this page">
+  <div class="pal-in">
+    <div class="pal-q"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+      <input id="pal-q" type="text" placeholder="Search this page" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="pal-l" aria-autocomplete="list" aria-label="Search this page">
+      <kbd>esc</kbd></div>
+    <ul id="pal-l" role="listbox" aria-label="Results"></ul>
+    <div class="pal-foot" aria-hidden="true"><span>↑↓ move</span><span>↵ open</span><span>esc close</span></div>
+  </div>
+</dialog>
 
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+  var doc = document.documentElement;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var DL = "https://api.kliner.app/download";
+
+  /* ---- the download: which version is up and how big it is, asked of the
+     server that hands it out. When it does not answer, the page's own
+     words stand. */
+  if (window.fetch) {
+    fetch(DL.replace(/\/download$/, "/v1/release")).then(function (r) { return r.ok ? r.json() : null; }).then(function (rel) {
+      if (!rel || !/^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(rel.version || "") || !rel.dmg) return;
+      var mb = (rel.dmg.bytes / 1e6).toFixed(1) + " MB";
+      Array.prototype.forEach.call(document.querySelectorAll("[data-dl-v]"), function (el) { el.textContent = "v" + rel.version; });
+      Array.prototype.forEach.call(document.querySelectorAll("[data-dl-f]"), function (el) { el.textContent = "Kliner-" + rel.version + ".dmg · " + mb; });
+    }).catch(function () {});
+  }
+  /* ---- your @username, held from here: the same server, asked as you
+     type, and the code it hands back, shown once */
+  (function () {
+    var form = document.getElementById("claim-form");
+    if (!form || !window.fetch) return;
+    var API = DL.replace(/\/download$/, "");
+    var field = document.getElementById("cl-name"), box = document.getElementById("cl-field");
+    var say = document.getElementById("cl-say"), sign = document.getElementById("cl-sign"), go = document.getElementById("cl-go");
+    var KEPT = ("kliner admin root support help system apple everyone nobody api www about privacy terms beta waitlist " +
+                "profile settings login signup me mail team staff").split(" ");
+    var HINT = "3 to 20 small letters, numbers, dots or underscores.";
+    var timer = 0, turn = 0, free = "";
+    function rule(n) {
+      if (KEPT.indexOf(n) >= 0) return "That name is kept by Kliner.";
+      if (n.length < 3) return "At least 3 characters.";
+      if (n.length > 20) return "20 characters at most.";
+      if (!/^[a-z]/.test(n)) return "Start with a letter.";
+      if (!/^[a-z0-9._]+$/.test(n)) return "Small letters, numbers, dots and underscores only.";
+      if (/\.\.|\.$/.test(n)) return "A dot needs a letter on each side.";
+      return "";
+    }
+    function state(text, tone) {
+      say.textContent = text;
+      say.className = "cl-say" + (tone && tone !== "wait" ? " " + tone : "");
+      sign.className = "cl-sign" + (tone ? " " + tone : "");
+      box.className = "cl-field" + (tone === "good" || tone === "bad" ? " " + tone : "");
+    }
+    field.addEventListener("input", function () {
+      var v = field.value.replace(/^@+/, "").replace(/\s+/g, "").toLowerCase();
+      if (v !== field.value) field.value = v;
+      free = ""; go.disabled = true; clearTimeout(timer);
+      if (!v) { state(HINT, ""); return; }
+      var bad = rule(v);
+      if (bad) { state(bad, "bad"); return; }
+      state("Looking…", "wait");
+      var mine = ++turn;
+      timer = setTimeout(function () {
+        fetch(API + "/v1/names/" + encodeURIComponent(v)).then(function (r) { return r.json(); }).then(function (a) {
+          if (mine !== turn) return;
+          if (a && a.free) { free = v; go.disabled = false; state("@" + v + " is free.", "good"); return; }
+          // the server words a hold for someone typing into Kliner; here
+          // there is nowhere to type a code, so say it for this page
+          var until = a && a.until ? new Date(a.until * 1000).toLocaleDateString("en-US", { month: "long", day: "numeric" }) : "";
+          if (a && a.reason === "claimed" && until) state("Somebody holds @" + v + " until " + until + ". If that was you, type it into Kliner with your code.", "bad");
+          else if (a && a.reason === "held" && until) state("@" + v + " was given up a moment ago. It is kept for its owner until " + until + ".", "bad");
+          else state((a && a.message) || "That one cannot be had.", "bad");
+        }).catch(function () { if (mine === turn) state("kliner.app could not be reached. Try again in a moment.", "bad"); });
+      }, 350);
+    });
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var v = free;
+      if (!v || go.disabled) return;
+      go.disabled = true; field.disabled = true;
+      state("Holding @" + v + "…", "wait");
+      fetch(API + "/v1/claims", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: v }) })
+        .then(function (r) { return r.json().then(function (a) { return { ok: r.ok, a: a || {} }; }); })
+        .then(function (x) {
+          if (!x.ok) { field.disabled = false; state(x.a.message || "That did not work. Try again.", "bad"); return; }
+          var until = new Date((x.a.expires || 0) * 1000).toLocaleDateString("en-US", { month: "long", day: "numeric" });
+          document.getElementById("cl-for").textContent = document.getElementById("cl-for2").textContent = "@" + x.a.name;
+          document.getElementById("cl-code").textContent = x.a.code;
+          document.getElementById("cl-until").textContent = until;
+          document.getElementById("cl-done").hidden = false;
+          go.hidden = true;
+          state("@" + x.a.name + " is held for you.", "good");
+        }).catch(function () { field.disabled = false; go.disabled = false; state("kliner.app could not be reached. Try again in a moment.", "bad"); });
+    });
+    var copy = document.getElementById("cl-copy");
+    copy.addEventListener("click", function () {
+      var code = document.getElementById("cl-code").textContent;
+      if (!navigator.clipboard) { getSelection().selectAllChildren(document.getElementById("cl-code")); return; }
+      navigator.clipboard.writeText(code).then(function () {
+        copy.textContent = "Copied";
+        setTimeout(function () { copy.textContent = "Copy the code"; }, 1800);
+      }, function () { getSelection().selectAllChildren(document.getElementById("cl-code")); });
+    });
+  })();
+
+  var GH = "https://github.com/danielkopa/nimo";
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+  function typing(el) { return el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)); }
+
+  /* ---- him -------------------------------------------------------------
+     He blinks the way somebody blinks: not on a beat. A fixed loop reads as
+     a machine ticking, so the timing is drawn each time, and now and then
+     he blinks twice, or looks off to one side and comes back. */
+  var following = false;
+  function alive(eyes, first) {
+    if (!eyes || reduce) { return; }
     function shut(ms) {
       eyes.classList.add("shut");
       setTimeout(function () { eyes.classList.remove("shut"); }, ms || 110);
     }
-
     function blink() {
       shut(110);
-      // A double blink, sometimes. It is the thing that stops a loop looking
-      // like a loop.
-      if (Math.random() < 0.22) {
-        setTimeout(function () { shut(90); }, 260);
-      }
+      if (Math.random() < 0.22) { setTimeout(function () { shut(90); }, 260); }
       setTimeout(blink, 2200 + Math.random() * 4600);
     }
-
     function glance() {
-      var way = Math.random() < 0.5 ? "left" : "right";
-      eyes.classList.add(way);
-      setTimeout(function () { eyes.classList.remove(way); }, 900 + Math.random() * 700);
+      if (!following) {
+        var way = Math.random() < 0.5 ? "left" : "right";
+        eyes.classList.add(way);
+        setTimeout(function () { eyes.classList.remove(way); }, 900 + Math.random() * 700);
+      }
       setTimeout(glance, 5000 + Math.random() * 9000);
     }
+    eyes.hello = function () { shut(110); setTimeout(function () { shut(90); }, 240); };
+    setTimeout(blink, first || 1400);
+    setTimeout(glance, (first || 1400) + 2800);
+  }
+  var eyes = document.getElementById("eyes");
+  alive(eyes, 1400);
+  alive(document.getElementById("eyes2"), 2600);
 
-    setTimeout(blink, 1400);
-    setTimeout(glance, 4200);
-  })();
+  // He looks where the pointer is, a little: the eyes, never the face.
+  var look = document.getElementById("look"), him = $(".kliner");
+  if (look && him && !reduce) {
+    var raf = 0, px = 0, py = 0, rest = 0;
+    window.addEventListener("pointermove", function (e) {
+      if (e.pointerType && e.pointerType !== "mouse") { return; }
+      px = e.clientX; py = e.clientY;
+      if (raf) { return; }
+      raf = requestAnimationFrame(function () {
+        raf = 0;
+        var r = him.getBoundingClientRect();
+        if (r.bottom < 0) { return; }
+        var dx = px - (r.left + r.width * 0.51), dy = py - (r.top + r.height * 0.41);
+        var d = Math.sqrt(dx * dx + dy * dy) || 1, k = Math.min(1, d / 320);
+        look.style.transform = "translate(" + (dx / d * 2.8 * k).toFixed(2) + "px," + (dy / d * 2 * k).toFixed(2) + "px)";
+        following = true;
+        clearTimeout(rest);
+        rest = setTimeout(function () { following = false; look.style.transform = ""; }, 2600);
+      });
+    }, { passive: true });
+    him.addEventListener("click", function () { if (eyes && eyes.hello) { eyes.hello(); } });
+  }
+
+  // The window says good morning in the morning, as the app does.
+  var hi = document.getElementById("hi");
+  if (hi) {
+    var hr = new Date().getHours();
+    hi.textContent = hr < 5 ? "Good evening" : hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
+  }
+
+  /* ---- small machinery ------------------------------------------------- */
+  function wait(ms, t) {
+    return new Promise(function (ok, no) { setTimeout(function () { if (t.on) { ok(); } else { no(0); } }, ms); });
+  }
+  // Runs a little scene while it is on screen, and puts it back to rest when
+  // it leaves. Nothing loops for someone who asked for less motion.
+  function scene(el, run, rest, threshold) {
+    if (!el || reduce || !("IntersectionObserver" in window)) { return; }
+    var tok = null;
+    new IntersectionObserver(function (list) {
+      var e = list[list.length - 1];
+      if (e.isIntersecting && !tok) {
+        var me = tok = { on: true };
+        (async function () { try { while (me.on) { await run(me); } } catch (x) { /* stopped */ } })();
+      } else if (!e.isIntersecting && tok) {
+        tok.on = false; tok = null;
+        if (rest) { rest(); }
+      }
+    }, { threshold: threshold || 0.35 }).observe(el);
+  }
+  function flip(holder, w) {
+    // two layers: paint the hidden one, then fade it in or the top one out
+    var top = holder.getAttribute("data-top") === "b" ? "b" : "a";
+    var next = top === "a" ? "b" : "a";
+    holder.querySelector(".wl." + next).style.setProperty("--w", "var(" + w + ")");
+    holder.setAttribute("data-top", next);
+  }
+
+  var toastEl = document.getElementById("toast"), toastT = 0;
+  function toast(html) {
+    toastEl.innerHTML = html;
+    toastEl.classList.add("show");
+    clearTimeout(toastT);
+    toastT = setTimeout(function () { toastEl.classList.remove("show"); }, 2200);
+  }
+
+  /* ---- the window's wallpaper, and the light it throws ----------------- */
+  var screen = $(".w-screen"), aura = $(".aura"), thumbs = $$(".w-walls i");
+  var WALLS = ["--wp3", "--wp2", "--wp1", "--wp4", "--wp5", "--wp7", "--wp6"];
+  var wallAt = 2;
+  scene($(".shot"), async function (t) {
+    await wait(4200, t);
+    wallAt = (wallAt + 1) % WALLS.length;
+    flip(screen, WALLS[wallAt]); flip(aura, WALLS[wallAt]);
+    thumbs.forEach(function (th, i) { th.classList.toggle("on", i === wallAt); });
+  }, null, 0.2);
+
+  /* ---- A. one key ------------------------------------------------------ */
+  var desk = $(".desk"), cap = $(".keycap"), hideLabel = document.getElementById("w-hide");
+  var hidden = false, userUntil = 0;
+  function setHidden(v) {
+    hidden = v;
+    if (desk) { desk.classList.toggle("hid", v); }
+    if (screen) { screen.classList.toggle("hid", v); }
+    if (hideLabel) { hideLabel.textContent = v ? "Show desktop files" : "Hide desktop files"; }
+    if (cap) {
+      cap.setAttribute("aria-pressed", v ? "true" : "false");
+      cap.classList.add("down");
+      setTimeout(function () { cap.classList.remove("down"); }, 150);
+    }
+  }
+  if (cap) { cap.addEventListener("click", function () { userUntil = Date.now() + 9000; setHidden(!hidden); }); }
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "\\" || e.metaKey || (e.ctrlKey && !e.altKey) || typing(e.target) || (pal && pal.open)) { return; }
+    e.preventDefault();
+    userUntil = Date.now() + 9000;
+    setHidden(!hidden);
+    toast(hidden ? '<svg class="ic"><use href="#i-eyeoff"/></svg><b>Desktop files hidden</b><span><kbd>\\</kbd> shows them again</span>'
+                 : '<svg class="ic"><use href="#i-eye"/></svg><b>Desktop files shown</b><span>nothing moved</span>');
+  });
+  scene($(".v-hide"), async function (t) {
+    await wait(1500, t);
+    if (Date.now() < userUntil) { return; }
+    setHidden(true);
+    await wait(2600, t);
+    if (Date.now() < userUntil) { return; }
+    setHidden(false);
+    await wait(1300, t);
+  }, function () { if (Date.now() > userUntil && hidden) { setHidden(false); } });
+
+  /* ---- B. tidy --------------------------------------------------------- */
+  var tidy = $(".v-tidy");
+  if (tidy) {
+    var files = $$(".tf", tidy), kinds = $$(".kinds li", tidy);
+    var msg = $(".tlog .msg", tidy), ok = $(".tlog .ok", tidy), undo = $(".tlog .pill", tidy);
+    var counts = [2, 2, 1, 1];
+    var setCount = function (k, n) { var li = kinds[k]; li.querySelector("b").textContent = n; li.classList.add("hit"); setTimeout(function () { li.classList.remove("hit"); }, 380); };
+    var toFolder = function (f) {
+      var a = f.getBoundingClientRect(), b = kinds[+f.getAttribute("data-k")].getBoundingClientRect();
+      f.style.transform = "translate(" + (b.left + 18 - a.left) + "px," + (b.top + b.height / 2 - a.top - a.height / 2) + "px) scale(.55)";
+      f.classList.add("gone");
+    };
+    var tidyRest = function () {
+      files.forEach(function (f) { f.style.transform = ""; f.classList.remove("gone"); });
+      counts.forEach(function (n, k) { kinds[k].querySelector("b").textContent = n; });
+      tidy.classList.add("done"); msg.textContent = "Sorted, 6 items filed away"; ok.style.visibility = ""; undo.style.visibility = "";
+    };
+    scene(tidy, async function (t) {
+      await wait(1700, t);
+      undo.classList.add("press"); await wait(160, t); undo.classList.remove("press");
+      // back where they were: lay each file on its folder, then let it travel home
+      files.forEach(function (f) { f.style.transition = "none"; });
+      tidy.classList.remove("done");
+      files.forEach(toFolder);
+      void tidy.offsetWidth;
+      var left = counts.slice();
+      for (var i = files.length - 1; i >= 0; i--) {
+        files[i].style.transition = ""; files[i].style.transform = ""; files[i].classList.remove("gone");
+        var k = +files[i].getAttribute("data-k"); left[k]--; setCount(k, left[k]);
+        await wait(150, t);
+      }
+      msg.textContent = "6 files put back"; undo.style.visibility = "hidden";
+      await wait(2200, t);
+      msg.textContent = "Sort 6 items?  y";
+      ok.style.visibility = "hidden";
+      await wait(700, t);
+      var got = [0, 0, 0, 0];
+      for (var j = 0; j < files.length; j++) {
+        toFolder(files[j]);
+        var kk = +files[j].getAttribute("data-k"); got[kk]++;
+        (function (kq, n) { setTimeout(function () { if (t.on) { setCount(kq, n); } }, 420); })(kk, got[kk]);
+        await wait(300, t);
+      }
+      await wait(500, t);
+      tidy.classList.add("done");
+      files.forEach(function (f) { f.style.transition = "none"; f.style.transform = ""; });
+      void tidy.offsetWidth;
+      files.forEach(function (f) { f.style.transition = ""; });
+      ok.style.visibility = ""; undo.style.visibility = ""; msg.textContent = "Sorted, 6 items filed away";
+      await wait(1600, t);
+    }, tidyRest);
+  }
+
+  /* ---- C. wallpapers --------------------------------------------------- */
+  var wpScreen = $(".wp-screen"), wts = $$(".wt"), wpAt = 0, wpUser = 0;
+  function pickWall(i) {
+    wpAt = i;
+    wts.forEach(function (b, j) { b.setAttribute("aria-pressed", j === i ? "true" : "false"); });
+    flip(wpScreen, wts[i].getAttribute("data-w"));
+  }
+  wts.forEach(function (b, i) { b.addEventListener("click", function () { wpUser = Date.now() + 10000; if (i !== wpAt) { pickWall(i); } }); });
+  scene($(".v-wall"), async function (t) {
+    await wait(2600, t);
+    if (Date.now() < wpUser) { return; }
+    pickWall((wpAt + 1) % wts.length);
+  });
+
+  /* ---- D. the Dock ----------------------------------------------------- */
+  var dockEl = $(".dock"), chip = $(".dchip"), chipT = $(".dchip-t");
+  function say(text, icon) {
+    chip.classList.add("swap");
+    setTimeout(function () {
+      chipT.textContent = text;
+      chip.querySelector("use").setAttribute("href", icon);
+      chip.classList.remove("swap");
+    }, 220);
+  }
+  scene($(".v-dock"), async function (t) {
+    await wait(1500, t);
+    dockEl.classList.add("clean"); say("Taken out. Still installed.", "#i-check");
+    await wait(2800, t);
+    say("Put the Dock back", "#i-undo");
+    await wait(900, t);
+    dockEl.classList.remove("clean");
+    await wait(1700, t);
+    say("Dock saved first", "#i-check");
+    await wait(1200, t);
+  }, function () { dockEl.classList.remove("clean"); chipT.textContent = "Dock saved first"; chip.querySelector("use").setAttribute("href", "#i-check"); });
+
+  /* ---- E. ⌘K, typed ---------------------------------------------------- */
+  var pkT = $(".pk-t"), pkRows = $(".pk-rows");
+  var QUERIES = [
+    ["tidy", [["i-spark", "Tidy downloads", "action"], ["i-spark", "Tidy desktop", "action"], ["i-grid", "Downloads", "page"], ["i-file", "tidy-up-notes.txt", "file"]]],
+    ["wall", [["i-img", "Wallpaper", "page"], ["i-spark", "Next wallpaper", "action"], ["i-undo", "Original wallpaper", "action"], ["i-file", "wall-sketch.png", "file"]]],
+    ["dock", [["i-grid", "Dock", "page"], ["i-spark", "Clean the Dock", "action"], ["i-undo", "Put the Dock back", "action"], ["i-file", "dock-notes.md", "file"]]]
+  ];
+  function rows(list) {
+    pkRows.innerHTML = list.map(function (r, i) {
+      return '<li' + (i === 0 ? ' class="on"' : '') + '><svg class="ic"><use href="#' + r[0] + '"/></svg><span>' + r[1] + '</span><em>' + r[2] + '</em></li>';
+    }).join("");
+  }
+  var qAt = 0;
+  scene($(".v-k"), async function (t) {
+    await wait(2200, t);
+    var cur = pkT.textContent;
+    for (var i = cur.length; i > 0; i--) { pkT.textContent = cur.slice(0, i - 1); await wait(45, t); }
+    pkRows.style.opacity = ".35";
+    await wait(260, t);
+    qAt = (qAt + 1) % QUERIES.length;
+    var q = QUERIES[qAt][0];
+    for (var j = 1; j <= q.length; j++) { pkT.textContent = q.slice(0, j); await wait(90 + Math.random() * 70, t); }
+    rows(QUERIES[qAt][1]); pkRows.style.opacity = "";
+    await wait(700, t);
+    var li = $$("li", pkRows);
+    li[0].classList.remove("on"); li[1].classList.add("on");
+    await wait(600, t);
+    li[1].classList.remove("on"); li[0].classList.add("on");
+  }, function () { pkRows.style.opacity = ""; });
+
+  /* ---- F. free up space ----------------------------------------------- */
+  var frN = $(".fr-n"), frBar = $(".fr-bar i"), frL = $(".fr-l");
+  scene($(".v-free"), async function (t) {
+    frBar.style.setProperty("--p", "0%"); frN.textContent = "0 GB"; frL.textContent = "Measuring";
+    await wait(500, t);
+    frBar.style.setProperty("--p", "100%");
+    var start = Date.now();
+    while (Date.now() - start < 1300) {
+      var p = Math.min(1, (Date.now() - start) / 1300), e = 1 - Math.pow(1 - p, 3);
+      frN.textContent = (8.6 * e).toFixed(1) + " GB";
+      await wait(40, t);
+    }
+    frN.textContent = "8.6 GB"; frL.textContent = "Can go";
+    await wait(5200, t);
+  }, function () { frBar.style.setProperty("--p", "100%"); frN.textContent = "8.6 GB"; frL.textContent = "Can go"; });
+
+  /* ---- G. storage and startup ----------------------------------------- */
+  var bars = $(".bars"), su = $$(".su li");
+  scene($(".v-store"), async function (t) {
+    bars.classList.add("zero");
+    await wait(120, t);
+    bars.classList.remove("zero");
+    await wait(1900, t);
+    var a = su[0], b = su[1];
+    a.querySelector(".pill").classList.add("press"); await wait(160, t); a.querySelector(".pill").classList.remove("press");
+    a.classList.add("off"); a.querySelector("em").textContent = "login item · stopped";
+    a.querySelector(".pill").innerHTML = '<svg class="ic"><use href="#i-undo"/></svg>Undo';
+    await wait(1600, t);
+    b.querySelector(".pill").classList.add("press"); await wait(160, t); b.querySelector(".pill").classList.remove("press");
+    b.classList.remove("off"); b.querySelector("em").textContent = "background agent"; b.querySelector(".pill").textContent = "Stop";
+    await wait(2400, t);
+    a.classList.remove("off"); a.querySelector("em").textContent = "login item"; a.querySelector(".pill").textContent = "Stop";
+    b.classList.add("off"); b.querySelector("em").textContent = "background agent · stopped";
+    b.querySelector(".pill").innerHTML = '<svg class="ic"><use href="#i-undo"/></svg>Undo';
+    await wait(2600, t);
+  }, function () { bars.classList.remove("zero"); });
+
+  /* ---- send ------------------------------------------------------------ */
+  var rc = $(".route-card"), route = $(".route"), segs = $$(".seg button"), toEm = $(".route .to"), segUser = 0;
+  function mode(m) {
+    var near = m === "near";
+    rc.classList.toggle("near", near); route.classList.toggle("near", near);
+    segs.forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-mode") === m ? "true" : "false"); });
+    toEm.textContent = near ? "a Mac on the same network" : "opens it on their Mac";
+  }
+  segs.forEach(function (b) { b.addEventListener("click", function () { segUser = Date.now() + 15000; mode(b.getAttribute("data-mode")); }); });
+  scene(route, async function (t) {
+    route.classList.add("play");
+    await wait(10400, t);
+    if (Date.now() < segUser) { return; }
+    mode("near");
+    await wait(7200, t);
+    if (Date.now() < segUser) { return; }
+    mode("far");
+  }, function () { route.classList.remove("play"); });
+
+  /* ---- profile --------------------------------------------------------- */
+  var prof = $(".prof");
+  $$(".tg").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var on = b.getAttribute("aria-pressed") !== "true";
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      prof.classList.toggle("no-" + b.getAttribute("data-part"), !on);
+    });
+  });
+
+  /* ---- the terminal ---------------------------------------------------- */
+  var cmds = $$(".cmd"), pres = $$(".term pre"), term = $(".term"), termUser = 0, typed = {};
+  var cmdBox = document.getElementById("cmds");
+  if (cmdBox) {
+    cmdBox.setAttribute("role", "tablist"); cmdBox.setAttribute("aria-label", "Commands");
+    cmds.forEach(function (c) {
+      c.setAttribute("role", "tab"); c.setAttribute("aria-controls", c.getAttribute("data-t"));
+      c.id = "tab-" + c.getAttribute("data-t");
+      c.tabIndex = c.getAttribute("aria-selected") === "true" ? 0 : -1;
+    });
+    pres.forEach(function (p) { p.setAttribute("role", "tabpanel"); p.setAttribute("aria-labelledby", "tab-" + p.id); p.tabIndex = 0; });
+  }
+  function finish(p) {
+    $$(".ln", p).forEach(function (l) { l.classList.remove("hide"); });
+    var c = $(".c", p); if (c && c.getAttribute("data-full")) { c.textContent = c.getAttribute("data-full"); }
+  }
+  function show(id, focus) {
+    cmds.forEach(function (c) {
+      var on = c.getAttribute("data-t") === id;
+      c.setAttribute("aria-selected", on ? "true" : "false"); c.tabIndex = on ? 0 : -1;
+      if (on && focus) { c.focus(); }
+    });
+    pres.forEach(function (p) { p.classList.toggle("on", p.id === id); if (p.id !== id) { finish(p); } });
+  }
+  cmds.forEach(function (c, i) {
+    c.addEventListener("click", function () { termUser = Date.now() + 20000; show(c.getAttribute("data-t")); });
+    c.addEventListener("keydown", function (e) {
+      var d = e.key === "ArrowDown" || e.key === "ArrowRight" ? 1 : e.key === "ArrowUp" || e.key === "ArrowLeft" ? -1 : 0;
+      if (!d) { return; }
+      e.preventDefault(); termUser = Date.now() + 20000;
+      show(cmds[(i + d + cmds.length) % cmds.length].getAttribute("data-t"), true);
+    });
+  });
+  async function type(p, t) {
+    var lines = $$(".ln", p), c = $(".c", p);
+    var full = c.getAttribute("data-full") || c.textContent;
+    c.setAttribute("data-full", full);
+    lines.forEach(function (l, i) { if (i) { l.classList.add("hide"); } });
+    c.textContent = "";
+    try {
+      await wait(350, t);
+      for (var i = 1; i <= full.length; i++) { c.textContent = full.slice(0, i); await wait(34 + Math.random() * 46, t); }
+      await wait(380, t);
+      for (var j = 1; j < lines.length; j++) { lines[j].classList.remove("hide"); await wait(lines[j].textContent.trim() ? 48 : 120, t); }
+    } finally { finish(p); }
+  }
+  scene(term, async function (t) {
+    var p = $(".term pre.on");
+    if (!typed[p.id]) { typed[p.id] = 1; await type(p, t); }
+    await wait(5200, t);
+    if (Date.now() < termUser) { return; }
+    var i = pres.indexOf(p), n = pres[(i + 1) % pres.length];
+    show(n.id);
+    typed[n.id] = 1;
+    await type(n, t);
+  }, function () { pres.forEach(finish); }, 0.25);
+
+  /* ---- ⌘K on this page ------------------------------------------------- */
+  var pal = document.getElementById("pal"), palQ = document.getElementById("pal-q"), palL = document.getElementById("pal-l");
+  var ITEMS = [
+    ["What it does", "section", "#features", "i-grid"],
+    ["Hide the desktop files", "try it", function () { setHidden(!hidden); go("#f-hide"); }, "i-eyeoff"],
+    ["Tidy, by type", "section", "#f-tidy", "i-folder"],
+    ["Wallpapers", "section", "#f-wall", "i-img"],
+    ["Clean the Dock", "section", "#f-dock", "i-grid"],
+    ["Free up space", "section", "#f-free", "i-spark"],
+    ["Storage and startup", "section", "#f-store", "i-chart"],
+    ["Send to an @username", "section", "#send", "i-send"],
+    ["Public profile", "section", "#profile", "i-user"],
+    ["Promises", "section", "#promises", "i-shield"],
+    ["min, for the terminal", "section", "#terminal", "i-term"],
+    ["Download for Mac", "action", DL, "i-dl"],
+    ["Open on GitHub", "link", GH, "i-code"],
+    ["Join the list", "link", "join.html", "i-at"]
+  ];
+  var shown = [], sel = 0, opener = null;
+  function go(where) {
+    var el = document.querySelector(where);
+    if (el) { el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: where.indexOf("#f-") === 0 ? "center" : "start" }); }
+  }
+  function draw() {
+    var q = palQ.value.trim().toLowerCase();
+    shown = ITEMS.filter(function (it) { return !q || it[0].toLowerCase().indexOf(q) > -1 || it[1].indexOf(q) > -1; });
+    sel = Math.min(sel, Math.max(0, shown.length - 1));
+    palL.innerHTML = shown.length ? shown.map(function (it, i) {
+      return '<li role="option" id="po' + i + '" aria-selected="' + (i === sel) + '" data-i="' + i + '"><svg class="ic" aria-hidden="true"><use href="#' + it[3] + '"/></svg><span>' + it[0] + '</span><em>' + it[1] + '</em></li>';
+    }).join("") : '<li class="none" role="option" aria-disabled="true">Nothing here by that name</li>';
+    if (shown.length) { palQ.setAttribute("aria-activedescendant", "po" + sel); } else { palQ.removeAttribute("aria-activedescendant"); }
+  }
+  function mark(i) {
+    sel = i;
+    $$("li[role=option]", palL).forEach(function (li, j) { li.setAttribute("aria-selected", j === i ? "true" : "false"); });
+    var li = document.getElementById("po" + i); if (li) { li.scrollIntoView({ block: "nearest" }); }
+    palQ.setAttribute("aria-activedescendant", "po" + i);
+  }
+  function choose(i) {
+    var it = shown[i]; if (!it) { return; }
+    pal.close();
+    if (typeof it[2] === "function") { it[2](); }
+    else if (it[2].charAt(0) === "#") { go(it[2]); }
+    else { window.location.href = it[2]; }
+  }
+  function openPal() {
+    if (!pal || pal.open || typeof pal.showModal !== "function") { return; }
+    opener = document.activeElement;
+    palQ.value = ""; sel = 0; draw();
+    pal.showModal(); palQ.focus();
+  }
+  if (pal) {
+    palQ.addEventListener("input", function () { sel = 0; draw(); });
+    palQ.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (shown.length) { mark((sel + (e.key === "ArrowDown" ? 1 : -1) + shown.length) % shown.length); }
+      } else if (e.key === "Enter") { e.preventDefault(); choose(sel); }
+    });
+    palL.addEventListener("click", function (e) { var li = e.target.closest("li[data-i]"); if (li) { choose(+li.getAttribute("data-i")); } });
+    palL.addEventListener("mousemove", function (e) { var li = e.target.closest("li[data-i]"); if (li && +li.getAttribute("data-i") !== sel) { mark(+li.getAttribute("data-i")); } });
+    pal.addEventListener("click", function (e) { if (e.target === pal) { pal.close(); } });
+    pal.addEventListener("close", function () { if (opener && opener.focus && document.contains(opener)) { opener.focus({ preventScroll: true }); } });
+    $$("[data-pal]").forEach(function (b) { b.addEventListener("click", openPal); });
+    document.addEventListener("keydown", function (e) {
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && (e.key === "k" || e.key === "K")) { e.preventDefault(); if (pal.open) { pal.close(); } else { openPal(); } }
+    });
+    if (!/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) {
+      $$(".kbtn kbd, .c-k .try kbd").forEach(function (k) { k.textContent = "Ctrl K"; });
+    }
+  }
+
+  /* ---- the pointer's light on the cards -------------------------------- */
+  if (window.matchMedia("(hover: hover)").matches) {
+    $$(".card").forEach(function (c) {
+      c.addEventListener("pointermove", function (e) {
+        var r = c.getBoundingClientRect();
+        c.style.setProperty("--mx", (e.clientX - r.left) + "px");
+        c.style.setProperty("--my", (e.clientY - r.top) + "px");
+      });
+    });
+  }
+
+  /* ---- the bar along the top ------------------------------------------- */
+  var nav = $(".nav");
+  function onScroll() { nav.classList.toggle("scrolled", window.scrollY > 8); }
+  window.addEventListener("scroll", onScroll, { passive: true }); onScroll();
+
+  /* ---- arriving as you scroll ------------------------------------------
+     Nothing is hidden until somebody scrolls. Then whatever is still below
+     the fold waits for its turn; anything already in view stays put. */
+  if (!reduce && "IntersectionObserver" in window) {
+    var armed = false;
+    var arm = function () {
+      if (armed) { return; }
+      armed = true;
+      window.removeEventListener("scroll", arm);
+      var vh = window.innerHeight;
+      var io = new IntersectionObserver(function (list) {
+        list.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+      }, { rootMargin: "0px 0px -6% 0px" });
+      $$(".bento, .promises").forEach(function (g) { $$("[data-reveal]", g).forEach(function (el, i) { el.style.setProperty("--i", i % 3); }); });
+      $$("[data-reveal]").forEach(function (el) {
+        if (el.getBoundingClientRect().top < vh + 40) { el.classList.add("in"); } else { io.observe(el); }
+      });
+      doc.classList.add("armed");
+    };
+    window.addEventListener("scroll", arm, { passive: true });
+  }
+})();
 </script>
 </body>
 </html>

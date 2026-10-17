@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kliner Guard — the shapes</title>
+<style>
+:root { --ground:#f6f6f4; --ink:#161614; --dim:#6e6e68; --faint:#9a9a94; --line:#e0e0da; --rule:#c9c9c2; color-scheme: light dark; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme=light]) {
+    --ground:#0e0e0d; --ink:#f0f0ec; --dim:#8c8c85; --faint:#63635d; --line:#232321; --rule:#34342f; } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--ground); color:var(--ink); font:15px/1.55 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; font-variant-numeric: tabular-nums; }
+.wrap { max-width:760px; margin:0 auto; padding-inline:clamp(16px,4vw,40px); padding-block:0 80px; }
+header { display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; padding-block:28px 18px; border-bottom:1px solid var(--ink); }
+.mark { font-size:15px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; margin:0; }
+#status { font-size:13px; color:var(--dim); }
+h1.lead { font-size:clamp(22px,4vw,30px); line-height:1.25; font-weight:400; letter-spacing:-.015em; margin:44px 0 0; text-wrap:balance; }
+p.note { color:var(--dim); max-width:60ch; margin-top:14px; }
+h2 { font-size:11px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin:44px 0 4px; padding-bottom:8px; border-bottom:1px solid var(--line); }
+.row { display:grid; grid-template-columns:1fr auto; gap:16px; align-items:baseline; padding-block:13px; border-bottom:1px solid var(--line); }
+.row .what { font-size:16px; }
+.row .sub { color:var(--dim); font-size:13px; margin-top:3px; }
+button { appearance:none; background:none; border:1px solid var(--rule); border-radius:2px; padding:6px 13px; font:inherit; font-size:13px; color:var(--ink); cursor:pointer; white-space:nowrap; }
+button:hover { border-color:var(--ink); }
+#log { margin-top:14px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; color:var(--dim); white-space:pre-wrap; word-break:break-word; min-height:2.6em; }
+footer { margin-top:56px; padding-top:18px; border-top:1px solid var(--line); color:var(--faint); font-size:12px; }
+@media (max-width:520px) { .row { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <h1 class="mark">Kliner Guard</h1>
+        <span id="status">looking for the extension…</span>
+    </header>
+
+    <h1 class="lead">These are the requests that empty wallets. Fire one and see what your wallet would have shown you.</h1>
+    <p class="note">This page pretends to be a wallet. Nothing here touches a chain, nothing is signed, and no real
+    funds exist anywhere in it. With Kliner Guard installed, each button is read before it is allowed through.</p>
+
+    <h2>Transactions</h2>
+    <div id="txs"></div>
+
+    <h2>Signatures &mdash; no gas, no record, nothing to notice afterwards</h2>
+    <div id="sigs"></div>
+
+    <h2>What the pretend wallet received</h2>
+    <div id="log">nothing yet</div>
+
+    <footer>A demonstration. Kliner Guard reads requests on your own machine and never sends them anywhere.</footer>
+</div>
+
+<script>
+// The same shapes the test suite uses, frozen for the demo page.
+const REQUESTS = {
+  "unlimitedApprove": {
+    "method": "eth_sendTransaction",
+    "params": [
+      {
+        "from": "0x1111111111111111111111111111111111111111",
+        "value": "0x0",
+        "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "data": "0x095ea7b3000000000000000000000000badc0ffee0ddf00d1234567890abcdef12345678ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    ]
+  },
+  "boundedApprove": {
+    "method": "eth_sendTransaction",
+    "params": [
+      {
+        "from": "0x1111111111111111111111111111111111111111",
+        "value": "0x0",
+        "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "data": "0x095ea7b30000000000000000000000007a250d5630b4cf539739df2c5dacb4c659f2488d0000000000000000000000000000000000000000000000000000000005f5e100"
+      }
+    ]
+  },
+  "revokeApprove": {
+    "method": "eth_sendTransaction",
+    "params": [
+      {
+        "from": "0x1111111111111111111111111111111111111111",
+        "value": "0x0",
+        "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "data": "0x095ea7b30000000000000000000000007a250d5630b4cf539739df2c5dacb4c659f2488d0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    ]
+  },
+  "approveAll": {
+    "method": "eth_sendTransaction",
+    "params": [
+      {
+        "from": "0x1111111111111111111111111111111111111111",
+        "value": "0x0",
+        "to": "0x3333333333333333333333333333333333333333",
+        "data": "0xa22cb465000000000000000000000000badc0ffee0ddf00d1234567890abcdef123456780000000000000000000000000000000000000000000000000000000000000001"
+      }
+    ]
+  },
+  "revokeAll": {
+    "method": "eth_sendTransaction",
+    "params": [
+      {
+        "from": "0x1111111111111111111111111111111111111111",
+        "value": "0x0",
+        "to": "0x3333333333333333333333333333333333333333",
+        "data": "0xa22cb4650000000000000000000000007a250d5630b4cf539739df2c5dacb4c659f2488d0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    ]
+  },
+  "permit2Approve": {
+    "method": "eth_sendTransaction",
+    "params": [
+      {
+        "from": "0x1111111111111111111111111111111111111111",
+        "value": "0x0",
+        "to": "0x000000000022d473030f116ddee9f6b43ac78ba3",
+        "data": "0x87517c45000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000badc0ffee0ddf00d1234567890abcdef12345678000000000000000000000000ffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000000ffffffffffff"
+      }
+    ]
+  },
+  "plainSend": {
+    "method": "eth_sendTransaction",
+    "params": [
+      {
+        "from": "0x1111111111111111111111111111111111111111",
+        "value": "0x1bc16d674ec80000",
+        "to": "0x5555555555555555555555555555555555555555"
+      }
+    ]
+  },
+  "transfer": {
+    "method": "eth_sendTransaction",
+    "params": [
+      {
+        "from": "0x1111111111111111111111111111111111111111",
+        "value": "0x0",
+        "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "data": "0xa9059cbb00000000000000000000000055555555555555555555555555555555555555550000000000000000000000000000000000000000000000000000000002faf080"
+      }
+    ]
+  },
+  "pullFromYou": {
+    "method": "eth_sendTransaction",
+    "params": [
+      {
+        "from": "0x1111111111111111111111111111111111111111",
+        "value": "0x0",
+        "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "data": "0x23b872dd0000000000000000000000001111111111111111111111111111111111111111000000000000000000000000badc0ffee0ddf00d1234567890abcdef123456780000000000000000000000000000000000000000000000000000000035a4e900"
+      }
+    ]
+  },
+  "bundle": {
+    "method": "eth_sendTransaction",
+    "params": [
+      {
+        "from": "0x1111111111111111111111111111111111111111",
+        "value": "0x0",
+        "to": "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",
+        "data": "0xac9650d80000000000000000000000000000000000000000000000000000000000000020"
+      }
+    ]
+  },
+  "unknownCall": {
+    "method": "eth_sendTransaction",
+    "params": [
+      {
+        "from": "0x1111111111111111111111111111111111111111",
+        "value": "0x0",
+        "to": "0xbadc0ffee0ddf00d1234567890abcdef12345678",
+        "data": "0xdeadbeef0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    ]
+  },
+  "ownership": {
+    "method": "eth_sendTransaction",
+    "params": [
+      {
+        "from": "0x1111111111111111111111111111111111111111",
+        "value": "0x0",
+        "to": "0x3333333333333333333333333333333333333333",
+        "data": "0xf2fde38b000000000000000000000000badc0ffee0ddf00d1234567890abcdef12345678"
+      }
+    ]
+  },
+  "permitUnlimited": {
+    "method": "eth_signTypedData_v4",
+    "params": [
+      "0x1111111111111111111111111111111111111111",
+      "{\"primaryType\":\"Permit\",\"domain\":{\"name\":\"USD Coin\",\"version\":\"2\",\"chainId\":1,\"verifyingContract\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\"},\"types\":{\"Permit\":[{\"name\":\"owner\",\"type\":\"address\"},{\"name\":\"spender\",\"type\":\"address\"},{\"name\":\"value\",\"type\":\"uint256\"},{\"name\":\"nonce\",\"type\":\"uint256\"},{\"name\":\"deadline\",\"type\":\"uint256\"}]},\"message\":{\"owner\":\"0x1111111111111111111111111111111111111111\",\"spender\":\"0xbadc0ffee0ddf00d1234567890abcdef12345678\",\"value\":\"115792089237316195423570985008687907853269984665640564039457584007913129639935\",\"nonce\":\"3\",\"deadline\":\"99999999999\"}}"
+    ]
+  },
+  "permitBounded": {
+    "method": "eth_signTypedData_v4",
+    "params": [
+      "0x1111111111111111111111111111111111111111",
+      "{\"primaryType\":\"Permit\",\"domain\":{\"name\":\"USD Coin\",\"version\":\"2\",\"chainId\":1,\"verifyingContract\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\"},\"types\":{\"Permit\":[]},\"message\":{\"owner\":\"0x1111111111111111111111111111111111111111\",\"spender\":\"0x7a250d5630b4cf539739df2c5dacb4c659f2488d\",\"value\":\"250000000\",\"nonce\":\"1\",\"deadline\":\"1789330031\"}}"
+    ]
+  },
+  "permit2Single": {
+    "method": "eth_signTypedData_v4",
+    "params": [
+      "0x1111111111111111111111111111111111111111",
+      "{\"primaryType\":\"PermitSingle\",\"domain\":{\"name\":\"Permit2\",\"chainId\":1,\"verifyingContract\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"},\"types\":{\"PermitSingle\":[]},\"message\":{\"details\":{\"token\":\"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2\",\"amount\":\"1461501637330902918203684832716283019655932542975\",\"expiration\":\"281474976710655\",\"nonce\":\"0\"},\"spender\":\"0xbadc0ffee0ddf00d1234567890abcdef12345678\",\"sigDeadline\":\"281474976710655\"}}"
+    ]
+  },
+  "permit2Batch": {
+    "method": "eth_signTypedData_v4",
+    "params": [
+      "0x1111111111111111111111111111111111111111",
+      "{\"primaryType\":\"PermitBatch\",\"domain\":{\"name\":\"Permit2\",\"chainId\":1,\"verifyingContract\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\"},\"types\":{\"PermitBatch\":[]},\"message\":{\"details\":[{\"token\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"amount\":\"1461501637330902918203684832716283019655932542975\",\"expiration\":\"281474976710655\",\"nonce\":\"0\"},{\"token\":\"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2\",\"amount\":\"1461501637330902918203684832716283019655932542975\",\"expiration\":\"281474976710655\",\"nonce\":\"0\"},{\"token\":\"0x3333333333333333333333333333333333333333\",\"amount\":\"1000\",\"expiration\":\"1900000000\",\"nonce\":\"0\"}],\"spender\":\"0xbadc0ffee0ddf00d1234567890abcdef12345678\",\"sigDeadline\":\"281474976710655\"}}"
+    ]
+  },
+  "orderForNothing": {
+    "method": "eth_signTypedData_v4",
+    "params": [
+      "0x1111111111111111111111111111111111111111",
+      "{\"primaryType\":\"OrderComponents\",\"domain\":{\"name\":\"Seaport\",\"version\":\"1.6\",\"chainId\":1,\"verifyingContract\":\"0x0000000000000068f116a894984e2db1123eb395\"},\"types\":{\"OrderComponents\":[]},\"message\":{\"offerer\":\"0x1111111111111111111111111111111111111111\",\"offer\":[{\"itemType\":2,\"token\":\"0x3333333333333333333333333333333333333333\",\"identifierOrCriteria\":\"88\",\"startAmount\":\"1\",\"endAmount\":\"1\"}],\"consideration\":[{\"itemType\":0,\"token\":\"0x0000000000000000000000000000000000000000\",\"identifierOrCriteria\":\"0\",\"startAmount\":\"0\",\"endAmount\":\"0\",\"recipient\":\"0x1111111111111111111111111111111111111111\"}],\"endTime\":\"99999999999\"}}"
+    ]
+  },
+  "orderWildcard": {
+    "method": "eth_signTypedData_v4",
+    "params": [
+      "0x1111111111111111111111111111111111111111",
+      "{\"primaryType\":\"OrderComponents\",\"domain\":{\"name\":\"Seaport\",\"version\":\"1.6\",\"chainId\":1,\"verifyingContract\":\"0x0000000000000068f116a894984e2db1123eb395\"},\"types\":{\"OrderComponents\":[]},\"message\":{\"offerer\":\"0x1111111111111111111111111111111111111111\",\"offer\":[{\"itemType\":4,\"token\":\"0x3333333333333333333333333333333333333333\",\"identifierOrCriteria\":\"0\",\"startAmount\":\"1\",\"endAmount\":\"1\"}],\"consideration\":[{\"itemType\":0,\"token\":\"0x0000000000000000000000000000000000000000\",\"identifierOrCriteria\":\"0\",\"startAmount\":\"1\",\"endAmount\":\"1\",\"recipient\":\"0x1111111111111111111111111111111111111111\"}],\"endTime\":\"99999999999\"}}"
+    ]
+  },
+  "orderNormal": {
+    "method": "eth_signTypedData_v4",
+    "params": [
+      "0x1111111111111111111111111111111111111111",
+      "{\"primaryType\":\"OrderComponents\",\"domain\":{\"name\":\"Seaport\",\"version\":\"1.6\",\"chainId\":1,\"verifyingContract\":\"0x0000000000000068f116a894984e2db1123eb395\"},\"types\":{\"OrderComponents\":[]},\"message\":{\"offerer\":\"0x1111111111111111111111111111111111111111\",\"offer\":[{\"itemType\":2,\"token\":\"0x3333333333333333333333333333333333333333\",\"identifierOrCriteria\":\"88\",\"startAmount\":\"1\",\"endAmount\":\"1\"}],\"consideration\":[{\"itemType\":0,\"token\":\"0x0000000000000000000000000000000000000000\",\"identifierOrCriteria\":\"0\",\"startAmount\":\"3000000000000000000\",\"endAmount\":\"3000000000000000000\",\"recipient\":\"0x1111111111111111111111111111111111111111\"},{\"itemType\":0,\"token\":\"0x0000000000000000000000000000000000000000\",\"identifierOrCriteria\":\"0\",\"startAmount\":\"75000000000000000\",\"endAmount\":\"75000000000000000\",\"recipient\":\"0x7a250d5630b4cf539739df2c5dacb4c659f2488d\"}],\"endTime\":\"1789414631\"}}"
+    ]
+  },
+  "wrongChainPermit": {
+    "method": "eth_signTypedData_v4",
+    "params": [
+      "0x1111111111111111111111111111111111111111",
+      "{\"primaryType\":\"Permit\",\"domain\":{\"name\":\"USD Coin\",\"chainId\":137,\"verifyingContract\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\"},\"types\":{\"Permit\":[]},\"message\":{\"owner\":\"0x1111111111111111111111111111111111111111\",\"spender\":\"0xbadc0ffee0ddf00d1234567890abcdef12345678\",\"value\":\"115792089237316195423570985008687907853269984665640564039457584007913129639935\",\"nonce\":\"0\",\"deadline\":\"99999999999\"}}"
+    ]
+  },
+  "blindSign": {
+    "method": "eth_sign",
+    "params": [
+      "0x1111111111111111111111111111111111111111",
+      "0xabababababababababababababababababababababababababababababababab"
+    ]
+  },
+  "loginMessage": {
+    "method": "personal_sign",
+    "params": [
+      "0x6578616d706c652e636f6d2077616e747320796f7520746f207369676e20696e207769746820796f757220457468657265756d206163636f756e742e",
+      "0x1111111111111111111111111111111111111111"
+    ]
+  },
+  "structuredMessage": {
+    "method": "personal_sign",
+    "params": [
+      "0x7b227370656e646572223a22307862616463306666656530646466303064313233343536373839306162636465663132333435363738222c2276616c7565223a22756e6c696d69746564227d",
+      "0x1111111111111111111111111111111111111111"
+    ]
+  },
+  "binaryMessage": {
+    "method": "personal_sign",
+    "params": [
+      "0xfffefdfc",
+      "0x1111111111111111111111111111111111111111"
+    ]
+  }
+};
+
+
+const LABELS = {
+    unlimitedApprove: ['An unlimited allowance', 'approve(drainer, max) — the classic'],
+    boundedApprove:   ['A normal allowance', 'approve(router, 100 USDC) — what a real swap asks for'],
+    revokeApprove:    ['Taking one back', 'approve(router, 0)'],
+    approveAll:       ['A whole collection', 'setApprovalForAll(drainer, true)'],
+    permit2Approve:   ['Permit2, maxed out', 'approve(USDC, drainer, max, never expires)'],
+    pullFromYou:      ['Pulling from you', 'transferFrom(you, drainer, 900 USDC)'],
+    bundle:           ['Several things at once', 'multicall(...)'],
+    unknownCall:      ['Something nobody can read', 'an unknown selector'],
+    ownership:        ['Giving a contract away', 'transferOwnership(drainer)'],
+    plainSend:        ['An ordinary send', '2 ETH to a friend'],
+
+    permitUnlimited:  ['A signed allowance', 'Permit — every USDC you hold, forever'],
+    permitBounded:    ['A normal signed allowance', 'Permit — 250 USDC, expires in half an hour'],
+    permit2Single:    ['Permit2, signed', 'PermitSingle — max amount, max expiry'],
+    permit2Batch:     ['Three tokens in one signature', 'PermitBatch'],
+    orderForNothing:  ['Selling your NFT for nothing', 'Seaport order, zero consideration'],
+    orderWildcard:    ['Any item you own', 'Seaport order against a whole collection'],
+    orderNormal:      ['An ordinary listing', 'Seaport — one NFT for 3 ETH'],
+    wrongChainPermit: ['Built for another chain', 'Permit with a Polygon domain'],
+    blindSign:        ['A blind signature', 'eth_sign on raw bytes'],
+    loginMessage:     ['Signing in', 'personal_sign on plain text'],
+    structuredMessage:['JSON through the message door', 'personal_sign on structured data'],
+};
+
+const TX = ['unlimitedApprove','boundedApprove','revokeApprove','approveAll','permit2Approve','pullFromYou','bundle','unknownCall','ownership','plainSend'];
+const SIG = ['permitUnlimited','permitBounded','permit2Single','permit2Batch','orderForNothing','orderWildcard','orderNormal','wrongChainPermit','blindSign','loginMessage','structuredMessage'];
+
+// A pretend wallet. It records what it is handed and signs nothing.
+const received = [];
+const provider = {
+    isMetaMask: false,
+    selectedAddress: '0x1111111111111111111111111111111111111111',
+    chainId: '0x1',
+    request(args) {
+        received.push(JSON.parse(JSON.stringify(args)));
+        return Promise.resolve('0x' + '00'.repeat(32));
+    },
+};
+window.ethereum = provider;
+window.__received = received;
+
+const log = document.getElementById('log');
+
+function build(host, names) {
+    for (const name of names) {
+        const [title, sub] = LABELS[name] || [name, ''];
+        const row = document.createElement('div');
+        row.className = 'row';
+        const left = document.createElement('div');
+        const t = document.createElement('div'); t.className = 'what'; t.textContent = title;
+        const s = document.createElement('div'); s.className = 'sub'; s.textContent = sub;
+        left.append(t, s);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.shape = name;
+        button.textContent = 'Fire it';
+        button.addEventListener('click', () => fire(name));
+        row.append(left, button);
+        host.appendChild(row);
+    }
+}
+
+async function fire(name) {
+    const request = REQUESTS[name];
+    const before = received.length;
+    const sent = JSON.stringify(request);
+    log.textContent = 'asked: ' + name + '…';
+    try {
+        await window.ethereum.request({ method: request.method, params: request.params });
+        const got = received[received.length - 1];
+        const unchanged = JSON.stringify({ method: got.method, params: got.params }) === sent;
+        log.textContent = 'SIGNED  ' + name + '\nthe wallet received it ' +
+            (unchanged ? 'exactly as the site sent it' : 'ALTERED — that would be a bug');
+        window.__lastUnchanged = unchanged;
+    } catch (error) {
+        const reached = received.length > before;
+        log.textContent = 'STOPPED  ' + name + '\n' + (error && error.message) +
+            '\nthe wallet was ' + (reached ? 'still asked — that would be a bug' : 'never asked');
+        window.__lastReached = reached;
+    }
+}
+
+build(document.getElementById('txs'), TX);
+build(document.getElementById('sigs'), SIG);
+
+// Kliner Guard sets no global and leaves no mark on the page on purpose: a
+// drainer that can detect the guard is a drainer that behaves itself until the
+// guard is gone. So this page does not claim to know. Fire one and find out.
+document.getElementById('status').textContent = 'fire one and see whether a panel appears';
+</script>
+</body>
+</html>
