@@ -1,0 +1,45 @@
+# Kliner Cloud: one Worker for the JSON API (/v1/...) and the public
+# profile pages (/@name). See ../SPEC.md for the contract and README.md
+# for how to deploy (./deploy.sh does everything below for you).
+
+name = "kliner-api"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+# Keep the *.workers.dev address on even after routes are added: wrangler
+# turns it off by default as soon as a config has routes.
+workers_dev = true
+
+[vars]
+PUBLIC_URL = "https://kliner.app"
+MAX_BYTES = "5368709120"   # 5 GiB of ciphertext per transfer
+TRANSFER_DAYS = "7"
+MAX_PENDING = "20"         # uploading/ready transfers a sender may have at once
+
+[[d1_databases]]
+binding = "DB"
+database_name = "kliner"
+database_id = "5a34795f-e289-4643-8a82-35ff48e1031f"   # deploy.sh writes the real id here
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "kliner-transfers"
+
+[triggers]
+crons = ["17 * * * *"]   # hourly cleanup: expire transfers, drop old rows
+
+# --- Domain routes: OFF by default ------------------------------------------
+# A Cloudflare account without the kliner.app zone cannot deploy these, so
+# they stay commented out here. When the account has the zone, deploy.sh
+# copies this file to wrangler.domain.toml with the lines between the two
+# markers uncommented, and deploys that copy (`wrangler deploy -c
+# wrangler.domain.toml`). This file stays the single source of truth.
+# [[routes]] tables may sit anywhere in TOML, so the block can live here.
+# >>> domain routes
+# [[routes]]
+# pattern = "api.kliner.app"
+# custom_domain = true
+#
+# [[routes]]
+# pattern = "kliner.app/@*"
+# zone_name = "kliner.app"
+# <<< domain routes

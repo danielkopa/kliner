@@ -1,0 +1,9 @@
+beta-codes.local.txt
+node_modules/
+.wrangler/
+.dev.vars
+# Unsalted hashes of short codes can be brute-forced, so keep the SQL private too
+# (gen-codes.mjs rebuilds it from beta-codes.local.txt at any time).
+beta-codes.sql
+# Written by deploy.sh from wrangler.toml when kliner.app is on the account.
+wrangler.domain.toml
